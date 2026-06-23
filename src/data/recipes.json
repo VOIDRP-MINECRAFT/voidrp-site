@@ -1,0 +1,6292 @@
+{
+  "recipes": [
+    {
+      "type": "shaped",
+      "output": "kubejs:resonant_circuit",
+      "output_count": 1,
+      "pattern": [
+        "FQF",
+        "QCQ",
+        "FQF"
+      ],
+      "keys": {
+        "F": "ae2:fluix_crystal",
+        "Q": "ae2:certus_quartz_crystal",
+        "C": "kubejs:logistical_circuit"
+      },
+      "category": "AE2",
+      "source": "10_ae2_bridge.js"
+    },
+    {
+      "type": "shaped",
+      "output": "ae2:charger",
+      "output_count": 1,
+      "pattern": [
+        "IFI",
+        "CRC",
+        "IFI"
+      ],
+      "keys": {
+        "I": "create:iron_sheet",
+        "F": "ae2:fluix_crystal",
+        "C": "kubejs:engineering_circuit",
+        "R": "kubejs:resonant_circuit"
+      },
+      "category": "AE2",
+      "source": "10_ae2_bridge.js"
+    },
+    {
+      "type": "shaped",
+      "output": "ae2:inscriber",
+      "output_count": 1,
+      "pattern": [
+        "PFP",
+        "CRC",
+        "PFP"
+      ],
+      "keys": {
+        "P": "create:brass_sheet",
+        "F": "ae2:fluix_crystal",
+        "C": "kubejs:precision_mechanism_core",
+        "R": "kubejs:resonant_circuit"
+      },
+      "category": "AE2",
+      "source": "10_ae2_bridge.js"
+    },
+    {
+      "type": "shaped",
+      "output": "ae2:cell_component_1k",
+      "output_count": 1,
+      "pattern": [
+        "RQR",
+        "SCS",
+        "RQR"
+      ],
+      "keys": {
+        "R": "minecraft:redstone",
+        "Q": "ae2:certus_quartz_crystal",
+        "S": "ae2:printed_silicon",
+        "C": "kubejs:resonant_circuit"
+      },
+      "category": "AE2",
+      "source": "10_ae2_bridge.js"
+    },
+    {
+      "type": "shaped",
+      "output": "ae2:cell_component_4k",
+      "output_count": 1,
+      "pattern": [
+        "AFA",
+        "FRF",
+        "AFA"
+      ],
+      "keys": {
+        "A": "ae2:cell_component_1k",
+        "F": "ae2:fluix_dust",
+        "R": "kubejs:resonant_circuit"
+      },
+      "category": "AE2",
+      "source": "10_ae2_bridge.js"
+    },
+    {
+      "type": "shaped",
+      "output": "ae2:cell_component_16k",
+      "output_count": 1,
+      "pattern": [
+        "AFA",
+        "FRF",
+        "AFA"
+      ],
+      "keys": {
+        "A": "ae2:cell_component_4k",
+        "F": "ae2:fluix_dust",
+        "R": "kubejs:resonant_circuit"
+      },
+      "category": "AE2",
+      "source": "10_ae2_bridge.js"
+    },
+    {
+      "type": "shaped",
+      "output": "ae2:cell_component_64k",
+      "output_count": 1,
+      "pattern": [
+        "AFA",
+        "FQF",
+        "AFA"
+      ],
+      "keys": {
+        "A": "ae2:cell_component_16k",
+        "F": "ae2:fluix_dust",
+        "Q": "kubejs:quantum_circuit"
+      },
+      "category": "AE2",
+      "source": "10_ae2_bridge.js"
+    },
+    {
+      "type": "shaped",
+      "output": "kubejs:quantum_circuit",
+      "output_count": 1,
+      "pattern": [
+        "UEU",
+        "ERE",
+        "UEU"
+      ],
+      "keys": {
+        "U": "mekanism:ultimate_control_circuit",
+        "E": "ae2:engineering_processor",
+        "R": "kubejs:resonant_circuit"
+      },
+      "category": "AE2",
+      "source": "10_ae2_bridge.js"
+    },
+    {
+      "type": "shaped",
+      "output": "ae2:drive",
+      "output_count": 1,
+      "pattern": [
+        "IRI",
+        "RFR",
+        "IRI"
+      ],
+      "keys": {
+        "I": "create:brass_sheet",
+        "R": "kubejs:resonant_circuit",
+        "F": "kubejs:steel_machine_frame"
+      },
+      "category": "AE2",
+      "source": "10_ae2_bridge.js"
+    },
+    {
+      "type": "shaped",
+      "output": "ae2:controller",
+      "output_count": 1,
+      "pattern": [
+        "FQF",
+        "QCQ",
+        "FQF"
+      ],
+      "keys": {
+        "F": "ae2:fluix_crystal",
+        "Q": "kubejs:quantum_circuit",
+        "C": "kubejs:boss_seal"
+      },
+      "category": "AE2",
+      "source": "10_ae2_bridge.js"
+    },
+    {
+      "type": "shaped",
+      "output": "kubejs:ae_logic_array",
+      "output_count": 1,
+      "pattern": [
+        "LCL",
+        "CRC",
+        "LCL"
+      ],
+      "keys": {
+        "L": "ae2:logic_processor",
+        "C": "ae2:fluix_crystal",
+        "R": "kubejs:resonant_circuit"
+      },
+      "category": "AE2",
+      "source": "20_ae2_storage_autocrafting.js"
+    },
+    {
+      "type": "shaped",
+      "output": "kubejs:ae_calculation_array",
+      "output_count": 1,
+      "pattern": [
+        "LCL",
+        "CRC",
+        "LCL"
+      ],
+      "keys": {
+        "L": "ae2:calculation_processor",
+        "C": "ae2:fluix_crystal",
+        "R": "kubejs:resonant_circuit"
+      },
+      "category": "AE2",
+      "source": "20_ae2_storage_autocrafting.js"
+    },
+    {
+      "type": "shaped",
+      "output": "kubejs:ae_engineering_array",
+      "output_count": 1,
+      "pattern": [
+        "LCL",
+        "CRC",
+        "LCL"
+      ],
+      "keys": {
+        "L": "ae2:engineering_processor",
+        "C": "ae2:fluix_crystal",
+        "R": "kubejs:resonant_circuit"
+      },
+      "category": "AE2",
+      "source": "20_ae2_storage_autocrafting.js"
+    },
+    {
+      "type": "shaped",
+      "output": "kubejs:autocrafting_core",
+      "output_count": 1,
+      "pattern": [
+        "LEL",
+        "EHE",
+        "LCL"
+      ],
+      "keys": {
+        "L": "kubejs:ae_logic_array",
+        "E": "kubejs:ae_engineering_array",
+        "C": "kubejs:ae_calculation_array",
+        "H": "kubejs:heavy_engineering_core"
+      },
+      "category": "AE2",
+      "source": "20_ae2_storage_autocrafting.js"
+    },
+    {
+      "type": "shaped",
+      "output": "kubejs:wireless_matrix",
+      "output_count": 1,
+      "pattern": [
+        "EFE",
+        "FQF",
+        "EFE"
+      ],
+      "keys": {
+        "E": "ae2:ender_dust",
+        "F": "ae2:fluix_pearl",
+        "Q": "kubejs:quantum_circuit"
+      },
+      "category": "AE2",
+      "source": "20_ae2_storage_autocrafting.js"
+    },
+    {
+      "type": "shaped",
+      "output": "kubejs:singularity_core",
+      "output_count": 1,
+      "pattern": [
+        "SQS",
+        "QDQ",
+        "SQS"
+      ],
+      "keys": {
+        "S": "ae2:singularity",
+        "Q": "kubejs:quantum_circuit",
+        "D": "kubejs:dark_core"
+      },
+      "category": "AE2",
+      "source": "20_ae2_storage_autocrafting.js"
+    },
+    {
+      "type": "shaped",
+      "output": "kubejs:spatial_core",
+      "output_count": 1,
+      "pattern": [
+        "PQP",
+        "QDQ",
+        "PQP"
+      ],
+      "keys": {
+        "P": "ae2:spatial_storage_cell_2",
+        "Q": "kubejs:quantum_circuit",
+        "D": "kubejs:dimensional_convergence_core"
+      },
+      "category": "AE2",
+      "source": "20_ae2_storage_autocrafting.js"
+    },
+    {
+      "type": "shaped",
+      "output": "kubejs:ultimate_storage_core",
+      "output_count": 1,
+      "pattern": [
+        "ABA",
+        "BCB",
+        "ABA"
+      ],
+      "keys": {
+        "A": "ae2:cell_component_4k",
+        "B": "ae2:cell_component_64k",
+        "C": "kubejs:quantum_circuit"
+      },
+      "category": "AE2",
+      "source": "20_ae2_storage_autocrafting.js"
+    },
+    {
+      "type": "shaped",
+      "output": "ae2:cell_component_256k",
+      "output_count": 1,
+      "pattern": [
+        "AFA",
+        "FQF",
+        "AFA"
+      ],
+      "keys": {
+        "A": "ae2:cell_component_64k",
+        "F": "ae2:fluix_dust",
+        "Q": "kubejs:ultimate_storage_core"
+      },
+      "category": "AE2",
+      "source": "20_ae2_storage_autocrafting.js"
+    },
+    {
+      "type": "shaped",
+      "output": "ae2:item_storage_cell_1k",
+      "output_count": 1,
+      "pattern": [
+        "QGQ",
+        "GCG",
+        "QGQ"
+      ],
+      "keys": {
+        "Q": "ae2:certus_quartz_crystal",
+        "G": "minecraft:glass",
+        "C": "ae2:cell_component_1k"
+      },
+      "category": "AE2",
+      "source": "20_ae2_storage_autocrafting.js"
+    },
+    {
+      "type": "shaped",
+      "output": "ae2:item_storage_cell_4k",
+      "output_count": 1,
+      "pattern": [
+        "QGQ",
+        "GCG",
+        "QGQ"
+      ],
+      "keys": {
+        "Q": "ae2:fluix_crystal",
+        "G": "minecraft:glass",
+        "C": "ae2:cell_component_4k"
+      },
+      "category": "AE2",
+      "source": "20_ae2_storage_autocrafting.js"
+    },
+    {
+      "type": "shaped",
+      "output": "ae2:item_storage_cell_16k",
+      "output_count": 1,
+      "pattern": [
+        "QGQ",
+        "GCG",
+        "QGQ"
+      ],
+      "keys": {
+        "Q": "ae2:fluix_crystal",
+        "G": "minecraft:glass",
+        "C": "ae2:cell_component_16k"
+      },
+      "category": "AE2",
+      "source": "20_ae2_storage_autocrafting.js"
+    },
+    {
+      "type": "shaped",
+      "output": "ae2:item_storage_cell_64k",
+      "output_count": 1,
+      "pattern": [
+        "QGQ",
+        "GCG",
+        "QGQ"
+      ],
+      "keys": {
+        "Q": "ae2:fluix_crystal",
+        "G": "minecraft:glass",
+        "C": "ae2:cell_component_64k"
+      },
+      "category": "AE2",
+      "source": "20_ae2_storage_autocrafting.js"
+    },
+    {
+      "type": "shaped",
+      "output": "ae2:item_storage_cell_256k",
+      "output_count": 1,
+      "pattern": [
+        "QGQ",
+        "GCG",
+        "QGQ"
+      ],
+      "keys": {
+        "Q": "kubejs:ultimate_storage_core",
+        "G": "minecraft:glass",
+        "C": "ae2:cell_component_256k"
+      },
+      "category": "AE2",
+      "source": "20_ae2_storage_autocrafting.js"
+    },
+    {
+      "type": "shaped",
+      "output": "ae2:pattern_provider",
+      "output_count": 1,
+      "pattern": [
+        "RCR",
+        "AFA",
+        "RCR"
+      ],
+      "keys": {
+        "R": "kubejs:resonant_circuit",
+        "C": "ae2:blank_pattern",
+        "A": "kubejs:autocrafting_core",
+        "F": "ae2:interface"
+      },
+      "category": "AE2",
+      "source": "20_ae2_storage_autocrafting.js"
+    },
+    {
+      "type": "shaped",
+      "output": "ae2:molecular_assembler",
+      "output_count": 1,
+      "pattern": [
+        "RCR",
+        "AFA",
+        "RCR"
+      ],
+      "keys": {
+        "R": "kubejs:resonant_circuit",
+        "C": "minecraft:crafting_table",
+        "A": "kubejs:autocrafting_core",
+        "F": "ae2:annihilation_core"
+      },
+      "category": "AE2",
+      "source": "20_ae2_storage_autocrafting.js"
+    },
+    {
+      "type": "shaped",
+      "output": "ae2:crafting_unit",
+      "output_count": 1,
+      "pattern": [
+        "RCR",
+        "AFA",
+        "RCR"
+      ],
+      "keys": {
+        "R": "kubejs:resonant_circuit",
+        "C": "ae2:calculation_processor",
+        "A": "kubejs:autocrafting_core",
+        "F": "ae2:logic_processor"
+      },
+      "category": "AE2",
+      "source": "20_ae2_storage_autocrafting.js"
+    },
+    {
+      "type": "shaped",
+      "output": "ae2:64k_crafting_storage",
+      "output_count": 1,
+      "pattern": [
+        "UCU",
+        "CQC",
+        "UCU"
+      ],
+      "keys": {
+        "U": "ae2:crafting_unit",
+        "C": "ae2:cell_component_64k",
+        "Q": "kubejs:ultimate_storage_core"
+      },
+      "category": "AE2",
+      "source": "20_ae2_storage_autocrafting.js"
+    },
+    {
+      "type": "shaped",
+      "output": "ae2:256k_crafting_storage",
+      "output_count": 1,
+      "pattern": [
+        "UCU",
+        "CQC",
+        "UCU"
+      ],
+      "keys": {
+        "U": "ae2:64k_crafting_storage",
+        "C": "ae2:cell_component_256k",
+        "Q": "kubejs:singularity_core"
+      },
+      "category": "AE2",
+      "source": "20_ae2_storage_autocrafting.js"
+    },
+    {
+      "type": "shaped",
+      "output": "ae2:wireless_access_point",
+      "output_count": 1,
+      "pattern": [
+        "RWR",
+        "FQF",
+        "RWR"
+      ],
+      "keys": {
+        "R": "kubejs:resonant_circuit",
+        "W": "kubejs:wireless_matrix",
+        "F": "ae2:fluix_crystal",
+        "Q": "kubejs:quantum_circuit"
+      },
+      "category": "AE2",
+      "source": "20_ae2_storage_autocrafting.js"
+    },
+    {
+      "type": "shaped",
+      "output": "ae2:wireless_terminal",
+      "output_count": 1,
+      "pattern": [
+        " W ",
+        "TQT",
+        " R "
+      ],
+      "keys": {
+        "W": "kubejs:wireless_matrix",
+        "T": "ae2:terminal",
+        "Q": "kubejs:quantum_circuit",
+        "R": "kubejs:resonant_circuit"
+      },
+      "category": "AE2",
+      "source": "20_ae2_storage_autocrafting.js"
+    },
+    {
+      "type": "shaped",
+      "output": "ae2:quantum_ring",
+      "output_count": 1,
+      "pattern": [
+        "SQS",
+        "QFQ",
+        "SQS"
+      ],
+      "keys": {
+        "S": "kubejs:singularity_core",
+        "Q": "kubejs:quantum_circuit",
+        "F": "ae2:fluix_block"
+      },
+      "category": "AE2",
+      "source": "20_ae2_storage_autocrafting.js"
+    },
+    {
+      "type": "shaped",
+      "output": "ae2:quantum_link",
+      "output_count": 1,
+      "pattern": [
+        "SQS",
+        "QFQ",
+        "SQS"
+      ],
+      "keys": {
+        "S": "ae2:quantum_entangled_singularity",
+        "Q": "kubejs:singularity_core",
+        "F": "kubejs:spatial_core"
+      },
+      "category": "AE2",
+      "source": "20_ae2_storage_autocrafting.js"
+    },
+    {
+      "type": "shaped",
+      "output": "avaritia:compressed_crafting_table",
+      "output_count": 1,
+      "pattern": [
+        "CCC",
+        "CCC",
+        "CCC"
+      ],
+      "keys": {
+        "C": "minecraft:crafting_table"
+      },
+      "category": "Avaritia",
+      "source": "10_avaritia_final.js"
+    },
+    {
+      "type": "shaped",
+      "output": "avaritia:double_compressed_crafting_table",
+      "output_count": 1,
+      "pattern": [
+        "CCC",
+        "CCC",
+        "CCC"
+      ],
+      "keys": {
+        "C": "avaritia:compressed_crafting_table"
+      },
+      "category": "Avaritia",
+      "source": "10_avaritia_final.js"
+    },
+    {
+      "type": "shaped",
+      "output": "avaritia:extreme_crafting_table",
+      "output_count": 1,
+      "pattern": [
+        "CMC",
+        "MTM",
+        "CMC"
+      ],
+      "keys": {
+        "C": "avaritia:double_compressed_crafting_table",
+        "M": "kubejs:multiversal_machine_frame",
+        "T": "minecraft:crafting_table"
+      },
+      "category": "Avaritia",
+      "source": "10_avaritia_final.js"
+    },
+    {
+      "type": "shaped",
+      "output": "avaritia:compressor",
+      "output_count": 1,
+      "pattern": [
+        "SQS",
+        "QMQ",
+        "SQS"
+      ],
+      "keys": {
+        "S": "kubejs:steel_machine_frame",
+        "Q": "kubejs:quantum_circuit",
+        "M": "kubejs:multiversal_machine_frame"
+      },
+      "category": "Avaritia",
+      "source": "10_avaritia_final.js"
+    },
+    {
+      "type": "shaped",
+      "output": "avaritia:neutron_collector",
+      "output_count": 1,
+      "pattern": [
+        "DAD",
+        "AMA",
+        "DAD"
+      ],
+      "keys": {
+        "D": "draconicevolution:awakened_core",
+        "A": "kubejs:awakened_matrix",
+        "M": "kubejs:multiversal_machine_frame"
+      },
+      "category": "Avaritia",
+      "source": "10_avaritia_final.js"
+    },
+    {
+      "type": "shaped",
+      "output": "avaritia:crystal_matrix_ingot",
+      "output_count": 1,
+      "pattern": [
+        "DND",
+        "NQN",
+        "DND"
+      ],
+      "keys": {
+        "D": "minecraft:diamond",
+        "N": "avaritia:neutron_pile",
+        "Q": "kubejs:quantum_circuit"
+      },
+      "category": "Avaritia",
+      "source": "10_avaritia_final.js"
+    },
+    {
+      "type": "shaped",
+      "output": "kubejs:infinity_catalyst_core",
+      "output_count": 1,
+      "pattern": [
+        "DCD",
+        "CIC",
+        "DCD"
+      ],
+      "keys": {
+        "D": "draconicevolution:awakened_core",
+        "C": "avaritia:crystal_matrix_ingot",
+        "I": "kubejs:infinity_matrix"
+      },
+      "category": "Avaritia",
+      "source": "10_avaritia_final.js"
+    },
+    {
+      "type": "shaped",
+      "output": "kubejs:creative_gate_seal",
+      "output_count": 1,
+      "pattern": [
+        "MCM",
+        "CIC",
+        "MCM"
+      ],
+      "keys": {
+        "M": "kubejs:multiversal_machine_frame",
+        "C": "kubejs:chaotic_matrix",
+        "I": "kubejs:infinity_catalyst_core"
+      },
+      "category": "Avaritia",
+      "source": "10_avaritia_final.js"
+    },
+    {
+      "type": "shaped",
+      "output": "kubejs:infinity_ultimate_matrix",
+      "output_count": 1,
+      "pattern": [
+        "ACE",
+        "DIF",
+        "GBH"
+      ],
+      "keys": {
+        "A": "kubejs:aetheric_seal",
+        "C": "kubejs:chaotic_matrix",
+        "E": "kubejs:end_seal",
+        "D": "kubejs:dimensional_convergence_core",
+        "I": "kubejs:infinity_catalyst_core",
+        "F": "kubejs:fusion_stabilizer",
+        "G": "kubejs:boss_trophy_core",
+        "B": "avaritia:neutronium_ingot",
+        "H": "kubejs:creative_gate_seal"
+      },
+      "category": "Avaritia",
+      "source": "10_avaritia_final.js"
+    },
+    {
+      "type": "shaped",
+      "output": "avaritia:infinity_catalyst",
+      "output_count": 1,
+      "pattern": [
+        "ACA",
+        "CMC",
+        "ACA"
+      ],
+      "keys": {
+        "A": "kubejs:infinity_catalyst_core",
+        "C": "avaritia:crystal_matrix_ingot",
+        "M": "kubejs:infinity_ultimate_matrix"
+      },
+      "category": "Avaritia",
+      "source": "10_avaritia_final.js"
+    },
+    {
+      "type": "shaped",
+      "output": "avaritia:infinity_ingot",
+      "output_count": 1,
+      "pattern": [
+        "CCC",
+        "NIN",
+        "CCC"
+      ],
+      "keys": {
+        "C": "avaritia:infinity_catalyst",
+        "N": "avaritia:neutronium_ingot",
+        "I": "kubejs:infinity_ultimate_matrix"
+      },
+      "category": "Avaritia",
+      "source": "10_avaritia_final.js"
+    },
+    {
+      "type": "shaped",
+      "output": "create:andesite_alloy",
+      "output_count": 2,
+      "pattern": [
+        "AI",
+        "IA"
+      ],
+      "keys": {
+        "A": "minecraft:andesite",
+        "I": "minecraft:iron_nugget"
+      },
+      "category": "Create",
+      "source": "10_create_core.js"
+    },
+    {
+      "type": "shaped",
+      "output": "create:shaft",
+      "output_count": 4,
+      "pattern": [
+        "A",
+        "A"
+      ],
+      "keys": {
+        "A": "create:andesite_alloy"
+      },
+      "category": "Create",
+      "source": "10_create_core.js"
+    },
+    {
+      "type": "shaped",
+      "output": "create:cogwheel",
+      "output_count": 1,
+      "pattern": [
+        " P ",
+        "PSP",
+        " P "
+      ],
+      "keys": {
+        "P": "#minecraft:planks",
+        "S": "create:shaft"
+      },
+      "category": "Create",
+      "source": "10_create_core.js"
+    },
+    {
+      "type": "shaped",
+      "output": "create:large_cogwheel",
+      "output_count": 1,
+      "pattern": [
+        "PPP",
+        "PCP",
+        "PPP"
+      ],
+      "keys": {
+        "P": "#minecraft:planks",
+        "C": "create:cogwheel"
+      },
+      "category": "Create",
+      "source": "10_create_core.js"
+    },
+    {
+      "type": "shaped",
+      "output": "create:basin",
+      "output_count": 1,
+      "pattern": [
+        "I I",
+        " A ",
+        "AAA"
+      ],
+      "keys": {
+        "I": "minecraft:iron_ingot",
+        "A": "create:andesite_alloy"
+      },
+      "category": "Create",
+      "source": "10_create_core.js"
+    },
+    {
+      "type": "shaped",
+      "output": "create:mechanical_press",
+      "output_count": 1,
+      "pattern": [
+        " B ",
+        " S ",
+        "AFA"
+      ],
+      "keys": {
+        "B": "minecraft:iron_block",
+        "S": "create:shaft",
+        "A": "create:andesite_alloy",
+        "F": "kubejs:andesite_machine_frame"
+      },
+      "category": "Create",
+      "source": "10_create_core.js"
+    },
+    {
+      "type": "shaped",
+      "output": "create:mechanical_mixer",
+      "output_count": 1,
+      "pattern": [
+        " W ",
+        " S ",
+        "AFA"
+      ],
+      "keys": {
+        "W": "create:whisk",
+        "S": "create:shaft",
+        "A": "create:andesite_alloy",
+        "F": "kubejs:andesite_machine_frame"
+      },
+      "category": "Create",
+      "source": "10_create_core.js"
+    },
+    {
+      "type": "shaped",
+      "output": "create:mechanical_mixer",
+      "output_count": 1,
+      "pattern": [
+        " I ",
+        " S ",
+        "AFA"
+      ],
+      "keys": {
+        "I": "minecraft:iron_ingot",
+        "S": "create:shaft",
+        "A": "create:andesite_alloy",
+        "F": "kubejs:andesite_machine_frame"
+      },
+      "category": "Create",
+      "source": "10_create_core.js"
+    },
+    {
+      "type": "shaped",
+      "output": "create:deployer",
+      "output_count": 1,
+      "pattern": [
+        " R ",
+        " B ",
+        "AFA"
+      ],
+      "keys": {
+        "R": "minecraft:redstone",
+        "B": "create:brass_hand",
+        "A": "create:andesite_alloy",
+        "F": "kubejs:andesite_machine_frame"
+      },
+      "category": "Create",
+      "source": "10_create_core.js"
+    },
+    {
+      "type": "shaped",
+      "output": "kubejs:steel_machine_frame",
+      "output_count": 1,
+      "pattern": [
+        "PSP",
+        "SCS",
+        "PSP"
+      ],
+      "keys": {
+        "P": "immersiveengineering:plate_steel",
+        "S": "immersiveengineering:component_steel",
+        "C": "kubejs:precision_mechanism_core"
+      },
+      "category": "Immersive Engineering",
+      "source": "10_ie_bridge.js"
+    },
+    {
+      "type": "shaped",
+      "output": "kubejs:engineering_circuit",
+      "output_count": 1,
+      "pattern": [
+        "WCW",
+        "RPR",
+        "WCW"
+      ],
+      "keys": {
+        "W": "immersiveengineering:wire_copper",
+        "C": "create:electron_tube",
+        "R": "minecraft:redstone",
+        "P": "immersiveengineering:circuit_board"
+      },
+      "category": "Immersive Engineering",
+      "source": "10_ie_bridge.js"
+    },
+    {
+      "type": "shaped",
+      "output": "immersiveengineering:light_engineering",
+      "output_count": 1,
+      "pattern": [
+        "IPI",
+        "PCP",
+        "IPI"
+      ],
+      "keys": {
+        "I": "immersiveengineering:component_iron",
+        "P": "immersiveengineering:plate_steel",
+        "C": "kubejs:engineering_circuit"
+      },
+      "category": "Immersive Engineering",
+      "source": "10_ie_bridge.js"
+    },
+    {
+      "type": "shaped",
+      "output": "immersiveengineering:heavy_engineering",
+      "output_count": 1,
+      "pattern": [
+        "SPS",
+        "PCP",
+        "SPS"
+      ],
+      "keys": {
+        "S": "immersiveengineering:component_steel",
+        "P": "immersiveengineering:plate_steel",
+        "C": "kubejs:steel_machine_frame"
+      },
+      "category": "Immersive Engineering",
+      "source": "10_ie_bridge.js"
+    },
+    {
+      "type": "shaped",
+      "output": "immersiveengineering:rs_engineering",
+      "output_count": 1,
+      "pattern": [
+        "RCR",
+        "CPC",
+        "RCR"
+      ],
+      "keys": {
+        "R": "minecraft:redstone",
+        "C": "kubejs:engineering_circuit",
+        "P": "minecraft:copper_ingot"
+      },
+      "category": "Immersive Engineering",
+      "source": "10_ie_bridge.js"
+    },
+    {
+      "type": "shaped",
+      "output": "kubejs:industrial_steel_compound",
+      "output_count": 1,
+      "pattern": [
+        "CSC",
+        "SFS",
+        "CSC"
+      ],
+      "keys": {
+        "C": "immersiveengineering:coal_coke",
+        "S": "immersiveengineering:ingot_steel",
+        "F": "kubejs:precision_mechanism_core"
+      },
+      "category": "Immersive Engineering",
+      "source": "20_ie_heavy_industry.js"
+    },
+    {
+      "type": "shaped",
+      "output": "kubejs:coke_bound_brick",
+      "output_count": 4,
+      "pattern": [
+        "BCB",
+        "CSC",
+        "BCB"
+      ],
+      "keys": {
+        "B": "minecraft:brick",
+        "C": "minecraft:clay_ball",
+        "S": "minecraft:sand"
+      },
+      "category": "Immersive Engineering",
+      "source": "20_ie_heavy_industry.js"
+    },
+    {
+      "type": "shaped",
+      "output": "immersiveengineering:cokebrick",
+      "output_count": 4,
+      "pattern": [
+        "CCC",
+        "CBC",
+        "CCC"
+      ],
+      "keys": {
+        "C": "kubejs:coke_bound_brick",
+        "B": "minecraft:bricks"
+      },
+      "category": "Immersive Engineering",
+      "source": "20_ie_heavy_industry.js"
+    },
+    {
+      "type": "shaped",
+      "output": "kubejs:reinforced_blast_brick",
+      "output_count": 4,
+      "pattern": [
+        "BSB",
+        "SCS",
+        "BSB"
+      ],
+      "keys": {
+        "B": "immersiveengineering:cokebrick",
+        "S": "immersiveengineering:ingot_steel",
+        "C": "kubejs:industrial_steel_compound"
+      },
+      "category": "Immersive Engineering",
+      "source": "20_ie_heavy_industry.js"
+    },
+    {
+      "type": "shaped",
+      "output": "immersiveengineering:blastbrick",
+      "output_count": 3,
+      "pattern": [
+        "BBB",
+        "BCB",
+        "BBB"
+      ],
+      "keys": {
+        "B": "minecraft:nether_brick",
+        "C": "kubejs:industrial_steel_compound"
+      },
+      "category": "Immersive Engineering",
+      "source": "20_ie_heavy_industry.js"
+    },
+    {
+      "type": "shaped",
+      "output": "immersiveengineering:blastbrick_reinforced",
+      "output_count": 2,
+      "pattern": [
+        "SBS",
+        "BCB",
+        "SBS"
+      ],
+      "keys": {
+        "S": "immersiveengineering:plate_steel",
+        "B": "immersiveengineering:blastbrick",
+        "C": "kubejs:reinforced_blast_brick"
+      },
+      "category": "Immersive Engineering",
+      "source": "20_ie_heavy_industry.js"
+    },
+    {
+      "type": "shaped",
+      "output": "immersiveengineering:treated_wood_horizontal",
+      "output_count": 4,
+      "pattern": [
+        "PCP",
+        "CBC",
+        "PCP"
+      ],
+      "keys": {
+        "P": "#minecraft:planks",
+        "C": "immersiveengineering:coal_coke",
+        "B": "minecraft:bucket"
+      },
+      "category": "Immersive Engineering",
+      "source": "20_ie_heavy_industry.js"
+    },
+    {
+      "type": "shaped",
+      "output": "immersiveengineering:stick_treated",
+      "output_count": 4,
+      "pattern": [
+        "W",
+        "W"
+      ],
+      "keys": {
+        "W": "immersiveengineering:treated_wood_horizontal"
+      },
+      "category": "Immersive Engineering",
+      "source": "20_ie_heavy_industry.js"
+    },
+    {
+      "type": "shaped",
+      "output": "kubejs:treated_mechanism",
+      "output_count": 1,
+      "pattern": [
+        "TCT",
+        "WMW",
+        "TCT"
+      ],
+      "keys": {
+        "T": "immersiveengineering:stick_treated",
+        "C": "immersiveengineering:wire_copper",
+        "W": "immersiveengineering:treated_wood_horizontal",
+        "M": "kubejs:precision_mechanism_core"
+      },
+      "category": "Immersive Engineering",
+      "source": "20_ie_heavy_industry.js"
+    },
+    {
+      "type": "shaped",
+      "output": "kubejs:heavy_engineering_core",
+      "output_count": 1,
+      "pattern": [
+        "SCS",
+        "CMC",
+        "SCS"
+      ],
+      "keys": {
+        "S": "immersiveengineering:plate_steel",
+        "C": "immersiveengineering:component_steel",
+        "M": "kubejs:treated_mechanism"
+      },
+      "category": "Immersive Engineering",
+      "source": "20_ie_heavy_industry.js"
+    },
+    {
+      "type": "shaped",
+      "output": "kubejs:high_voltage_circuit",
+      "output_count": 1,
+      "pattern": [
+        "EWE",
+        "RCR",
+        "EWE"
+      ],
+      "keys": {
+        "E": "immersiveengineering:wirecoil_electrum",
+        "W": "immersiveengineering:wirecoil_copper",
+        "R": "minecraft:redstone",
+        "C": "kubejs:engineering_circuit"
+      },
+      "category": "Immersive Engineering",
+      "source": "20_ie_heavy_industry.js"
+    },
+    {
+      "type": "shaped",
+      "output": "immersiveengineering:wirecoil_copper",
+      "output_count": 3,
+      "pattern": [
+        " C ",
+        "CRC",
+        " C "
+      ],
+      "keys": {
+        "C": "immersiveengineering:wire_copper",
+        "R": "kubejs:treated_mechanism"
+      },
+      "category": "Immersive Engineering",
+      "source": "20_ie_heavy_industry.js"
+    },
+    {
+      "type": "shaped",
+      "output": "immersiveengineering:wirecoil_electrum",
+      "output_count": 3,
+      "pattern": [
+        " E ",
+        "ECE",
+        " E "
+      ],
+      "keys": {
+        "E": "immersiveengineering:wire_electrum",
+        "C": "kubejs:engineering_circuit"
+      },
+      "category": "Immersive Engineering",
+      "source": "20_ie_heavy_industry.js"
+    },
+    {
+      "type": "shaped",
+      "output": "immersiveengineering:wirecoil_steel",
+      "output_count": 3,
+      "pattern": [
+        " S ",
+        "SCS",
+        " S "
+      ],
+      "keys": {
+        "S": "immersiveengineering:wire_steel",
+        "C": "kubejs:heavy_engineering_core"
+      },
+      "category": "Immersive Engineering",
+      "source": "20_ie_heavy_industry.js"
+    },
+    {
+      "type": "shaped",
+      "output": "immersiveengineering:capacitor_lv",
+      "output_count": 1,
+      "pattern": [
+        "WWW",
+        "CRC",
+        "WWW"
+      ],
+      "keys": {
+        "W": "immersiveengineering:wirecoil_copper",
+        "C": "minecraft:copper_ingot",
+        "R": "kubejs:engineering_circuit"
+      },
+      "category": "Immersive Engineering",
+      "source": "20_ie_heavy_industry.js"
+    },
+    {
+      "type": "shaped",
+      "output": "immersiveengineering:capacitor_mv",
+      "output_count": 1,
+      "pattern": [
+        "WWW",
+        "CRC",
+        "WWW"
+      ],
+      "keys": {
+        "W": "immersiveengineering:wirecoil_electrum",
+        "C": "immersiveengineering:ingot_electrum",
+        "R": "kubejs:high_voltage_circuit"
+      },
+      "category": "Immersive Engineering",
+      "source": "20_ie_heavy_industry.js"
+    },
+    {
+      "type": "shaped",
+      "output": "immersiveengineering:capacitor_hv",
+      "output_count": 1,
+      "pattern": [
+        "WWW",
+        "CRC",
+        "WWW"
+      ],
+      "keys": {
+        "W": "immersiveengineering:wirecoil_steel",
+        "C": "immersiveengineering:ingot_steel",
+        "R": "kubejs:high_voltage_circuit"
+      },
+      "category": "Immersive Engineering",
+      "source": "20_ie_heavy_industry.js"
+    },
+    {
+      "type": "shaped",
+      "output": "immersiveengineering:metal_press",
+      "output_count": 1,
+      "pattern": [
+        "SHS",
+        "PCP",
+        "SHS"
+      ],
+      "keys": {
+        "S": "immersiveengineering:plate_steel",
+        "H": "immersiveengineering:heavy_engineering",
+        "P": "create:mechanical_press",
+        "C": "kubejs:heavy_engineering_core"
+      },
+      "category": "Immersive Engineering",
+      "source": "20_ie_heavy_industry.js"
+    },
+    {
+      "type": "shaped",
+      "output": "immersiveengineering:crusher",
+      "output_count": 1,
+      "pattern": [
+        "WHW",
+        "CMC",
+        "WHW"
+      ],
+      "keys": {
+        "W": "create:crushing_wheel",
+        "H": "immersiveengineering:heavy_engineering",
+        "C": "kubejs:heavy_engineering_core",
+        "M": "immersiveengineering:capacitor_mv"
+      },
+      "category": "Immersive Engineering",
+      "source": "20_ie_heavy_industry.js"
+    },
+    {
+      "type": "shaped",
+      "output": "immersiveengineering:assembler",
+      "output_count": 1,
+      "pattern": [
+        "LHL",
+        "ACA",
+        "LHL"
+      ],
+      "keys": {
+        "L": "immersiveengineering:light_engineering",
+        "H": "immersiveengineering:heavy_engineering",
+        "A": "create:mechanical_crafter",
+        "C": "kubejs:factory_control_unit"
+      },
+      "category": "Immersive Engineering",
+      "source": "20_ie_heavy_industry.js"
+    },
+    {
+      "type": "shapeless",
+      "output": "immersiveengineering:treated_wood_vertical",
+      "output_count": 1,
+      "inputs": [
+        "immersiveengineering:treated_wood_horizontal"
+      ],
+      "category": "Immersive Engineering",
+      "source": "20_ie_heavy_industry.js"
+    },
+    {
+      "type": "shapeless",
+      "output": "immersiveengineering:treated_wood_packaged",
+      "output_count": 1,
+      "inputs": [
+        "immersiveengineering:treated_wood_vertical"
+      ],
+      "category": "Immersive Engineering",
+      "source": "20_ie_heavy_industry.js"
+    },
+    {
+      "type": "shaped",
+      "output": "kubejs:machine_plastic_sheet",
+      "output_count": 1,
+      "pattern": [
+        "PPP",
+        "CEC",
+        "PPP"
+      ],
+      "keys": {
+        "P": "industrialforegoing:plastic",
+        "C": "kubejs:engineering_circuit",
+        "E": "mekanism:basic_control_circuit"
+      },
+      "category": "Industrial Foregoing",
+      "source": "10_industrial_foregoing.js"
+    },
+    {
+      "type": "shaped",
+      "output": "kubejs:latex_circuit",
+      "output_count": 1,
+      "pattern": [
+        "RPR",
+        "PCP",
+        "RPR"
+      ],
+      "keys": {
+        "R": "minecraft:redstone",
+        "P": "kubejs:machine_plastic_sheet",
+        "C": "kubejs:logistical_circuit"
+      },
+      "category": "Industrial Foregoing",
+      "source": "10_industrial_foregoing.js"
+    },
+    {
+      "type": "shaped",
+      "output": "kubejs:bio_industrial_core",
+      "output_count": 1,
+      "pattern": [
+        "LPL",
+        "CFC",
+        "LPL"
+      ],
+      "keys": {
+        "L": "industrialforegoing:latex_bucket",
+        "P": "industrialforegoing:plastic",
+        "C": "kubejs:latex_circuit",
+        "F": "kubejs:steel_machine_frame"
+      },
+      "category": "Industrial Foregoing",
+      "source": "10_industrial_foregoing.js"
+    },
+    {
+      "type": "shaped",
+      "output": "industrialforegoing:machine_frame_pity",
+      "output_count": 1,
+      "pattern": [
+        "IPI",
+        "PFP",
+        "IPI"
+      ],
+      "keys": {
+        "I": "minecraft:iron_ingot",
+        "P": "kubejs:rough_mechanism",
+        "F": "kubejs:steel_machine_frame"
+      },
+      "category": "Industrial Foregoing",
+      "source": "10_industrial_foregoing.js"
+    },
+    {
+      "type": "shaped",
+      "output": "industrialforegoing:machine_frame_simple",
+      "output_count": 1,
+      "pattern": [
+        "SPS",
+        "PFP",
+        "SPS"
+      ],
+      "keys": {
+        "S": "mekanism:ingot_steel",
+        "P": "kubejs:machine_plastic_sheet",
+        "F": "industrialforegoing:machine_frame_pity"
+      },
+      "category": "Industrial Foregoing",
+      "source": "10_industrial_foregoing.js"
+    },
+    {
+      "type": "shaped",
+      "output": "industrialforegoing:machine_frame_advanced",
+      "output_count": 1,
+      "pattern": [
+        "APA",
+        "PFP",
+        "APA"
+      ],
+      "keys": {
+        "A": "mekanism:alloy_reinforced",
+        "P": "kubejs:latex_circuit",
+        "F": "industrialforegoing:machine_frame_simple"
+      },
+      "category": "Industrial Foregoing",
+      "source": "10_industrial_foregoing.js"
+    },
+    {
+      "type": "shaped",
+      "output": "industrialforegoing:machine_frame_supreme",
+      "output_count": 1,
+      "pattern": [
+        "APA",
+        "PFP",
+        "APA"
+      ],
+      "keys": {
+        "A": "mekanism:alloy_atomic",
+        "P": "kubejs:bio_industrial_core",
+        "F": "industrialforegoing:machine_frame_advanced"
+      },
+      "category": "Industrial Foregoing",
+      "source": "10_industrial_foregoing.js"
+    },
+    {
+      "type": "shaped",
+      "output": "industrialforegoing:fluid_extractor",
+      "output_count": 1,
+      "pattern": [
+        "IPI",
+        "TFT",
+        "IPI"
+      ],
+      "keys": {
+        "I": "minecraft:iron_ingot",
+        "P": "minecraft:piston",
+        "T": "kubejs:treated_mechanism",
+        "F": "kubejs:steel_machine_frame"
+      },
+      "category": "Industrial Foregoing",
+      "source": "10_industrial_foregoing.js"
+    },
+    {
+      "type": "shaped",
+      "output": "industrialforegoing:latex_processing_unit",
+      "output_count": 1,
+      "pattern": [
+        "TCT",
+        "LFL",
+        "TCT"
+      ],
+      "keys": {
+        "T": "mekanism:basic_fluid_tank",
+        "C": "mekanism:basic_control_circuit",
+        "L": "industrialforegoing:latex_bucket",
+        "F": "industrialforegoing:machine_frame_pity"
+      },
+      "category": "Industrial Foregoing",
+      "source": "10_industrial_foregoing.js"
+    },
+    {
+      "type": "shaped",
+      "output": "industrialforegoing:dissolution_chamber",
+      "output_count": 1,
+      "pattern": [
+        "TCT",
+        "AFA",
+        "TCT"
+      ],
+      "keys": {
+        "T": "mekanism:basic_chemical_tank",
+        "C": "kubejs:latex_circuit",
+        "A": "mekanism:advanced_control_circuit",
+        "F": "industrialforegoing:machine_frame_simple"
+      },
+      "category": "Industrial Foregoing",
+      "source": "10_industrial_foregoing.js"
+    },
+    {
+      "type": "shaped",
+      "output": "industrialforegoing:plant_sower",
+      "output_count": 1,
+      "pattern": [
+        "HCH",
+        "AFA",
+        "HCH"
+      ],
+      "keys": {
+        "H": "minecraft:hopper",
+        "C": "kubejs:bio_industrial_core",
+        "A": "mekanism:basic_control_circuit",
+        "F": "industrialforegoing:machine_frame_pity"
+      },
+      "category": "Industrial Foregoing",
+      "source": "10_industrial_foregoing.js"
+    },
+    {
+      "type": "shaped",
+      "output": "industrialforegoing:plant_gatherer",
+      "output_count": 1,
+      "pattern": [
+        "SCS",
+        "AFA",
+        "SCS"
+      ],
+      "keys": {
+        "S": "create:mechanical_saw",
+        "C": "kubejs:bio_industrial_core",
+        "A": "mekanism:basic_control_circuit",
+        "F": "industrialforegoing:machine_frame_pity"
+      },
+      "category": "Industrial Foregoing",
+      "source": "10_industrial_foregoing.js"
+    },
+    {
+      "type": "shaped",
+      "output": "industrialforegoing:mob_crusher",
+      "output_count": 1,
+      "pattern": [
+        "SCS",
+        "AFA",
+        "SCS"
+      ],
+      "keys": {
+        "S": "minecraft:diamond_sword",
+        "C": "kubejs:bio_industrial_core",
+        "A": "mekanism:advanced_control_circuit",
+        "F": "industrialforegoing:machine_frame_advanced"
+      },
+      "category": "Industrial Foregoing",
+      "source": "10_industrial_foregoing.js"
+    },
+    {
+      "type": "shaped",
+      "output": "industrialforegoing:mob_duplicator",
+      "output_count": 1,
+      "pattern": [
+        "ECE",
+        "AFA",
+        "ECE"
+      ],
+      "keys": {
+        "E": "minecraft:ender_pearl",
+        "C": "kubejs:bio_industrial_core",
+        "A": "mekanism:elite_control_circuit",
+        "F": "industrialforegoing:machine_frame_supreme"
+      },
+      "category": "Industrial Foregoing",
+      "source": "10_industrial_foregoing.js"
+    },
+    {
+      "type": "shaped",
+      "output": "industrialforegoing:laser_drill",
+      "output_count": 1,
+      "pattern": [
+        "DCD",
+        "AFA",
+        "DCD"
+      ],
+      "keys": {
+        "D": "minecraft:diamond",
+        "C": "kubejs:resonant_circuit",
+        "A": "mekanism:advanced_control_circuit",
+        "F": "industrialforegoing:machine_frame_advanced"
+      },
+      "category": "Industrial Foregoing",
+      "source": "10_industrial_foregoing.js"
+    },
+    {
+      "type": "shaped",
+      "output": "industrialforegoing:ore_laser_base",
+      "output_count": 1,
+      "pattern": [
+        "OCO",
+        "AFA",
+        "OCO"
+      ],
+      "keys": {
+        "O": "mekanism:ingot_osmium",
+        "C": "kubejs:resonant_circuit",
+        "A": "mekanism:elite_control_circuit",
+        "F": "industrialforegoing:machine_frame_supreme"
+      },
+      "category": "Industrial Foregoing",
+      "source": "10_industrial_foregoing.js"
+    },
+    {
+      "type": "shaped",
+      "output": "kubejs:oil_industrial_core",
+      "output_count": 1,
+      "pattern": [
+        "SPS",
+        "CFC",
+        "SPS"
+      ],
+      "keys": {
+        "S": "mekanism:ingot_steel",
+        "P": "mekanism:basic_pressurized_tube",
+        "C": "kubejs:high_voltage_circuit",
+        "F": "kubejs:steel_machine_frame"
+      },
+      "category": "Industrial Foregoing",
+      "source": "20_tfmg_diesel.js"
+    },
+    {
+      "type": "shaped",
+      "output": "kubejs:petrochemical_circuit",
+      "output_count": 1,
+      "pattern": [
+        "RPR",
+        "PCP",
+        "RPR"
+      ],
+      "keys": {
+        "R": "minecraft:redstone",
+        "P": "kubejs:oil_industrial_core",
+        "C": "kubejs:logistical_circuit"
+      },
+      "category": "Industrial Foregoing",
+      "source": "20_tfmg_diesel.js"
+    },
+    {
+      "type": "shaped",
+      "output": "kubejs:diesel_mechanism",
+      "output_count": 1,
+      "pattern": [
+        "SCS",
+        "GMG",
+        "SCS"
+      ],
+      "keys": {
+        "S": "mekanism:ingot_steel",
+        "C": "kubejs:petrochemical_circuit",
+        "G": "tfmg:engine_gearbox",
+        "M": "kubejs:treated_mechanism"
+      },
+      "category": "Industrial Foregoing",
+      "source": "20_tfmg_diesel.js"
+    },
+    {
+      "type": "shaped",
+      "output": "tfmg:coke_oven",
+      "output_count": 1,
+      "pattern": [
+        "CBC",
+        "BHB",
+        "CBC"
+      ],
+      "keys": {
+        "C": "immersiveengineering:cokebrick",
+        "B": "kubejs:coke_bound_brick",
+        "H": "kubejs:heavy_engineering_core"
+      },
+      "category": "Industrial Foregoing",
+      "source": "20_tfmg_diesel.js"
+    },
+    {
+      "type": "shaped",
+      "output": "tfmg:blast_stove",
+      "output_count": 1,
+      "pattern": [
+        "RBR",
+        "BHB",
+        "RBR"
+      ],
+      "keys": {
+        "R": "immersiveengineering:blastbrick_reinforced",
+        "B": "kubejs:reinforced_blast_brick",
+        "H": "kubejs:heavy_engineering_core"
+      },
+      "category": "Industrial Foregoing",
+      "source": "20_tfmg_diesel.js"
+    },
+    {
+      "type": "shaped",
+      "output": "tfmg:industrial_mixer",
+      "output_count": 1,
+      "pattern": [
+        "SCS",
+        "MFM",
+        "SCS"
+      ],
+      "keys": {
+        "S": "mekanism:ingot_steel",
+        "C": "kubejs:petrochemical_circuit",
+        "M": "create:mechanical_mixer",
+        "F": "tfmg:heavy_machinery_casing"
+      },
+      "category": "Industrial Foregoing",
+      "source": "20_tfmg_diesel.js"
+    },
+    {
+      "type": "shaped",
+      "output": "tfmg:electric_motor",
+      "output_count": 1,
+      "pattern": [
+        "WCW",
+        "RFR",
+        "WCW"
+      ],
+      "keys": {
+        "W": "immersiveengineering:wirecoil_copper",
+        "C": "kubejs:high_voltage_circuit",
+        "R": "minecraft:redstone",
+        "F": "tfmg:heavy_machinery_casing"
+      },
+      "category": "Industrial Foregoing",
+      "source": "20_tfmg_diesel.js"
+    },
+    {
+      "type": "shaped",
+      "output": "tfmg:generator",
+      "output_count": 1,
+      "pattern": [
+        "WCW",
+        "MFM",
+        "WCW"
+      ],
+      "keys": {
+        "W": "immersiveengineering:wirecoil_steel",
+        "C": "kubejs:high_voltage_circuit",
+        "M": "tfmg:electric_motor",
+        "F": "tfmg:heavy_machinery_casing"
+      },
+      "category": "Industrial Foregoing",
+      "source": "20_tfmg_diesel.js"
+    },
+    {
+      "type": "shaped",
+      "output": "tfmg:large_engine",
+      "output_count": 1,
+      "pattern": [
+        "DCD",
+        "GFG",
+        "DCD"
+      ],
+      "keys": {
+        "D": "kubejs:diesel_mechanism",
+        "C": "tfmg:engine_controller",
+        "G": "tfmg:engine_gearbox",
+        "F": "tfmg:heavy_machinery_casing"
+      },
+      "category": "Industrial Foregoing",
+      "source": "20_tfmg_diesel.js"
+    },
+    {
+      "type": "shaped",
+      "output": "tfmg:engine_controller",
+      "output_count": 1,
+      "pattern": [
+        "RCR",
+        "PFP",
+        "RCR"
+      ],
+      "keys": {
+        "R": "minecraft:redstone",
+        "C": "kubejs:petrochemical_circuit",
+        "P": "tfmg:circuit_board",
+        "F": "tfmg:heavy_machinery_casing"
+      },
+      "category": "Industrial Foregoing",
+      "source": "20_tfmg_diesel.js"
+    },
+    {
+      "type": "shaped",
+      "output": "createdieselgenerators:bulk_fermenter",
+      "output_count": 1,
+      "pattern": [
+        "TCT",
+        "BFB",
+        "TCT"
+      ],
+      "keys": {
+        "T": "mekanism:basic_fluid_tank",
+        "C": "kubejs:bio_industrial_core",
+        "B": "create:basin",
+        "F": "kubejs:steel_machine_frame"
+      },
+      "category": "Industrial Foregoing",
+      "source": "20_tfmg_diesel.js"
+    },
+    {
+      "type": "shaped",
+      "output": "createdieselgenerators:distillation_controller",
+      "output_count": 1,
+      "pattern": [
+        "TCT",
+        "PFP",
+        "TCT"
+      ],
+      "keys": {
+        "T": "mekanism:basic_fluid_tank",
+        "C": "kubejs:petrochemical_circuit",
+        "P": "mekanism:basic_pressurized_tube",
+        "F": "kubejs:oil_industrial_core"
+      },
+      "category": "Industrial Foregoing",
+      "source": "20_tfmg_diesel.js"
+    },
+    {
+      "type": "shaped",
+      "output": "createdieselgenerators:diesel_engine",
+      "output_count": 1,
+      "pattern": [
+        "PCP",
+        "GMG",
+        "PFP"
+      ],
+      "keys": {
+        "P": "createdieselgenerators:engine_piston",
+        "C": "kubejs:diesel_mechanism",
+        "G": "tfmg:engine_gearbox",
+        "M": "tfmg:electric_motor",
+        "F": "kubejs:oil_industrial_core"
+      },
+      "category": "Industrial Foregoing",
+      "source": "20_tfmg_diesel.js"
+    },
+    {
+      "type": "shaped",
+      "output": "createdieselgenerators:large_diesel_engine",
+      "output_count": 1,
+      "pattern": [
+        "DDD",
+        "CFC",
+        "DDD"
+      ],
+      "keys": {
+        "D": "createdieselgenerators:diesel_engine",
+        "C": "kubejs:petrochemical_circuit",
+        "F": "tfmg:large_engine"
+      },
+      "category": "Industrial Foregoing",
+      "source": "20_tfmg_diesel.js"
+    },
+    {
+      "type": "shaped",
+      "output": "createdieselgenerators:huge_diesel_engine",
+      "output_count": 1,
+      "pattern": [
+        "DDD",
+        "CFC",
+        "DDD"
+      ],
+      "keys": {
+        "D": "createdieselgenerators:large_diesel_engine",
+        "C": "kubejs:petrochemical_circuit",
+        "F": "tfmg:generator"
+      },
+      "category": "Industrial Foregoing",
+      "source": "20_tfmg_diesel.js"
+    },
+    {
+      "type": "shaped",
+      "output": "createdieselgenerators:oil_scanner",
+      "output_count": 1,
+      "pattern": [
+        "RCR",
+        "PFP",
+        "RCR"
+      ],
+      "keys": {
+        "R": "minecraft:redstone",
+        "C": "kubejs:petrochemical_circuit",
+        "P": "minecraft:compass",
+        "F": "kubejs:oil_industrial_core"
+      },
+      "category": "Industrial Foregoing",
+      "source": "20_tfmg_diesel.js"
+    },
+    {
+      "type": "shaped",
+      "output": "createdieselgenerators:pumpjack_bearing",
+      "output_count": 1,
+      "pattern": [
+        "SCS",
+        "BFB",
+        "SCS"
+      ],
+      "keys": {
+        "S": "mekanism:ingot_steel",
+        "C": "kubejs:petrochemical_circuit",
+        "B": "create:mechanical_bearing",
+        "F": "kubejs:oil_industrial_core"
+      },
+      "category": "Industrial Foregoing",
+      "source": "20_tfmg_diesel.js"
+    },
+    {
+      "type": "shaped",
+      "output": "createdieselgenerators:pumpjack_crank",
+      "output_count": 1,
+      "pattern": [
+        "SCS",
+        "GMG",
+        "SCS"
+      ],
+      "keys": {
+        "S": "mekanism:ingot_steel",
+        "C": "kubejs:diesel_mechanism",
+        "G": "create:large_cogwheel",
+        "M": "create:mechanical_press"
+      },
+      "category": "Industrial Foregoing",
+      "source": "20_tfmg_diesel.js"
+    },
+    {
+      "type": "shaped",
+      "output": "createdieselgenerators:pumpjack_head",
+      "output_count": 1,
+      "pattern": [
+        "SCS",
+        "PFP",
+        "SCS"
+      ],
+      "keys": {
+        "S": "mekanism:ingot_steel",
+        "C": "kubejs:petrochemical_circuit",
+        "P": "mekanism:basic_mechanical_pipe",
+        "F": "kubejs:oil_industrial_core"
+      },
+      "category": "Industrial Foregoing",
+      "source": "20_tfmg_diesel.js"
+    },
+    {
+      "type": "shaped",
+      "output": "mekanism:basic_control_circuit",
+      "output_count": 1,
+      "pattern": [
+        "RER",
+        "ACA",
+        "RER"
+      ],
+      "keys": {
+        "R": "minecraft:redstone",
+        "E": "kubejs:engineering_circuit",
+        "A": "mekanism:alloy_infused",
+        "C": "create:precision_mechanism"
+      },
+      "category": "Mekanism",
+      "source": "10_mekanism_bridge.js"
+    },
+    {
+      "type": "shaped",
+      "output": "kubejs:logistical_circuit",
+      "output_count": 1,
+      "pattern": [
+        "ABA",
+        "BCB",
+        "ABA"
+      ],
+      "keys": {
+        "A": "mekanism:alloy_infused",
+        "B": "mekanism:basic_control_circuit",
+        "C": "kubejs:steel_machine_frame"
+      },
+      "category": "Mekanism",
+      "source": "10_mekanism_bridge.js"
+    },
+    {
+      "type": "shaped",
+      "output": "mekanism:steel_casing",
+      "output_count": 1,
+      "pattern": [
+        "PSP",
+        "SFS",
+        "PSP"
+      ],
+      "keys": {
+        "P": "immersiveengineering:plate_steel",
+        "S": "mekanism:ingot_steel",
+        "F": "kubejs:steel_machine_frame"
+      },
+      "category": "Mekanism",
+      "source": "10_mekanism_bridge.js"
+    },
+    {
+      "type": "shaped",
+      "output": "mekanism:metallurgic_infuser",
+      "output_count": 1,
+      "pattern": [
+        "RCR",
+        "IFI",
+        "RCR"
+      ],
+      "keys": {
+        "R": "minecraft:redstone",
+        "C": "mekanism:basic_control_circuit",
+        "I": "mekanism:ingot_osmium",
+        "F": "mekanism:steel_casing"
+      },
+      "category": "Mekanism",
+      "source": "10_mekanism_bridge.js"
+    },
+    {
+      "type": "shaped",
+      "output": "mekanism:enrichment_chamber",
+      "output_count": 1,
+      "pattern": [
+        "OCO",
+        "AFA",
+        "OCO"
+      ],
+      "keys": {
+        "O": "mekanism:ingot_osmium",
+        "C": "mekanism:basic_control_circuit",
+        "A": "create:crushing_wheel",
+        "F": "mekanism:steel_casing"
+      },
+      "category": "Mekanism",
+      "source": "10_mekanism_bridge.js"
+    },
+    {
+      "type": "shaped",
+      "output": "mekanism:crusher",
+      "output_count": 1,
+      "pattern": [
+        "OCO",
+        "AFA",
+        "OCO"
+      ],
+      "keys": {
+        "O": "mekanism:ingot_osmium",
+        "C": "mekanism:basic_control_circuit",
+        "A": "create:mechanical_press",
+        "F": "mekanism:steel_casing"
+      },
+      "category": "Mekanism",
+      "source": "10_mekanism_bridge.js"
+    },
+    {
+      "type": "shaped",
+      "output": "mekanism:energized_smelter",
+      "output_count": 1,
+      "pattern": [
+        "OCO",
+        "AFA",
+        "OCO"
+      ],
+      "keys": {
+        "O": "mekanism:ingot_osmium",
+        "C": "mekanism:basic_control_circuit",
+        "A": "minecraft:blast_furnace",
+        "F": "mekanism:steel_casing"
+      },
+      "category": "Mekanism",
+      "source": "10_mekanism_bridge.js"
+    },
+    {
+      "type": "shaped",
+      "output": "mekanism:advanced_control_circuit",
+      "output_count": 1,
+      "pattern": [
+        "RBR",
+        "BCB",
+        "RBR"
+      ],
+      "keys": {
+        "R": "minecraft:redstone",
+        "B": "mekanism:basic_control_circuit",
+        "C": "kubejs:arcane_mechanism"
+      },
+      "category": "Mekanism",
+      "source": "10_mekanism_bridge.js"
+    },
+    {
+      "type": "shaped",
+      "output": "mekanism:elite_control_circuit",
+      "output_count": 1,
+      "pattern": [
+        "RAR",
+        "ACA",
+        "RAR"
+      ],
+      "keys": {
+        "R": "mekanism:alloy_reinforced",
+        "A": "mekanism:advanced_control_circuit",
+        "C": "kubejs:twilight_seal"
+      },
+      "category": "Mekanism",
+      "source": "10_mekanism_bridge.js"
+    },
+    {
+      "type": "shaped",
+      "output": "mekanism:ultimate_control_circuit",
+      "output_count": 1,
+      "pattern": [
+        "AEA",
+        "ECE",
+        "AEA"
+      ],
+      "keys": {
+        "A": "mekanism:alloy_atomic",
+        "E": "mekanism:elite_control_circuit",
+        "C": "kubejs:cataclysm_seal"
+      },
+      "category": "Mekanism",
+      "source": "10_mekanism_bridge.js"
+    },
+    {
+      "type": "shaped",
+      "output": "kubejs:osmium_resonator",
+      "output_count": 1,
+      "pattern": [
+        "OCO",
+        "RMR",
+        "OCO"
+      ],
+      "keys": {
+        "O": "mekanism:ingot_osmium",
+        "C": "kubejs:engineering_circuit",
+        "R": "minecraft:redstone",
+        "M": "kubejs:heavy_engineering_core"
+      },
+      "category": "Mekanism",
+      "source": "20_mekanism_heavy_industry.js"
+    },
+    {
+      "type": "shaped",
+      "output": "kubejs:factory_control_unit",
+      "output_count": 1,
+      "pattern": [
+        "RCR",
+        "PHP",
+        "RCR"
+      ],
+      "keys": {
+        "R": "minecraft:redstone",
+        "C": "mekanism:basic_control_circuit",
+        "P": "immersiveengineering:plate_steel",
+        "H": "kubejs:high_voltage_circuit"
+      },
+      "category": "Mekanism",
+      "source": "20_mekanism_heavy_industry.js"
+    },
+    {
+      "type": "shaped",
+      "output": "mekanism:basic_energy_cube",
+      "output_count": 1,
+      "pattern": [
+        "RCR",
+        "EHE",
+        "RCR"
+      ],
+      "keys": {
+        "R": "minecraft:redstone",
+        "C": "mekanism:basic_control_circuit",
+        "E": "mekanism:energy_tablet",
+        "H": "kubejs:heavy_engineering_core"
+      },
+      "category": "Mekanism",
+      "source": "20_mekanism_heavy_industry.js"
+    },
+    {
+      "type": "shaped",
+      "output": "mekanism:energy_tablet",
+      "output_count": 1,
+      "pattern": [
+        "RCR",
+        "AEA",
+        "RCR"
+      ],
+      "keys": {
+        "R": "minecraft:redstone",
+        "C": "kubejs:engineering_circuit",
+        "A": "mekanism:alloy_infused",
+        "E": "immersiveengineering:capacitor_lv"
+      },
+      "category": "Mekanism",
+      "source": "20_mekanism_heavy_industry.js"
+    },
+    {
+      "type": "shaped",
+      "output": "mekanism:basic_universal_cable",
+      "output_count": 8,
+      "pattern": [
+        "SSS",
+        "RCR",
+        "SSS"
+      ],
+      "keys": {
+        "S": "mekanism:ingot_steel",
+        "R": "minecraft:redstone",
+        "C": "kubejs:engineering_circuit"
+      },
+      "category": "Mekanism",
+      "source": "20_mekanism_heavy_industry.js"
+    },
+    {
+      "type": "shaped",
+      "output": "mekanism:basic_mechanical_pipe",
+      "output_count": 8,
+      "pattern": [
+        "SSS",
+        "BFB",
+        "SSS"
+      ],
+      "keys": {
+        "S": "mekanism:ingot_steel",
+        "B": "minecraft:bucket",
+        "F": "kubejs:steel_machine_frame"
+      },
+      "category": "Mekanism",
+      "source": "20_mekanism_heavy_industry.js"
+    },
+    {
+      "type": "shaped",
+      "output": "mekanism:basic_pressurized_tube",
+      "output_count": 8,
+      "pattern": [
+        "SSS",
+        "GHG",
+        "SSS"
+      ],
+      "keys": {
+        "S": "mekanism:ingot_steel",
+        "G": "minecraft:glass",
+        "H": "kubejs:heavy_engineering_core"
+      },
+      "category": "Mekanism",
+      "source": "20_mekanism_heavy_industry.js"
+    },
+    {
+      "type": "shaped",
+      "output": "mekanism:basic_logistical_transporter",
+      "output_count": 8,
+      "pattern": [
+        "SSS",
+        "RCR",
+        "SSS"
+      ],
+      "keys": {
+        "S": "mekanism:ingot_steel",
+        "R": "minecraft:redstone",
+        "C": "kubejs:logistical_circuit"
+      },
+      "category": "Mekanism",
+      "source": "20_mekanism_heavy_industry.js"
+    },
+    {
+      "type": "shaped",
+      "output": "mekanism:basic_fluid_tank",
+      "output_count": 1,
+      "pattern": [
+        "SIS",
+        "GFG",
+        "SIS"
+      ],
+      "keys": {
+        "S": "mekanism:ingot_steel",
+        "I": "minecraft:iron_ingot",
+        "G": "minecraft:glass",
+        "F": "kubejs:steel_machine_frame"
+      },
+      "category": "Mekanism",
+      "source": "20_mekanism_heavy_industry.js"
+    },
+    {
+      "type": "shaped",
+      "output": "mekanism:basic_chemical_tank",
+      "output_count": 1,
+      "pattern": [
+        "SCS",
+        "GFG",
+        "SCS"
+      ],
+      "keys": {
+        "S": "mekanism:ingot_steel",
+        "C": "kubejs:osmium_resonator",
+        "G": "minecraft:glass",
+        "F": "kubejs:steel_machine_frame"
+      },
+      "category": "Mekanism",
+      "source": "20_mekanism_heavy_industry.js"
+    },
+    {
+      "type": "shaped",
+      "output": "mekanism:osmium_compressor",
+      "output_count": 1,
+      "pattern": [
+        "OCO",
+        "RFR",
+        "OCO"
+      ],
+      "keys": {
+        "O": "mekanism:ingot_osmium",
+        "C": "mekanism:basic_control_circuit",
+        "R": "kubejs:osmium_resonator",
+        "F": "mekanism:steel_casing"
+      },
+      "category": "Mekanism",
+      "source": "20_mekanism_heavy_industry.js"
+    },
+    {
+      "type": "shaped",
+      "output": "mekanism:combiner",
+      "output_count": 1,
+      "pattern": [
+        "OCO",
+        "BFB",
+        "OCO"
+      ],
+      "keys": {
+        "O": "mekanism:ingot_osmium",
+        "C": "mekanism:basic_control_circuit",
+        "B": "minecraft:bricks",
+        "F": "mekanism:steel_casing"
+      },
+      "category": "Mekanism",
+      "source": "20_mekanism_heavy_industry.js"
+    },
+    {
+      "type": "shaped",
+      "output": "mekanism:purification_chamber",
+      "output_count": 1,
+      "pattern": [
+        "OCO",
+        "TFT",
+        "OCO"
+      ],
+      "keys": {
+        "O": "mekanism:ingot_osmium",
+        "C": "mekanism:advanced_control_circuit",
+        "T": "mekanism:basic_pressurized_tube",
+        "F": "mekanism:steel_casing"
+      },
+      "category": "Mekanism",
+      "source": "20_mekanism_heavy_industry.js"
+    },
+    {
+      "type": "shaped",
+      "output": "mekanism:chemical_injection_chamber",
+      "output_count": 1,
+      "pattern": [
+        "OCO",
+        "TFT",
+        "OCO"
+      ],
+      "keys": {
+        "O": "mekanism:alloy_reinforced",
+        "C": "mekanism:advanced_control_circuit",
+        "T": "mekanism:basic_chemical_tank",
+        "F": "mekanism:steel_casing"
+      },
+      "category": "Mekanism",
+      "source": "20_mekanism_heavy_industry.js"
+    },
+    {
+      "type": "shaped",
+      "output": "mekanism:electrolytic_separator",
+      "output_count": 1,
+      "pattern": [
+        "OCO",
+        "TFT",
+        "OCO"
+      ],
+      "keys": {
+        "O": "mekanism:ingot_osmium",
+        "C": "kubejs:high_voltage_circuit",
+        "T": "mekanism:basic_fluid_tank",
+        "F": "mekanism:steel_casing"
+      },
+      "category": "Mekanism",
+      "source": "20_mekanism_heavy_industry.js"
+    },
+    {
+      "type": "shaped",
+      "output": "mekanism:chemical_infuser",
+      "output_count": 1,
+      "pattern": [
+        "TCT",
+        "OFO",
+        "TCT"
+      ],
+      "keys": {
+        "T": "mekanism:basic_chemical_tank",
+        "C": "mekanism:advanced_control_circuit",
+        "O": "mekanism:ingot_osmium",
+        "F": "mekanism:steel_casing"
+      },
+      "category": "Mekanism",
+      "source": "20_mekanism_heavy_industry.js"
+    },
+    {
+      "type": "shaped",
+      "output": "mekanism:formulaic_assemblicator",
+      "output_count": 1,
+      "pattern": [
+        "RCR",
+        "AFA",
+        "RCR"
+      ],
+      "keys": {
+        "R": "minecraft:redstone",
+        "C": "kubejs:factory_control_unit",
+        "A": "create:mechanical_crafter",
+        "F": "mekanism:steel_casing"
+      },
+      "category": "Mekanism",
+      "source": "20_mekanism_heavy_industry.js"
+    },
+    {
+      "type": "shaped",
+      "output": "kubejs:evolved_alloy_core",
+      "output_count": 1,
+      "pattern": [
+        "RAR",
+        "ACA",
+        "RAR"
+      ],
+      "keys": {
+        "R": "mekanism:alloy_reinforced",
+        "A": "mekanism:alloy_infused",
+        "C": "kubejs:osmium_resonator"
+      },
+      "category": "Mekanism",
+      "source": "30_evolved_mekanism_gates.js"
+    },
+    {
+      "type": "shaped",
+      "output": "evolvedmekanism:alloyer",
+      "output_count": 1,
+      "pattern": [
+        "OCO",
+        "AFA",
+        "OCO"
+      ],
+      "keys": {
+        "O": "mekanism:ingot_osmium",
+        "C": "kubejs:evolved_alloy_core",
+        "A": "mekanism:alloy_infused",
+        "F": "mekanism:steel_casing"
+      },
+      "category": "Mekanism",
+      "source": "30_evolved_mekanism_gates.js"
+    },
+    {
+      "type": "shaped",
+      "output": "evolvedmekanism:chemixer",
+      "output_count": 1,
+      "pattern": [
+        "TCT",
+        "AFA",
+        "TCT"
+      ],
+      "keys": {
+        "T": "mekanism:basic_chemical_tank",
+        "C": "kubejs:evolved_alloy_core",
+        "A": "mekanism:advanced_control_circuit",
+        "F": "mekanism:steel_casing"
+      },
+      "category": "Mekanism",
+      "source": "30_evolved_mekanism_gates.js"
+    },
+    {
+      "type": "shaped",
+      "output": "evolvedmekanism:thermalizer",
+      "output_count": 1,
+      "pattern": [
+        "HCH",
+        "AFA",
+        "HCH"
+      ],
+      "keys": {
+        "H": "immersiveengineering:capacitor_hv",
+        "C": "kubejs:evolved_alloy_core",
+        "A": "mekanism:advanced_control_circuit",
+        "F": "mekanism:steel_casing"
+      },
+      "category": "Mekanism",
+      "source": "30_evolved_mekanism_gates.js"
+    },
+    {
+      "type": "shaped",
+      "output": "evolvedmekanism:solidification_chamber",
+      "output_count": 1,
+      "pattern": [
+        "GCG",
+        "AFA",
+        "GCG"
+      ],
+      "keys": {
+        "G": "minecraft:glass",
+        "C": "kubejs:evolved_alloy_core",
+        "A": "mekanism:advanced_control_circuit",
+        "F": "mekanism:steel_casing"
+      },
+      "category": "Mekanism",
+      "source": "30_evolved_mekanism_gates.js"
+    },
+    {
+      "type": "shaped",
+      "output": "evolvedmekanism:basic_alloying_factory",
+      "output_count": 1,
+      "pattern": [
+        "OCO",
+        "AFA",
+        "OCO"
+      ],
+      "keys": {
+        "O": "mekanism:ingot_osmium",
+        "C": "kubejs:evolved_alloy_core",
+        "A": "mekanism:basic_control_circuit",
+        "F": "evolvedmekanism:alloyer"
+      },
+      "category": "Mekanism",
+      "source": "30_evolved_mekanism_gates.js"
+    },
+    {
+      "type": "shaped",
+      "output": "evolvedmekanism:advanced_alloying_factory",
+      "output_count": 1,
+      "pattern": [
+        "RAR",
+        "AFA",
+        "RAR"
+      ],
+      "keys": {
+        "R": "mekanism:alloy_reinforced",
+        "A": "mekanism:advanced_control_circuit",
+        "F": "evolvedmekanism:basic_alloying_factory"
+      },
+      "category": "Mekanism",
+      "source": "30_evolved_mekanism_gates.js"
+    },
+    {
+      "type": "shaped",
+      "output": "evolvedmekanism:elite_alloying_factory",
+      "output_count": 1,
+      "pattern": [
+        "RAR",
+        "AFA",
+        "RAR"
+      ],
+      "keys": {
+        "R": "mekanism:alloy_reinforced",
+        "A": "mekanism:elite_control_circuit",
+        "F": "evolvedmekanism:advanced_alloying_factory"
+      },
+      "category": "Mekanism",
+      "source": "30_evolved_mekanism_gates.js"
+    },
+    {
+      "type": "shaped",
+      "output": "evolvedmekanism:ultimate_alloying_factory",
+      "output_count": 1,
+      "pattern": [
+        "RAR",
+        "AFA",
+        "RAR"
+      ],
+      "keys": {
+        "R": "mekanism:alloy_atomic",
+        "A": "mekanism:ultimate_control_circuit",
+        "F": "evolvedmekanism:elite_alloying_factory"
+      },
+      "category": "Mekanism",
+      "source": "30_evolved_mekanism_gates.js"
+    },
+    {
+      "type": "shaped",
+      "output": "kubejs:dense_machine_frame",
+      "output_count": 1,
+      "pattern": [
+        "SAS",
+        "AFA",
+        "SAS"
+      ],
+      "keys": {
+        "S": "mekanism:alloy_reinforced",
+        "A": "kubejs:evolved_alloy_core",
+        "F": "kubejs:steel_machine_frame"
+      },
+      "category": "Mekanism",
+      "source": "30_evolved_mekanism_gates.js"
+    },
+    {
+      "type": "shaped",
+      "output": "evolvedmekanism:dense_alloying_factory",
+      "output_count": 1,
+      "pattern": [
+        "DAD",
+        "AFA",
+        "DAD"
+      ],
+      "keys": {
+        "D": "kubejs:dense_machine_frame",
+        "A": "mekanism:ultimate_control_circuit",
+        "F": "evolvedmekanism:ultimate_alloying_factory"
+      },
+      "category": "Mekanism",
+      "source": "30_evolved_mekanism_gates.js"
+    },
+    {
+      "type": "shaped",
+      "output": "kubejs:overclocked_machine_frame",
+      "output_count": 1,
+      "pattern": [
+        "DAD",
+        "AFA",
+        "DAD"
+      ],
+      "keys": {
+        "D": "kubejs:dense_machine_frame",
+        "A": "mekanism:alloy_atomic",
+        "F": "kubejs:resonant_circuit"
+      },
+      "category": "Mekanism",
+      "source": "30_evolved_mekanism_gates.js"
+    },
+    {
+      "type": "shaped",
+      "output": "evolvedmekanism:overclocked_alloying_factory",
+      "output_count": 1,
+      "pattern": [
+        "OAO",
+        "AFA",
+        "OAO"
+      ],
+      "keys": {
+        "O": "kubejs:overclocked_machine_frame",
+        "A": "kubejs:resonant_circuit",
+        "F": "evolvedmekanism:dense_alloying_factory"
+      },
+      "category": "Mekanism",
+      "source": "30_evolved_mekanism_gates.js"
+    },
+    {
+      "type": "shaped",
+      "output": "kubejs:quantum_machine_frame",
+      "output_count": 1,
+      "pattern": [
+        "QAQ",
+        "AFA",
+        "QAQ"
+      ],
+      "keys": {
+        "Q": "kubejs:quantum_circuit",
+        "A": "mekanism:alloy_atomic",
+        "F": "kubejs:overclocked_machine_frame"
+      },
+      "category": "Mekanism",
+      "source": "30_evolved_mekanism_gates.js"
+    },
+    {
+      "type": "shaped",
+      "output": "evolvedmekanism:quantum_alloying_factory",
+      "output_count": 1,
+      "pattern": [
+        "QAQ",
+        "AFA",
+        "QAQ"
+      ],
+      "keys": {
+        "Q": "kubejs:quantum_machine_frame",
+        "A": "kubejs:quantum_circuit",
+        "F": "evolvedmekanism:overclocked_alloying_factory"
+      },
+      "category": "Mekanism",
+      "source": "30_evolved_mekanism_gates.js"
+    },
+    {
+      "type": "shaped",
+      "output": "kubejs:multiversal_machine_frame",
+      "output_count": 1,
+      "pattern": [
+        "MAM",
+        "AFA",
+        "MAM"
+      ],
+      "keys": {
+        "M": "kubejs:boss_seal",
+        "A": "kubejs:draconic_circuit",
+        "F": "kubejs:quantum_machine_frame"
+      },
+      "category": "Mekanism",
+      "source": "30_evolved_mekanism_gates.js"
+    },
+    {
+      "type": "shaped",
+      "output": "evolvedmekanism:multiversal_alloying_factory",
+      "output_count": 1,
+      "pattern": [
+        "MAM",
+        "AFA",
+        "MAM"
+      ],
+      "keys": {
+        "M": "kubejs:multiversal_machine_frame",
+        "A": "kubejs:draconic_circuit",
+        "F": "evolvedmekanism:quantum_alloying_factory"
+      },
+      "category": "Mekanism",
+      "source": "30_evolved_mekanism_gates.js"
+    },
+    {
+      "type": "shaped",
+      "output": "sophisticatedbackpacks:backpack",
+      "output_count": 1,
+      "pattern": [
+        "SCS",
+        "LIL",
+        "SCS"
+      ],
+      "keys": {
+        "S": "minecraft:string",
+        "C": "farmersdelight:canvas",
+        "L": "minecraft:leather",
+        "I": "minecraft:iron_ingot"
+      },
+      "category": "Ваниль",
+      "source": "10_early_game.js"
+    },
+    {
+      "type": "shaped",
+      "output": "naturescompass:naturescompass",
+      "output_count": 1,
+      "pattern": [
+        "SLS",
+        "LCL",
+        "SLS"
+      ],
+      "keys": {
+        "S": "minecraft:spruce_sapling",
+        "L": "minecraft:leather",
+        "C": "minecraft:compass"
+      },
+      "category": "Ваниль",
+      "source": "10_early_game.js"
+    },
+    {
+      "type": "shaped",
+      "output": "waystones:warp_stone",
+      "output_count": 1,
+      "pattern": [
+        "EPE",
+        "PDP",
+        "EPE"
+      ],
+      "keys": {
+        "E": "minecraft:ender_pearl",
+        "P": "waystones:warp_dust",
+        "D": "minecraft:diamond"
+      },
+      "category": "Ваниль",
+      "source": "10_early_game.js"
+    },
+    {
+      "type": "shaped",
+      "output": "waystones:waystone",
+      "output_count": 1,
+      "pattern": [
+        "OOO",
+        "EWE",
+        "SDS"
+      ],
+      "keys": {
+        "O": "minecraft:obsidian",
+        "E": "minecraft:ender_pearl",
+        "W": "waystones:warp_stone",
+        "S": "minecraft:stone_bricks",
+        "D": "minecraft:diamond"
+      },
+      "category": "Ваниль",
+      "source": "10_early_game.js"
+    },
+    {
+      "type": "shaped",
+      "output": "farmersdelight:canvas",
+      "output_count": 4,
+      "pattern": [
+        "SSS",
+        "SLS",
+        "SSS"
+      ],
+      "keys": {
+        "S": "farmersdelight:straw",
+        "L": "minecraft:leather"
+      },
+      "category": "Еда",
+      "source": "10_farmers_delight_bridge.js"
+    },
+    {
+      "type": "shaped",
+      "output": "kubejs:rough_mechanism",
+      "output_count": 1,
+      "pattern": [
+        "ACA",
+        "RSR",
+        "ACA"
+      ],
+      "keys": {
+        "A": "create:andesite_alloy",
+        "C": "create:cogwheel",
+        "R": "minecraft:redstone",
+        "S": "create:shaft"
+      },
+      "category": "Еда",
+      "source": "10_farmers_delight_bridge.js"
+    },
+    {
+      "type": "shaped",
+      "output": "kubejs:andesite_machine_frame",
+      "output_count": 1,
+      "pattern": [
+        "AAA",
+        "ARA",
+        "AAA"
+      ],
+      "keys": {
+        "A": "create:andesite_alloy",
+        "R": "kubejs:rough_mechanism"
+      },
+      "category": "Еда",
+      "source": "10_farmers_delight_bridge.js"
+    },
+    {
+      "type": "shaped",
+      "output": "kubejs:skybound_core",
+      "output_count": 1,
+      "pattern": [
+        "AZA",
+        "ZGZ",
+        "AZA"
+      ],
+      "keys": {
+        "A": "aether:ambrosium_shard",
+        "Z": "aether:zanite_gemstone",
+        "G": "aether:enchanted_gravitite"
+      },
+      "category": "Магия",
+      "source": "10_magic_bridge.js"
+    },
+    {
+      "type": "shaped",
+      "output": "kubejs:dark_core",
+      "output_count": 1,
+      "pattern": [
+        "SRS",
+        "RHR",
+        "SRS"
+      ],
+      "keys": {
+        "S": "deeperdarker:soul_crystal",
+        "R": "deeperdarker:resonarium",
+        "H": "deeperdarker:heart_of_the_deep"
+      },
+      "category": "Магия",
+      "source": "10_magic_bridge.js"
+    },
+    {
+      "type": "shaped",
+      "output": "kubejs:arcane_mechanism",
+      "output_count": 1,
+      "pattern": [
+        "PMP",
+        "CDC",
+        "PMP"
+      ],
+      "keys": {
+        "P": "mahoutsukai:powdered_diamond",
+        "M": "mahoutsukai:mana_circuit",
+        "C": "create:precision_mechanism",
+        "D": "kubejs:dark_core"
+      },
+      "category": "Магия",
+      "source": "10_magic_bridge.js"
+    },
+    {
+      "type": "shaped",
+      "output": "kubejs:twilight_seal",
+      "output_count": 1,
+      "pattern": [
+        "NFM",
+        "CBC",
+        "TFS"
+      ],
+      "keys": {
+        "N": "twilightforest:naga_scale",
+        "F": "twilightforest:fiery_blood",
+        "M": "twilightforest:magic_map_focus",
+        "C": "twilightforest:carminite",
+        "B": "kubejs:arcane_mechanism",
+        "T": "twilightforest:fiery_tears",
+        "S": "minecraft:nether_star"
+      },
+      "category": "Магия",
+      "source": "10_magic_bridge.js"
+    },
+    {
+      "type": "shaped",
+      "output": "kubejs:boss_seal",
+      "output_count": 1,
+      "pattern": [
+        "STS",
+        "TCT",
+        "SAS"
+      ],
+      "keys": {
+        "S": "kubejs:skybound_core",
+        "T": "kubejs:twilight_seal",
+        "C": "kubejs:cataclysm_seal",
+        "A": "kubejs:arcane_mechanism"
+      },
+      "category": "Магия",
+      "source": "10_magic_bridge.js"
+    },
+    {
+      "type": "shaped",
+      "output": "kubejs:aetheric_seal",
+      "output_count": 1,
+      "pattern": [
+        "GZG",
+        "ASA",
+        "GZG"
+      ],
+      "keys": {
+        "G": "aether:enchanted_gravitite",
+        "Z": "aether:zanite_gemstone",
+        "A": "aether:ambrosium_shard",
+        "S": "kubejs:skybound_core"
+      },
+      "category": "Магия",
+      "source": "20_boss_dimension_progression.js"
+    },
+    {
+      "type": "shaped",
+      "output": "kubejs:otherside_seal",
+      "output_count": 1,
+      "pattern": [
+        "SRS",
+        "RDR",
+        "SRS"
+      ],
+      "keys": {
+        "S": "deeperdarker:soul_crystal",
+        "R": "deeperdarker:resonarium_plate",
+        "D": "kubejs:dark_core"
+      },
+      "category": "Магия",
+      "source": "20_boss_dimension_progression.js"
+    },
+    {
+      "type": "shaped",
+      "output": "kubejs:mahou_seal",
+      "output_count": 1,
+      "pattern": [
+        "PMP",
+        "MAM",
+        "PMP"
+      ],
+      "keys": {
+        "P": "mahoutsukai:powdered_ender",
+        "M": "mahoutsukai:mana_circuit",
+        "A": "kubejs:arcane_mechanism"
+      },
+      "category": "Магия",
+      "source": "20_boss_dimension_progression.js"
+    },
+    {
+      "type": "shaped",
+      "output": "kubejs:nether_seal",
+      "output_count": 1,
+      "pattern": [
+        "BWB",
+        "WAW",
+        "BWB"
+      ],
+      "keys": {
+        "B": "minecraft:blaze_rod",
+        "W": "cataclysm:witherite_ingot",
+        "A": "kubejs:arcane_mechanism"
+      },
+      "category": "Магия",
+      "source": "20_boss_dimension_progression.js"
+    },
+    {
+      "type": "shaped",
+      "output": "kubejs:end_seal",
+      "output_count": 1,
+      "pattern": [
+        "EDE",
+        "DAD",
+        "EDE"
+      ],
+      "keys": {
+        "E": "minecraft:ender_eye",
+        "D": "draconicevolution:draconium_ingot",
+        "A": "kubejs:arcane_mechanism"
+      },
+      "category": "Магия",
+      "source": "20_boss_dimension_progression.js"
+    },
+    {
+      "type": "shaped",
+      "output": "kubejs:boss_trophy_core",
+      "output_count": 1,
+      "pattern": [
+        "NLH",
+        "QBU",
+        "SCA"
+      ],
+      "keys": {
+        "N": "twilightforest:naga_trophy",
+        "L": "twilightforest:lich_trophy",
+        "H": "twilightforest:hydra_trophy",
+        "Q": "twilightforest:ur_ghast_trophy",
+        "B": "kubejs:boss_seal",
+        "U": "twilightforest:snow_queen_trophy",
+        "S": "minecraft:nether_star",
+        "C": "kubejs:cataclysm_seal",
+        "A": "kubejs:aetheric_seal"
+      },
+      "category": "Магия",
+      "source": "20_boss_dimension_progression.js"
+    },
+    {
+      "type": "shaped",
+      "output": "kubejs:ritual_focus",
+      "output_count": 1,
+      "pattern": [
+        "AMA",
+        "MCM",
+        "ADA"
+      ],
+      "keys": {
+        "A": "kubejs:arcane_mechanism",
+        "M": "kubejs:mahou_seal",
+        "C": "mahoutsukai:mana_circuit_magitech",
+        "D": "kubejs:dark_core"
+      },
+      "category": "Магия",
+      "source": "20_boss_dimension_progression.js"
+    },
+    {
+      "type": "shaped",
+      "output": "kubejs:dimensional_convergence_core",
+      "output_count": 1,
+      "pattern": [
+        "AOD",
+        "NRE",
+        "TBM"
+      ],
+      "keys": {
+        "A": "kubejs:aetheric_seal",
+        "O": "kubejs:otherside_seal",
+        "D": "kubejs:dark_core",
+        "N": "kubejs:nether_seal",
+        "R": "kubejs:ritual_focus",
+        "E": "kubejs:end_seal",
+        "T": "kubejs:twilight_seal",
+        "B": "kubejs:boss_trophy_core",
+        "M": "kubejs:mahou_seal"
+      },
+      "category": "Магия",
+      "source": "20_boss_dimension_progression.js"
+    },
+    {
+      "type": "shaped",
+      "output": "kubejs:ae_calculation_array",
+      "output_count": 1,
+      "pattern": [
+        "CFC",
+        "FQF",
+        "CFC"
+      ],
+      "keys": {
+        "C": "ae2:calculation_processor",
+        "F": "ae2:fluix_crystal",
+        "Q": "kubejs:resonant_circuit"
+      },
+      "category": "Прогрессия",
+      "source": "06_ae2_automation_energy.js",
+      "id": "voidrp:ae2/ae_calculation_array"
+    },
+    {
+      "type": "shaped",
+      "output": "kubejs:ae_engineering_array",
+      "output_count": 1,
+      "pattern": [
+        "EPE",
+        "PQP",
+        "EPE"
+      ],
+      "keys": {
+        "E": "ae2:engineering_processor",
+        "P": "kubejs:precision_mechanism_core",
+        "Q": "kubejs:logistical_circuit"
+      },
+      "category": "Прогрессия",
+      "source": "06_ae2_automation_energy.js",
+      "id": "voidrp:ae2/ae_engineering_array"
+    },
+    {
+      "type": "shaped",
+      "output": "kubejs:ae_logic_array",
+      "output_count": 1,
+      "pattern": [
+        "LGL",
+        "GCG",
+        "LGL"
+      ],
+      "keys": {
+        "L": "ae2:logic_processor",
+        "G": "ae2:fluix_crystal",
+        "C": "kubejs:engineering_circuit"
+      },
+      "category": "Прогрессия",
+      "source": "06_ae2_automation_energy.js",
+      "id": "voidrp:ae2/ae_logic_array"
+    },
+    {
+      "type": "shaped",
+      "output": "kubejs:autocrafting_core",
+      "output_count": 1,
+      "pattern": [
+        "PMP",
+        "ACA",
+        "PMP"
+      ],
+      "keys": {
+        "P": "ae2:pattern_provider",
+        "M": "ae2:molecular_assembler",
+        "A": "kubejs:ae_engineering_array",
+        "C": "kubejs:magic_tech_interface"
+      },
+      "category": "Прогрессия",
+      "source": "06_ae2_automation_energy.js",
+      "id": "voidrp:ae2/autocrafting_core"
+    },
+    {
+      "type": "shaped",
+      "output": "ae2:charger",
+      "output_count": 1,
+      "pattern": [
+        "ICI",
+        "ASA",
+        "ICI"
+      ],
+      "keys": {
+        "I": "kubejs:iron_fitting",
+        "C": "kubejs:copper_coil",
+        "A": "kubejs:skybound_core",
+        "S": "kubejs:steel_machine_frame"
+      },
+      "category": "Прогрессия",
+      "source": "06_ae2_automation_energy.js",
+      "id": "voidrp:ae2/charger"
+    },
+    {
+      "type": "shaped",
+      "output": "ae2:controller",
+      "output_count": 1,
+      "pattern": [
+        "ALA",
+        "LML",
+        "ALA"
+      ],
+      "keys": {
+        "A": "kubejs:ae_engineering_array",
+        "L": "kubejs:logistical_circuit",
+        "M": "kubejs:magic_tech_interface"
+      },
+      "category": "Прогрессия",
+      "source": "06_ae2_automation_energy.js",
+      "id": "voidrp:ae2/controller"
+    },
+    {
+      "type": "shaped",
+      "output": "ae2:drive",
+      "output_count": 1,
+      "pattern": [
+        "SLS",
+        "AMA",
+        "SLS"
+      ],
+      "keys": {
+        "S": "kubejs:steel_machine_frame",
+        "L": "kubejs:ae_logic_array",
+        "A": "kubejs:ae_calculation_array",
+        "M": "kubejs:magic_tech_interface"
+      },
+      "category": "Прогрессия",
+      "source": "06_ae2_automation_energy.js",
+      "id": "voidrp:ae2/drive"
+    },
+    {
+      "type": "shaped",
+      "output": "ae2:inscriber",
+      "output_count": 1,
+      "pattern": [
+        "SPS",
+        "CMC",
+        "SPS"
+      ],
+      "keys": {
+        "S": "kubejs:steel_machine_frame",
+        "P": "create:mechanical_press",
+        "C": "kubejs:ae_logic_array",
+        "M": "kubejs:magic_tech_interface"
+      },
+      "category": "Прогрессия",
+      "source": "06_ae2_automation_energy.js",
+      "id": "voidrp:ae2/inscriber"
+    },
+    {
+      "type": "shaped",
+      "output": "ae2:molecular_assembler",
+      "output_count": 1,
+      "pattern": [
+        "AMA",
+        "MCM",
+        "AMA"
+      ],
+      "keys": {
+        "A": "kubejs:ae_engineering_array",
+        "M": "kubejs:assembly_matrix",
+        "C": "ae2:controller"
+      },
+      "category": "Прогрессия",
+      "source": "06_ae2_automation_energy.js",
+      "id": "voidrp:ae2/molecular_assembler"
+    },
+    {
+      "type": "shaped",
+      "output": "ae2:pattern_provider",
+      "output_count": 1,
+      "pattern": [
+        "LAL",
+        "ACA",
+        "LAL"
+      ],
+      "keys": {
+        "L": "kubejs:ae_logic_array",
+        "A": "kubejs:assembly_matrix",
+        "C": "ae2:controller"
+      },
+      "category": "Прогрессия",
+      "source": "06_ae2_automation_energy.js",
+      "id": "voidrp:ae2/pattern_provider"
+    },
+    {
+      "type": "shaped",
+      "output": "kubejs:wireless_matrix",
+      "output_count": 1,
+      "pattern": [
+        "ESE",
+        "SAS",
+        "ESE"
+      ],
+      "keys": {
+        "E": "minecraft:ender_eye",
+        "S": "kubejs:skybound_core",
+        "A": "kubejs:ae_calculation_array"
+      },
+      "category": "Прогрессия",
+      "source": "06_ae2_automation_energy.js",
+      "id": "voidrp:ae2/wireless_matrix"
+    },
+    {
+      "type": "shaped",
+      "output": "ae2:wireless_terminal",
+      "output_count": 1,
+      "pattern": [
+        "SAS",
+        "WMW",
+        "SAS"
+      ],
+      "keys": {
+        "S": "kubejs:skybound_core",
+        "A": "kubejs:ae_calculation_array",
+        "W": "kubejs:wireless_matrix",
+        "M": "ae2:terminal"
+      },
+      "category": "Прогрессия",
+      "source": "06_ae2_automation_energy.js",
+      "id": "voidrp:ae2/wireless_terminal"
+    },
+    {
+      "type": "shaped",
+      "output": "avaritia:compressor",
+      "output_count": 1,
+      "pattern": [
+        "SQS",
+        "QMQ",
+        "SQS"
+      ],
+      "keys": {
+        "S": "kubejs:steel_machine_frame",
+        "Q": "kubejs:quantum_circuit",
+        "M": "kubejs:multiversal_machine_frame"
+      },
+      "category": "Прогрессия",
+      "source": "07_endgame_draconic_avaritia.js",
+      "id": "voidrp:avaritia/compressor"
+    },
+    {
+      "type": "shaped",
+      "output": "avaritia:extreme_crafting_table",
+      "output_count": 1,
+      "pattern": [
+        "CMC",
+        "MTM",
+        "CMC"
+      ],
+      "keys": {
+        "C": "avaritia:double_compressed_crafting_table",
+        "M": "kubejs:multiversal_machine_frame",
+        "T": "draconicevolution:crafting_core"
+      },
+      "category": "Прогрессия",
+      "source": "07_endgame_draconic_avaritia.js",
+      "id": "voidrp:avaritia/extreme_crafting_table"
+    },
+    {
+      "type": "shaped",
+      "output": "avaritia:infinity_catalyst",
+      "output_count": 1,
+      "pattern": [
+        "ACA",
+        "CMC",
+        "ACA"
+      ],
+      "keys": {
+        "A": "kubejs:infinity_catalyst_core",
+        "C": "avaritia:crystal_matrix_ingot",
+        "M": "kubejs:infinity_ultimate_matrix"
+      },
+      "category": "Прогрессия",
+      "source": "07_endgame_draconic_avaritia.js",
+      "id": "voidrp:avaritia/infinity_catalyst"
+    },
+    {
+      "type": "shaped",
+      "output": "kubejs:infinity_catalyst_core",
+      "output_count": 1,
+      "pattern": [
+        "DCD",
+        "CIC",
+        "DCD"
+      ],
+      "keys": {
+        "D": "draconicevolution:awakened_core",
+        "C": "avaritia:crystal_matrix_ingot",
+        "I": "kubejs:infinity_matrix"
+      },
+      "category": "Прогрессия",
+      "source": "07_endgame_draconic_avaritia.js",
+      "id": "voidrp:avaritia/infinity_catalyst_core"
+    },
+    {
+      "type": "shaped",
+      "output": "avaritia:infinity_ingot",
+      "output_count": 1,
+      "pattern": [
+        "CCC",
+        "NIN",
+        "CCC"
+      ],
+      "keys": {
+        "C": "avaritia:infinity_catalyst",
+        "N": "avaritia:neutronium_ingot",
+        "I": "kubejs:infinity_ultimate_matrix"
+      },
+      "category": "Прогрессия",
+      "source": "07_endgame_draconic_avaritia.js",
+      "id": "voidrp:avaritia/infinity_ingot"
+    },
+    {
+      "type": "shaped",
+      "output": "avaritia:neutron_collector",
+      "output_count": 1,
+      "pattern": [
+        "DAD",
+        "AMA",
+        "DAD"
+      ],
+      "keys": {
+        "D": "draconicevolution:awakened_core",
+        "A": "kubejs:awakened_matrix",
+        "M": "kubejs:multiversal_machine_frame"
+      },
+      "category": "Прогрессия",
+      "source": "07_endgame_draconic_avaritia.js",
+      "id": "voidrp:avaritia/neutron_collector"
+    },
+    {
+      "type": "shaped",
+      "output": "kubejs:arcane_capacitor",
+      "output_count": 1,
+      "pattern": [
+        "RMR",
+        "CAC",
+        "RMR"
+      ],
+      "keys": {
+        "R": "minecraft:redstone",
+        "M": "kubejs:magical_conduit",
+        "C": "createaddition:capacitor",
+        "A": "kubejs:arcane_lens"
+      },
+      "category": "Прогрессия",
+      "source": "00_core_components.js",
+      "id": "voidrp:core/arcane_capacitor"
+    },
+    {
+      "type": "shaped",
+      "output": "kubejs:arcane_lens",
+      "output_count": 1,
+      "pattern": [
+        "LAL",
+        "GCG",
+        "LAL"
+      ],
+      "keys": {
+        "L": "minecraft:lapis_lazuli",
+        "A": "minecraft:amethyst_shard",
+        "G": "minecraft:gold_ingot",
+        "C": "kubejs:copper_coil"
+      },
+      "category": "Прогрессия",
+      "source": "00_core_components.js",
+      "id": "voidrp:core/arcane_lens"
+    },
+    {
+      "type": "shaped",
+      "output": "kubejs:assembly_matrix",
+      "output_count": 1,
+      "pattern": [
+        "PAP",
+        "TCT",
+        "PAP"
+      ],
+      "keys": {
+        "P": "create:precision_mechanism",
+        "A": "kubejs:arcane_capacitor",
+        "T": "kubejs:treated_mechanism",
+        "C": "kubejs:workshop_core"
+      },
+      "category": "Прогрессия",
+      "source": "00_core_components.js",
+      "id": "voidrp:core/assembly_matrix"
+    },
+    {
+      "type": "shaped",
+      "output": "kubejs:boss_essence",
+      "output_count": 1,
+      "pattern": [
+        "NTL",
+        "HBS",
+        "UCA"
+      ],
+      "keys": {
+        "N": "twilightforest:naga_trophy",
+        "T": "twilightforest:twilight_scepter",
+        "L": "twilightforest:lich_trophy",
+        "H": "twilightforest:hydra_trophy",
+        "B": "kubejs:boss_seal",
+        "S": "minecraft:nether_star",
+        "U": "twilightforest:ur_ghast_trophy",
+        "C": "kubejs:cataclysm_seal",
+        "A": "kubejs:aetheric_seal"
+      },
+      "category": "Прогрессия",
+      "source": "00_core_components.js",
+      "id": "voidrp:core/boss_essence"
+    },
+    {
+      "type": "shaped",
+      "output": "kubejs:copper_coil",
+      "output_count": 1,
+      "pattern": [
+        "RCR",
+        "CSC",
+        "RCR"
+      ],
+      "keys": {
+        "R": "minecraft:redstone",
+        "C": "minecraft:copper_ingot",
+        "S": "minecraft:stick"
+      },
+      "category": "Прогрессия",
+      "source": "00_core_components.js",
+      "id": "voidrp:core/copper_coil"
+    },
+    {
+      "type": "shaped",
+      "output": "kubejs:dimensional_thread",
+      "output_count": 1,
+      "pattern": [
+        "ESE",
+        "SMS",
+        "ESE"
+      ],
+      "keys": {
+        "E": "minecraft:ender_pearl",
+        "S": "minecraft:string",
+        "M": "kubejs:magical_conduit"
+      },
+      "category": "Прогрессия",
+      "source": "00_core_components.js",
+      "id": "voidrp:core/dimensional_thread"
+    },
+    {
+      "type": "shaped",
+      "output": "kubejs:explorer_seal",
+      "output_count": 1,
+      "pattern": [
+        "AMA",
+        "CNC",
+        "ASA"
+      ],
+      "keys": {
+        "A": "kubejs:arcane_lens",
+        "M": "minecraft:map",
+        "C": "minecraft:compass",
+        "N": "aether:ambrosium_shard",
+        "S": "kubejs:survival_gear_core"
+      },
+      "category": "Прогрессия",
+      "source": "00_core_components.js",
+      "id": "voidrp:core/explorer_seal"
+    },
+    {
+      "type": "shaped",
+      "output": "kubejs:gateway_core",
+      "output_count": 1,
+      "pattern": [
+        "EAE",
+        "DWD",
+        "EAE"
+      ],
+      "keys": {
+        "E": "minecraft:ender_pearl",
+        "A": "kubejs:arcane_lens",
+        "D": "minecraft:diamond",
+        "W": "kubejs:workshop_core"
+      },
+      "category": "Прогрессия",
+      "source": "00_core_components.js",
+      "id": "voidrp:core/gateway_core"
+    },
+    {
+      "type": "shaped",
+      "output": "kubejs:industrial_bolt",
+      "output_count": 1,
+      "pattern": [
+        " I ",
+        "ISI",
+        " I "
+      ],
+      "keys": {
+        "I": "minecraft:iron_ingot",
+        "S": "immersiveengineering:component_steel"
+      },
+      "category": "Прогрессия",
+      "source": "00_core_components.js",
+      "id": "voidrp:core/industrial_bolt"
+    },
+    {
+      "type": "shaped",
+      "output": "kubejs:iron_fitting",
+      "output_count": 1,
+      "pattern": [
+        " N ",
+        "NIN",
+        " N "
+      ],
+      "keys": {
+        "N": "minecraft:iron_nugget",
+        "I": "minecraft:iron_ingot"
+      },
+      "category": "Прогрессия",
+      "source": "00_core_components.js",
+      "id": "voidrp:core/iron_fitting"
+    },
+    {
+      "type": "shaped",
+      "output": "kubejs:kitchen_core",
+      "output_count": 1,
+      "pattern": [
+        "BIB",
+        "SCS",
+        "BIB"
+      ],
+      "keys": {
+        "B": "minecraft:brick",
+        "I": "kubejs:iron_fitting",
+        "S": "farmersdelight:straw",
+        "C": "minecraft:bowl"
+      },
+      "category": "Прогрессия",
+      "source": "00_core_components.js",
+      "id": "voidrp:core/kitchen_core"
+    },
+    {
+      "type": "shaped",
+      "output": "kubejs:magic_tech_interface",
+      "output_count": 1,
+      "pattern": [
+        "AMA",
+        "TCT",
+        "ADA"
+      ],
+      "keys": {
+        "A": "kubejs:arcane_capacitor",
+        "M": "kubejs:magical_conduit",
+        "T": "kubejs:treated_mechanism",
+        "C": "kubejs:factory_control_unit",
+        "D": "kubejs:dark_core"
+      },
+      "category": "Прогрессия",
+      "source": "00_core_components.js",
+      "id": "voidrp:core/magic_tech_interface"
+    },
+    {
+      "type": "shaped",
+      "output": "kubejs:magical_conduit",
+      "output_count": 1,
+      "pattern": [
+        "RCR",
+        "LML",
+        "RCR"
+      ],
+      "keys": {
+        "R": "kubejs:rune_plate",
+        "C": "kubejs:copper_coil",
+        "L": "kubejs:arcane_lens",
+        "M": "mahoutsukai:mana_circuit"
+      },
+      "category": "Прогрессия",
+      "source": "00_core_components.js",
+      "id": "voidrp:core/magical_conduit"
+    },
+    {
+      "type": "shaped",
+      "output": "kubejs:primitive_binding",
+      "output_count": 1,
+      "pattern": [
+        " S ",
+        "LTL",
+        " S "
+      ],
+      "keys": {
+        "S": "minecraft:string",
+        "L": "minecraft:leather",
+        "T": "minecraft:stick"
+      },
+      "category": "Прогрессия",
+      "source": "00_core_components.js",
+      "id": "voidrp:core/primitive_binding"
+    },
+    {
+      "type": "shaped",
+      "output": "kubejs:primitive_machine_frame",
+      "output_count": 1,
+      "pattern": [
+        "ISI",
+        "CWC",
+        "IRI"
+      ],
+      "keys": {
+        "I": "kubejs:iron_fitting",
+        "S": "kubejs:sturdy_plank",
+        "C": "kubejs:copper_coil",
+        "W": "kubejs:workshop_core",
+        "R": "minecraft:redstone"
+      },
+      "category": "Прогрессия",
+      "source": "00_core_components.js",
+      "id": "voidrp:core/primitive_machine_frame"
+    },
+    {
+      "type": "shaped",
+      "output": "kubejs:reactor_heart",
+      "output_count": 1,
+      "pattern": [
+        "UQU",
+        "QRQ",
+        "UQU"
+      ],
+      "keys": {
+        "U": "mekanism:ultimate_control_circuit",
+        "Q": "kubejs:quantum_circuit",
+        "R": "bigreactors:basic_reactorcontroller"
+      },
+      "category": "Прогрессия",
+      "source": "00_core_components.js",
+      "id": "voidrp:core/reactor_heart"
+    },
+    {
+      "type": "shaped",
+      "output": "kubejs:redstone_contact",
+      "output_count": 1,
+      "pattern": [
+        "RIR",
+        "ICI",
+        "RIR"
+      ],
+      "keys": {
+        "R": "minecraft:redstone",
+        "I": "kubejs:iron_fitting",
+        "C": "kubejs:copper_coil"
+      },
+      "category": "Прогрессия",
+      "source": "00_core_components.js",
+      "id": "voidrp:core/redstone_contact"
+    },
+    {
+      "type": "shaped",
+      "output": "kubejs:reinforced_casing_plate",
+      "output_count": 1,
+      "pattern": [
+        "SSS",
+        "IBI",
+        "SSS"
+      ],
+      "keys": {
+        "S": "immersiveengineering:plate_steel",
+        "I": "kubejs:industrial_bolt",
+        "B": "kubejs:steel_machine_frame"
+      },
+      "category": "Прогрессия",
+      "source": "00_core_components.js",
+      "id": "voidrp:core/reinforced_casing_plate"
+    },
+    {
+      "type": "shaped",
+      "output": "kubejs:rune_plate",
+      "output_count": 1,
+      "pattern": [
+        "ALA",
+        "LGL",
+        "ALA"
+      ],
+      "keys": {
+        "A": "minecraft:amethyst_shard",
+        "L": "minecraft:lapis_lazuli",
+        "G": "minecraft:gold_ingot"
+      },
+      "category": "Прогрессия",
+      "source": "00_core_components.js",
+      "id": "voidrp:core/rune_plate"
+    },
+    {
+      "type": "shaped",
+      "output": "kubejs:sturdy_plank",
+      "output_count": 1,
+      "pattern": [
+        "SSS",
+        "SPS",
+        "SSS"
+      ],
+      "keys": {
+        "S": "minecraft:stick",
+        "P": "#minecraft:planks"
+      },
+      "category": "Прогрессия",
+      "source": "00_core_components.js",
+      "id": "voidrp:core/sturdy_plank"
+    },
+    {
+      "type": "shaped",
+      "output": "kubejs:survival_gear_core",
+      "output_count": 1,
+      "pattern": [
+        "LCL",
+        "BIB",
+        "LCL"
+      ],
+      "keys": {
+        "L": "kubejs:treated_leather",
+        "C": "minecraft:compass",
+        "B": "minecraft:bread",
+        "I": "kubejs:iron_fitting"
+      },
+      "category": "Прогрессия",
+      "source": "00_core_components.js",
+      "id": "voidrp:core/survival_gear_core"
+    },
+    {
+      "type": "shaped",
+      "output": "kubejs:treated_leather",
+      "output_count": 1,
+      "pattern": [
+        "SSS",
+        "CLC",
+        "SSS"
+      ],
+      "keys": {
+        "S": "farmersdelight:straw",
+        "C": "farmersdelight:canvas",
+        "L": "minecraft:leather"
+      },
+      "category": "Прогрессия",
+      "source": "00_core_components.js",
+      "id": "voidrp:core/treated_leather"
+    },
+    {
+      "type": "shaped",
+      "output": "kubejs:workshop_core",
+      "output_count": 1,
+      "pattern": [
+        "ICI",
+        "SWS",
+        "IRI"
+      ],
+      "keys": {
+        "I": "kubejs:iron_fitting",
+        "C": "kubejs:copper_coil",
+        "S": "kubejs:sturdy_plank",
+        "W": "minecraft:crafting_table",
+        "R": "kubejs:redstone_contact"
+      },
+      "category": "Прогрессия",
+      "source": "00_core_components.js",
+      "id": "voidrp:core/workshop_core"
+    },
+    {
+      "type": "shaped",
+      "output": "create:andesite_alloy",
+      "output_count": 1,
+      "pattern": [
+        "AIA",
+        "IZI",
+        "AIA"
+      ],
+      "keys": {
+        "A": "minecraft:andesite",
+        "I": "kubejs:iron_fitting",
+        "Z": "minecraft:iron_ingot"
+      },
+      "category": "Прогрессия",
+      "source": "03_food_create_age.js",
+      "id": "voidrp:create/andesite_alloy"
+    },
+    {
+      "type": "shaped",
+      "output": "create:andesite_casing",
+      "output_count": 1,
+      "pattern": [
+        "SAS",
+        "ACA",
+        "SAS"
+      ],
+      "keys": {
+        "S": "kubejs:sturdy_plank",
+        "A": "create:andesite_alloy",
+        "C": "kubejs:andesite_machine_frame"
+      },
+      "category": "Прогрессия",
+      "source": "03_food_create_age.js",
+      "id": "voidrp:create/andesite_casing"
+    },
+    {
+      "type": "shaped",
+      "output": "kubejs:andesite_machine_frame",
+      "output_count": 1,
+      "pattern": [
+        "ASA",
+        "SRS",
+        "ASA"
+      ],
+      "keys": {
+        "A": "create:andesite_alloy",
+        "S": "kubejs:sturdy_plank",
+        "R": "kubejs:rough_mechanism"
+      },
+      "category": "Прогрессия",
+      "source": "03_food_create_age.js",
+      "id": "voidrp:create/andesite_machine_frame"
+    },
+    {
+      "type": "shaped",
+      "output": "create:basin",
+      "output_count": 1,
+      "pattern": [
+        "I I",
+        "IAI",
+        "III"
+      ],
+      "keys": {
+        "I": "minecraft:iron_ingot",
+        "A": "create:andesite_alloy"
+      },
+      "category": "Прогрессия",
+      "source": "03_food_create_age.js",
+      "id": "voidrp:create/basin"
+    },
+    {
+      "type": "shaped",
+      "output": "create:cogwheel",
+      "output_count": 1,
+      "pattern": [
+        " S ",
+        "SAS",
+        " S "
+      ],
+      "keys": {
+        "S": "minecraft:stick",
+        "A": "create:shaft"
+      },
+      "category": "Прогрессия",
+      "source": "03_food_create_age.js",
+      "id": "voidrp:create/cogwheel"
+    },
+    {
+      "type": "shaped",
+      "output": "create:crushing_wheel",
+      "output_count": 1,
+      "pattern": [
+        "AAA",
+        "AMA",
+        "AAA"
+      ],
+      "keys": {
+        "A": "create:andesite_alloy",
+        "M": "kubejs:precision_mechanism_core"
+      },
+      "category": "Прогрессия",
+      "source": "03_food_create_age.js",
+      "id": "voidrp:create/crushing_wheel"
+    },
+    {
+      "type": "shaped",
+      "output": "create:deployer",
+      "output_count": 1,
+      "pattern": [
+        "RCR",
+        "AMA",
+        "RCR"
+      ],
+      "keys": {
+        "R": "kubejs:redstone_contact",
+        "C": "create:brass_hand",
+        "A": "create:andesite_alloy",
+        "M": "kubejs:rough_mechanism"
+      },
+      "category": "Прогрессия",
+      "source": "03_food_create_age.js",
+      "id": "voidrp:create/deployer"
+    },
+    {
+      "type": "shaped",
+      "output": "create:large_cogwheel",
+      "output_count": 1,
+      "pattern": [
+        "SSS",
+        "SCS",
+        "SSS"
+      ],
+      "keys": {
+        "S": "minecraft:stick",
+        "C": "create:cogwheel"
+      },
+      "category": "Прогрессия",
+      "source": "03_food_create_age.js",
+      "id": "voidrp:create/large_cogwheel"
+    },
+    {
+      "type": "shaped",
+      "output": "create:mechanical_crafter",
+      "output_count": 1,
+      "pattern": [
+        "RCR",
+        "AMA",
+        "RCR"
+      ],
+      "keys": {
+        "R": "kubejs:redstone_contact",
+        "C": "minecraft:crafting_table",
+        "A": "kubejs:andesite_machine_frame",
+        "M": "kubejs:precision_mechanism_core"
+      },
+      "category": "Прогрессия",
+      "source": "03_food_create_age.js",
+      "id": "voidrp:create/mechanical_crafter"
+    },
+    {
+      "type": "shaped",
+      "output": "create:mechanical_mixer",
+      "output_count": 1,
+      "pattern": [
+        " W ",
+        "SAS",
+        " B "
+      ],
+      "keys": {
+        "W": "create:whisk",
+        "S": "create:shaft",
+        "A": "kubejs:andesite_machine_frame",
+        "B": "create:basin"
+      },
+      "category": "Прогрессия",
+      "source": "03_food_create_age.js",
+      "id": "voidrp:create/mechanical_mixer"
+    },
+    {
+      "type": "shaped",
+      "output": "create:mechanical_press",
+      "output_count": 1,
+      "pattern": [
+        " I ",
+        "SAS",
+        " C "
+      ],
+      "keys": {
+        "I": "minecraft:iron_block",
+        "S": "create:shaft",
+        "A": "kubejs:andesite_machine_frame",
+        "C": "create:andesite_casing"
+      },
+      "category": "Прогрессия",
+      "source": "03_food_create_age.js",
+      "id": "voidrp:create/mechanical_press"
+    },
+    {
+      "type": "shaped",
+      "output": "create:precision_mechanism",
+      "output_count": 1,
+      "pattern": [
+        "PAP",
+        "RCR",
+        "PAP"
+      ],
+      "keys": {
+        "P": "create:brass_sheet",
+        "A": "kubejs:arcane_lens",
+        "R": "kubejs:rough_mechanism",
+        "C": "kubejs:redstone_contact"
+      },
+      "category": "Прогрессия",
+      "source": "03_food_create_age.js",
+      "id": "voidrp:create/precision_mechanism"
+    },
+    {
+      "type": "shaped",
+      "output": "kubejs:precision_mechanism_core",
+      "output_count": 1,
+      "pattern": [
+        "PAP",
+        "MCM",
+        "PAP"
+      ],
+      "keys": {
+        "P": "create:precision_mechanism",
+        "A": "kubejs:arcane_lens",
+        "M": "kubejs:rough_mechanism",
+        "C": "create:brass_casing"
+      },
+      "category": "Прогрессия",
+      "source": "03_food_create_age.js",
+      "id": "voidrp:create/precision_mechanism_core"
+    },
+    {
+      "type": "shaped",
+      "output": "kubejs:rough_mechanism",
+      "output_count": 1,
+      "pattern": [
+        "ACA",
+        "CWC",
+        "ARA"
+      ],
+      "keys": {
+        "A": "create:andesite_alloy",
+        "C": "kubejs:copper_coil",
+        "W": "kubejs:workshop_core",
+        "R": "kubejs:redstone_contact"
+      },
+      "category": "Прогрессия",
+      "source": "03_food_create_age.js",
+      "id": "voidrp:create/rough_mechanism"
+    },
+    {
+      "type": "shaped",
+      "output": "create:shaft",
+      "output_count": 1,
+      "pattern": [
+        " A ",
+        "ASA",
+        " A "
+      ],
+      "keys": {
+        "A": "create:andesite_alloy",
+        "S": "minecraft:stick"
+      },
+      "category": "Прогрессия",
+      "source": "03_food_create_age.js",
+      "id": "voidrp:create/shaft"
+    },
+    {
+      "type": "shaped",
+      "output": "createaddition:capacitor",
+      "output_count": 1,
+      "pattern": [
+        "RCR",
+        "CAC",
+        "RCR"
+      ],
+      "keys": {
+        "R": "minecraft:redstone",
+        "C": "kubejs:copper_coil",
+        "A": "kubejs:arcane_lens"
+      },
+      "category": "Прогрессия",
+      "source": "03_food_create_age.js",
+      "id": "voidrp:createaddition/capacitor"
+    },
+    {
+      "type": "shaped",
+      "output": "createaddition:electric_motor",
+      "output_count": 1,
+      "pattern": [
+        "CAC",
+        "RMR",
+        "CAC"
+      ],
+      "keys": {
+        "C": "kubejs:copper_coil",
+        "A": "createaddition:capacitor",
+        "R": "kubejs:redstone_contact",
+        "M": "kubejs:precision_mechanism_core"
+      },
+      "category": "Прогрессия",
+      "source": "03_food_create_age.js",
+      "id": "voidrp:createaddition/electric_motor"
+    },
+    {
+      "type": "shaped",
+      "output": "createaddition:rolling_mill",
+      "output_count": 1,
+      "pattern": [
+        "IPI",
+        "CMC",
+        "IRI"
+      ],
+      "keys": {
+        "I": "minecraft:iron_ingot",
+        "P": "create:mechanical_press",
+        "C": "create:cogwheel",
+        "M": "kubejs:precision_mechanism_core",
+        "R": "kubejs:redstone_contact"
+      },
+      "category": "Прогрессия",
+      "source": "03_food_create_age.js",
+      "id": "voidrp:createaddition/rolling_mill"
+    },
+    {
+      "type": "shaped",
+      "output": "draconicevolution:awakened_core",
+      "output_count": 1,
+      "pattern": [
+        "AWA",
+        "WQW",
+        "AWA"
+      ],
+      "keys": {
+        "A": "draconicevolution:awakened_draconium_ingot",
+        "W": "draconicevolution:wyvern_core",
+        "Q": "kubejs:quantum_machine_frame"
+      },
+      "category": "Прогрессия",
+      "source": "07_endgame_draconic_avaritia.js",
+      "id": "voidrp:endgame/awakened_core"
+    },
+    {
+      "type": "shaped",
+      "output": "kubejs:draconic_circuit",
+      "output_count": 1,
+      "pattern": [
+        "DUD",
+        "UQU",
+        "DUD"
+      ],
+      "keys": {
+        "D": "draconicevolution:draconium_ingot",
+        "U": "mekanism:ultimate_control_circuit",
+        "Q": "kubejs:quantum_circuit"
+      },
+      "category": "Прогрессия",
+      "source": "07_endgame_draconic_avaritia.js",
+      "id": "voidrp:endgame/draconic_circuit"
+    },
+    {
+      "type": "shaped",
+      "output": "draconicevolution:crafting_core",
+      "output_count": 1,
+      "pattern": [
+        "SDS",
+        "DCD",
+        "SDS"
+      ],
+      "keys": {
+        "S": "kubejs:fusion_stabilizer",
+        "D": "draconicevolution:draconium_core",
+        "C": "kubejs:draconic_machine_frame"
+      },
+      "category": "Прогрессия",
+      "source": "07_endgame_draconic_avaritia.js",
+      "id": "voidrp:endgame/draconic_crafting_core"
+    },
+    {
+      "type": "shaped",
+      "output": "kubejs:draconic_machine_frame",
+      "output_count": 1,
+      "pattern": [
+        "DCD",
+        "CFC",
+        "DCD"
+      ],
+      "keys": {
+        "D": "draconicevolution:draconium_ingot",
+        "C": "kubejs:draconic_circuit",
+        "F": "kubejs:quantum_machine_frame"
+      },
+      "category": "Прогрессия",
+      "source": "07_endgame_draconic_avaritia.js",
+      "id": "voidrp:endgame/draconic_machine_frame"
+    },
+    {
+      "type": "shaped",
+      "output": "draconicevolution:draconium_core",
+      "output_count": 1,
+      "pattern": [
+        "DAD",
+        "ACA",
+        "DAD"
+      ],
+      "keys": {
+        "D": "draconicevolution:draconium_ingot",
+        "A": "kubejs:arcane_mechanism",
+        "C": "kubejs:draconic_circuit"
+      },
+      "category": "Прогрессия",
+      "source": "07_endgame_draconic_avaritia.js",
+      "id": "voidrp:endgame/draconium_core"
+    },
+    {
+      "type": "shaped",
+      "output": "kubejs:fusion_stabilizer",
+      "output_count": 1,
+      "pattern": [
+        "SAS",
+        "AFA",
+        "SAS"
+      ],
+      "keys": {
+        "S": "draconicevolution:draconium_core",
+        "A": "kubejs:draconic_circuit",
+        "F": "kubejs:draconic_machine_frame"
+      },
+      "category": "Прогрессия",
+      "source": "07_endgame_draconic_avaritia.js",
+      "id": "voidrp:endgame/fusion_stabilizer"
+    },
+    {
+      "type": "shaped",
+      "output": "kubejs:multiversal_machine_frame",
+      "output_count": 1,
+      "pattern": [
+        "QDQ",
+        "DMD",
+        "QDQ"
+      ],
+      "keys": {
+        "Q": "kubejs:quantum_machine_frame",
+        "D": "kubejs:dimensional_convergence_core",
+        "M": "evolvedmekanism:multiversal_alloying_factory"
+      },
+      "category": "Прогрессия",
+      "source": "07_endgame_draconic_avaritia.js",
+      "id": "voidrp:endgame/multiversal_machine_frame"
+    },
+    {
+      "type": "shaped",
+      "output": "kubejs:quantum_circuit",
+      "output_count": 1,
+      "pattern": [
+        "EAE",
+        "QMQ",
+        "EAE"
+      ],
+      "keys": {
+        "E": "mekanism:elite_control_circuit",
+        "A": "kubejs:ae_engineering_array",
+        "Q": "kubejs:autocrafting_core",
+        "M": "kubejs:magic_tech_interface"
+      },
+      "category": "Прогрессия",
+      "source": "07_endgame_draconic_avaritia.js",
+      "id": "voidrp:endgame/quantum_circuit"
+    },
+    {
+      "type": "shaped",
+      "output": "kubejs:quantum_machine_frame",
+      "output_count": 1,
+      "pattern": [
+        "QDQ",
+        "DMD",
+        "QDQ"
+      ],
+      "keys": {
+        "Q": "kubejs:quantum_circuit",
+        "D": "kubejs:dimensional_convergence_core",
+        "M": "kubejs:dense_machine_frame"
+      },
+      "category": "Прогрессия",
+      "source": "07_endgame_draconic_avaritia.js",
+      "id": "voidrp:endgame/quantum_machine_frame"
+    },
+    {
+      "type": "shaped",
+      "output": "draconicevolution:wyvern_core",
+      "output_count": 1,
+      "pattern": [
+        "DCD",
+        "CNC",
+        "DCD"
+      ],
+      "keys": {
+        "D": "draconicevolution:draconium_core",
+        "C": "kubejs:cataclysm_seal",
+        "N": "minecraft:nether_star"
+      },
+      "category": "Прогрессия",
+      "source": "07_endgame_draconic_avaritia.js",
+      "id": "voidrp:endgame/wyvern_core"
+    },
+    {
+      "type": "shaped",
+      "output": "evolvedmekanism:alloyer",
+      "output_count": 1,
+      "pattern": [
+        "ECE",
+        "CMC",
+        "ECE"
+      ],
+      "keys": {
+        "E": "mekanism:advanced_control_circuit",
+        "C": "kubejs:evolved_alloy_core",
+        "M": "mekanism:metallurgic_infuser"
+      },
+      "category": "Прогрессия",
+      "source": "06_ae2_automation_energy.js",
+      "id": "voidrp:evolved/alloyer"
+    },
+    {
+      "type": "shaped",
+      "output": "kubejs:dense_machine_frame",
+      "output_count": 1,
+      "pattern": [
+        "ESE",
+        "SCS",
+        "ESE"
+      ],
+      "keys": {
+        "E": "kubejs:evolved_alloy_core",
+        "S": "mekanism:steel_casing",
+        "C": "kubejs:factory_control_unit"
+      },
+      "category": "Прогрессия",
+      "source": "06_ae2_automation_energy.js",
+      "id": "voidrp:evolved/dense_machine_frame"
+    },
+    {
+      "type": "shaped",
+      "output": "kubejs:evolved_alloy_core",
+      "output_count": 1,
+      "pattern": [
+        "AAA",
+        "DMD",
+        "AAA"
+      ],
+      "keys": {
+        "A": "mekanism:alloy_reinforced",
+        "D": "kubejs:dark_core",
+        "M": "kubejs:magic_tech_interface"
+      },
+      "category": "Прогрессия",
+      "source": "06_ae2_automation_energy.js",
+      "id": "voidrp:evolved/evolved_alloy_core"
+    },
+    {
+      "type": "shaped",
+      "output": "farmersdelight:cooking_pot",
+      "output_count": 1,
+      "pattern": [
+        "B B",
+        "ICI",
+        " I "
+      ],
+      "keys": {
+        "B": "minecraft:brick",
+        "I": "kubejs:iron_fitting",
+        "C": "kubejs:kitchen_core"
+      },
+      "category": "Прогрессия",
+      "source": "03_food_create_age.js",
+      "id": "voidrp:food/cooking_pot"
+    },
+    {
+      "type": "shaped",
+      "output": "farmersdelight:cutting_board",
+      "output_count": 1,
+      "pattern": [
+        "SSS",
+        "BBB"
+      ],
+      "keys": {
+        "S": "kubejs:sturdy_plank",
+        "B": "kubejs:primitive_binding"
+      },
+      "category": "Прогрессия",
+      "source": "03_food_create_age.js",
+      "id": "voidrp:food/cutting_board"
+    },
+    {
+      "type": "shaped",
+      "output": "farmersdelight:flint_knife",
+      "output_count": 1,
+      "pattern": [
+        "F",
+        "B",
+        "S"
+      ],
+      "keys": {
+        "F": "minecraft:flint",
+        "B": "kubejs:primitive_binding",
+        "S": "minecraft:stick"
+      },
+      "category": "Прогрессия",
+      "source": "03_food_create_age.js",
+      "id": "voidrp:food/flint_knife"
+    },
+    {
+      "type": "shaped",
+      "output": "farmersdelight:iron_knife",
+      "output_count": 1,
+      "pattern": [
+        "I",
+        "B",
+        "S"
+      ],
+      "keys": {
+        "I": "minecraft:iron_ingot",
+        "B": "kubejs:iron_fitting",
+        "S": "minecraft:stick"
+      },
+      "category": "Прогрессия",
+      "source": "03_food_create_age.js",
+      "id": "voidrp:food/iron_knife"
+    },
+    {
+      "type": "shaped",
+      "output": "farmersdelight:skillet",
+      "output_count": 1,
+      "pattern": [
+        " I ",
+        "ICI",
+        " S "
+      ],
+      "keys": {
+        "I": "minecraft:iron_ingot",
+        "C": "kubejs:kitchen_core",
+        "S": "minecraft:stick"
+      },
+      "category": "Прогрессия",
+      "source": "03_food_create_age.js",
+      "id": "voidrp:food/skillet"
+    },
+    {
+      "type": "shaped",
+      "output": "farmersdelight:stove",
+      "output_count": 1,
+      "pattern": [
+        "BBB",
+        "IFI",
+        "III"
+      ],
+      "keys": {
+        "B": "minecraft:brick",
+        "I": "kubejs:iron_fitting",
+        "F": "minecraft:furnace"
+      },
+      "category": "Прогрессия",
+      "source": "03_food_create_age.js",
+      "id": "voidrp:food/stove"
+    },
+    {
+      "type": "shaped",
+      "output": "immersiveengineering:assembler",
+      "output_count": 1,
+      "pattern": [
+        "SHS",
+        "ACA",
+        "SCS"
+      ],
+      "keys": {
+        "S": "kubejs:steel_machine_frame",
+        "H": "kubejs:heavy_engineering_core",
+        "A": "kubejs:assembly_matrix",
+        "C": "immersiveengineering:capacitor_mv"
+      },
+      "category": "Прогрессия",
+      "source": "05_heavy_industry_mekanism.js",
+      "id": "voidrp:ie/assembler"
+    },
+    {
+      "type": "shaped",
+      "output": "immersiveengineering:capacitor_hv",
+      "output_count": 1,
+      "pattern": [
+        "ESE",
+        "RMR",
+        "ESE"
+      ],
+      "keys": {
+        "E": "kubejs:engineering_circuit",
+        "S": "immersiveengineering:component_steel",
+        "R": "minecraft:redstone_block",
+        "M": "immersiveengineering:capacitor_mv"
+      },
+      "category": "Прогрессия",
+      "source": "05_heavy_industry_mekanism.js",
+      "id": "voidrp:ie/capacitor_hv"
+    },
+    {
+      "type": "shaped",
+      "output": "immersiveengineering:capacitor_lv",
+      "output_count": 1,
+      "pattern": [
+        "ICI",
+        "RMR",
+        "ICI"
+      ],
+      "keys": {
+        "I": "kubejs:iron_fitting",
+        "C": "kubejs:copper_coil",
+        "R": "minecraft:redstone",
+        "M": "kubejs:treated_mechanism"
+      },
+      "category": "Прогрессия",
+      "source": "05_heavy_industry_mekanism.js",
+      "id": "voidrp:ie/capacitor_lv"
+    },
+    {
+      "type": "shaped",
+      "output": "immersiveengineering:capacitor_mv",
+      "output_count": 1,
+      "pattern": [
+        "ECE",
+        "RLR",
+        "ECE"
+      ],
+      "keys": {
+        "E": "kubejs:engineering_circuit",
+        "C": "immersiveengineering:capacitor_lv",
+        "R": "minecraft:redstone_block",
+        "L": "kubejs:arcane_lens"
+      },
+      "category": "Прогрессия",
+      "source": "05_heavy_industry_mekanism.js",
+      "id": "voidrp:ie/capacitor_mv"
+    },
+    {
+      "type": "shaped",
+      "output": "immersiveengineering:crusher",
+      "output_count": 1,
+      "pattern": [
+        "SHS",
+        "CMC",
+        "SHS"
+      ],
+      "keys": {
+        "S": "kubejs:steel_machine_frame",
+        "H": "kubejs:heavy_engineering_core",
+        "C": "create:crushing_wheel",
+        "M": "immersiveengineering:capacitor_mv"
+      },
+      "category": "Прогрессия",
+      "source": "05_heavy_industry_mekanism.js",
+      "id": "voidrp:ie/crusher"
+    },
+    {
+      "type": "shaped",
+      "output": "kubejs:engineering_circuit",
+      "output_count": 1,
+      "pattern": [
+        "CRC",
+        "RMR",
+        "CRC"
+      ],
+      "keys": {
+        "C": "immersiveengineering:wirecoil_copper",
+        "R": "kubejs:redstone_contact",
+        "M": "kubejs:treated_mechanism"
+      },
+      "category": "Прогрессия",
+      "source": "05_heavy_industry_mekanism.js",
+      "id": "voidrp:ie/engineering_circuit"
+    },
+    {
+      "type": "shaped",
+      "output": "kubejs:heavy_engineering_core",
+      "output_count": 1,
+      "pattern": [
+        "EDE",
+        "SMS",
+        "EDE"
+      ],
+      "keys": {
+        "E": "immersiveengineering:heavy_engineering",
+        "D": "kubejs:dark_core",
+        "S": "kubejs:steel_machine_frame",
+        "M": "kubejs:precision_mechanism_core"
+      },
+      "category": "Прогрессия",
+      "source": "05_heavy_industry_mekanism.js",
+      "id": "voidrp:ie/heavy_engineering_core"
+    },
+    {
+      "type": "shaped",
+      "output": "kubejs:high_voltage_circuit",
+      "output_count": 1,
+      "pattern": [
+        "HVH",
+        "EAE",
+        "HVH"
+      ],
+      "keys": {
+        "H": "immersiveengineering:wirecoil_steel",
+        "V": "immersiveengineering:capacitor_hv",
+        "E": "kubejs:engineering_circuit",
+        "A": "kubejs:arcane_capacitor"
+      },
+      "category": "Прогрессия",
+      "source": "05_heavy_industry_mekanism.js",
+      "id": "voidrp:ie/high_voltage_circuit"
+    },
+    {
+      "type": "shaped",
+      "output": "immersiveengineering:metal_press",
+      "output_count": 1,
+      "pattern": [
+        "SPS",
+        "MHM",
+        "SCS"
+      ],
+      "keys": {
+        "S": "kubejs:steel_machine_frame",
+        "P": "create:mechanical_press",
+        "M": "create:precision_mechanism",
+        "H": "kubejs:heavy_engineering_core",
+        "C": "immersiveengineering:capacitor_mv"
+      },
+      "category": "Прогрессия",
+      "source": "05_heavy_industry_mekanism.js",
+      "id": "voidrp:ie/metal_press"
+    },
+    {
+      "type": "shaped",
+      "output": "kubejs:steel_machine_frame",
+      "output_count": 1,
+      "pattern": [
+        "SBS",
+        "BMB",
+        "SBS"
+      ],
+      "keys": {
+        "S": "immersiveengineering:plate_steel",
+        "B": "kubejs:industrial_bolt",
+        "M": "kubejs:treated_mechanism"
+      },
+      "category": "Прогрессия",
+      "source": "05_heavy_industry_mekanism.js",
+      "id": "voidrp:ie/steel_machine_frame"
+    },
+    {
+      "type": "shaped",
+      "output": "kubejs:treated_mechanism",
+      "output_count": 1,
+      "pattern": [
+        "TST",
+        "AMA",
+        "TST"
+      ],
+      "keys": {
+        "T": "immersiveengineering:treated_wood_horizontal",
+        "S": "immersiveengineering:component_iron",
+        "A": "kubejs:arcane_mechanism",
+        "M": "create:precision_mechanism"
+      },
+      "category": "Прогрессия",
+      "source": "05_heavy_industry_mekanism.js",
+      "id": "voidrp:ie/treated_mechanism"
+    },
+    {
+      "type": "shaped",
+      "output": "industrialforegoing:dissolution_chamber",
+      "output_count": 1,
+      "pattern": [
+        "PQP",
+        "AMA",
+        "PQP"
+      ],
+      "keys": {
+        "P": "industrialforegoing:plastic",
+        "Q": "kubejs:factory_control_unit",
+        "A": "kubejs:arcane_capacitor",
+        "M": "mekanism:advanced_control_circuit"
+      },
+      "category": "Прогрессия",
+      "source": "06_ae2_automation_energy.js",
+      "id": "voidrp:if/dissolution_chamber"
+    },
+    {
+      "type": "shaped",
+      "output": "kubejs:machine_plastic_sheet",
+      "output_count": 1,
+      "pattern": [
+        "PPP",
+        "LCL",
+        "PPP"
+      ],
+      "keys": {
+        "P": "industrialforegoing:plastic",
+        "L": "kubejs:logistical_circuit",
+        "C": "kubejs:factory_control_unit"
+      },
+      "category": "Прогрессия",
+      "source": "06_ae2_automation_energy.js",
+      "id": "voidrp:if/machine_plastic_sheet"
+    },
+    {
+      "type": "shaped",
+      "output": "aether:altar",
+      "output_count": 1,
+      "pattern": [
+        "SAS",
+        "AMA",
+        "SAS"
+      ],
+      "keys": {
+        "S": "aether:holystone",
+        "A": "kubejs:arcane_lens",
+        "M": "kubejs:rough_mechanism"
+      },
+      "category": "Прогрессия",
+      "source": "04_magic_technology_bridge.js",
+      "id": "voidrp:magic/aether_altar"
+    },
+    {
+      "type": "shaped",
+      "output": "aether:freezer",
+      "output_count": 1,
+      "pattern": [
+        "ICI",
+        "SAS",
+        "ICI"
+      ],
+      "keys": {
+        "I": "aether:icestone",
+        "C": "kubejs:copper_coil",
+        "S": "kubejs:skybound_core",
+        "A": "create:mechanical_mixer"
+      },
+      "category": "Прогрессия",
+      "source": "04_magic_technology_bridge.js",
+      "id": "voidrp:magic/aether_freezer"
+    },
+    {
+      "type": "shaped",
+      "output": "kubejs:aetheric_seal",
+      "output_count": 1,
+      "pattern": [
+        "GZG",
+        "ASA",
+        "GZG"
+      ],
+      "keys": {
+        "G": "aether:enchanted_gravitite",
+        "Z": "aether:zanite_gemstone",
+        "A": "aether:ambrosium_shard",
+        "S": "kubejs:skybound_core"
+      },
+      "category": "Прогрессия",
+      "source": "04_magic_technology_bridge.js",
+      "id": "voidrp:magic/aetheric_seal"
+    },
+    {
+      "type": "shapeless",
+      "output": "cataclysm:ancient_metal_ingot",
+      "output_count": 1,
+      "inputs": [
+        "#c:ingots/brass",
+        "#c:ingots/brass",
+        "#c:ingots/brass",
+        "#c:ingots/brass",
+        "minecraft:netherite_scrap",
+        "minecraft:netherite_scrap",
+        "minecraft:netherite_scrap",
+        "minecraft:netherite_scrap"
+      ],
+      "category": "Прогрессия",
+      "source": "04_magic_technology_bridge.js",
+      "id": "voidrp:magic/ancient_metal_ingot_from_brass"
+    },
+    {
+      "type": "shaped",
+      "output": "kubejs:arcane_mechanism",
+      "output_count": 1,
+      "pattern": [
+        "RLR",
+        "MCM",
+        "RLR"
+      ],
+      "keys": {
+        "R": "kubejs:rune_plate",
+        "L": "kubejs:arcane_lens",
+        "M": "create:precision_mechanism",
+        "C": "mahoutsukai:mana_circuit"
+      },
+      "category": "Прогрессия",
+      "source": "04_magic_technology_bridge.js",
+      "id": "voidrp:magic/arcane_mechanism"
+    },
+    {
+      "type": "shapeless",
+      "output": "cataclysm:black_steel_ingot",
+      "output_count": 1,
+      "inputs": [
+        "#c:ingots/steel",
+        "#c:ingots/steel",
+        "#c:ingots/steel",
+        "#c:ingots/steel",
+        "#c:dusts/obsidian",
+        "#c:dusts/obsidian",
+        "#c:dusts/obsidian",
+        "#c:dusts/obsidian"
+      ],
+      "category": "Прогрессия",
+      "source": "04_magic_technology_bridge.js",
+      "id": "voidrp:magic/black_steel_ingot_from_steel_and_obsidian_dust"
+    },
+    {
+      "type": "shaped",
+      "output": "kubejs:cataclysm_seal",
+      "output_count": 1,
+      "pattern": [
+        "BMB",
+        "DAD",
+        "BMB"
+      ],
+      "keys": {
+        "B": "cataclysm:black_steel_ingot",
+        "M": "cataclysm:ancient_metal_ingot",
+        "D": "kubejs:dark_core",
+        "A": "kubejs:arcane_mechanism"
+      },
+      "category": "Прогрессия",
+      "source": "04_magic_technology_bridge.js",
+      "id": "voidrp:magic/cataclysm_seal"
+    },
+    {
+      "type": "shaped",
+      "output": "kubejs:dark_core",
+      "output_count": 1,
+      "pattern": [
+        "RER",
+        "SAS",
+        "RER"
+      ],
+      "keys": {
+        "R": "deeperdarker:reinforced_echo_shard",
+        "E": "deeperdarker:soul_crystal",
+        "S": "immersiveengineering:plate_steel",
+        "A": "kubejs:arcane_mechanism"
+      },
+      "category": "Прогрессия",
+      "source": "04_magic_technology_bridge.js",
+      "id": "voidrp:magic/dark_core"
+    },
+    {
+      "type": "shaped",
+      "output": "mahoutsukai:mana_circuit_magitech",
+      "output_count": 1,
+      "pattern": [
+        "RMR",
+        "MCM",
+        "RMR"
+      ],
+      "keys": {
+        "R": "kubejs:rune_plate",
+        "M": "kubejs:magical_conduit",
+        "C": "mekanism:basic_control_circuit"
+      },
+      "category": "Прогрессия",
+      "source": "04_magic_technology_bridge.js",
+      "id": "voidrp:magic/mahou_magitech_circuit"
+    },
+    {
+      "type": "shaped",
+      "output": "kubejs:mahou_seal",
+      "output_count": 1,
+      "pattern": [
+        "PMP",
+        "MAM",
+        "PMP"
+      ],
+      "keys": {
+        "P": "mahoutsukai:powdered_ender",
+        "M": "mahoutsukai:mana_circuit",
+        "A": "kubejs:arcane_mechanism"
+      },
+      "category": "Прогрессия",
+      "source": "04_magic_technology_bridge.js",
+      "id": "voidrp:magic/mahou_seal"
+    },
+    {
+      "type": "shaped",
+      "output": "kubejs:otherside_seal",
+      "output_count": 1,
+      "pattern": [
+        "SRS",
+        "RDR",
+        "SRS"
+      ],
+      "keys": {
+        "S": "deeperdarker:soul_crystal",
+        "R": "deeperdarker:resonarium_plate",
+        "D": "kubejs:dark_core"
+      },
+      "category": "Прогрессия",
+      "source": "04_magic_technology_bridge.js",
+      "id": "voidrp:magic/otherside_seal"
+    },
+    {
+      "type": "shaped",
+      "output": "kubejs:skybound_core",
+      "output_count": 1,
+      "pattern": [
+        "AZA",
+        "SMS",
+        "AGA"
+      ],
+      "keys": {
+        "A": "aether:ambrosium_shard",
+        "Z": "aether:zanite_gemstone",
+        "S": "kubejs:arcane_mechanism",
+        "M": "create:precision_mechanism",
+        "G": "aether:enchanted_gravitite"
+      },
+      "category": "Прогрессия",
+      "source": "04_magic_technology_bridge.js",
+      "id": "voidrp:magic/skybound_core"
+    },
+    {
+      "type": "shaped",
+      "output": "kubejs:twilight_seal",
+      "output_count": 1,
+      "pattern": [
+        "NCL",
+        "AMA",
+        "HCU"
+      ],
+      "keys": {
+        "N": "twilightforest:naga_scale",
+        "C": "twilightforest:carminite",
+        "L": "twilightforest:lich_trophy",
+        "A": "kubejs:arcane_mechanism",
+        "M": "kubejs:precision_mechanism_core",
+        "H": "twilightforest:fiery_ingot",
+        "U": "twilightforest:knightmetal_ingot"
+      },
+      "category": "Прогрессия",
+      "source": "04_magic_technology_bridge.js",
+      "id": "voidrp:magic/twilight_seal"
+    },
+    {
+      "type": "shaped",
+      "output": "mekanism:advanced_control_circuit",
+      "output_count": 1,
+      "pattern": [
+        "ECE",
+        "CBC",
+        "ECE"
+      ],
+      "keys": {
+        "E": "kubejs:engineering_circuit",
+        "C": "mekanism:alloy_infused",
+        "B": "mekanism:basic_control_circuit"
+      },
+      "category": "Прогрессия",
+      "source": "05_heavy_industry_mekanism.js",
+      "id": "voidrp:mekanism/advanced_control_circuit"
+    },
+    {
+      "type": "shaped",
+      "output": "mekanism:basic_control_circuit",
+      "output_count": 1,
+      "pattern": [
+        "ROR",
+        "OAO",
+        "ROR"
+      ],
+      "keys": {
+        "R": "minecraft:redstone",
+        "O": "kubejs:osmium_resonator",
+        "A": "kubejs:arcane_mechanism"
+      },
+      "category": "Прогрессия",
+      "source": "05_heavy_industry_mekanism.js",
+      "id": "voidrp:mekanism/basic_control_circuit"
+    },
+    {
+      "type": "shaped",
+      "output": "mekanism:digital_miner",
+      "output_count": 1,
+      "pattern": [
+        "EUE",
+        "QMQ",
+        "EUE"
+      ],
+      "keys": {
+        "E": "mekanism:elite_control_circuit",
+        "U": "mekanism:ultimate_control_circuit",
+        "Q": "kubejs:quantum_circuit",
+        "M": "kubejs:magic_tech_interface"
+      },
+      "category": "Прогрессия",
+      "source": "05_heavy_industry_mekanism.js",
+      "id": "voidrp:mekanism/digital_miner"
+    },
+    {
+      "type": "shaped",
+      "output": "mekanism:elite_control_circuit",
+      "output_count": 1,
+      "pattern": [
+        "ADA",
+        "DCD",
+        "ADA"
+      ],
+      "keys": {
+        "A": "mekanism:advanced_control_circuit",
+        "D": "kubejs:dark_core",
+        "C": "ae2:calculation_processor"
+      },
+      "category": "Прогрессия",
+      "source": "05_heavy_industry_mekanism.js",
+      "id": "voidrp:mekanism/elite_control_circuit"
+    },
+    {
+      "type": "shaped",
+      "output": "mekanism:jetpack",
+      "output_count": 1,
+      "pattern": [
+        "ASA",
+        "SCS",
+        "T T"
+      ],
+      "keys": {
+        "A": "mekanism:advanced_control_circuit",
+        "S": "mekanism:steel_casing",
+        "C": "kubejs:skybound_core",
+        "T": "mekanism:basic_chemical_tank"
+      },
+      "category": "Прогрессия",
+      "source": "05_heavy_industry_mekanism.js",
+      "id": "voidrp:mekanism/jetpack"
+    },
+    {
+      "type": "shaped",
+      "output": "kubejs:osmium_resonator",
+      "output_count": 1,
+      "pattern": [
+        "OAO",
+        "RCR",
+        "OAO"
+      ],
+      "keys": {
+        "O": "mekanism:ingot_osmium",
+        "A": "kubejs:arcane_lens",
+        "R": "kubejs:redstone_contact",
+        "C": "kubejs:engineering_circuit"
+      },
+      "category": "Прогрессия",
+      "source": "05_heavy_industry_mekanism.js",
+      "id": "voidrp:mekanism/osmium_resonator"
+    },
+    {
+      "type": "shaped",
+      "output": "mekanism:steel_casing",
+      "output_count": 1,
+      "pattern": [
+        "SPS",
+        "PAP",
+        "SPS"
+      ],
+      "keys": {
+        "S": "immersiveengineering:plate_steel",
+        "P": "kubejs:reinforced_casing_plate",
+        "A": "kubejs:osmium_resonator"
+      },
+      "category": "Прогрессия",
+      "source": "05_heavy_industry_mekanism.js",
+      "id": "voidrp:mekanism/steel_casing"
+    },
+    {
+      "type": "shaped",
+      "output": "mekanism:ultimate_control_circuit",
+      "output_count": 1,
+      "pattern": [
+        "EQE",
+        "QDQ",
+        "EQE"
+      ],
+      "keys": {
+        "E": "mekanism:elite_control_circuit",
+        "Q": "kubejs:quantum_circuit",
+        "D": "kubejs:dimensional_convergence_core"
+      },
+      "category": "Прогрессия",
+      "source": "05_heavy_industry_mekanism.js",
+      "id": "voidrp:mekanism/ultimate_control_circuit"
+    },
+    {
+      "type": "shaped",
+      "output": "minecraft:bow",
+      "output_count": 1,
+      "pattern": [
+        " ST",
+        "S T",
+        " ST"
+      ],
+      "keys": {
+        "S": "minecraft:stick",
+        "T": "minecraft:string"
+      },
+      "category": "Прогрессия",
+      "source": "02_tools_storage_qol.js",
+      "id": "voidrp:qol/bow"
+    },
+    {
+      "type": "shaped",
+      "output": "minecraft:crossbow",
+      "output_count": 1,
+      "pattern": [
+        "SIS",
+        "RTR",
+        " B "
+      ],
+      "keys": {
+        "S": "minecraft:stick",
+        "I": "kubejs:iron_fitting",
+        "R": "minecraft:string",
+        "T": "minecraft:tripwire_hook",
+        "B": "minecraft:bow"
+      },
+      "category": "Прогрессия",
+      "source": "02_tools_storage_qol.js",
+      "id": "voidrp:qol/crossbow"
+    },
+    {
+      "type": "shaped",
+      "output": "minecraft:fishing_rod",
+      "output_count": 1,
+      "pattern": [
+        "  S",
+        " ST",
+        "S T"
+      ],
+      "keys": {
+        "S": "minecraft:stick",
+        "T": "minecraft:string"
+      },
+      "category": "Прогрессия",
+      "source": "02_tools_storage_qol.js",
+      "id": "voidrp:qol/fishing_rod"
+    },
+    {
+      "type": "shaped",
+      "output": "naturescompass:naturescompass",
+      "output_count": 1,
+      "pattern": [
+        "AEA",
+        "MCM",
+        "ASA"
+      ],
+      "keys": {
+        "A": "kubejs:arcane_lens",
+        "E": "kubejs:explorer_seal",
+        "M": "minecraft:map",
+        "C": "minecraft:compass",
+        "S": "kubejs:survival_gear_core"
+      },
+      "category": "Прогрессия",
+      "source": "02_tools_storage_qol.js",
+      "id": "voidrp:qol/natures_compass"
+    },
+    {
+      "type": "shaped",
+      "output": "minecraft:shield",
+      "output_count": 1,
+      "pattern": [
+        "PIP",
+        "PLP",
+        " P "
+      ],
+      "keys": {
+        "P": "kubejs:sturdy_plank",
+        "I": "kubejs:iron_fitting",
+        "L": "kubejs:treated_leather"
+      },
+      "category": "Прогрессия",
+      "source": "02_tools_storage_qol.js",
+      "id": "voidrp:qol/shield"
+    },
+    {
+      "type": "shaped",
+      "output": "waystones:warp_plate",
+      "output_count": 1,
+      "pattern": [
+        "WGW",
+        "GCG",
+        "WGW"
+      ],
+      "keys": {
+        "W": "waystones:waystone",
+        "G": "kubejs:gateway_core",
+        "C": "kubejs:dimensional_thread"
+      },
+      "category": "Прогрессия",
+      "source": "02_tools_storage_qol.js",
+      "id": "voidrp:qol/warp_plate"
+    },
+    {
+      "type": "shaped",
+      "output": "waystones:warp_stone",
+      "output_count": 1,
+      "pattern": [
+        "EDE",
+        "DGD",
+        "EDE"
+      ],
+      "keys": {
+        "E": "minecraft:ender_pearl",
+        "D": "kubejs:dimensional_thread",
+        "G": "kubejs:gateway_core"
+      },
+      "category": "Прогрессия",
+      "source": "02_tools_storage_qol.js",
+      "id": "voidrp:qol/warp_stone"
+    },
+    {
+      "type": "shaped",
+      "output": "waystones:waystone",
+      "output_count": 1,
+      "pattern": [
+        "DSD",
+        "GCG",
+        "DSD"
+      ],
+      "keys": {
+        "D": "minecraft:deepslate",
+        "S": "kubejs:skybound_core",
+        "G": "minecraft:gold_ingot",
+        "C": "kubejs:gateway_core"
+      },
+      "category": "Прогрессия",
+      "source": "02_tools_storage_qol.js",
+      "id": "voidrp:qol/waystone"
+    },
+    {
+      "type": "shaped",
+      "output": "bigreactors:basic_reactorcasing",
+      "output_count": 1,
+      "pattern": [
+        "IBI",
+        "BGB",
+        "IBI"
+      ],
+      "keys": {
+        "I": "minecraft:iron_ingot",
+        "B": "bigreactors:graphite_ingot",
+        "G": "minecraft:iron_block"
+      },
+      "category": "Прогрессия",
+      "source": "06_ae2_automation_energy.js",
+      "id": "voidrp:reactors/basic_reactorcasing"
+    },
+    {
+      "type": "shaped",
+      "output": "bigreactors:basic_reactorcontroller",
+      "output_count": 1,
+      "pattern": [
+        "CRC",
+        "RDR",
+        "CRC"
+      ],
+      "keys": {
+        "C": "bigreactors:basic_reactorcasing",
+        "R": "kubejs:high_voltage_circuit",
+        "D": "kubejs:dense_machine_frame"
+      },
+      "category": "Прогрессия",
+      "source": "06_ae2_automation_energy.js",
+      "id": "voidrp:reactors/basic_reactorcontroller"
+    },
+    {
+      "type": "shaped",
+      "output": "sophisticatedbackpacks:backpack",
+      "output_count": 1,
+      "pattern": [
+        "LCL",
+        "GSG",
+        "LCL"
+      ],
+      "keys": {
+        "L": "kubejs:treated_leather",
+        "C": "minecraft:chest",
+        "G": "minecraft:gold_ingot",
+        "S": "kubejs:survival_gear_core"
+      },
+      "category": "Прогрессия",
+      "source": "02_tools_storage_qol.js",
+      "id": "voidrp:storage/backpack"
+    },
+    {
+      "type": "shaped",
+      "output": "sophisticatedbackpacks:diamond_backpack",
+      "output_count": 1,
+      "pattern": [
+        "DAD",
+        "ABA",
+        "DAD"
+      ],
+      "keys": {
+        "D": "minecraft:diamond",
+        "A": "kubejs:arcane_capacitor",
+        "B": "sophisticatedbackpacks:gold_backpack"
+      },
+      "category": "Прогрессия",
+      "source": "02_tools_storage_qol.js",
+      "id": "voidrp:storage/diamond_backpack"
+    },
+    {
+      "type": "shaped",
+      "output": "sophisticatedbackpacks:gold_backpack",
+      "output_count": 1,
+      "pattern": [
+        "GFG",
+        "FBF",
+        "GFG"
+      ],
+      "keys": {
+        "G": "minecraft:gold_ingot",
+        "F": "kubejs:arcane_lens",
+        "B": "sophisticatedbackpacks:iron_backpack"
+      },
+      "category": "Прогрессия",
+      "source": "02_tools_storage_qol.js",
+      "id": "voidrp:storage/gold_backpack"
+    },
+    {
+      "type": "shaped",
+      "output": "sophisticatedbackpacks:iron_backpack",
+      "output_count": 1,
+      "pattern": [
+        "IFI",
+        "FBF",
+        "IFI"
+      ],
+      "keys": {
+        "I": "kubejs:iron_fitting",
+        "F": "kubejs:survival_gear_core",
+        "B": "sophisticatedbackpacks:backpack"
+      },
+      "category": "Прогрессия",
+      "source": "02_tools_storage_qol.js",
+      "id": "voidrp:storage/iron_backpack"
+    },
+    {
+      "type": "shaped",
+      "output": "sophisticatedbackpacks:netherite_backpack",
+      "output_count": 1,
+      "pattern": [
+        "NAN",
+        "DBD",
+        "NAN"
+      ],
+      "keys": {
+        "N": "minecraft:netherite_ingot",
+        "A": "kubejs:gateway_core",
+        "D": "minecraft:diamond",
+        "B": "sophisticatedbackpacks:diamond_backpack"
+      },
+      "category": "Прогрессия",
+      "source": "02_tools_storage_qol.js",
+      "id": "voidrp:storage/netherite_backpack"
+    },
+    {
+      "type": "shaped",
+      "output": "toms_storage:crafting_terminal",
+      "output_count": 1,
+      "pattern": [
+        "WCW",
+        "STS",
+        "WCW"
+      ],
+      "keys": {
+        "W": "kubejs:workshop_core",
+        "C": "minecraft:crafting_table",
+        "S": "toms_storage:storage_terminal",
+        "T": "kubejs:redstone_contact"
+      },
+      "category": "Прогрессия",
+      "source": "02_tools_storage_qol.js",
+      "id": "voidrp:storage/toms_crafting_terminal"
+    },
+    {
+      "type": "shaped",
+      "output": "toms_storage:inventory_connector",
+      "output_count": 1,
+      "pattern": [
+        "CRC",
+        "RHR",
+        "CRC"
+      ],
+      "keys": {
+        "C": "kubejs:copper_coil",
+        "R": "kubejs:redstone_contact",
+        "H": "minecraft:hopper"
+      },
+      "category": "Прогрессия",
+      "source": "02_tools_storage_qol.js",
+      "id": "voidrp:storage/toms_inventory_connector"
+    },
+    {
+      "type": "shaped",
+      "output": "toms_storage:storage_terminal",
+      "output_count": 1,
+      "pattern": [
+        "RGR",
+        "CIC",
+        "RGR"
+      ],
+      "keys": {
+        "R": "kubejs:redstone_contact",
+        "G": "minecraft:glass_pane",
+        "C": "kubejs:copper_coil",
+        "I": "toms_storage:inventory_connector"
+      },
+      "category": "Прогрессия",
+      "source": "02_tools_storage_qol.js",
+      "id": "voidrp:storage/toms_storage_terminal"
+    },
+    {
+      "type": "shaped",
+      "output": "tfmg:electric_motor",
+      "output_count": 1,
+      "pattern": [
+        "CAC",
+        "RMR",
+        "CAC"
+      ],
+      "keys": {
+        "C": "kubejs:copper_coil",
+        "A": "kubejs:arcane_capacitor",
+        "R": "kubejs:redstone_contact",
+        "M": "createaddition:electric_motor"
+      },
+      "category": "Прогрессия",
+      "source": "06_ae2_automation_energy.js",
+      "id": "voidrp:tfmg/electric_motor"
+    },
+    {
+      "type": "shaped",
+      "output": "tfmg:generator",
+      "output_count": 1,
+      "pattern": [
+        "SAS",
+        "CMC",
+        "SAS"
+      ],
+      "keys": {
+        "S": "kubejs:steel_machine_frame",
+        "A": "kubejs:arcane_capacitor",
+        "C": "kubejs:high_voltage_circuit",
+        "M": "tfmg:electric_motor"
+      },
+      "category": "Прогрессия",
+      "source": "06_ae2_automation_energy.js",
+      "id": "voidrp:tfmg/generator"
+    },
+    {
+      "type": "shaped",
+      "output": "minecraft:anvil",
+      "output_count": 1,
+      "pattern": [
+        "BBB",
+        " I ",
+        "III"
+      ],
+      "keys": {
+        "B": "minecraft:iron_block",
+        "I": "kubejs:iron_fitting"
+      },
+      "category": "Прогрессия",
+      "source": "01_vanilla_expert_foundation.js",
+      "id": "voidrp:vanilla/anvil"
+    },
+    {
+      "type": "shaped",
+      "output": "minecraft:barrel",
+      "output_count": 1,
+      "pattern": [
+        "SPS",
+        "P P",
+        "SPS"
+      ],
+      "keys": {
+        "P": "#minecraft:planks",
+        "S": "#minecraft:wooden_slabs"
+      },
+      "category": "Прогрессия",
+      "source": "01_vanilla_expert_foundation.js",
+      "id": "voidrp:vanilla/barrel"
+    },
+    {
+      "type": "shaped",
+      "output": "minecraft:beacon",
+      "output_count": 1,
+      "pattern": [
+        "GAG",
+        "GNG",
+        "OOO"
+      ],
+      "keys": {
+        "G": "minecraft:glass",
+        "A": "kubejs:arcane_lens",
+        "N": "minecraft:nether_star",
+        "O": "minecraft:obsidian"
+      },
+      "category": "Прогрессия",
+      "source": "01_vanilla_expert_foundation.js",
+      "id": "voidrp:vanilla/beacon"
+    },
+    {
+      "type": "shaped",
+      "output": "minecraft:blast_furnace",
+      "output_count": 1,
+      "pattern": [
+        "III",
+        "IFI",
+        "SSS"
+      ],
+      "keys": {
+        "I": "kubejs:iron_fitting",
+        "F": "minecraft:furnace",
+        "S": "minecraft:smooth_stone"
+      },
+      "category": "Прогрессия",
+      "source": "01_vanilla_expert_foundation.js",
+      "id": "voidrp:vanilla/blast_furnace"
+    },
+    {
+      "type": "shapeless",
+      "output": "minecraft:book",
+      "output_count": 1,
+      "inputs": [
+        "minecraft:paper",
+        "minecraft:paper",
+        "minecraft:paper",
+        "kubejs:treated_leather"
+      ],
+      "category": "Прогрессия",
+      "source": "01_vanilla_expert_foundation.js",
+      "id": "voidrp:vanilla/book"
+    },
+    {
+      "type": "shaped",
+      "output": "minecraft:bookshelf",
+      "output_count": 1,
+      "pattern": [
+        "SPS",
+        "BBB",
+        "SPS"
+      ],
+      "keys": {
+        "S": "kubejs:sturdy_plank",
+        "P": "#minecraft:planks",
+        "B": "minecraft:book"
+      },
+      "category": "Прогрессия",
+      "source": "01_vanilla_expert_foundation.js",
+      "id": "voidrp:vanilla/bookshelf"
+    },
+    {
+      "type": "shaped",
+      "output": "minecraft:brewing_stand",
+      "output_count": 1,
+      "pattern": [
+        " R ",
+        " C ",
+        "BBB"
+      ],
+      "keys": {
+        "R": "minecraft:blaze_rod",
+        "C": "kubejs:rune_plate",
+        "B": "minecraft:cobblestone"
+      },
+      "category": "Прогрессия",
+      "source": "01_vanilla_expert_foundation.js",
+      "id": "voidrp:vanilla/brewing_stand"
+    },
+    {
+      "type": "shaped",
+      "output": "minecraft:chest",
+      "output_count": 1,
+      "pattern": [
+        "PSP",
+        "P P",
+        "PSP"
+      ],
+      "keys": {
+        "P": "#minecraft:planks",
+        "S": "kubejs:sturdy_plank"
+      },
+      "category": "Прогрессия",
+      "source": "01_vanilla_expert_foundation.js",
+      "id": "voidrp:vanilla/chest"
+    },
+    {
+      "type": "shaped",
+      "output": "minecraft:clock",
+      "output_count": 1,
+      "pattern": [
+        " G ",
+        "CRC",
+        " G "
+      ],
+      "keys": {
+        "G": "minecraft:gold_ingot",
+        "C": "kubejs:copper_coil",
+        "R": "minecraft:redstone"
+      },
+      "category": "Прогрессия",
+      "source": "01_vanilla_expert_foundation.js",
+      "id": "voidrp:vanilla/clock"
+    },
+    {
+      "type": "shaped",
+      "output": "minecraft:compass",
+      "output_count": 1,
+      "pattern": [
+        " C ",
+        "IRI",
+        " C "
+      ],
+      "keys": {
+        "C": "kubejs:copper_coil",
+        "I": "minecraft:iron_ingot",
+        "R": "minecraft:redstone"
+      },
+      "category": "Прогрессия",
+      "source": "01_vanilla_expert_foundation.js",
+      "id": "voidrp:vanilla/compass"
+    },
+    {
+      "type": "shaped",
+      "output": "minecraft:crafting_table",
+      "output_count": 1,
+      "pattern": [
+        "PP",
+        "SS"
+      ],
+      "keys": {
+        "P": "#minecraft:planks",
+        "S": "minecraft:stick"
+      },
+      "category": "Прогрессия",
+      "source": "01_vanilla_expert_foundation.js",
+      "id": "voidrp:vanilla/crafting_table"
+    },
+    {
+      "type": "shaped",
+      "output": "minecraft:dispenser",
+      "output_count": 1,
+      "pattern": [
+        "CCC",
+        "CBC",
+        "CRC"
+      ],
+      "keys": {
+        "C": "minecraft:cobblestone",
+        "B": "minecraft:bow",
+        "R": "kubejs:redstone_contact"
+      },
+      "category": "Прогрессия",
+      "source": "01_vanilla_expert_foundation.js",
+      "id": "voidrp:vanilla/dispenser"
+    },
+    {
+      "type": "shaped",
+      "output": "minecraft:dropper",
+      "output_count": 1,
+      "pattern": [
+        "CCC",
+        "C C",
+        "CRC"
+      ],
+      "keys": {
+        "C": "minecraft:cobblestone",
+        "R": "kubejs:redstone_contact"
+      },
+      "category": "Прогрессия",
+      "source": "01_vanilla_expert_foundation.js",
+      "id": "voidrp:vanilla/dropper"
+    },
+    {
+      "type": "shaped",
+      "output": "minecraft:enchanting_table",
+      "output_count": 1,
+      "pattern": [
+        " A ",
+        "DBD",
+        "OOO"
+      ],
+      "keys": {
+        "A": "kubejs:arcane_lens",
+        "D": "minecraft:diamond",
+        "B": "minecraft:book",
+        "O": "minecraft:obsidian"
+      },
+      "category": "Прогрессия",
+      "source": "01_vanilla_expert_foundation.js",
+      "id": "voidrp:vanilla/enchanting_table"
+    },
+    {
+      "type": "shaped",
+      "output": "minecraft:ender_chest",
+      "output_count": 1,
+      "pattern": [
+        "OOO",
+        "OEO",
+        "OOO"
+      ],
+      "keys": {
+        "O": "minecraft:obsidian",
+        "E": "kubejs:gateway_core"
+      },
+      "category": "Прогрессия",
+      "source": "01_vanilla_expert_foundation.js",
+      "id": "voidrp:vanilla/ender_chest"
+    },
+    {
+      "type": "shaped",
+      "output": "minecraft:furnace",
+      "output_count": 1,
+      "pattern": [
+        "CCC",
+        "CFC",
+        "CCC"
+      ],
+      "keys": {
+        "C": "minecraft:cobblestone",
+        "F": "minecraft:flint"
+      },
+      "category": "Прогрессия",
+      "source": "01_vanilla_expert_foundation.js",
+      "id": "voidrp:vanilla/furnace"
+    },
+    {
+      "type": "shaped",
+      "output": "minecraft:hopper",
+      "output_count": 1,
+      "pattern": [
+        "I I",
+        "ICI",
+        " I "
+      ],
+      "keys": {
+        "I": "kubejs:iron_fitting",
+        "C": "minecraft:chest"
+      },
+      "category": "Прогрессия",
+      "source": "01_vanilla_expert_foundation.js",
+      "id": "voidrp:vanilla/hopper"
+    },
+    {
+      "type": "shaped",
+      "output": "minecraft:observer",
+      "output_count": 1,
+      "pattern": [
+        "CCC",
+        "RQR",
+        "CCC"
+      ],
+      "keys": {
+        "C": "minecraft:cobblestone",
+        "R": "kubejs:redstone_contact",
+        "Q": "minecraft:quartz"
+      },
+      "category": "Прогрессия",
+      "source": "01_vanilla_expert_foundation.js",
+      "id": "voidrp:vanilla/observer"
+    },
+    {
+      "type": "shaped",
+      "output": "minecraft:piston",
+      "output_count": 1,
+      "pattern": [
+        "PPP",
+        "ICI",
+        "IRI"
+      ],
+      "keys": {
+        "P": "kubejs:sturdy_plank",
+        "I": "kubejs:iron_fitting",
+        "C": "minecraft:cobblestone",
+        "R": "minecraft:redstone"
+      },
+      "category": "Прогрессия",
+      "source": "01_vanilla_expert_foundation.js",
+      "id": "voidrp:vanilla/piston"
+    },
+    {
+      "type": "shaped",
+      "output": "minecraft:shulker_box",
+      "output_count": 1,
+      "pattern": [
+        "S",
+        "C",
+        "S"
+      ],
+      "keys": {
+        "S": "minecraft:shulker_shell",
+        "C": "minecraft:ender_chest"
+      },
+      "category": "Прогрессия",
+      "source": "01_vanilla_expert_foundation.js",
+      "id": "voidrp:vanilla/shulker_box"
+    },
+    {
+      "type": "shaped",
+      "output": "minecraft:smithing_table",
+      "output_count": 1,
+      "pattern": [
+        "IFI",
+        "SCS",
+        "S S"
+      ],
+      "keys": {
+        "I": "minecraft:iron_ingot",
+        "F": "kubejs:iron_fitting",
+        "S": "#minecraft:planks",
+        "C": "minecraft:crafting_table"
+      },
+      "category": "Прогрессия",
+      "source": "01_vanilla_expert_foundation.js",
+      "id": "voidrp:vanilla/smithing_table"
+    },
+    {
+      "type": "shaped",
+      "output": "minecraft:smoker",
+      "output_count": 1,
+      "pattern": [
+        "LLL",
+        "LFL",
+        "LLL"
+      ],
+      "keys": {
+        "L": "#minecraft:logs",
+        "F": "minecraft:furnace"
+      },
+      "category": "Прогрессия",
+      "source": "01_vanilla_expert_foundation.js",
+      "id": "voidrp:vanilla/smoker"
+    },
+    {
+      "type": "shaped",
+      "output": "minecraft:sticky_piston",
+      "output_count": 1,
+      "pattern": [
+        "S",
+        "P"
+      ],
+      "keys": {
+        "S": "minecraft:slime_ball",
+        "P": "minecraft:piston"
+      },
+      "category": "Прогрессия",
+      "source": "01_vanilla_expert_foundation.js",
+      "id": "voidrp:vanilla/sticky_piston"
+    },
+    {
+      "type": "shaped",
+      "output": "kubejs:draconic_circuit",
+      "output_count": 1,
+      "pattern": [
+        "DUD",
+        "UQU",
+        "DUD"
+      ],
+      "keys": {
+        "D": "draconicevolution:draconium_ingot",
+        "U": "mekanism:ultimate_control_circuit",
+        "Q": "kubejs:quantum_circuit"
+      },
+      "category": "Эндгейм",
+      "source": "10_draconic_avaritia_bridge.js"
+    },
+    {
+      "type": "shaped",
+      "output": "draconicevolution:draconium_core",
+      "output_count": 1,
+      "pattern": [
+        "DAD",
+        "ACA",
+        "DAD"
+      ],
+      "keys": {
+        "D": "draconicevolution:draconium_ingot",
+        "A": "kubejs:arcane_mechanism",
+        "C": "kubejs:draconic_circuit"
+      },
+      "category": "Эндгейм",
+      "source": "10_draconic_avaritia_bridge.js"
+    },
+    {
+      "type": "shaped",
+      "output": "draconicevolution:wyvern_core",
+      "output_count": 1,
+      "pattern": [
+        "DCD",
+        "CNC",
+        "DCD"
+      ],
+      "keys": {
+        "D": "draconicevolution:draconium_core",
+        "C": "kubejs:cataclysm_seal",
+        "N": "minecraft:nether_star"
+      },
+      "category": "Эндгейм",
+      "source": "10_draconic_avaritia_bridge.js"
+    },
+    {
+      "type": "shaped",
+      "output": "draconicevolution:awakened_core",
+      "output_count": 1,
+      "pattern": [
+        "AWA",
+        "WQW",
+        "AWA"
+      ],
+      "keys": {
+        "A": "draconicevolution:awakened_draconium_ingot",
+        "W": "draconicevolution:wyvern_core",
+        "Q": "kubejs:quantum_circuit"
+      },
+      "category": "Эндгейм",
+      "source": "10_draconic_avaritia_bridge.js"
+    },
+    {
+      "type": "shaped",
+      "output": "kubejs:infinity_matrix",
+      "output_count": 1,
+      "pattern": [
+        "SQA",
+        "DNC",
+        "TBE"
+      ],
+      "keys": {
+        "S": "kubejs:skybound_core",
+        "Q": "kubejs:quantum_circuit",
+        "A": "draconicevolution:awakened_core",
+        "D": "kubejs:dark_core",
+        "N": "avaritia:neutronium_ingot",
+        "C": "kubejs:cataclysm_seal",
+        "T": "kubejs:twilight_seal",
+        "B": "kubejs:boss_seal",
+        "E": "minecraft:dragon_egg"
+      },
+      "category": "Эндгейм",
+      "source": "10_draconic_avaritia_bridge.js"
+    },
+    {
+      "type": "shaped",
+      "output": "avaritia:infinity_catalyst",
+      "output_count": 1,
+      "pattern": [
+        "ACA",
+        "CMC",
+        "ACA"
+      ],
+      "keys": {
+        "A": "draconicevolution:awakened_core",
+        "C": "avaritia:crystal_matrix_ingot",
+        "M": "kubejs:infinity_matrix"
+      },
+      "category": "Эндгейм",
+      "source": "10_draconic_avaritia_bridge.js"
+    },
+    {
+      "type": "shaped",
+      "output": "avaritia:infinity_ingot",
+      "output_count": 1,
+      "pattern": [
+        "CCC",
+        "NIN",
+        "CCC"
+      ],
+      "keys": {
+        "C": "avaritia:infinity_catalyst",
+        "N": "avaritia:neutronium_ingot",
+        "I": "kubejs:infinity_matrix"
+      },
+      "category": "Эндгейм",
+      "source": "10_draconic_avaritia_bridge.js"
+    },
+    {
+      "type": "shaped",
+      "output": "kubejs:draconic_machine_frame",
+      "output_count": 1,
+      "pattern": [
+        "DCD",
+        "CFC",
+        "DCD"
+      ],
+      "keys": {
+        "D": "draconicevolution:draconium_ingot",
+        "C": "kubejs:draconic_circuit",
+        "F": "kubejs:quantum_machine_frame"
+      },
+      "category": "Эндгейм",
+      "source": "20_draconic_final.js"
+    },
+    {
+      "type": "shaped",
+      "output": "kubejs:awakened_matrix",
+      "output_count": 1,
+      "pattern": [
+        "AWA",
+        "WQW",
+        "AWA"
+      ],
+      "keys": {
+        "A": "draconicevolution:awakened_core",
+        "W": "kubejs:dimensional_convergence_core",
+        "Q": "kubejs:draconic_machine_frame"
+      },
+      "category": "Эндгейм",
+      "source": "20_draconic_final.js"
+    },
+    {
+      "type": "shaped",
+      "output": "draconicevolution:chaotic_core",
+      "output_count": 1,
+      "pattern": [
+        "CAC",
+        "AQA",
+        "CAC"
+      ],
+      "keys": {
+        "C": "draconicevolution:awakened_core",
+        "A": "kubejs:awakened_matrix",
+        "Q": "draconicevolution:chaos_shard"
+      },
+      "category": "Эндгейм",
+      "source": "20_draconic_final.js"
+    },
+    {
+      "type": "shaped",
+      "output": "kubejs:chaotic_matrix",
+      "output_count": 1,
+      "pattern": [
+        "CQC",
+        "QDQ",
+        "CQC"
+      ],
+      "keys": {
+        "C": "draconicevolution:chaotic_core",
+        "Q": "kubejs:awakened_matrix",
+        "D": "kubejs:dimensional_convergence_core"
+      },
+      "category": "Эндгейм",
+      "source": "20_draconic_final.js"
+    },
+    {
+      "type": "shaped",
+      "output": "kubejs:fusion_stabilizer",
+      "output_count": 1,
+      "pattern": [
+        "SAS",
+        "AFA",
+        "SAS"
+      ],
+      "keys": {
+        "S": "draconicevolution:draconium_core",
+        "A": "kubejs:draconic_circuit",
+        "F": "kubejs:draconic_machine_frame"
+      },
+      "category": "Эндгейм",
+      "source": "20_draconic_final.js"
+    },
+    {
+      "type": "shaped",
+      "output": "draconicevolution:crafting_core",
+      "output_count": 1,
+      "pattern": [
+        "SDS",
+        "DCD",
+        "SDS"
+      ],
+      "keys": {
+        "S": "kubejs:fusion_stabilizer",
+        "D": "draconicevolution:draconium_core",
+        "C": "kubejs:draconic_machine_frame"
+      },
+      "category": "Эндгейм",
+      "source": "20_draconic_final.js"
+    },
+    {
+      "type": "shaped",
+      "output": "draconicevolution:basic_crafting_injector",
+      "output_count": 1,
+      "pattern": [
+        "SDS",
+        "DCD",
+        "SDS"
+      ],
+      "keys": {
+        "S": "kubejs:engineering_circuit",
+        "D": "draconicevolution:draconium_core",
+        "C": "minecraft:crafting_table"
+      },
+      "category": "Эндгейм",
+      "source": "20_draconic_final.js"
+    },
+    {
+      "type": "shaped",
+      "output": "draconicevolution:wyvern_crafting_injector",
+      "output_count": 1,
+      "pattern": [
+        "SDS",
+        "DCD",
+        "SDS"
+      ],
+      "keys": {
+        "S": "kubejs:draconic_circuit",
+        "D": "draconicevolution:wyvern_core",
+        "C": "draconicevolution:basic_crafting_injector"
+      },
+      "category": "Эндгейм",
+      "source": "20_draconic_final.js"
+    },
+    {
+      "type": "shaped",
+      "output": "draconicevolution:awakened_crafting_injector",
+      "output_count": 1,
+      "pattern": [
+        "SDS",
+        "DCD",
+        "SDS"
+      ],
+      "keys": {
+        "S": "kubejs:awakened_matrix",
+        "D": "draconicevolution:awakened_core",
+        "C": "draconicevolution:wyvern_crafting_injector"
+      },
+      "category": "Эндгейм",
+      "source": "20_draconic_final.js"
+    },
+    {
+      "type": "shaped",
+      "output": "draconicevolution:chaotic_crafting_injector",
+      "output_count": 1,
+      "pattern": [
+        "SDS",
+        "DCD",
+        "SDS"
+      ],
+      "keys": {
+        "S": "kubejs:chaotic_matrix",
+        "D": "draconicevolution:chaotic_core",
+        "C": "draconicevolution:awakened_crafting_injector"
+      },
+      "category": "Эндгейм",
+      "source": "20_draconic_final.js"
+    },
+    {
+      "type": "shaped",
+      "output": "draconicevolution:energy_core",
+      "output_count": 1,
+      "pattern": [
+        "DCD",
+        "CFC",
+        "DCD"
+      ],
+      "keys": {
+        "D": "draconicevolution:draconium_ingot",
+        "C": "kubejs:draconic_circuit",
+        "F": "kubejs:draconic_machine_frame"
+      },
+      "category": "Эндгейм",
+      "source": "20_draconic_final.js"
+    },
+    {
+      "type": "shaped",
+      "output": "draconicevolution:draconic_energy_core",
+      "output_count": 1,
+      "pattern": [
+        "AWA",
+        "WQW",
+        "AWA"
+      ],
+      "keys": {
+        "A": "draconicevolution:awakened_core",
+        "W": "draconicevolution:energy_core",
+        "Q": "kubejs:awakened_matrix"
+      },
+      "category": "Эндгейм",
+      "source": "20_draconic_final.js"
+    },
+    {
+      "type": "shaped",
+      "output": "draconicevolution:chaotic_energy_core",
+      "output_count": 1,
+      "pattern": [
+        "CWC",
+        "WQW",
+        "CWC"
+      ],
+      "keys": {
+        "C": "draconicevolution:chaotic_core",
+        "W": "draconicevolution:draconic_energy_core",
+        "Q": "kubejs:chaotic_matrix"
+      },
+      "category": "Эндгейм",
+      "source": "20_draconic_final.js"
+    }
+  ]
+}
