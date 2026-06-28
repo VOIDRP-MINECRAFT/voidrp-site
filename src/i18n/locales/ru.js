@@ -210,6 +210,8 @@ export default {
     referralTitle: 'Код приглашения',
     referralError: 'Не удалось проверить код приглашения.',
     createError: 'Не удалось создать аккаунт.',
+    emailDomainError: 'Регистрация доступна только с российских почтовых сервисов (например {\'@\'}mail.ru, {\'@\'}yandex.ru, {\'@\'}bk.ru, {\'@\'}rambler.ru).',
+emailDomainNotice: 'Только российские почтовые сервисы ({\'@\'}mail.ru, {\'@\'}yandex.ru, {\'@\'}bk.ru, {\'@\'}rambler.ru и др.) — согласно Федеральному закону от 31.07.2023 № 406-ФЗ.',
   },
   forgot: {
     kicker: 'Сброс пароля',

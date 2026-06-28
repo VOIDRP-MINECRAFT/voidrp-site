@@ -210,6 +210,8 @@ export default {
     referralTitle: 'Referral code',
     referralError: 'Could not verify the referral code.',
     createError: 'Could not create the account.',
+    emailDomainError: 'Registration is only available with Russian email providers (e.g. {\'@\'}mail.ru, {\'@\'}yandex.ru, {\'@\'}bk.ru, {\'@\'}rambler.ru).',
+    emailDomainNotice: 'Russian email providers only ({\'@\'}mail.ru, {\'@\'}yandex.ru, {\'@\'}bk.ru, {\'@\'}rambler.ru, etc.) — per Russian Federal Law No. 406-FZ of 31.07.2023.',
   },
   forgot: {
     kicker: 'Reset password',

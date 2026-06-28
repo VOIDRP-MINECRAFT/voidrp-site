@@ -29,6 +29,28 @@ const referralMessage = ref('')
 const referralError = ref('')
 const referralPreview = ref(null)
 
+// Регистрация разрешена только с российских почтовых сервисов.
+// Основание: Федеральный закон от 31.07.2023 № 406-ФЗ (изменения в ст. 10
+// ФЗ-149 «Об информации, информационных технологиях и о защите информации») —
+// с 01.01.2025 регистрация на российских сайтах через иностранную почту запрещена.
+const ALLOWED_EMAIL_DOMAINS = [
+  // mail.ru group
+  'mail.ru', 'bk.ru', 'inbox.ru', 'list.ru', 'internet.ru', 'mail.ua',
+  // yandex
+  'yandex.ru', 'ya.ru', 'yandex.com', 'yandex.by', 'yandex.kz', 'yandex.ua',
+  // rambler group
+  'rambler.ru', 'lenta.ru', 'autorambler.ru', 'myrambler.ru', 'ro.ru', 'rambler.ua',
+  // прочие российские провайдеры
+  'vk.com', 'xmail.ru',
+]
+
+function isAllowedEmail(email) {
+  const at = (email || '').trim().toLowerCase().lastIndexOf('@')
+  if (at < 0) return false
+  const domain = email.trim().toLowerCase().slice(at + 1)
+  return ALLOWED_EMAIL_DOMAINS.includes(domain)
+}
+
 const referralPreviewLabel = computed(() => {
   const payload = referralPreview.value
   if (!payload) return ''
@@ -69,6 +91,12 @@ async function resolveReferralCode(code) {
 
 async function submit() {
   errorMessage.value = ''
+
+  if (!isAllowedEmail(form.email)) {
+    errorMessage.value = t('register.emailDomainError')
+    return
+  }
+
   isSubmitting.value = true
 
   try {
@@ -146,6 +174,7 @@ watch(referralMessage, (value) => { if (value) toastInfo(value, t('register.refe
             <label class="md:col-span-2">
               <span class="field-label">{{ t('register.emailLabel') }}</span>
               <input v-model="form.email" type="email" class="input" required />
+              <p class="helper-text mt-2">{{ t('register.emailDomainNotice') }}</p>
             </label>
 
             <label>
