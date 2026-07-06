@@ -33,6 +33,7 @@ const BLANK = {
   status_host: '', status_port: null, max_players: 100,
   whitelist_mode: 'public', maintenance: false,
   map_url: '',
+  easydonate_server_id: null,
   features: { nations: true, economy: true, alliances: true, battlepass: true, quests: true, leaderboards: true, map: true },
 }
 
@@ -79,6 +80,7 @@ function buildPayload() {
     if (p[k] === '') p[k] = null
   }
   if (p.status_port === '' || p.status_port === undefined) p.status_port = null
+  if (p.easydonate_server_id === '' || p.easydonate_server_id === undefined || Number.isNaN(p.easydonate_server_id)) p.easydonate_server_id = null
   return p
 }
 
@@ -272,6 +274,8 @@ onMounted(load)
         <div class="grid">
           <label class="fld fld--wide"><span>Ссылка на веб-карту (Bluemap/Dynmap)</span>
             <input v-model="form.map_url" placeholder="https://map.void-rp.ru" /></label>
+          <label class="fld"><span>EasyDonate server ID (магазин доната)</span>
+            <input v-model.number="form.easydonate_server_id" type="number" placeholder="напр. 12345" /></label>
         </div>
         <div class="features">
           <label v-for="(label, key) in FEATURE_LABELS" :key="key" class="feature-chk">

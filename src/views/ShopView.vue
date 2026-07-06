@@ -3,9 +3,9 @@ import { computed, onMounted, ref } from 'vue'
 import { RouterLink, useRoute, useRouter } from 'vue-router'
 import { useI18n } from 'vue-i18n'
 import { createPayment, getDonateProducts, getLastPayments } from '../services/donateApi'
-import { apiRequest } from '../services/apiBase'
 import { toastError, toastSuccess } from '../services/toast'
 import { useAuthStore } from '../stores/authStore'
+import { activeServer, fetchServers } from '../stores/serverStore'
 
 const { t } = useI18n()
 const auth = useAuthStore()
@@ -22,6 +22,8 @@ const coupon = ref('')
 const serverOnline = ref(null)
 const expandedProduct = ref(null)
 const selectedCategory = ref('all')
+
+const activeServerName = computed(() => activeServer.value?.name || 'сервер')
 
 const categories = computed(() => {
   const cats = [...new Set(products.value.map((p) => p.category).filter(Boolean))]
@@ -122,8 +124,11 @@ async function loadPage() {
   loading.value = true
   error.value = ''
   try {
-    const statusRes = await apiRequest('/server/status').catch(() => ({ online: false }))
-    serverOnline.value = !!statusRes?.online
+    // Gate on the ACTIVE server's status: shop shown only when it's online and
+    // not under maintenance; otherwise we show a named maintenance notice.
+    await fetchServers()
+    const srv = activeServer.value
+    serverOnline.value = srv ? (!!srv.status?.online && !srv.maintenance) : true
     if (!serverOnline.value) return
 
     const [prods, pays] = await Promise.all([
@@ -191,7 +196,7 @@ onMounted(() => {
           </svg>
         </div>
         <div class="relative space-y-1.5">
-          <p class="text-xl font-black text-slate-100">{{ t('shop.serverOfflineTitle') }}</p>
+          <p class="text-xl font-black text-slate-100">{{ t('shop.serverMaintenanceNamed', { server: activeServerName }) }}</p>
           <p class="max-w-sm text-sm leading-relaxed text-slate-500">{{ t('shop.serverOfflineDesc') }}</p>
         </div>
         <button class="relative flex items-center gap-2 rounded-xl bg-slate-800 px-5 py-2.5 text-sm font-bold text-slate-300 ring-1 ring-slate-700 transition hover:bg-slate-700 hover:text-slate-100 active:scale-95" :disabled="loading" @click="loadPage">

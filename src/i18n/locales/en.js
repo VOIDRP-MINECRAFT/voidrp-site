@@ -1035,6 +1035,7 @@ export default {
     discountBadge: 'Sale',
     deliverTo: 'Deliver to:',
     serverOfflineTitle: 'Server offline',
+    serverMaintenanceNamed: 'Server “{server}” is under maintenance',
     serverOfflineDesc: 'The server is currently offline or undergoing maintenance. The shop is temporarily unavailable.',
     serverOfflineRetry: 'Retry',
     details: 'Details',
