@@ -14,6 +14,7 @@ const mobileOpen = ref(false)
 const openGroup = ref(null)
 const navRef = ref(null)
 const serverMenuOpen = ref(false)
+const userMenuOpen = ref(false)
 
 onMounted(() => fetchServers())
 
@@ -103,6 +104,7 @@ function handleOutsideClick(e) {
   if (navRef.value && !navRef.value.contains(e.target)) {
     openGroup.value = null
     serverMenuOpen.value = false
+    userMenuOpen.value = false
   }
 }
 
@@ -117,10 +119,12 @@ watch(() => route.fullPath, () => {
   mobileOpen.value = false
   openGroup.value = null
   serverMenuOpen.value = false
+  userMenuOpen.value = false
 })
 
 async function handleLogout() {
   mobileOpen.value = false
+  userMenuOpen.value = false
   await logoutCurrentSession()
 }
 </script>
@@ -262,22 +266,52 @@ async function handleLogout() {
           <div class="site-navbar__divider" />
 
           <template v-if="isAuthenticated">
-            <RouterLink v-if="isAdmin" to="/admin" class="site-navbar__admin-btn">
-              <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-                <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
-              </svg>
-              Админ
-            </RouterLink>
-            <RouterLink to="/profile" class="site-navbar__avatar-btn">
-              <span class="site-navbar__avatar">
-                <img v-if="avatarUrl" :src="avatarUrl" :alt="displayName" class="site-navbar__avatar-img" />
-                <template v-else>{{ userInitial }}</template>
-              </span>
-              <span class="site-navbar__avatar-name">{{ minecraftNick || displayName }}</span>
-            </RouterLink>
-            <button type="button" class="btn btn-ghost btn-sm" @click="handleLogout">
-              Выйти
-            </button>
+            <div class="site-navbar__user-wrap">
+              <button
+                type="button"
+                class="site-navbar__avatar-btn"
+                :class="{ 'is-open': userMenuOpen }"
+                @click="userMenuOpen = !userMenuOpen"
+              >
+                <span class="site-navbar__avatar">
+                  <img v-if="avatarUrl" :src="avatarUrl" :alt="displayName" class="site-navbar__avatar-img" />
+                  <template v-else>{{ userInitial }}</template>
+                </span>
+                <span class="site-navbar__avatar-name">{{ minecraftNick || displayName }}</span>
+                <svg class="site-navbar__chevron" :class="{ 'site-navbar__chevron--open': userMenuOpen }"
+                  xmlns="http://www.w3.org/2000/svg" width="11" height="11" viewBox="0 0 24 24" fill="none"
+                  stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                  <polyline points="6 9 12 15 18 9"/>
+                </svg>
+              </button>
+
+              <Transition name="dropdown">
+                <div v-if="userMenuOpen" class="site-navbar__dropdown site-navbar__user-menu">
+                  <div class="site-navbar__user-head">
+                    <span class="site-navbar__avatar site-navbar__avatar--sm">
+                      <img v-if="avatarUrl" :src="avatarUrl" :alt="displayName" class="site-navbar__avatar-img" />
+                      <template v-else>{{ userInitial }}</template>
+                    </span>
+                    <span class="site-navbar__user-head-text">
+                      <span class="site-navbar__user-head-name">{{ minecraftNick || displayName }}</span>
+                      <span class="site-navbar__user-head-sub">{{ t('auth.profile') }}</span>
+                    </span>
+                  </div>
+                  <RouterLink to="/profile" class="site-navbar__dropdown-item" @click="userMenuOpen = false">
+                    <span class="site-navbar__dropdown-item-icon"><svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg></span>
+                    <span class="site-navbar__dropdown-item-label">{{ t('auth.profile') }}</span>
+                  </RouterLink>
+                  <RouterLink v-if="isAdmin" to="/admin" class="site-navbar__dropdown-item" @click="userMenuOpen = false">
+                    <span class="site-navbar__dropdown-item-icon"><svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg></span>
+                    <span class="site-navbar__dropdown-item-label">Админ-панель</span>
+                  </RouterLink>
+                  <button type="button" class="site-navbar__dropdown-item site-navbar__dropdown-item--danger" @click="handleLogout">
+                    <span class="site-navbar__dropdown-item-icon"><svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg></span>
+                    <span class="site-navbar__dropdown-item-label">Выйти</span>
+                  </button>
+                </div>
+              </Transition>
+            </div>
           </template>
 
           <template v-else>
@@ -648,6 +682,46 @@ async function handleLogout() {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+/* ── User dropdown ────────────────────── */
+.site-navbar__user-wrap { position: relative; }
+.site-navbar__avatar-btn { cursor: pointer; }
+.site-navbar__avatar-btn.is-open {
+  border-color: rgba(139, 92, 246, 0.28);
+  background: rgba(139, 92, 246, 0.08);
+}
+.site-navbar__user-menu {
+  min-width: 15rem;
+  left: auto;
+  right: 0;
+  transform: none;
+}
+.site-navbar__user-head {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  padding: 0.6rem 0.75rem 0.7rem;
+  margin-bottom: 0.15rem;
+  border-bottom: 1px solid rgba(148, 163, 184, 0.1);
+}
+.site-navbar__user-head-text { display: flex; flex-direction: column; min-width: 0; }
+.site-navbar__user-head-name {
+  font-size: 0.9rem; font-weight: 800; color: #f1f5ff;
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.site-navbar__user-head-sub { font-size: 0.72rem; color: #64748b; }
+.site-navbar__dropdown-item--danger { width: 100%; background: none; border: none; cursor: pointer; text-align: left; }
+.site-navbar__dropdown-item--danger .site-navbar__dropdown-item-label,
+.site-navbar__dropdown-item--danger .site-navbar__dropdown-item-icon { color: #fca5a5; }
+.site-navbar__dropdown-item--danger:hover { background: rgba(239, 68, 68, 0.1); }
+
+/* Right-aligned menus: animate straight down (override the centered transform). */
+.site-navbar__user-menu.dropdown-enter-from,
+.site-navbar__user-menu.dropdown-leave-to,
+.site-navbar__server-menu.dropdown-enter-from,
+.site-navbar__server-menu.dropdown-leave-to {
+  transform: translateY(-6px);
 }
 
 /* ── Mobile group label ───────────────── */

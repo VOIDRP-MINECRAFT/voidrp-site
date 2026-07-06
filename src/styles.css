@@ -953,7 +953,7 @@ footer,
   }
 }
 
-@media (min-width: 1240px) {
+@media (min-width: 1120px) {
   .site-navbar__desktop-nav,
   .site-navbar__actions--desktop {
     display: flex;
@@ -965,15 +965,15 @@ footer,
   }
 }
 
-/* Progressively drop non-essential chrome so the desktop bar never overflows. */
-@media (min-width: 1240px) and (max-width: 1439px) {
+/* Progressively trim non-essential chrome so the desktop bar never overflows. */
+@media (min-width: 1120px) and (max-width: 1339px) {
   .site-navbar__meta { display: none; }
-  .site-navbar__avatar-name { display: none; }
 }
 
-@media (min-width: 1240px) and (max-width: 1359px) {
+@media (min-width: 1120px) and (max-width: 1259px) {
   .site-navbar__ext-link { padding-left: 0.5rem; padding-right: 0.5rem; }
-  .site-navbar__server-name { max-width: 5rem; }
+  .site-navbar__avatar-name { max-width: 5.5rem; }
+  .site-navbar__server-name { max-width: 4.5rem; }
 }
 
 @media (max-width: 767px) {
