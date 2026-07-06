@@ -34,12 +34,13 @@ const BLANK = {
   whitelist_mode: 'public', maintenance: false,
   map_url: '',
   easydonate_server_id: null,
-  features: { nations: true, economy: true, alliances: true, battlepass: true, quests: true, leaderboards: true, map: true },
+  features: { nations: true, economy: true, shop: true, alliances: true, battlepass: true, quests: true, leaderboards: true, map: true },
 }
 
 const FEATURE_LABELS = {
   nations: 'Государства',
   economy: 'Экономика / рынок',
+  shop: 'Магазин (донат)',
   alliances: 'Альянсы',
   battlepass: 'Battle Pass',
   quests: 'Квесты',
@@ -65,6 +66,8 @@ function startCreate() {
 
 function startEdit(server) {
   Object.assign(form, structuredClone(BLANK), server)
+  // Merge features so keys the server row doesn't have yet default to enabled.
+  form.features = { ...structuredClone(BLANK).features, ...(server.features || {}) }
   editing.value = server
 }
 
