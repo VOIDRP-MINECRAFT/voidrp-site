@@ -60,9 +60,11 @@ import GameUiTreasuryView from '../views/GameUiTreasuryView.vue'
 import GameUiBattlePassView from '../views/GameUiBattlePassView.vue'
 import GameUiAllianceView from '../views/GameUiAllianceView.vue'
 import GameUiQuestsView from '../views/GameUiQuestsView.vue'
+import ServersView from '../views/ServersView.vue'
 
 const routes = [
   { path: '/', name: 'home', component: HomeView, meta: { title: 'Главная' } },
+  { path: '/servers', name: 'servers', component: ServersView, meta: { title: 'Серверы' } },
   { path: '/shop', name: 'shop', component: ShopView, meta: { title: 'Магазин', requiresAuth: true } },
   { path: '/guide', name: 'expert-guide', component: ExpertGuideView, meta: { title: 'Гайд сборки' } },
   { path: '/recipes', name: 'recipes', component: RecipesView, meta: { title: 'Крафты сборки' } },

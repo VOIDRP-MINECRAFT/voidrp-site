@@ -5,6 +5,7 @@ import { useI18n } from 'vue-i18n'
 import { siteConfig } from '../config.site'
 import { logoutCurrentSession, useAuthStore } from '../stores/authStore'
 import { setLocale, getLocale } from '../i18n'
+import { serverState, activeServer, fetchServers, setActiveServer } from '../stores/serverStore'
 
 const { t } = useI18n()
 const auth = useAuthStore()
@@ -12,6 +13,14 @@ const route = useRoute()
 const mobileOpen = ref(false)
 const openGroup = ref(null)
 const navRef = ref(null)
+const serverMenuOpen = ref(false)
+
+onMounted(() => fetchServers())
+
+function chooseServer(slug) {
+  setActiveServer(slug)
+  serverMenuOpen.value = false
+}
 
 const isAuthenticated = computed(() => auth.isAuthenticated.value)
 const isAdmin = computed(() => auth.isAdmin.value)
@@ -93,6 +102,7 @@ function toggleGroup(label) {
 function handleOutsideClick(e) {
   if (navRef.value && !navRef.value.contains(e.target)) {
     openGroup.value = null
+    serverMenuOpen.value = false
   }
 }
 
@@ -106,6 +116,7 @@ onUnmounted(() => document.removeEventListener('mousedown', handleOutsideClick))
 watch(() => route.fullPath, () => {
   mobileOpen.value = false
   openGroup.value = null
+  serverMenuOpen.value = false
 })
 
 async function handleLogout() {
@@ -205,6 +216,48 @@ async function handleLogout() {
           >
             {{ item.label }}
           </a>
+
+          <!-- Server selector -->
+          <div v-if="serverState.list.length" class="site-navbar__server-wrap">
+            <button
+              type="button"
+              class="site-navbar__server-btn"
+              :class="{ 'is-open': serverMenuOpen }"
+              @click="serverMenuOpen = !serverMenuOpen"
+            >
+              <span class="site-navbar__server-dot" />
+              <span class="site-navbar__server-name">{{ activeServer?.name || t('servers.pageTitle') }}</span>
+              <svg class="site-navbar__chevron" :class="{ 'site-navbar__chevron--open': serverMenuOpen }"
+                xmlns="http://www.w3.org/2000/svg" width="11" height="11" viewBox="0 0 24 24" fill="none"
+                stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                <polyline points="6 9 12 15 18 9"/>
+              </svg>
+            </button>
+
+            <Transition name="dropdown">
+              <div v-if="serverMenuOpen" class="site-navbar__dropdown site-navbar__server-menu">
+                <button
+                  v-for="s in serverState.list"
+                  :key="s.slug"
+                  type="button"
+                  class="site-navbar__dropdown-item site-navbar__server-item"
+                  :class="{ 'site-navbar__dropdown-item--active': activeServer?.slug === s.slug }"
+                  @click="chooseServer(s.slug)"
+                >
+                  <span class="site-navbar__server-item-dot" :class="s.status?.online ? 'is-online' : 'is-offline'" />
+                  <span class="site-navbar__dropdown-item-text">
+                    <span class="site-navbar__dropdown-item-label">{{ s.name }}</span>
+                    <span class="site-navbar__dropdown-item-desc">
+                      {{ s.status?.online ? `${s.status.players_online}/${s.status.players_max} · ${t('servers.online')}` : t('servers.offline') }}
+                    </span>
+                  </span>
+                </button>
+                <RouterLink to="/servers" class="site-navbar__dropdown-item site-navbar__server-all" @click="serverMenuOpen = false">
+                  {{ t('servers.pageTitle') }} →
+                </RouterLink>
+              </div>
+            </Transition>
+          </div>
 
           <div class="site-navbar__divider" />
 
@@ -484,6 +537,48 @@ async function handleLogout() {
   height: 1.4rem;
   background: rgba(148, 163, 184, 0.16);
   flex-shrink: 0;
+}
+
+/* ── Server selector ──────────────────── */
+.site-navbar__server-wrap { position: relative; }
+.site-navbar__server-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  padding: 0.4rem 0.7rem;
+  border-radius: 999px;
+  border: 1px solid rgba(148, 163, 184, 0.16);
+  background: rgba(255, 255, 255, 0.04);
+  color: #cbd5ea;
+  font-size: 0.8rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: border-color 0.2s ease, background 0.2s ease;
+}
+.site-navbar__server-btn:hover,
+.site-navbar__server-btn.is-open {
+  border-color: rgba(139, 92, 246, 0.3);
+  background: rgba(139, 92, 246, 0.08);
+}
+.site-navbar__server-dot {
+  width: 7px; height: 7px; border-radius: 50%;
+  background: #22c55e; box-shadow: 0 0 7px rgba(34, 197, 94, 0.6);
+  flex-shrink: 0;
+}
+.site-navbar__server-name {
+  max-width: 8rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.site-navbar__server-menu { min-width: 15rem; left: auto; right: 0; transform: none; }
+.site-navbar__server-item { width: 100%; background: none; border: none; cursor: pointer; text-align: left; }
+.site-navbar__server-item-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+.site-navbar__server-item-dot.is-online { background: #22c55e; box-shadow: 0 0 6px rgba(34,197,94,0.6); }
+.site-navbar__server-item-dot.is-offline { background: #ef4444; }
+.site-navbar__server-all {
+  justify-content: center;
+  margin-top: 0.15rem;
+  font-size: 0.8rem; font-weight: 800; color: #a78bfa;
+  border-top: 1px solid rgba(148,163,184,0.1);
+  border-radius: 0 0 12px 12px;
 }
 
 /* ── Avatar button ────────────────────── */
