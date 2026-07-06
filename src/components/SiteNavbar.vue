@@ -309,6 +309,24 @@ async function handleLogout() {
       <!-- Mobile panel -->
       <transition name="fade">
         <div v-if="mobileOpen" class="site-navbar__mobile-panel surface-card">
+          <!-- Server selector -->
+          <div v-if="serverState.list.length" class="site-navbar__mobile-servers">
+            <div class="site-navbar__mobile-group-label">{{ t('servers.pageTitle') }}</div>
+            <div class="site-navbar__mobile-server-grid">
+              <button
+                v-for="s in serverState.list"
+                :key="s.slug"
+                type="button"
+                class="site-navbar__mobile-server"
+                :class="{ 'is-active': activeServer?.slug === s.slug }"
+                @click="chooseServer(s.slug)"
+              >
+                <span class="site-navbar__server-item-dot" :class="s.status?.online ? 'is-online' : 'is-offline'" />
+                <span class="site-navbar__mobile-server-name">{{ s.name }}</span>
+              </button>
+            </div>
+          </div>
+
           <div class="site-navbar__mobile-links">
             <template v-for="item in navItems" :key="item.label">
               <!-- Simple link -->
@@ -647,5 +665,42 @@ async function handleLogout() {
 .site-navbar__mobile-link--child {
   padding-left: 2.2rem;
   font-size: 0.87rem;
+}
+
+/* ── Mobile server selector ───────────── */
+.site-navbar__mobile-servers {
+  margin-bottom: 0.85rem;
+  padding-bottom: 0.85rem;
+  border-bottom: 1px solid rgba(148, 163, 184, 0.12);
+}
+.site-navbar__mobile-server-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.45rem;
+  padding: 0 0.35rem;
+}
+.site-navbar__mobile-server {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.62rem 0.75rem;
+  border-radius: 12px;
+  border: 1px solid rgba(148, 163, 184, 0.14);
+  background: rgba(255, 255, 255, 0.03);
+  color: #dbe7ff;
+  font-size: 0.85rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: border-color 0.2s ease, background 0.2s ease;
+}
+.site-navbar__mobile-server.is-active {
+  border-color: rgba(139, 92, 246, 0.4);
+  background: rgba(139, 92, 246, 0.12);
+  color: #c4b5fd;
+}
+.site-navbar__mobile-server-name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 </style>
