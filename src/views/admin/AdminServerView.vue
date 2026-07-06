@@ -1,322 +1,327 @@
 <script setup>
-import { onMounted, onUnmounted, ref } from 'vue'
-import { getServerStatus } from '../../services/adminApi'
+import { onMounted, reactive, ref } from 'vue'
 import { authState } from '../../stores/authStore'
+import { toastSuccess, toastError } from '../../services/toast'
+import {
+  listServers,
+  createServer,
+  updateServer,
+  deleteServer,
+  regenerateSecret,
+  uploadServerImage,
+} from '../../services/adminServersApi'
 
 const token = () => authState.accessToken
 
-const server = ref(null)
+const servers = ref([])
 const loading = ref(true)
-const lastUpdated = ref(null)
-let timer = null
+const saving = ref(false)
+
+// null = list mode; 'new' = create; object = editing existing
+const editing = ref(null)
+const form = reactive({})
+const iconInput = ref(null)
+const bannerInput = ref(null)
+
+const BLANK = {
+  slug: '', name: '', description: '', icon_url: '', banner_url: '',
+  sort_order: 0, is_visible: true, is_default: false,
+  host: '', port: 25565, mc_version: '1.21.1', loader: 'neoforge',
+  java_version: 21, neoforge_version: '',
+  pack_root: '', pack_base_url: '', manifest_url: '',
+  pack_version: '1.0.0', min_launcher_version: '0.1.0',
+  status_host: '', status_port: null, max_players: 100,
+  whitelist_mode: 'public', maintenance: false,
+}
 
 async function load() {
   loading.value = true
   try {
-    server.value = await getServerStatus(token())
-    lastUpdated.value = new Date()
-  } catch {
-    server.value = { online: false, reason: 'Ошибка запроса' }
+    servers.value = await listServers(token())
+  } catch (e) {
+    toastError(e.message || 'Ошибка загрузки')
   } finally {
     loading.value = false
   }
 }
 
-function timeAgo(date) {
-  if (!date) return ''
-  const s = Math.floor((Date.now() - date.getTime()) / 1000)
-  return s < 60 ? `${s} сек. назад` : `${Math.floor(s / 60)} мин. назад`
+function startCreate() {
+  Object.assign(form, structuredClone(BLANK))
+  editing.value = 'new'
 }
 
-onMounted(() => { load(); timer = setInterval(load, 30_000) })
-onUnmounted(() => clearInterval(timer))
+function startEdit(server) {
+  Object.assign(form, structuredClone(BLANK), server)
+  editing.value = server
+}
+
+function cancel() {
+  editing.value = null
+}
+
+function buildPayload() {
+  const p = { ...form }
+  // Normalize empty strings to null for nullable fields
+  for (const k of ['description', 'icon_url', 'banner_url', 'neoforge_version',
+    'pack_root', 'pack_base_url', 'manifest_url', 'status_host']) {
+    if (p[k] === '') p[k] = null
+  }
+  if (p.status_port === '' || p.status_port === undefined) p.status_port = null
+  return p
+}
+
+async function save() {
+  saving.value = true
+  try {
+    if (editing.value === 'new') {
+      const created = await createServer(token(), buildPayload())
+      toastSuccess(`Сервер «${created.name}» создан`)
+    } else {
+      const p = buildPayload()
+      delete p.slug
+      delete p.game_auth_secret
+      const updated = await updateServer(token(), editing.value.id, p)
+      toastSuccess(`Сервер «${updated.name}» сохранён`)
+    }
+    editing.value = null
+    await load()
+  } catch (e) {
+    toastError(e.message || 'Ошибка сохранения')
+  } finally {
+    saving.value = false
+  }
+}
+
+async function remove(server) {
+  if (!confirm(`Удалить сервер «${server.name}»? Данные этого сервера удалятся каскадно.`)) return
+  try {
+    await deleteServer(token(), server.id)
+    toastSuccess('Сервер удалён')
+    await load()
+  } catch (e) {
+    toastError(e.message || 'Ошибка удаления')
+  }
+}
+
+async function regen(server) {
+  if (!confirm('Сгенерировать новый секрет? Плагины этого сервера перестанут работать до обновления конфига.')) return
+  try {
+    const updated = await regenerateSecret(token(), server.id)
+    if (editing.value && editing.value.id === server.id) editing.value = updated
+    await load()
+    toastSuccess('Новый секрет сгенерирован')
+  } catch (e) {
+    toastError(e.message || 'Ошибка')
+  }
+}
+
+async function onImage(kind, event) {
+  const file = event.target.files?.[0]
+  if (!file || !editing.value || editing.value === 'new') return
+  try {
+    const updated = await uploadServerImage(token(), editing.value.id, kind, file)
+    form[kind === 'icon' ? 'icon_url' : 'banner_url'] = kind === 'icon' ? updated.icon_url : updated.banner_url
+    toastSuccess('Изображение загружено')
+    await load()
+  } catch (e) {
+    toastError(e.message || 'Ошибка загрузки')
+  } finally {
+    event.target.value = ''
+  }
+}
+
+function copySecret(secret) {
+  navigator.clipboard?.writeText(secret).then(() => toastSuccess('Секрет скопирован'))
+}
+
+onMounted(load)
 </script>
 
 <template>
   <div class="ap">
     <div class="ap__header">
       <div>
-        <h1 class="ap__title">Статус сервера</h1>
-        <p class="ap__sub">Автообновление каждые 30 секунд</p>
+        <h1 class="ap__title">Серверы</h1>
+        <p class="ap__sub">Управление серверами: витрина, подключение, модпак, статус, секрет</p>
       </div>
-      <div class="ap__header-right">
-        <span v-if="lastUpdated" class="updated">{{ timeAgo(lastUpdated) }}</span>
-        <button class="btn btn--ghost btn--sm" :disabled="loading" @click="load">
-          <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg>
-          Обновить
-        </button>
-      </div>
+      <button v-if="!editing" class="btn btn--primary" @click="startCreate">+ Добавить сервер</button>
     </div>
 
-    <div v-if="loading && !server" class="skel skel--banner" />
-
-    <template v-else-if="server">
-      <!-- Status banner -->
-      <div class="banner" :class="server.online ? 'banner--online' : 'banner--offline'">
-        <div class="banner__dot" />
-        <div class="banner__body">
-          <div class="banner__title">{{ server.online ? 'Сервер онлайн' : 'Сервер офлайн' }}</div>
-          <div class="banner__sub">
-            <template v-if="server.online">{{ server.version }} · пинг {{ server.latency_ms }} мс</template>
-            <template v-else>{{ server.reason || 'Сервер недоступен' }}</template>
-          </div>
-        </div>
-        <div v-if="server.online" class="banner__fill-bar">
-          <div class="fill-bar">
-            <div class="fill-bar__track">
-              <div
-                class="fill-bar__fill"
-                :style="{ width: server.players_max > 0 ? (server.players_online / server.players_max * 100) + '%' : '0%' }"
-              />
+    <!-- LIST -->
+    <template v-if="!editing">
+      <div v-if="loading" class="skel" />
+      <div v-else-if="!servers.length" class="empty">Пока нет серверов.</div>
+      <div v-else class="srv-list">
+        <div v-for="s in servers" :key="s.id" class="srv-card">
+          <img v-if="s.icon_url" :src="s.icon_url" class="srv-card__icon" alt="" />
+          <div v-else class="srv-card__icon srv-card__icon--ph">{{ s.name.charAt(0) }}</div>
+          <div class="srv-card__main">
+            <div class="srv-card__title">
+              {{ s.name }}
+              <span v-if="s.is_default" class="tag tag--violet">по умолчанию</span>
+              <span v-if="!s.is_visible" class="tag tag--gray">скрыт</span>
+              <span v-if="s.maintenance" class="tag tag--yellow">тех.работы</span>
             </div>
-            <span class="fill-bar__label">{{ server.players_online }}/{{ server.players_max }}</span>
+            <div class="srv-card__meta">{{ s.slug }} · {{ s.host }}:{{ s.port }} · MC {{ s.mc_version }}/{{ s.loader }}</div>
+          </div>
+          <div class="srv-card__actions">
+            <button class="btn btn--ghost btn--sm" @click="startEdit(s)">Изменить</button>
+            <button class="btn btn--ghost btn--sm btn--danger" @click="remove(s)">Удалить</button>
           </div>
         </div>
       </div>
+    </template>
 
-      <!-- Stat cards -->
-      <div v-if="server.online" class="stats-row">
-        <div class="stat">
-          <div class="stat__l">Онлайн</div>
-          <div class="stat__v stat__v--green">{{ server.players_online }}</div>
-          <div class="stat__sub">из {{ server.players_max }} слотов</div>
+    <!-- FORM -->
+    <template v-else>
+      <div class="form">
+        <div class="form__bar">
+          <button class="btn btn--ghost btn--sm" @click="cancel">← Назад</button>
+          <div class="form__bar-title">{{ editing === 'new' ? 'Новый сервер' : `Редактирование: ${form.name}` }}</div>
+          <button class="btn btn--primary btn--sm" :disabled="saving" @click="save">
+            {{ saving ? 'Сохраняю…' : 'Сохранить' }}
+          </button>
         </div>
-        <div class="stat">
-          <div class="stat__l">Заполненность</div>
-          <div class="stat__v">{{ server.players_max > 0 ? Math.round(server.players_online / server.players_max * 100) : 0 }}%</div>
-        </div>
-        <div class="stat">
-          <div class="stat__l">Пинг</div>
-          <div class="stat__v"
-            :class="server.latency_ms < 50 ? 'stat__v--green' : server.latency_ms < 150 ? 'stat__v--yellow' : 'stat__v--red'"
-          >{{ server.latency_ms }} мс</div>
-        </div>
-        <div class="stat">
-          <div class="stat__l">Версия</div>
-          <div class="stat__v stat__v--sm">{{ server.version || '—' }}</div>
-        </div>
-      </div>
 
-      <!-- Player list -->
-      <template v-if="server.online">
-        <div class="section-label">
-          Список игроков
-          <span class="section-label__note">(показывает до 12 игроков)</span>
-        </div>
-        <div v-if="server.players_sample?.length" class="players-grid">
-          <div v-for="p in server.players_sample" :key="p.id" class="player-chip">
-            <div class="player-chip__av">{{ p.name.charAt(0).toUpperCase() }}</div>
-            <span>{{ p.name }}</span>
+        <!-- Витрина -->
+        <div class="sec">Витрина</div>
+        <div class="grid">
+          <label class="fld"><span>Slug (URL-идентификатор)</span>
+            <input v-model="form.slug" :disabled="editing !== 'new'" placeholder="voidrp" /></label>
+          <label class="fld"><span>Название</span><input v-model="form.name" placeholder="VoidRP" /></label>
+          <label class="fld fld--wide"><span>Описание</span>
+            <textarea v-model="form.description" rows="2" placeholder="Хардкорный RP-сервер…" /></label>
+          <label class="fld"><span>Порядок сортировки</span><input v-model.number="form.sort_order" type="number" /></label>
+          <div class="fld fld--row">
+            <label class="chk"><input v-model="form.is_visible" type="checkbox" /> Виден на сайте/лаунчере</label>
+            <label class="chk"><input v-model="form.is_default" type="checkbox" /> Сервер по умолчанию</label>
           </div>
         </div>
-        <div v-else class="empty">
-          {{ server.players_online > 0 ? 'Список игроков скрыт сервером' : 'Нет игроков онлайн' }}
+
+        <div v-if="editing !== 'new'" class="grid">
+          <div class="fld"><span>Иконка</span>
+            <div class="img-row">
+              <img v-if="form.icon_url" :src="form.icon_url" class="img-prev" alt="" />
+              <button class="btn btn--ghost btn--sm" @click="iconInput.click()">Загрузить</button>
+              <input ref="iconInput" type="file" accept="image/*" hidden @change="(e) => onImage('icon', e)" />
+            </div>
+          </div>
+          <div class="fld"><span>Баннер</span>
+            <div class="img-row">
+              <img v-if="form.banner_url" :src="form.banner_url" class="img-prev img-prev--wide" alt="" />
+              <button class="btn btn--ghost btn--sm" @click="bannerInput.click()">Загрузить</button>
+              <input ref="bannerInput" type="file" accept="image/*" hidden @change="(e) => onImage('banner', e)" />
+            </div>
+          </div>
         </div>
-      </template>
+        <p v-else class="hint">Иконку и баннер можно загрузить после создания сервера.</p>
+
+        <!-- Подключение -->
+        <div class="sec">Подключение</div>
+        <div class="grid">
+          <label class="fld"><span>Host</span><input v-model="form.host" placeholder="void-rp.ru" /></label>
+          <label class="fld"><span>Port</span><input v-model.number="form.port" type="number" /></label>
+          <label class="fld"><span>Версия MC</span><input v-model="form.mc_version" placeholder="1.21.1" /></label>
+          <label class="fld"><span>Загрузчик</span><input v-model="form.loader" placeholder="neoforge" /></label>
+          <label class="fld"><span>Java</span><input v-model.number="form.java_version" type="number" /></label>
+          <label class="fld"><span>NeoForge версия</span><input v-model="form.neoforge_version" placeholder="21.1.x" /></label>
+        </div>
+
+        <!-- Модпак -->
+        <div class="sec">Модпак</div>
+        <div class="grid">
+          <label class="fld"><span>Pack root (на сервере)</span><input v-model="form.pack_root" placeholder="/home/…/pack/voidrp" /></label>
+          <label class="fld"><span>Pack base URL</span><input v-model="form.pack_base_url" placeholder="https://void-rp.ru/launcher/pack/voidrp" /></label>
+          <label class="fld"><span>Manifest URL</span><input v-model="form.manifest_url" placeholder="https://…/manifests/voidrp.json" /></label>
+          <label class="fld"><span>Версия пака</span><input v-model="form.pack_version" placeholder="1.0.0" /></label>
+          <label class="fld"><span>Мин. версия лаунчера</span><input v-model="form.min_launcher_version" placeholder="0.1.0" /></label>
+        </div>
+
+        <!-- Статус -->
+        <div class="sec">Статус и доступ</div>
+        <div class="grid">
+          <label class="fld"><span>Status host (для пинга)</span><input v-model="form.status_host" placeholder="= host" /></label>
+          <label class="fld"><span>Status port</span><input v-model.number="form.status_port" type="number" placeholder="= port" /></label>
+          <label class="fld"><span>Макс. игроков</span><input v-model.number="form.max_players" type="number" /></label>
+          <label class="fld"><span>Режим доступа</span>
+            <select v-model="form.whitelist_mode">
+              <option value="public">Открытый</option>
+              <option value="whitelist">Вайтлист</option>
+              <option value="invite">По приглашению</option>
+            </select>
+          </label>
+          <div class="fld fld--row">
+            <label class="chk"><input v-model="form.maintenance" type="checkbox" /> Тех. работы</label>
+          </div>
+        </div>
+
+        <!-- Секрет -->
+        <template v-if="editing !== 'new'">
+          <div class="sec">Секрет авторизации (X-Game-Auth-Secret)</div>
+          <div class="secret-row">
+            <code class="secret">{{ editing.game_auth_secret }}</code>
+            <button class="btn btn--ghost btn--sm" @click="copySecret(editing.game_auth_secret)">Копировать</button>
+            <button class="btn btn--ghost btn--sm btn--danger" @click="regen(editing)">Перегенерировать</button>
+          </div>
+          <p class="hint">Этот секрет плагины/моды сервера шлют в заголовке для атрибуции данных.</p>
+        </template>
+      </div>
     </template>
   </div>
 </template>
 
 <style scoped>
 *, *::before, *::after { box-sizing: border-box; }
-
-.ap { padding: 1.75rem 1.5rem 3rem; max-width: 720px; }
-
-.ap__header {
-  display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
-  margin-bottom: 1.25rem;
-  gap: 1rem;
-  flex-wrap: wrap;
-}
-
+.ap { padding: 1.75rem 1.5rem 3rem; max-width: 920px; }
+.ap__header { display: flex; align-items: flex-start; justify-content: space-between; gap: 1rem; margin-bottom: 1.25rem; flex-wrap: wrap; }
 .ap__title { font-size: 1.4rem; font-weight: 800; color: #e2e8f0; margin: 0; }
-.ap__sub { font-size: 0.75rem; color: #334155; margin: 0.15rem 0 0; }
-.ap__header-right { display: flex; align-items: center; gap: 0.6rem; }
+.ap__sub { font-size: 0.75rem; color: #475569; margin: 0.15rem 0 0; }
 
-.updated { font-size: .75rem; color: #334155; }
-
-.btn {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.35rem;
-  padding: 0.38rem 0.75rem;
-  border-radius: 8px;
-  font-size: 0.78rem;
-  font-weight: 700;
-  cursor: pointer;
-  border: none;
-  transition: background 0.13s;
-}
-.btn:disabled { opacity: 0.4; cursor: not-allowed; }
+.btn { display: inline-flex; align-items: center; gap: 0.35rem; padding: 0.45rem 0.85rem; border-radius: 8px; font-size: 0.8rem; font-weight: 700; cursor: pointer; border: none; transition: background 0.13s; }
+.btn:disabled { opacity: 0.5; cursor: not-allowed; }
+.btn--primary { background: #7c3aed; color: #fff; }
+.btn--primary:hover:not(:disabled) { background: #6d28d9; }
 .btn--ghost { background: rgba(255,255,255,0.05); color: #94a3b8; }
 .btn--ghost:hover:not(:disabled) { background: rgba(255,255,255,0.09); }
-.btn--sm { padding: 0.3rem 0.65rem; font-size: 0.75rem; }
+.btn--sm { padding: 0.35rem 0.65rem; font-size: 0.76rem; }
+.btn--danger { color: #fca5a5; }
+.btn--danger:hover:not(:disabled) { background: rgba(239,68,68,0.12); }
 
-/* Banner */
-.banner {
-  display: flex;
-  align-items: center;
-  gap: 1rem;
-  padding: 1.1rem 1.35rem;
-  border-radius: 16px;
-  border: 1px solid;
-  margin-bottom: 1.5rem;
-  flex-wrap: wrap;
-}
-
-.banner--online {
-  background: linear-gradient(90deg, rgba(34,197,94,0.1) 0%, rgba(34,197,94,0.03) 100%);
-  border-color: rgba(34,197,94,0.25);
-  box-shadow: 0 4px 24px rgba(34,197,94,0.07);
-}
-.banner--offline { background: rgba(239,68,68,0.05); border-color: rgba(239,68,68,0.18); }
-
-.banner__dot {
-  width: 12px;
-  height: 12px;
-  border-radius: 50%;
-  flex-shrink: 0;
-}
-
-.banner--online .banner__dot {
-  background: #22c55e;
-  box-shadow: 0 0 10px rgba(34,197,94,0.6);
-  animation: pulse 2s infinite;
-}
-
-.banner--offline .banner__dot { background: #ef4444; }
-
-@keyframes pulse {
-  0%, 100% { box-shadow: 0 0 7px rgba(34,197,94,0.5); }
-  50% { box-shadow: 0 0 16px rgba(34,197,94,0.85); }
-}
-
-.banner__body { flex: 1; min-width: 0; }
-
-.banner__title { font-size: 1rem; font-weight: 800; }
-.banner--online .banner__title { color: #86efac; }
-.banner--offline .banner__title { color: #fca5a5; }
-
-.banner__sub { font-size: 0.78rem; color: #475569; margin-top: 0.15rem; }
-
-.banner__fill-bar { flex-shrink: 0; }
-
-.fill-bar { display: flex; align-items: center; gap: 0.6rem; }
-
-.fill-bar__track {
-  width: 120px;
-  height: 6px;
-  border-radius: 999px;
-  background: rgba(255,255,255,0.08);
-  overflow: hidden;
-}
-
-.fill-bar__fill {
-  height: 100%;
-  border-radius: 999px;
-  background: linear-gradient(90deg, #22c55e, #86efac);
-  transition: width 0.4s ease;
-}
-
-.fill-bar__label { font-size: 0.78rem; font-weight: 800; color: #86efac; white-space: nowrap; }
-
-/* Stats */
-.stats-row {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
-  gap: 0.75rem;
-  margin-bottom: 1.75rem;
-}
-
-.stat {
-  background: linear-gradient(145deg, #0f1628 0%, #0a1020 100%);
-  border: 1px solid rgba(255,255,255,0.07);
-  border-radius: 14px;
-  padding: 1.1rem 1.1rem;
-  transition: transform 0.15s, border-color 0.15s, box-shadow 0.15s;
-}
-
-.stat:hover {
-  transform: translateY(-2px);
-  border-color: rgba(255,255,255,0.1);
-  box-shadow: 0 8px 24px rgba(0,0,0,0.3);
-}
-
-.stat__l { font-size: .75rem; font-weight: 800; text-transform: uppercase; letter-spacing: 0.06em; color: #3d4f6e; margin-bottom: 0.35rem; }
-.stat__v { font-size: 1.75rem; font-weight: 900; color: #e2e8f0; line-height: 1; }
-.stat__v--sm { font-size: 1rem; margin-top: 0.3rem; }
-.stat__v--green { color: #86efac; }
-.stat__v--yellow { color: #fde047; }
-.stat__v--red { color: #fca5a5; }
-.stat__sub { font-size: .75rem; color: #2d3e5c; margin-top: 0.2rem; }
-
-/* Section label */
-.section-label {
-  font-size: .75rem;
-  font-weight: 800;
-  text-transform: uppercase;
-  letter-spacing: 0.08em;
-  color: #3d4f6e;
-  margin-bottom: 0.75rem;
-  display: flex;
-  align-items: center;
-  gap: 0.65rem;
-}
-
-.section-label::before {
-  content: '';
-  display: inline-block;
-  width: 3px;
-  height: 13px;
-  border-radius: 2px;
-  background: linear-gradient(180deg, #7c3aed, #4f46e5);
-  flex-shrink: 0;
-}
-
-.section-label__note { font-style: italic; font-weight: 500; text-transform: none; letter-spacing: 0; color: #1e2d45; font-size: .75rem; }
-
-/* Players */
-.players-grid { display: flex; flex-wrap: wrap; gap: 0.5rem; }
-
-.player-chip {
-  display: flex;
-  align-items: center;
-  gap: 0.45rem;
-  padding: 0.32rem 0.7rem 0.32rem 0.35rem;
-  background: rgba(34,197,94,0.07);
-  border: 1px solid rgba(34,197,94,0.15);
-  border-radius: 999px;
-  font-size: 0.78rem;
-  font-weight: 700;
-  color: #86efac;
-}
-
-.player-chip__av {
-  width: 1.35rem;
-  height: 1.35rem;
-  border-radius: 50%;
-  background: rgba(34,197,94,0.18);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: .75rem;
-  font-weight: 900;
-}
-
-/* Skeleton */
-.skel {
-  border-radius: 14px;
-  background: linear-gradient(90deg, #0d1422 25%, #121929 50%, #0d1422 75%);
-  background-size: 200% 100%;
-  animation: shimmer 1.4s infinite;
-}
-.skel--banner { height: 72px; margin-bottom: 1.5rem; }
-
+.skel { height: 120px; border-radius: 14px; background: linear-gradient(90deg,#0d1422 25%,#121929 50%,#0d1422 75%); background-size: 200% 100%; animation: shimmer 1.4s infinite; }
 @keyframes shimmer { 0% { background-position: 200% 0; } 100% { background-position: -200% 0; } }
+.empty { color: #475569; font-size: 0.85rem; padding: 1.5rem 0; }
 
-.empty { color: #334155; font-size: 0.82rem; }
+/* List */
+.srv-list { display: flex; flex-direction: column; gap: 0.65rem; }
+.srv-card { display: flex; align-items: center; gap: 0.9rem; padding: 0.85rem 1rem; border-radius: 14px; background: linear-gradient(145deg,#0f1628,#0a1020); border: 1px solid rgba(255,255,255,0.07); }
+.srv-card__icon { width: 2.75rem; height: 2.75rem; border-radius: 10px; object-fit: cover; flex-shrink: 0; }
+.srv-card__icon--ph { display: flex; align-items: center; justify-content: center; background: #1a1440; color: #a78bfa; font-weight: 900; font-size: 1.2rem; }
+.srv-card__main { flex: 1; min-width: 0; }
+.srv-card__title { font-size: 0.95rem; font-weight: 800; color: #e2e8f0; display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap; }
+.srv-card__meta { font-size: 0.75rem; color: #475569; margin-top: 0.15rem; }
+.srv-card__actions { display: flex; gap: 0.4rem; flex-shrink: 0; }
+.tag { font-size: 0.65rem; font-weight: 800; padding: 0.1rem 0.45rem; border-radius: 999px; }
+.tag--violet { color: #c4b5fd; background: rgba(139,92,246,0.15); }
+.tag--gray { color: #94a3b8; background: rgba(148,163,184,0.12); }
+.tag--yellow { color: #fde047; background: rgba(234,179,8,0.12); }
 
-@media (max-width: 600px) { .ap { padding: 1rem 0.75rem 2rem; } }
+/* Form */
+.form__bar { display: flex; align-items: center; justify-content: space-between; gap: 1rem; margin-bottom: 1.25rem; padding-bottom: 0.85rem; border-bottom: 1px solid rgba(255,255,255,0.07); }
+.form__bar-title { font-size: 0.95rem; font-weight: 800; color: #cbd5e1; flex: 1; text-align: center; }
+.sec { font-size: 0.72rem; font-weight: 900; text-transform: uppercase; letter-spacing: 0.07em; color: #64748b; margin: 1.5rem 0 0.75rem; padding-left: 0.6rem; border-left: 3px solid #7c3aed; }
+.grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 0.85rem; }
+.fld { display: flex; flex-direction: column; gap: 0.3rem; }
+.fld--wide { grid-column: 1 / -1; }
+.fld--row { flex-direction: row; align-items: center; gap: 1.25rem; flex-wrap: wrap; }
+.fld > span { font-size: 0.72rem; font-weight: 700; color: #64748b; }
+.fld input, .fld textarea, .fld select { background: #0a1020; border: 1px solid rgba(255,255,255,0.09); border-radius: 8px; padding: 0.5rem 0.65rem; color: #e2e8f0; font-size: 0.85rem; font-family: inherit; }
+.fld input:focus, .fld textarea:focus, .fld select:focus { outline: none; border-color: rgba(139,92,246,0.5); }
+.fld input:disabled { opacity: 0.55; }
+.chk { display: inline-flex; align-items: center; gap: 0.4rem; font-size: 0.82rem; color: #cbd5e1; cursor: pointer; }
+.img-row { display: flex; align-items: center; gap: 0.6rem; }
+.img-prev { width: 2.75rem; height: 2.75rem; border-radius: 8px; object-fit: cover; }
+.img-prev--wide { width: 5rem; }
+.hint { font-size: 0.75rem; color: #475569; margin: 0.5rem 0 0; }
+.secret-row { display: flex; align-items: center; gap: 0.6rem; flex-wrap: wrap; }
+.secret { flex: 1; min-width: 220px; font-family: monospace; font-size: 0.78rem; color: #86efac; background: #0a1020; border: 1px solid rgba(255,255,255,0.09); border-radius: 8px; padding: 0.5rem 0.65rem; overflow-x: auto; white-space: nowrap; }
 </style>
