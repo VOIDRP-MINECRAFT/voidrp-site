@@ -54,6 +54,12 @@ import ShopView from '../views/ShopView.vue'
 import BattlePassView from '../views/BattlePassView.vue'
 import GameUiMarketView from '../views/GameUiMarketView.vue'
 import GameUiMenuView from '../views/GameUiMenuView.vue'
+import GameUiHudView from '../views/GameUiHudView.vue'
+import GameUiNationMarketView from '../views/GameUiNationMarketView.vue'
+import GameUiTreasuryView from '../views/GameUiTreasuryView.vue'
+import GameUiBattlePassView from '../views/GameUiBattlePassView.vue'
+import GameUiAllianceView from '../views/GameUiAllianceView.vue'
+import GameUiQuestsView from '../views/GameUiQuestsView.vue'
 
 const routes = [
   { path: '/', name: 'home', component: HomeView, meta: { title: 'Главная' } },
@@ -62,6 +68,12 @@ const routes = [
   { path: '/recipes', name: 'recipes', component: RecipesView, meta: { title: 'Крафты сборки' } },
   { path: '/game-ui/menu', name: 'game-ui-menu', component: GameUiMenuView, meta: { title: 'Меню', hidePublicShell: true } },
   { path: '/game-ui/market', name: 'game-ui-market', component: GameUiMarketView, meta: { title: 'Рынок игроков', hidePublicShell: true } },
+  { path: '/game-ui/hud', name: 'game-ui-hud', component: GameUiHudView, meta: { title: 'HUD', hidePublicShell: true } },
+  { path: '/game-ui/nmarket', name: 'game-ui-nmarket', component: GameUiNationMarketView, meta: { title: 'Рынок государств', hidePublicShell: true } },
+  { path: '/game-ui/treasury', name: 'game-ui-treasury', component: GameUiTreasuryView, meta: { title: 'Казна', hidePublicShell: true } },
+  { path: '/game-ui/battlepass', name: 'game-ui-battlepass', component: GameUiBattlePassView, meta: { title: 'Battle Pass', hidePublicShell: true } },
+  { path: '/game-ui/alliance', name: 'game-ui-alliance', component: GameUiAllianceView, meta: { title: 'Альянс', hidePublicShell: true } },
+  { path: '/game-ui/quests', name: 'game-ui-quests', component: GameUiQuestsView, meta: { title: 'Квесты', hidePublicShell: true } },
   { path: '/market', name: 'market', component: MarketView, meta: { title: 'Рынок игроков' } },
   { path: '/market/me/orders', name: 'market-my-orders', component: PlayerMarketMyOrdersView, meta: { title: 'Мои ордера', requiresAuth: true } },
   { path: '/market/:material', name: 'market-item', component: MarketItemView, meta: { title: 'Товар' } },

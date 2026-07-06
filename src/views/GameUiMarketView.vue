@@ -820,7 +820,6 @@ onUnmounted(() => { if (poll) clearInterval(poll) })
       </div>
     </div>
   </transition>
-
 </div>
 </template>
 

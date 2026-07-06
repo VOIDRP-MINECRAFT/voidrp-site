@@ -37,6 +37,26 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 
+    <!-- ── WebGUI HUD overlay: transparent page so the game shows through ── -->
+    <script>
+      if (location.pathname.indexOf('/game-ui/hud') === 0) {
+        document.documentElement.classList.add('webgui-hud');
+      }
+    </script>
+    <style>
+      html.webgui-hud,
+      html.webgui-hud body,
+      html.webgui-hud #app,
+      html.webgui-hud .site-root,
+      html.webgui-hud .site-main {
+        background: transparent !important;
+      }
+      html.webgui-hud .site-root::before,
+      html.webgui-hud .site-root::after { display: none !important; }
+      html.webgui-hud .site-main { padding: 0 !important; }
+      html.webgui-hud, html.webgui-hud body { overflow: hidden !important; }
+    </style>
+
     <!-- ── Основные мета ── -->
     <title>VoidRP (Войд РП) — Майнкрафт Roleplay сервер</title>
     <meta name="description" content="Войд РП — майнкрафт ролевой сервер с экономикой, государствами и альянсами. VoidRP: регистрируйся, скачивай лаунчер и заходи на void-rp.ru." />
