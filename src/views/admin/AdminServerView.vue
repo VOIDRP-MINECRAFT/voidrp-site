@@ -32,6 +32,18 @@ const BLANK = {
   pack_version: '1.0.0', min_launcher_version: '0.1.0',
   status_host: '', status_port: null, max_players: 100,
   whitelist_mode: 'public', maintenance: false,
+  map_url: '',
+  features: { nations: true, economy: true, alliances: true, battlepass: true, quests: true, leaderboards: true, map: true },
+}
+
+const FEATURE_LABELS = {
+  nations: 'Государства',
+  economy: 'Экономика / рынок',
+  alliances: 'Альянсы',
+  battlepass: 'Battle Pass',
+  quests: 'Квесты',
+  leaderboards: 'Рейтинги',
+  map: 'Карта',
 }
 
 async function load() {
@@ -63,7 +75,7 @@ function buildPayload() {
   const p = { ...form }
   // Normalize empty strings to null for nullable fields
   for (const k of ['description', 'icon_url', 'banner_url', 'neoforge_version',
-    'pack_root', 'pack_base_url', 'manifest_url', 'status_host']) {
+    'pack_root', 'pack_base_url', 'manifest_url', 'status_host', 'map_url']) {
     if (p[k] === '') p[k] = null
   }
   if (p.status_port === '' || p.status_port === undefined) p.status_port = null
@@ -255,6 +267,20 @@ onMounted(load)
           </div>
         </div>
 
+        <!-- Фичи / вкладки -->
+        <div class="sec">Функции сервера (вкладки на сайте и в лаунчере)</div>
+        <div class="grid">
+          <label class="fld fld--wide"><span>Ссылка на веб-карту (Bluemap/Dynmap)</span>
+            <input v-model="form.map_url" placeholder="https://map.void-rp.ru" /></label>
+        </div>
+        <div class="features">
+          <label v-for="(label, key) in FEATURE_LABELS" :key="key" class="feature-chk">
+            <input type="checkbox" v-model="form.features[key]" />
+            <span>{{ label }}</span>
+          </label>
+        </div>
+        <p class="hint">Выключенные функции скрывают соответствующие вкладки/разделы на сайте и в лаунчере для этого сервера.</p>
+
         <!-- Секрет -->
         <template v-if="editing !== 'new'">
           <div class="sec">Секрет авторизации (X-Game-Auth-Secret)</div>
@@ -322,6 +348,14 @@ onMounted(load)
 .img-prev { width: 2.75rem; height: 2.75rem; border-radius: 8px; object-fit: cover; }
 .img-prev--wide { width: 5rem; }
 .hint { font-size: 0.75rem; color: #475569; margin: 0.5rem 0 0; }
+.features { display: flex; flex-wrap: wrap; gap: 0.5rem; margin-top: 0.85rem; }
+.feature-chk {
+  display: inline-flex; align-items: center; gap: 0.45rem;
+  padding: 0.5rem 0.75rem; border-radius: 10px; cursor: pointer;
+  background: #0a1020; border: 1px solid rgba(255,255,255,0.09);
+  font-size: 0.82rem; color: #cbd5e1;
+}
+.feature-chk:has(input:checked) { border-color: rgba(139,92,246,0.5); background: rgba(139,92,246,0.1); color: #e2e8f0; }
 .secret-row { display: flex; align-items: center; gap: 0.6rem; flex-wrap: wrap; }
 .secret { flex: 1; min-width: 220px; font-family: monospace; font-size: 0.78rem; color: #86efac; background: #0a1020; border: 1px solid rgba(255,255,255,0.09); border-radius: 8px; padding: 0.5rem 0.65rem; overflow-x: auto; white-space: nowrap; }
 </style>

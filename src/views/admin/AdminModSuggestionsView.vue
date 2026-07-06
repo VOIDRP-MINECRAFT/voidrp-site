@@ -112,6 +112,7 @@ onMounted(load)
             <span class="badge" :class="domainBadge(item.url).cls">{{ domainBadge(item.url).label }}</span>
             <span class="card__login">{{ item.user_login }}</span>
             <span v-if="item.user_nickname" class="card__nick">{{ item.user_nickname }}</span>
+            <span v-if="item.server_name" class="card__server">🖥 {{ item.server_name }}</span>
             <span class="card__date">{{ formatDate(item.created_at) }}</span>
           </div>
           <button
@@ -248,6 +249,7 @@ onMounted(load)
 .card__meta { display: flex; align-items: center; flex-wrap: wrap; gap: 0.5rem; }
 .card__login { font-size: 0.8rem; font-weight: 700; color: #c4b5fd; }
 .card__nick { font-size: 0.75rem; color: #64748b; }
+.card__server { font-size: 0.72rem; font-weight: 700; color: #c4b5fd; background: rgba(139,92,246,0.12); padding: 0.1rem 0.45rem; border-radius: 999px; }
 .card__date { font-size: 0.7rem; color: #334155; }
 
 .card__url {
