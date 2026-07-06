@@ -493,7 +493,7 @@ footer,
   display: none;
   align-items: center;
   gap: 0.15rem;
-  min-width: 0;
+  flex-shrink: 0;
 }
 
 .site-navbar__link,
@@ -521,6 +521,7 @@ footer,
   display: none;
   align-items: center;
   gap: 0.6rem;
+  flex-shrink: 0;
 }
 
 .site-navbar__profile-btn {
