@@ -104,6 +104,18 @@ async function readResponseBody(response) {
   }
 }
 
+// Multi-server: the active server slug is stored in localStorage by serverStore.
+// Read it here (rather than importing the store) to avoid a circular import, and
+// attach it as `X-Server-Slug` so game-data endpoints resolve to the right server.
+// The backend ignores this header on global endpoints, so it is safe to send everywhere.
+function activeServerSlug() {
+  try {
+    return localStorage.getItem('voidrp_active_server') || ''
+  } catch {
+    return ''
+  }
+}
+
 function buildRequestOptions(options = {}) {
   const headers = { ...(options.headers || {}) }
   const isFormData = typeof FormData !== 'undefined' && options.body instanceof FormData
@@ -112,6 +124,14 @@ function buildRequestOptions(options = {}) {
     const hasContentType = Object.keys(headers).some((key) => key.toLowerCase() === 'content-type')
     if (!hasContentType) {
       headers['Content-Type'] = 'application/json'
+    }
+  }
+
+  if (options.serverScope !== false) {
+    const hasServerHeader = Object.keys(headers).some((key) => key.toLowerCase() === 'x-server-slug')
+    if (!hasServerHeader) {
+      const slug = activeServerSlug()
+      if (slug) headers['X-Server-Slug'] = slug
     }
   }
 
