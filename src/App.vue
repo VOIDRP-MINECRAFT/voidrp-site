@@ -5,9 +5,14 @@ import AppFooter from './components/AppFooter.vue'
 import GlobalToastStack from './components/GlobalToastStack.vue'
 import SiteNavbar from './components/SiteNavbar.vue'
 import { useAuthStore } from './stores/authStore'
+import { serverState } from './stores/serverStore'
 
 const auth = useAuthStore()
 const route = useRoute()
+
+// Remount the active view when the selected server changes so per-server
+// pages (nations, market, stats, leaderboards) refetch scoped to it.
+const serverKey = computed(() => serverState.activeSlug || 'default')
 
 const hidePublicShell = computed(() => Boolean(route.meta?.hidePublicShell))
 
@@ -58,7 +63,7 @@ onUnmounted(() => {
         </div>
       </section>
 
-      <RouterView v-else />
+      <RouterView v-else :key="serverKey" />
     </main>
 
     <AppFooter v-if="!hidePublicShell" />
