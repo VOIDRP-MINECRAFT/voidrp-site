@@ -2,10 +2,11 @@
 import { computed, onMounted, onUnmounted } from 'vue'
 import { useRoute } from 'vue-router'
 import AppFooter from './components/AppFooter.vue'
+import FeatureUnavailableNotice from './components/FeatureUnavailableNotice.vue'
 import GlobalToastStack from './components/GlobalToastStack.vue'
 import SiteNavbar from './components/SiteNavbar.vue'
 import { useAuthStore } from './stores/authStore'
-import { serverState } from './stores/serverStore'
+import { serverState, activeServer } from './stores/serverStore'
 
 const auth = useAuthStore()
 const route = useRoute()
@@ -19,6 +20,16 @@ const serverKey = computed(() =>
 )
 
 const hidePublicShell = computed(() => Boolean(route.meta?.hidePublicShell))
+
+// Route-level feature gate: a page whose feature the ACTIVE server disables
+// (direct link, stale tab, server switch mid-page) shows a notice instead of
+// broken/empty content. Unknown/absent feature keys count as enabled.
+const featureBlocked = computed(() => {
+  const feature = route.meta?.feature
+  if (!feature) return false
+  const f = activeServer.value?.features
+  return Boolean(f) && f[feature] === false
+})
 
 // глобальный spotlight — свет за мышью на всех карточках
 const SPOTLIGHT_SEL = '.surface-card, .action-card, .metric-card'
@@ -67,6 +78,7 @@ onUnmounted(() => {
         </div>
       </section>
 
+      <FeatureUnavailableNotice v-else-if="featureBlocked" />
       <RouterView v-else :key="serverKey" />
     </main>
 

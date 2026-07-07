@@ -68,6 +68,12 @@ export default {
     chooseWorld: 'Pick a world ↓',
     worldMap: 'World map ↗',
   },
+  featureGate: {
+    title: 'Section unavailable',
+    text: 'This section is disabled on “{name}”. Pick another server or go back home.',
+    home: 'Go home',
+    switch: 'Switch server',
+  },
   homeWorlds: {
     kicker: 'Servers',
     title: 'Pick your world',
