@@ -57,13 +57,24 @@ export default {
   hero: {
     title1: 'Enter the world',
     title2: "we're building together",
-    desc: 'Custom economy, nations, alliances and hundreds of mods — all through one account and a convenient launcher.',
+    desc: 'Multiple game worlds — each with its own economy, nations and modpack. One account and one launcher for everything.',
     createAccount: 'Create account',
     downloadLauncher: 'Download launcher',
     copied: 'Copied!',
     serverOnline: 'Server is online',
     online: 'online',
+    onlineTotal: 'online across all worlds',
+    badgeMulti: 'one account · {n} worlds',
+    chooseWorld: 'Pick a world ↓',
     worldMap: 'World map ↗',
+  },
+  homeWorlds: {
+    kicker: 'Servers',
+    title: 'Pick your world',
+    sub: 'One account — multiple servers. Each has its own modpack, economy and rules: the selected world drives the stats, nations and shop across the site.',
+    choose: 'Choose this world',
+    current: 'Selected',
+    details: 'All servers & details →',
   },
   steps: {
     kicker: 'Getting started',
@@ -116,6 +127,7 @@ export default {
     empty: 'No data yet — the season is just starting.',
   },
   stats: {
+    servers: 'Game worlds',
     players: 'Players registered',
     nations: 'Nations on the map',
     mods: 'Mods in the pack',
@@ -123,6 +135,7 @@ export default {
   topNations: {
     kicker: 'Strongest',
     title: 'Top nations this season',
+    onServer: 'on {name}',
     members: '{n} members',
     score: '{n} pts',
     allRankings: 'Full rankings →',

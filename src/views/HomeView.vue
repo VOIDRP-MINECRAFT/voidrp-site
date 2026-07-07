@@ -1,5 +1,5 @@
 <script setup>
-import { ref, onMounted, onUnmounted } from 'vue'
+import { ref, computed, nextTick, onMounted, onUnmounted } from 'vue'
 import { RouterLink } from 'vue-router'
 import { useI18n } from 'vue-i18n'
 import { siteConfig } from '../config.site.js'
@@ -7,9 +7,9 @@ import { useReveal } from '../composables/useReveal.js'
 import { usePageMeta } from '../composables/usePageMeta.js'
 import { getServerStats, getNationRankings } from '../services/nationStatsApi.js'
 import { apiRequest } from '../services/apiBase.js'
+import { serverState, activeServer, fetchServers, setActiveServer } from '../stores/serverStore'
 
 function getLandingScreenshots() { return apiRequest('/landing/screenshots') }
-function getServerStatus() { return apiRequest('/server/status') }
 
 const { t } = useI18n()
 
@@ -19,9 +19,60 @@ usePageMeta({
   description: 'Войд РП — майнкрафт ролевой сервер с живой экономикой, государствами, альянсами и сотнями модов. VoidRP: единый аккаунт, удобный лаунчер — void-rp.ru.',
 })
 
+// ── Multi-server ───────────────────────────────────────────────────────────
+const servers = computed(() =>
+  [...serverState.list].sort((a, b) => (a.sort_order ?? 0) - (b.sort_order ?? 0)),
+)
+
+// Sum of live players across all servers; null until at least one server
+// reports an online status (falls back to the generic "server is online" text).
+const totalOnline = computed(() => {
+  let any = false
+  let sum = 0
+  for (const s of serverState.list) {
+    if (s.status?.online) {
+      any = true
+      sum += s.status.players_online ?? 0
+    }
+  }
+  return any ? sum : null
+})
+
+const serverAddress = computed(() => {
+  const s = activeServer.value
+  if (!s) return siteConfig.serverIp
+  return s.port && s.port !== 25565 ? `${s.host}:${s.port}` : s.host
+})
+
+const mapUrl = computed(() => activeServer.value?.map_url || siteConfig.bluemapUrl)
+
+// Feature flag of the ACTIVE server; absent/unknown key ⇒ enabled.
+function feat(key) {
+  const f = activeServer.value?.features
+  if (!f) return true
+  return f[key] !== false
+}
+
+function statusMeta(s) {
+  if (s.maintenance) return { label: t('servers.maintenance'), cls: 'is-maint' }
+  return s.status?.online
+    ? { label: t('servers.online'), cls: 'is-online' }
+    : { label: t('servers.offline'), cls: 'is-offline' }
+}
+
+function worldAddress(s) {
+  return s.port && s.port !== 25565 ? `${s.host}:${s.port}` : s.host
+}
+
+function chooseWorld(s) {
+  // App.vue keys <RouterView> by the active slug, so this remounts the page
+  // and every scoped section (stats, nations) refetches for the new server.
+  if (s.slug !== serverState.activeSlug) setActiveServer(s.slug)
+}
+
 const ipCopied = ref(false)
 function copyIp() {
-  navigator.clipboard.writeText(siteConfig.serverIp).then(() => {
+  navigator.clipboard.writeText(serverAddress.value).then(() => {
     ipCopied.value = true
     setTimeout(() => { ipCopied.value = false }, 2000)
   })
@@ -52,9 +103,6 @@ function triggerCountUp() {
   if (statNationsEl.value) countUp(statNationsEl.value, statsData.value.total_nations)
 }
 
-// ── Live online ────────────────────────────────────────────────────────────
-const onlinePlayers = ref(null)
-
 // ── Screenshots ────────────────────────────────────────────────────────────
 const screenshots = ref([])
 
@@ -63,11 +111,13 @@ const topNations = ref([])
 const nationsLoading = ref(true)
 
 // ── Spotlight (mouse follow) ───────────────────────────────────────────────
-const LIGHT_SELECTOR = '.step-card, .feat-card, .launcher-card, .cta-card, .nation-card'
+const LIGHT_SELECTOR = '.step-card, .feat-card, .launcher-card, .cta-card, .nation-card, .world-card'
 let lightCleanup = []
 
-onMounted(async () => {
+function bindSpotlight() {
   document.querySelectorAll(LIGHT_SELECTOR).forEach((card) => {
+    if (card.dataset.litBound) return
+    card.dataset.litBound = '1'
     function onMove(e) {
       const r = card.getBoundingClientRect()
       card.style.setProperty('--mx', (e.clientX - r.left) + 'px')
@@ -82,18 +132,18 @@ onMounted(async () => {
       card.removeEventListener('mouseleave', onLeave)
     })
   })
+}
+
+onMounted(async () => {
+  bindSpotlight()
 
   // Fetch all data in parallel
-  const [stats, rankings, serverStatus, shots] = await Promise.allSettled([
+  const [stats, rankings, shots] = await Promise.allSettled([
     getServerStats(),
     getNationRankings(),
-    getServerStatus(),
     getLandingScreenshots(),
+    fetchServers(),
   ])
-
-  if (serverStatus.status === 'fulfilled' && serverStatus.value?.online) {
-    onlinePlayers.value = serverStatus.value.players_online ?? null
-  }
 
   if (shots.status === 'fulfilled') {
     screenshots.value = shots.value || []
@@ -121,6 +171,10 @@ onMounted(async () => {
     topNations.value = (rankings.value.items || []).slice(0, 3)
   }
   nationsLoading.value = false
+
+  // World/nation cards render after the fetches — attach spotlight to them too.
+  await nextTick()
+  bindSpotlight()
 })
 
 onUnmounted(() => {
@@ -163,7 +217,8 @@ function nationAccent(nation) {
     <div class="container-shell hero__inner">
       <div class="hero__badge anim-hero anim-d0">
         <span class="hero__badge-dot"></span>
-        VoidRP · Minecraft Roleplay · {{ siteConfig.serverVersion }}
+        <template v-if="servers.length > 1">VoidRP · {{ t('hero.badgeMulti', { n: servers.length }) }}</template>
+        <template v-else>VoidRP · Minecraft Roleplay · {{ siteConfig.serverVersion }}</template>
       </div>
 
       <h1 class="hero__title anim-hero anim-d1">
@@ -188,21 +243,108 @@ function nationAccent(nation) {
         <button class="hero__ip" @click="copyIp">
           <svg v-if="!ipCopied" viewBox="0 0 20 20" fill="currentColor" width="11" height="11"><path d="M8 3a1 1 0 011-1h2a1 1 0 110 2H9a1 1 0 01-1-1z"/><path d="M6 3a2 2 0 00-2 2v11a2 2 0 002 2h8a2 2 0 002-2V5a2 2 0 00-2-2 3 3 0 01-3 3H9a3 3 0 01-3-3z"/></svg>
           <svg v-else viewBox="0 0 20 20" fill="currentColor" width="11" height="11"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/></svg>
-          {{ ipCopied ? t('hero.copied') : siteConfig.serverIp }}
+          {{ ipCopied ? t('hero.copied') : serverAddress }}
         </button>
         <span class="hero__sep">·</span>
         <span class="hero__online">
           <span class="hero__online-dot"></span>
-          <template v-if="onlinePlayers !== null">{{ onlinePlayers }} {{ t('hero.online') }}</template>
+          <template v-if="totalOnline !== null">{{ totalOnline }} {{ servers.length > 1 ? t('hero.onlineTotal') : t('hero.online') }}</template>
           <template v-else>{{ t('hero.serverOnline') }}</template>
         </span>
         <span class="hero__sep">·</span>
-        <a :href="siteConfig.bluemapUrl" target="_blank" rel="noreferrer" class="hero__map-link">{{ t('hero.worldMap') }}</a>
+        <a href="#worlds" class="hero__map-link">{{ t('hero.chooseWorld') }}</a>
+        <template v-if="feat('map')">
+          <span class="hero__sep">·</span>
+          <a :href="mapUrl" target="_blank" rel="noreferrer" class="hero__map-link">{{ t('hero.worldMap') }}</a>
+        </template>
       </div>
     </div>
 
     <div class="hero__scroll-cue anim-hero anim-d5">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" width="20" height="20"><path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7"/></svg>
+    </div>
+  </section>
+
+  <!-- ═══════════════════════ WORLDS (servers) ═══════════════════════ -->
+  <section id="worlds" class="worlds-section">
+    <div class="container-shell">
+      <div class="section-header" data-reveal>
+        <div class="kicker-wrap">
+          <span class="kicker-line"></span>
+          <p class="section-kicker">{{ t('homeWorlds.kicker') }}</p>
+          <span class="kicker-line"></span>
+        </div>
+        <h2 class="section-h2">{{ t('homeWorlds.title') }}</h2>
+        <p class="worlds-sub">{{ t('homeWorlds.sub') }}</p>
+      </div>
+
+      <!-- skeleton -->
+      <div v-if="serverState.loading && !servers.length" class="worlds-grid">
+        <div v-for="i in 2" :key="i" class="world-card world-card--skeleton">
+          <div class="skeleton wc-skel-banner"></div>
+          <div class="wc-skel-body">
+            <div class="skeleton wc-skel-line"></div>
+            <div class="skeleton wc-skel-line wc-skel-line--short"></div>
+          </div>
+        </div>
+      </div>
+
+      <div v-else-if="servers.length" class="worlds-grid">
+        <article
+          v-for="s in servers"
+          :key="s.slug"
+          class="world-card"
+          :class="{ 'world-card--active': activeServer?.slug === s.slug }"
+        >
+          <div class="world-card__banner">
+            <div
+              class="world-card__banner-img"
+              :style="s.banner_url ? { backgroundImage: `url(${s.banner_url})` } : {}"
+            ></div>
+            <div class="world-card__banner-veil"></div>
+            <span class="world-status" :class="statusMeta(s).cls">
+              <span class="world-status__dot"></span>{{ statusMeta(s).label }}
+            </span>
+            <div class="world-card__identity">
+              <div class="world-card__icon">
+                <img v-if="s.icon_url" :src="s.icon_url" :alt="s.name" />
+                <span v-else>{{ s.name.charAt(0) }}</span>
+              </div>
+              <div class="world-card__id-text">
+                <h3 class="world-card__name">{{ s.name }}</h3>
+                <div class="world-card__chips">
+                  <span class="world-chip">MC {{ s.mc_version }}</span>
+                  <span class="world-chip">{{ s.loader }}</span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="world-card__body">
+            <p class="world-card__desc">{{ s.description || '' }}</p>
+            <div class="world-card__meta">
+              <span class="world-card__players" :class="{ 'is-live': s.status?.online }">
+                <span class="world-card__players-dot"></span>
+                <template v-if="s.status?.online">{{ s.status.players_online }} / {{ s.status.players_max }} {{ t('servers.players') }}</template>
+                <template v-else>—</template>
+              </span>
+              <span class="world-card__addr">{{ worldAddress(s) }}</span>
+            </div>
+            <button
+              type="button"
+              class="world-card__btn"
+              :class="{ 'world-card__btn--active': activeServer?.slug === s.slug }"
+              @click="chooseWorld(s)"
+            >
+              {{ activeServer?.slug === s.slug ? t('homeWorlds.current') : t('homeWorlds.choose') }}
+            </button>
+          </div>
+        </article>
+      </div>
+
+      <div class="worlds-footer" data-reveal>
+        <RouterLink to="/servers" class="nations-link">{{ t('homeWorlds.details') }}</RouterLink>
+      </div>
     </div>
   </section>
 
@@ -245,7 +387,7 @@ function nationAccent(nation) {
           <div class="step-card__num">03</div>
           <h3 class="step-card__title">{{ t('steps.s3title') }}</h3>
           <p class="step-card__desc">{{ t('steps.s3desc') }}</p>
-          <span class="step-card__link step-card__link--muted">IP: void-rp.ru</span>
+          <span class="step-card__link step-card__link--muted">IP: {{ serverAddress }}</span>
         </div>
       </div>
     </div>
@@ -255,6 +397,11 @@ function nationAccent(nation) {
   <section class="stats-section">
     <div class="container-shell">
       <div class="stats-bar" data-reveal>
+        <div class="stat-item">
+          <span class="stat-num">{{ servers.length || '—' }}</span>
+          <span class="stat-label">{{ t('stats.servers') }}</span>
+        </div>
+        <div class="stat-divider" aria-hidden="true"></div>
         <div class="stat-item">
           <span class="stat-num" ref="statPlayersEl">—</span>
           <span class="stat-label">{{ t('stats.players') }}</span>
@@ -310,7 +457,7 @@ function nationAccent(nation) {
   </section>
 
   <!-- ═══════════════════════ TOP NATIONS ═══════════════════════ -->
-  <section class="top-nations-section">
+  <section v-if="feat('nations')" class="top-nations-section">
     <div class="container-shell">
       <div class="section-header" data-reveal>
         <div class="kicker-wrap">
@@ -319,6 +466,9 @@ function nationAccent(nation) {
           <span class="kicker-line"></span>
         </div>
         <h2 class="section-h2">{{ t('topNations.title') }}</h2>
+        <p v-if="activeServer && servers.length > 1" class="section-server-note">
+          {{ t('topNations.onServer', { name: activeServer.name }) }}
+        </p>
       </div>
 
       <!-- skeleton -->
@@ -472,7 +622,7 @@ function nationAccent(nation) {
   </section>
 
   <!-- ═══════════════════════ BATTLE PASS ═══════════════════════ -->
-  <section class="bp-section">
+  <section v-if="feat('battlepass')" class="bp-section">
     <div class="container-shell">
       <div class="bp-card" data-reveal>
         <div class="bp-card__glow"></div>
@@ -509,11 +659,19 @@ function nationAccent(nation) {
           <a :href="siteConfig.discordUrl" target="_blank" rel="noreferrer" class="btn-hero-ghost">Discord</a>
         </div>
         <div class="cta-links">
-          <RouterLink to="/nations" class="cta-link">{{ t('cta.nations') }}</RouterLink>
-          <span>·</span>
-          <a :href="siteConfig.bluemapUrl" target="_blank" rel="noreferrer" class="cta-link">{{ t('cta.worldMap') }}</a>
-          <span>·</span>
-          <RouterLink to="/nations/rankings" class="cta-link">{{ t('cta.ranking') }}</RouterLink>
+          <RouterLink to="/servers" class="cta-link">{{ t('nav.servers') }}</RouterLink>
+          <template v-if="feat('nations')">
+            <span>·</span>
+            <RouterLink to="/nations" class="cta-link">{{ t('cta.nations') }}</RouterLink>
+          </template>
+          <template v-if="feat('map')">
+            <span>·</span>
+            <a :href="mapUrl" target="_blank" rel="noreferrer" class="cta-link">{{ t('cta.worldMap') }}</a>
+          </template>
+          <template v-if="feat('nations')">
+            <span>·</span>
+            <RouterLink to="/nations/rankings" class="cta-link">{{ t('cta.ranking') }}</RouterLink>
+          </template>
           <span>·</span>
           <RouterLink to="/guide" class="cta-link">{{ t('cta.guide') }}</RouterLink>
         </div>
@@ -1107,6 +1265,184 @@ function nationAccent(nation) {
   opacity: 0; transition: opacity .35s ease; pointer-events: none;
 }
 .nation-card.lit::after { opacity: 1; }
+
+/* ════════════════════════════════════
+   WORLDS (servers)
+════════════════════════════════════ */
+.worlds-section {
+  position: relative; z-index: 3;
+  padding: 0 0 5.5rem;
+  margin-top: -3.5rem; /* pull into the hero's bottom veil */
+  scroll-margin-top: 5rem;
+}
+
+.worlds-sub {
+  margin: .55rem 0 0;
+  font-size: .88rem; color: rgba(148,163,184,.7);
+  max-width: 520px;
+}
+
+.worlds-grid {
+  display: grid; gap: 1rem;
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 330px), 1fr));
+  align-items: stretch;
+}
+
+.world-card {
+  position: relative; overflow: hidden;
+  display: flex; flex-direction: column;
+  border: 1px solid rgba(255,255,255,.08);
+  border-radius: 22px;
+  background: rgba(255,255,255,.022);
+  transition: border-color .28s, transform .22s, box-shadow .28s;
+}
+.world-card:hover {
+  border-color: rgba(139,92,246,.32);
+  transform: translateY(-4px);
+  box-shadow: 0 16px 48px rgba(0,0,0,.32), 0 0 0 1px rgba(139,92,246,.12);
+}
+.world-card--active {
+  border-color: rgba(139,92,246,.45);
+  box-shadow: 0 0 0 1px rgba(139,92,246,.3), 0 12px 40px rgba(0,0,0,.3), 0 0 36px rgba(109,40,217,.12);
+}
+
+/* spotlight, same pattern as the other landing cards */
+.world-card::after {
+  content: '';
+  position: absolute; inset: 0; border-radius: inherit;
+  background: radial-gradient(
+    circle 240px at var(--mx, 50%) var(--my, 50%),
+    rgba(139,92,246,.12) 0%,
+    transparent 70%
+  );
+  opacity: 0; transition: opacity .35s ease; pointer-events: none;
+}
+.world-card.lit::after { opacity: 1; }
+
+.world-card__banner {
+  position: relative;
+  min-height: 118px;
+  padding: 1rem 1.15rem;
+  display: flex; align-items: flex-end;
+}
+.world-card__banner-img {
+  position: absolute; inset: 0;
+  background: linear-gradient(135deg, rgba(76,29,149,.55) 0%, rgba(20,16,42,.9) 60%, rgba(9,7,20,.95) 100%);
+  background-size: cover; background-position: center;
+}
+.world-card__banner-veil {
+  position: absolute; inset: 0;
+  background: linear-gradient(180deg, rgba(9,7,20,.12) 0%, rgba(9,7,20,.5) 55%, rgba(11,9,24,.96) 100%);
+}
+
+.world-status {
+  position: absolute; top: .8rem; right: .85rem; z-index: 2;
+  display: inline-flex; align-items: center; gap: .38rem;
+  padding: .26rem .62rem; border-radius: 999px;
+  font-size: .7rem; font-weight: 800;
+  background: rgba(6,9,17,.72); backdrop-filter: blur(8px);
+  border: 1px solid rgba(255,255,255,.08);
+}
+.world-status__dot { width: 7px; height: 7px; border-radius: 999px; }
+.world-status.is-online  { color: #86efac; }
+.world-status.is-online .world-status__dot { background: #22c55e; box-shadow: 0 0 8px rgba(34,197,94,.7); }
+.world-status.is-offline { color: #fca5a5; }
+.world-status.is-offline .world-status__dot { background: #ef4444; }
+.world-status.is-maint   { color: #fde047; }
+.world-status.is-maint .world-status__dot { background: #eab308; }
+
+.world-card__identity {
+  position: relative; z-index: 2;
+  display: flex; align-items: center; gap: .75rem;
+  width: 100%; min-width: 0;
+}
+.world-card__icon {
+  width: 2.9rem; height: 2.9rem; border-radius: 13px; flex-shrink: 0; overflow: hidden;
+  border: 1px solid rgba(255,255,255,.14); background: rgba(12,16,30,.85);
+  display: flex; align-items: center; justify-content: center;
+  color: #a78bfa; font-weight: 900; font-size: 1.2rem;
+  box-shadow: 0 8px 20px rgba(0,0,0,.35);
+}
+.world-card__icon img { width: 100%; height: 100%; object-fit: cover; }
+.world-card__id-text { min-width: 0; flex: 1; }
+.world-card__name {
+  margin: 0;
+  font-size: 1.08rem; font-weight: 800; color: #f4f7ff;
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  text-shadow: 0 2px 8px rgba(0,0,0,.5);
+}
+.world-card__chips { display: flex; flex-wrap: wrap; gap: .32rem; margin-top: .32rem; }
+.world-chip {
+  font-size: .66rem; font-weight: 700; padding: .13rem .48rem; border-radius: 999px;
+  color: #c9d6f0; background: rgba(255,255,255,.09); backdrop-filter: blur(4px);
+}
+
+.world-card__body {
+  display: flex; flex-direction: column; gap: .85rem;
+  padding: 1.05rem 1.15rem 1.2rem; flex: 1;
+}
+.world-card__desc {
+  margin: 0; font-size: .83rem; line-height: 1.55; color: rgba(148,163,184,.85);
+  min-height: 2.5em;
+  display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;
+}
+
+.world-card__meta {
+  display: flex; align-items: center; justify-content: space-between; gap: .6rem;
+  font-size: .78rem;
+}
+.world-card__players {
+  display: inline-flex; align-items: center; gap: .4rem;
+  font-weight: 700; color: rgba(148,163,184,.6);
+}
+.world-card__players-dot {
+  width: 7px; height: 7px; border-radius: 999px; flex-shrink: 0;
+  background: rgba(148,163,184,.4);
+}
+.world-card__players.is-live { color: #86efac; }
+.world-card__players.is-live .world-card__players-dot {
+  background: rgb(74 222 128);
+  animation: pulse-dot 2s ease-in-out infinite;
+}
+.world-card__addr {
+  font-family: ui-monospace, monospace; color: rgba(148,163,184,.5);
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+
+.world-card__btn {
+  position: relative; z-index: 2;
+  margin-top: auto; width: 100%; padding: .68rem;
+  border: 1px solid rgba(255,255,255,.1); border-radius: 13px;
+  font: inherit; font-size: .87rem; font-weight: 800; cursor: pointer;
+  color: #e5e7ff; background: rgba(255,255,255,.05);
+  transition: background .18s, border-color .18s, transform .12s;
+}
+.world-card__btn:hover { background: rgba(139,92,246,.14); border-color: rgba(139,92,246,.4); }
+.world-card__btn:active { transform: scale(.99); }
+.world-card__btn--active {
+  color: #fff; border-color: transparent;
+  background: linear-gradient(135deg, #7c3aed, #5b21b6);
+  box-shadow: 0 0 24px rgba(109,40,217,.3);
+  cursor: default;
+}
+
+.worlds-footer {
+  margin-top: 1.4rem; display: flex; justify-content: flex-end;
+}
+
+/* skeleton */
+.world-card--skeleton { pointer-events: none; min-height: 300px; }
+.wc-skel-banner { height: 118px; border-radius: 0; }
+.wc-skel-body { padding: 1.05rem 1.15rem; display: flex; flex-direction: column; gap: .7rem; }
+.wc-skel-line { height: 14px; border-radius: 7px; width: 80%; }
+.wc-skel-line--short { width: 45%; }
+
+/* server note under scoped section headers */
+.section-server-note {
+  margin: .45rem 0 0;
+  font-size: .78rem; font-weight: 600;
+  color: rgba(167,139,250,.6);
+}
 
 /* ════════════════════════════════════
    STEPS
