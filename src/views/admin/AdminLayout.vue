@@ -1,11 +1,24 @@
 <script setup>
-import { computed, ref } from 'vue'
+import { computed, onMounted, ref } from 'vue'
 import { useRoute, RouterLink } from 'vue-router'
 import { logoutCurrentSession, useAuthStore } from '../../stores/authStore'
+import { serverState, activeServer, fetchServers, setActiveServer } from '../../stores/serverStore'
 
 const auth = useAuthStore()
 const route = useRoute()
 const sidebarOpen = ref(false)
+
+// Активный сервер скоупит per-server разделы (рынок, нации, БП, античит,
+// дашборд) через X-Server-Slug; смена ремаунтит страницы (App.vue key).
+onMounted(() => fetchServers())
+
+const sortedServers = computed(() =>
+  [...serverState.list].sort((a, b) => (a.sort_order ?? 0) - (b.sort_order ?? 0)),
+)
+
+function onServerPick(event) {
+  setActiveServer(event.target.value)
+}
 
 const displayName = computed(() => auth.state.playerAccount?.minecraft_nickname || auth.state.user?.site_login || 'Админ')
 
@@ -112,6 +125,28 @@ async function handleLogout() {
         </RouterLink>
       </div>
 
+      <!-- Переключатель сервера: скоупит per-server разделы -->
+      <div class="adm-server">
+        <label class="adm-server__label" for="adm-server-select">Активный сервер</label>
+        <div class="adm-server__row">
+          <span
+            class="adm-server__dot"
+            :class="activeServer?.status?.online ? 'is-on' : 'is-off'"
+          />
+          <select
+            id="adm-server-select"
+            class="adm-server__select"
+            :value="serverState.activeSlug || ''"
+            @change="onServerPick"
+          >
+            <option v-for="s in sortedServers" :key="s.slug" :value="s.slug">
+              {{ s.name }}{{ s.maintenance ? ' · тех. работы' : '' }}
+            </option>
+          </select>
+        </div>
+        <p class="adm-server__hint">Рынок, нации, БП, античит и дашборд — по этому серверу</p>
+      </div>
+
       <nav class="adm-nav">
         <div class="adm-nav__section">Управление</div>
         <RouterLink
@@ -167,6 +202,47 @@ async function handleLogout() {
 
 <style scoped>
 *, *::before, *::after { box-sizing: border-box; }
+
+/* ── Переключатель сервера ── */
+.adm-server {
+  margin: 0.9rem 0.9rem 0.2rem;
+  padding: 0.7rem 0.75rem;
+  border: 1px solid rgba(139, 92, 246, 0.22);
+  border-radius: 14px;
+  background: rgba(139, 92, 246, 0.07);
+}
+.adm-server__label {
+  display: block;
+  font-size: 0.62rem;
+  font-weight: 800;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: #8b7bd8;
+  margin-bottom: 0.4rem;
+}
+.adm-server__row { display: flex; align-items: center; gap: 0.5rem; }
+.adm-server__dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+.adm-server__dot.is-on { background: #22c55e; box-shadow: 0 0 6px rgba(34, 197, 94, 0.6); }
+.adm-server__dot.is-off { background: #64748b; }
+.adm-server__select {
+  flex: 1;
+  min-width: 0;
+  background: #0a1020;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 9px;
+  padding: 0.42rem 0.55rem;
+  color: #e2e8f0;
+  font-size: 0.82rem;
+  font-weight: 700;
+  cursor: pointer;
+}
+.adm-server__select:focus { outline: none; border-color: rgba(139, 92, 246, 0.5); }
+.adm-server__hint {
+  margin: 0.45rem 0 0;
+  font-size: 0.66rem;
+  line-height: 1.45;
+  color: #64748b;
+}
 
 .adm-shell {
   display: flex;
