@@ -1525,7 +1525,7 @@ function nationAccent(nation) {
 ════════════════════════════════════ */
 .worlds-section {
   position: relative; z-index: 3;
-  padding: 0 0 5.5rem;
+  padding: 3.5rem 0 5.5rem;
   scroll-margin-top: 5rem;
 }
 
