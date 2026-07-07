@@ -494,6 +494,10 @@ footer,
   align-items: center;
   gap: 0.15rem;
   flex-shrink: 0;
+  /* прижимаем вкладки к бренду: свободное место уходит вправо, а не
+     распределяется вокруг (важно для серверов с малым числом вкладок) */
+  margin-left: 0.6rem;
+  margin-right: auto;
 }
 
 .site-navbar__link,
