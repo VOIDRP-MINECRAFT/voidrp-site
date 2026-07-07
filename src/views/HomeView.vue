@@ -970,7 +970,10 @@ function nationAccent(nation) {
    HERO
 ════════════════════════════════════ */
 .hero {
-  position: relative; overflow: hidden;
+  /* overflow:hidden резал орбы-свечения ровно по кромке секции — получалась
+     чёткая линия под навбаром. Даём свечению продолжаться за пределы hero
+     (горизонтальный излишек прячет body{overflow-x:hidden}). */
+  position: relative; overflow: visible;
   padding: 7rem 0 8rem;
   min-height: 100svh;
   display: flex; align-items: center;
@@ -980,6 +983,7 @@ function nationAccent(nation) {
 .hero__banner {
   position: absolute; inset: 0; z-index: 0;
   pointer-events: none;
+  overflow: hidden; /* клип баннера теперь тут, а не на всём hero */
   isolation: isolate; /* keeps the color-blend tint inside the banner stack */
   /* сам баннер растворяется по верхней и нижней кромке — переход к навбару
      и к секции ниже происходит на прозрачности, а не на подгонке цвета */
