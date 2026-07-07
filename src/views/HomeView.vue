@@ -104,7 +104,9 @@ watch(
 let scopedWatcherReady = false
 
 async function refetchScoped() {
-  nationsLoading.value = true
+  // Старый контент остаётся на месте до прихода новых данных — иначе блоки
+  // ниже дважды прыгают (скелетон → данные). Скелетоны только при первом
+  // рендере страницы.
   const [stats, rankings] = await Promise.allSettled([getServerStats(), getNationRankings()])
   if (stats.status === 'fulfilled') {
     statsData.value = stats.value
@@ -1478,7 +1480,7 @@ function nationAccent(nation) {
 }
 
 /* skeleton */
-.nation-card--skeleton { pointer-events: none; }
+.nation-card--skeleton { pointer-events: none; min-height: 9.4rem; }
 .nc-skel-rank  { height: 12px; width: 60px;  border-radius: 6px; }
 .nc-skel-title { height: 20px; width: 120px; border-radius: 8px; margin-top: .3rem; }
 .nc-skel-meta  { height: 10px; width: 90px;  border-radius: 6px; margin-top: .2rem; }
@@ -1501,6 +1503,8 @@ function nationAccent(nation) {
 .nations-empty {
   font-size: .9rem; color: rgba(148,163,184,.45);
   text-align: center; padding: 2.5rem 0;
+  min-height: 9.4rem;
+  display: flex; align-items: center; justify-content: center;
 }
 
 /* nation-card spotlight */
