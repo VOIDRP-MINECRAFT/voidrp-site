@@ -983,8 +983,8 @@ function nationAccent(nation) {
   isolation: isolate; /* keeps the color-blend tint inside the banner stack */
   /* сам баннер растворяется по верхней и нижней кромке — переход к навбару
      и к секции ниже происходит на прозрачности, а не на подгонке цвета */
-  -webkit-mask-image: linear-gradient(180deg, transparent 0%, #000 20%, #000 58%, transparent 94%);
-  mask-image: linear-gradient(180deg, transparent 0%, #000 20%, #000 58%, transparent 94%);
+  -webkit-mask-image: linear-gradient(180deg, transparent 0%, #000 34%, #000 50%, transparent 86%);
+  mask-image: linear-gradient(180deg, transparent 0%, #000 34%, #000 50%, transparent 86%);
 }
 @keyframes banner-in {
   from { opacity: 0; transform: scale(1.06); }
