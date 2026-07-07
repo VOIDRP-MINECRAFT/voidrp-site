@@ -12,7 +12,11 @@ const route = useRoute()
 
 // Remount the active view when the selected server changes so per-server
 // pages (nations, market, stats, leaderboards) refetch scoped to it.
-const serverKey = computed(() => serverState.activeSlug || 'default')
+// The home page opts out: it watches the active server itself and animates
+// the switch (banner crossfade / accent theme) instead of a hard remount.
+const serverKey = computed(() =>
+  route.name === 'home' ? 'home' : (serverState.activeSlug || 'default'),
+)
 
 const hidePublicShell = computed(() => Boolean(route.meta?.hidePublicShell))
 

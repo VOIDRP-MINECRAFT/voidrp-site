@@ -1,5 +1,5 @@
 <script setup>
-import { ref, computed, nextTick, onMounted, onUnmounted } from 'vue'
+import { ref, computed, nextTick, watch, onMounted, onUnmounted } from 'vue'
 import { RouterLink } from 'vue-router'
 import { useI18n } from 'vue-i18n'
 import { siteConfig } from '../config.site.js'
@@ -45,6 +45,87 @@ const serverAddress = computed(() => {
 })
 
 const mapUrl = computed(() => activeServer.value?.map_url || siteConfig.bluemapUrl)
+
+// ── Per-server theme ────────────────────────────────────────────────────────
+// The whole page is tinted with the active server's accent color and its
+// banner becomes the hero background (crossfaded on switch) — the site
+// counterpart of the launcher's server-hero.
+const ACCENT_FALLBACK = '#7c3aed'
+
+function parseHex(hex) {
+  const m = /^#?([0-9a-f]{6})$/i.exec(hex || '')
+  if (!m) return [124, 58, 237]
+  const n = parseInt(m[1], 16)
+  return [(n >> 16) & 255, (n >> 8) & 255, n & 255]
+}
+
+function mixRgb(a, b, t) {
+  return a.map((v, i) => Math.round(v + (b[i] - v) * t))
+}
+
+const themeVars = computed(() => {
+  const base = parseHex(activeServer.value?.accent_color || ACCENT_FALLBACK)
+  const dark = mixRgb(base, [0, 0, 0], 0.28)
+  const deep = mixRgb(base, [0, 0, 0], 0.12)
+  const soft = mixRgb(base, [255, 255, 255], 0.32)
+  const pale = mixRgb(base, [255, 255, 255], 0.56)
+  const rgb = (c) => c.join(', ')
+  const hex = (c) => '#' + c.map((v) => v.toString(16).padStart(2, '0')).join('')
+  return {
+    '--srv': hex(base),
+    '--srv-dark': hex(dark),
+    '--srv-soft': hex(soft),
+    '--srv-pale': hex(pale),
+    '--srv-rgb': rgb(base),
+    '--srv-deep-rgb': rgb(deep),
+    '--srv-soft-rgb': rgb(soft),
+    '--srv-pale-rgb': rgb(pale),
+  }
+})
+
+// Hero banner crossfade: the layer list holds the current banner; the
+// TransitionGroup in the template fades the outgoing layer while the new
+// one animates in on top.
+const bannerLayers = ref([])
+let bannerLayerKey = 0
+
+watch(
+  () => activeServer.value?.banner_url,
+  (url, old) => {
+    if (!bannerLayers.value.length || url !== old) {
+      bannerLayers.value = [{ key: ++bannerLayerKey, url: url || null }]
+    }
+  },
+  { immediate: true },
+)
+
+// Refetch server-scoped data in place when the active server changes (the
+// home route is excluded from App.vue's remount-by-slug key).
+let scopedWatcherReady = false
+
+async function refetchScoped() {
+  nationsLoading.value = true
+  const [stats, rankings] = await Promise.allSettled([getServerStats(), getNationRankings()])
+  if (stats.status === 'fulfilled') {
+    statsData.value = stats.value
+    if (statsAnimated) {
+      if (statPlayersEl.value) countUp(statPlayersEl.value, stats.value.total_players, 900)
+      if (statNationsEl.value) countUp(statNationsEl.value, stats.value.total_nations, 900)
+    }
+  }
+  topNations.value =
+    rankings.status === 'fulfilled' ? (rankings.value.items || []).slice(0, 3) : []
+  nationsLoading.value = false
+  await nextTick()
+  bindSpotlight()
+}
+
+watch(
+  () => serverState.activeSlug,
+  () => {
+    if (scopedWatcherReady) refetchScoped()
+  },
+)
 
 // Feature flag of the ACTIVE server; absent/unknown key ⇒ enabled.
 function feat(key) {
@@ -136,6 +217,7 @@ function bindSpotlight() {
 
 onMounted(async () => {
   bindSpotlight()
+  const slugAtStart = serverState.activeSlug
 
   // Fetch all data in parallel
   const [stats, rankings, shots] = await Promise.allSettled([
@@ -175,6 +257,11 @@ onMounted(async () => {
   // World/nation cards render after the fetches — attach spotlight to them too.
   await nextTick()
   bindSpotlight()
+
+  // The server list may have resolved a different default slug mid-mount —
+  // refetch scoped data once so stats/nations match the active server.
+  scopedWatcherReady = true
+  if (serverState.activeSlug !== slugAtStart) refetchScoped()
 })
 
 onUnmounted(() => {
@@ -184,13 +271,27 @@ onUnmounted(() => {
 })
 
 function nationAccent(nation) {
-  return nation.accent_color || '#7c3aed'
+  return nation.accent_color || activeServer.value?.accent_color || '#7c3aed'
 }
 </script>
 
 <template>
+  <div class="home-root" :style="themeVars">
   <!-- ═══════════════════════ HERO ═══════════════════════ -->
   <section class="hero">
+    <!-- per-server banner background, crossfaded on switch -->
+    <div class="hero__banner" aria-hidden="true">
+      <TransitionGroup name="banner">
+        <div
+          v-for="layer in bannerLayers"
+          :key="layer.key"
+          class="hero__banner-img"
+          :style="layer.url ? { backgroundImage: `url(${layer.url})` } : {}"
+        ></div>
+      </TransitionGroup>
+      <div class="hero__banner-veil"></div>
+    </div>
+
     <div class="hero__noise"></div>
     <div class="hero__grid"></div>
     <div class="hero__orb hero__orb--1"></div>
@@ -217,8 +318,12 @@ function nationAccent(nation) {
     <div class="container-shell hero__inner">
       <div class="hero__badge anim-hero anim-d0">
         <span class="hero__badge-dot"></span>
-        <template v-if="servers.length > 1">VoidRP · {{ t('hero.badgeMulti', { n: servers.length }) }}</template>
-        <template v-else>VoidRP · Minecraft Roleplay · {{ siteConfig.serverVersion }}</template>
+        <Transition name="srv-swap" mode="out-in">
+          <span :key="activeServer?.slug || 'default'" class="hero__badge-text">
+            <template v-if="activeServer">VoidRP · {{ activeServer.name }} · MC {{ activeServer.mc_version }}</template>
+            <template v-else>VoidRP · Minecraft Roleplay · {{ siteConfig.serverVersion }}</template>
+          </span>
+        </Transition>
       </div>
 
       <h1 class="hero__title anim-hero anim-d1">
@@ -237,6 +342,31 @@ function nationAccent(nation) {
           {{ t('hero.downloadLauncher') }}
         </a>
         <a :href="siteConfig.discordUrl" target="_blank" rel="noreferrer" class="btn-hero-ghost">Discord</a>
+      </div>
+
+      <!-- server ribbon — switching re-themes the whole page in place -->
+      <div v-if="servers.length > 1" class="hero__ribbon anim-hero anim-d4">
+        <button
+          v-for="s in servers"
+          :key="s.slug"
+          type="button"
+          class="ribbon-pill"
+          :class="{ 'ribbon-pill--active': activeServer?.slug === s.slug }"
+          @click="chooseWorld(s)"
+        >
+          <span class="ribbon-pill__icon">
+            <img v-if="s.icon_url" :src="s.icon_url" :alt="s.name" />
+            <span v-else>{{ s.name.charAt(0) }}</span>
+          </span>
+          <span class="ribbon-pill__text">
+            <span class="ribbon-pill__name">{{ s.name }}</span>
+            <span class="ribbon-pill__status" :class="statusMeta(s).cls">
+              <span class="ribbon-pill__dot"></span>
+              <template v-if="s.status?.online">{{ s.status.players_online }} {{ t('hero.online') }}</template>
+              <template v-else>{{ statusMeta(s).label }}</template>
+            </span>
+          </span>
+        </button>
       </div>
 
       <div class="hero__meta anim-hero anim-d4">
@@ -678,6 +808,7 @@ function nationAccent(nation) {
       </div>
     </div>
   </section>
+  </div>
 </template>
 
 <style scoped>
@@ -733,8 +864,8 @@ function nationAccent(nation) {
 }
 
 @keyframes ldb-pulse {
-  0%, 100% { box-shadow: 0 0 28px rgba(109,40,217,.4); }
-  50%       { box-shadow: 0 0 48px rgba(109,40,217,.65), 0 0 80px rgba(109,40,217,.2); }
+  0%, 100% { box-shadow: 0 0 28px rgba(var(--srv-deep-rgb),.4); }
+  50%       { box-shadow: 0 0 48px rgba(var(--srv-deep-rgb),.65), 0 0 80px rgba(var(--srv-deep-rgb),.2); }
 }
 
 /* ════════════════════════════════════
@@ -772,14 +903,14 @@ function nationAccent(nation) {
   display: inline-flex; align-items: center; gap: .4rem;
   padding: .78rem 1.55rem;
   border-radius: 14px;
-  background: linear-gradient(135deg, #7c3aed, #5b21b6);
+  background: linear-gradient(135deg, var(--srv), var(--srv-dark));
   color: #fff; font-weight: 800; font-size: .92rem;
   text-decoration: none;
-  box-shadow: 0 0 28px rgba(109,40,217,.38);
+  box-shadow: 0 0 28px rgba(var(--srv-deep-rgb),.38);
   transition: box-shadow .25s, transform .18s;
 }
 .btn-hero-primary:hover {
-  box-shadow: 0 0 48px rgba(109,40,217,.65);
+  box-shadow: 0 0 48px rgba(var(--srv-deep-rgb),.65);
   transform: translateY(-2px);
 }
 .btn-hero-primary:active { transform: translateY(0); }
@@ -795,9 +926,9 @@ function nationAccent(nation) {
   transition: border-color .22s, background .22s, transform .18s, box-shadow .22s;
 }
 .btn-hero-secondary:hover {
-  border-color: rgba(139,92,246,.55);
-  background: rgba(139,92,246,.14);
-  box-shadow: 0 0 24px rgba(139,92,246,.2);
+  border-color: rgba(var(--srv-rgb),.55);
+  background: rgba(var(--srv-rgb),.14);
+  box-shadow: 0 0 24px rgba(var(--srv-rgb),.2);
   transform: translateY(-2px);
 }
 
@@ -812,6 +943,29 @@ function nationAccent(nation) {
 .btn-hero-ghost:hover { color: rgba(255,255,255,.88); }
 
 /* ════════════════════════════════════
+   PER-SERVER THEME
+   .home-root carries --srv / --srv-rgb… from the active server's
+   accent_color; every accent below resolves through them, so switching
+   the server re-tints the entire page.
+════════════════════════════════════ */
+.home-root {
+  /* fallback = brand violet, until the server list resolves */
+  --srv: #7c3aed;
+  --srv-dark: #5a2aab;
+  --srv-soft: #a578f0;
+  --srv-pale: #c5a9f5;
+  --srv-rgb: 124, 58, 237;
+  --srv-deep-rgb: 109, 51, 209;
+  --srv-soft-rgb: 165, 120, 240;
+  --srv-pale-rgb: 197, 169, 245;
+}
+
+/* server-name swap in the hero badge */
+.srv-swap-enter-active, .srv-swap-leave-active { transition: opacity .28s ease, transform .28s ease; }
+.srv-swap-enter-from { opacity: 0; transform: translateY(6px); }
+.srv-swap-leave-to   { opacity: 0; transform: translateY(-6px); }
+
+/* ════════════════════════════════════
    HERO
 ════════════════════════════════════ */
 .hero {
@@ -821,6 +975,80 @@ function nationAccent(nation) {
   display: flex; align-items: center;
 }
 
+/* per-server banner background */
+.hero__banner {
+  position: absolute; inset: 0; z-index: 0;
+  pointer-events: none;
+}
+@keyframes banner-in {
+  from { opacity: 0; transform: scale(1.06); }
+  to   { opacity: 1; transform: scale(1); }
+}
+.hero__banner-img {
+  position: absolute; inset: 0;
+  background-size: cover; background-position: center;
+  animation: banner-in 1.1s cubic-bezier(0.16, 1, 0.3, 1) both;
+  will-change: opacity, transform;
+}
+.banner-leave-active { transition: opacity 1s ease; }
+.banner-leave-to { opacity: 0; }
+.hero__banner-veil {
+  position: absolute; inset: 0;
+  background:
+    linear-gradient(90deg, rgba(9,7,20,.92) 0%, rgba(9,7,20,.72) 42%, rgba(9,7,20,.45) 100%),
+    linear-gradient(180deg, rgba(9,7,20,.55) 0%, rgba(9,7,20,.35) 45%, rgba(9,7,20,.9) 100%);
+}
+
+/* server ribbon — launcher-style switcher */
+.hero__ribbon {
+  display: flex; flex-wrap: wrap; gap: .55rem;
+  margin-bottom: 1.8rem;
+}
+.ribbon-pill {
+  position: relative;
+  display: inline-flex; align-items: center; gap: .6rem;
+  padding: .48rem .85rem .48rem .5rem;
+  border-radius: 16px; cursor: pointer;
+  border: 1px solid rgba(255,255,255,.1);
+  background: rgba(10,10,22,.55);
+  backdrop-filter: blur(12px);
+  font: inherit; text-align: left;
+  transition: border-color .25s, background .25s, box-shadow .25s, transform .18s;
+}
+.ribbon-pill:hover {
+  border-color: rgba(var(--srv-rgb), .45);
+  background: rgba(var(--srv-rgb), .1);
+  transform: translateY(-2px);
+}
+.ribbon-pill--active {
+  border-color: rgba(var(--srv-rgb), .65);
+  background: linear-gradient(135deg, rgba(var(--srv-rgb), .22), rgba(var(--srv-deep-rgb), .1)), rgba(10,10,22,.6);
+  box-shadow: 0 0 22px rgba(var(--srv-rgb), .28), inset 0 0 18px rgba(var(--srv-rgb), .08);
+}
+.ribbon-pill__icon {
+  width: 2.15rem; height: 2.15rem; border-radius: 11px; flex-shrink: 0; overflow: hidden;
+  border: 1px solid rgba(255,255,255,.14); background: rgba(12,16,30,.85);
+  display: flex; align-items: center; justify-content: center;
+  color: var(--srv-soft); font-weight: 900; font-size: .95rem;
+}
+.ribbon-pill__icon img { width: 100%; height: 100%; object-fit: cover; }
+.ribbon-pill__text { display: flex; flex-direction: column; gap: .1rem; min-width: 0; }
+.ribbon-pill__name {
+  font-size: .8rem; font-weight: 800; color: #eef1fb;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 11rem;
+}
+.ribbon-pill__status {
+  display: inline-flex; align-items: center; gap: .32rem;
+  font-size: .66rem; font-weight: 700;
+}
+.ribbon-pill__dot { width: 6px; height: 6px; border-radius: 999px; flex-shrink: 0; }
+.ribbon-pill__status.is-online  { color: #86efac; }
+.ribbon-pill__status.is-online .ribbon-pill__dot { background: #22c55e; box-shadow: 0 0 6px rgba(34,197,94,.7); }
+.ribbon-pill__status.is-offline { color: #fca5a5; }
+.ribbon-pill__status.is-offline .ribbon-pill__dot { background: #ef4444; }
+.ribbon-pill__status.is-maint   { color: #fde047; }
+.ribbon-pill__status.is-maint .ribbon-pill__dot { background: #eab308; }
+
 /* ambient bloom — fades in then expands out on load */
 .hero__bloom {
   position: absolute;
@@ -829,8 +1057,8 @@ function nationAccent(nation) {
   border-radius: 999px;
   background: radial-gradient(
     ellipse at center,
-    rgba(124, 58, 237, .38) 0%,
-    rgba(109, 40, 217, .18) 40%,
+    rgba(var(--srv-rgb), .38) 0%,
+    rgba(var(--srv-deep-rgb), .18) 40%,
     transparent 70%
   );
   filter: blur(48px);
@@ -871,7 +1099,7 @@ function nationAccent(nation) {
 }
 .hero__orb--1 {
   width: 680px; height: 680px;
-  background: radial-gradient(circle, rgba(109,40,217,.28), transparent 70%);
+  background: radial-gradient(circle, rgba(var(--srv-deep-rgb),.28), transparent 70%);
   top: -200px; left: -160px;
   animation: orb-float-1 12s ease-in-out infinite alternate;
 }
@@ -883,7 +1111,7 @@ function nationAccent(nation) {
 }
 .hero__orb--3 {
   width: 420px; height: 280px;
-  background: radial-gradient(circle, rgba(139,92,246,.12), transparent 70%);
+  background: radial-gradient(circle, rgba(var(--srv-rgb),.12), transparent 70%);
   bottom: 5%; left: 28%;
   animation: orb-float-3 10s ease-in-out infinite alternate;
 }
@@ -895,18 +1123,18 @@ function nationAccent(nation) {
 
 .hero__badge {
   display: inline-flex; align-items: center; gap: .5rem;
-  border: 1px solid rgba(139,92,246,.32);
-  background: rgba(139,92,246,.1);
+  border: 1px solid rgba(var(--srv-rgb),.32);
+  background: rgba(var(--srv-rgb),.1);
   border-radius: 999px;
   padding: .38rem .9rem;
   font-size: .75rem; font-weight: 700; letter-spacing: .14em;
-  text-transform: uppercase; color: rgba(196,181,253,1);
+  text-transform: uppercase; color: rgb(var(--srv-pale-rgb));
   margin-bottom: 1.6rem;
   backdrop-filter: blur(6px);
 }
 .hero__badge-dot {
   width: 6px; height: 6px; border-radius: 999px;
-  background: #a78bfa;
+  background: var(--srv-soft);
   animation: pulse-dot 2.4s ease-in-out infinite;
   flex-shrink: 0;
 }
@@ -919,7 +1147,7 @@ function nationAccent(nation) {
 }
 .hero__title-grad {
   display: block; margin-top: .18em;
-  background: linear-gradient(110deg, #fff 0%, #c4b5fd 30%, #7dd3fc 60%, #c4b5fd 90%, #fff 100%);
+  background: linear-gradient(110deg, #fff 0%, var(--srv-pale) 30%, #7dd3fc 60%, var(--srv-pale) 90%, #fff 100%);
   background-size: 300% 300%;
   -webkit-background-clip: text; background-clip: text; color: transparent;
   animation: grad-shift 6s ease-in-out infinite;
@@ -947,7 +1175,7 @@ function nationAccent(nation) {
   font: inherit; font-size: .8rem; font-weight: 700; color: rgb(203 213 225);
   transition: border-color .18s, color .18s, background .18s;
 }
-.hero__ip:hover { border-color: rgba(139,92,246,.38); background: rgba(139,92,246,.07); color: #fff; }
+.hero__ip:hover { border-color: rgba(var(--srv-rgb),.38); background: rgba(var(--srv-rgb),.07); color: #fff; }
 
 .hero__online {
   display: inline-flex; align-items: center; gap: .38rem;
@@ -962,10 +1190,10 @@ function nationAccent(nation) {
 
 .hero__map-link {
   font-size: .8rem; font-weight: 600;
-  color: rgba(167,139,250,.72); text-decoration: none;
+  color: rgba(var(--srv-soft-rgb),.72); text-decoration: none;
   transition: color .18s;
 }
-.hero__map-link:hover { color: #c4b5fd; }
+.hero__map-link:hover { color: var(--srv-pale); }
 
 .hero__scroll-cue {
   position: absolute; bottom: 2.5rem; left: 50%; transform: translateX(-50%);
@@ -984,9 +1212,9 @@ function nationAccent(nation) {
 
 .kicker-line {
   flex: 1; max-width: 2.8rem; height: 1px;
-  background: rgba(139,92,246,.45);
+  background: rgba(var(--srv-rgb),.45);
 }
-.kicker-line--dim { background: rgba(167,139,250,.25); }
+.kicker-line--dim { background: rgba(var(--srv-soft-rgb),.25); }
 
 /* ════════════════════════════════════
    SCREENSHOT MARQUEE
@@ -1039,7 +1267,7 @@ function nationAccent(nation) {
   transition: border-color .28s, transform .22s, box-shadow .28s;
 }
 .gp-card:hover {
-  border-color: rgba(139,92,246,.25);
+  border-color: rgba(var(--srv-rgb),.25);
   transform: translateY(-3px);
   box-shadow: 0 10px 36px rgba(0,0,0,.25);
 }
@@ -1051,7 +1279,7 @@ function nationAccent(nation) {
 .gp-icon--red    { background: rgba(239,68,68,.1);   border: 1px solid rgba(239,68,68,.22);   color: #fca5a5; }
 .gp-icon--amber  { background: rgba(245,158,11,.09);  border: 1px solid rgba(245,158,11,.2);   color: #fcd34d; }
 .gp-icon--cyan   { background: rgba(6,182,212,.1);    border: 1px solid rgba(6,182,212,.22);   color: #67e8f9; }
-.gp-icon--violet { background: rgba(139,92,246,.11);  border: 1px solid rgba(139,92,246,.24);  color: #a78bfa; }
+.gp-icon--violet { background: rgba(var(--srv-rgb),.11);  border: 1px solid rgba(var(--srv-rgb),.24);  color: var(--srv-soft); }
 
 .gp-card__title { font-size: .97rem; font-weight: 800; color: #e2e8f0; margin: 0; }
 .gp-card__desc  { font-size: .81rem; line-height: 1.65; color: rgba(100,116,139,.95); margin: 0; }
@@ -1129,7 +1357,7 @@ function nationAccent(nation) {
 .stat-num {
   font-size: clamp(2rem, 5vw, 2.9rem);
   font-weight: 900; letter-spacing: -.04em;
-  background: linear-gradient(120deg, #fff 0%, #c4b5fd 50%, #7dd3fc 100%);
+  background: linear-gradient(120deg, #fff 0%, var(--srv-pale) 50%, #7dd3fc 100%);
   -webkit-background-clip: text; background-clip: text; color: transparent;
   line-height: 1;
   min-width: 4ch; text-align: center;
@@ -1175,7 +1403,7 @@ function nationAccent(nation) {
   transition: border-color .28s, transform .22s, box-shadow .28s;
 }
 .nation-card:hover {
-  border-color: color-mix(in srgb, var(--nc-accent, #7c3aed) 50%, transparent);
+  border-color: color-mix(in srgb, var(--nc-accent, var(--srv)) 50%, transparent);
   transform: translateY(-4px);
   box-shadow: 0 12px 40px rgba(0,0,0,.3);
 }
@@ -1183,7 +1411,7 @@ function nationAccent(nation) {
 /* coloured top strip */
 .nation-card__accent-bar {
   position: absolute; top: 0; left: 0; right: 0; height: 3px;
-  background: var(--nc-accent, #7c3aed);
+  background: var(--nc-accent, var(--srv));
   opacity: .65;
 }
 
@@ -1207,7 +1435,7 @@ function nationAccent(nation) {
   text-decoration: none; line-height: 1.25;
   transition: color .18s;
 }
-.nation-card__title:hover { color: #c4b5fd; }
+.nation-card__title:hover { color: var(--srv-pale); }
 
 .nation-card__meta {
   font-size: .77rem; color: rgba(148,163,184,.65);
@@ -1243,10 +1471,10 @@ function nationAccent(nation) {
 }
 .nations-link {
   font-size: .82rem; font-weight: 700;
-  color: rgba(167,139,250,.7); text-decoration: none;
+  color: rgba(var(--srv-soft-rgb),.7); text-decoration: none;
   transition: color .18s;
 }
-.nations-link:hover { color: #c4b5fd; }
+.nations-link:hover { color: var(--srv-pale); }
 
 .nations-empty {
   font-size: .9rem; color: rgba(148,163,184,.45);
@@ -1259,7 +1487,7 @@ function nationAccent(nation) {
   position: absolute; inset: 0; border-radius: inherit;
   background: radial-gradient(
     circle 200px at var(--mx, 50%) var(--my, 50%),
-    color-mix(in srgb, var(--nc-accent, #7c3aed) 18%, transparent) 0%,
+    color-mix(in srgb, var(--nc-accent, var(--srv)) 18%, transparent) 0%,
     transparent 70%
   );
   opacity: 0; transition: opacity .35s ease; pointer-events: none;
@@ -1297,13 +1525,13 @@ function nationAccent(nation) {
   transition: border-color .28s, transform .22s, box-shadow .28s;
 }
 .world-card:hover {
-  border-color: rgba(139,92,246,.32);
+  border-color: rgba(var(--srv-rgb),.32);
   transform: translateY(-4px);
-  box-shadow: 0 16px 48px rgba(0,0,0,.32), 0 0 0 1px rgba(139,92,246,.12);
+  box-shadow: 0 16px 48px rgba(0,0,0,.32), 0 0 0 1px rgba(var(--srv-rgb),.12);
 }
 .world-card--active {
-  border-color: rgba(139,92,246,.45);
-  box-shadow: 0 0 0 1px rgba(139,92,246,.3), 0 12px 40px rgba(0,0,0,.3), 0 0 36px rgba(109,40,217,.12);
+  border-color: rgba(var(--srv-rgb),.45);
+  box-shadow: 0 0 0 1px rgba(var(--srv-rgb),.3), 0 12px 40px rgba(0,0,0,.3), 0 0 36px rgba(var(--srv-deep-rgb),.12);
 }
 
 /* spotlight, same pattern as the other landing cards */
@@ -1312,7 +1540,7 @@ function nationAccent(nation) {
   position: absolute; inset: 0; border-radius: inherit;
   background: radial-gradient(
     circle 240px at var(--mx, 50%) var(--my, 50%),
-    rgba(139,92,246,.12) 0%,
+    rgba(var(--srv-rgb),.12) 0%,
     transparent 70%
   );
   opacity: 0; transition: opacity .35s ease; pointer-events: none;
@@ -1360,7 +1588,7 @@ function nationAccent(nation) {
   width: 2.9rem; height: 2.9rem; border-radius: 13px; flex-shrink: 0; overflow: hidden;
   border: 1px solid rgba(255,255,255,.14); background: rgba(12,16,30,.85);
   display: flex; align-items: center; justify-content: center;
-  color: #a78bfa; font-weight: 900; font-size: 1.2rem;
+  color: var(--srv-soft); font-weight: 900; font-size: 1.2rem;
   box-shadow: 0 8px 20px rgba(0,0,0,.35);
 }
 .world-card__icon img { width: 100%; height: 100%; object-fit: cover; }
@@ -1417,12 +1645,12 @@ function nationAccent(nation) {
   color: #e5e7ff; background: rgba(255,255,255,.05);
   transition: background .18s, border-color .18s, transform .12s;
 }
-.world-card__btn:hover { background: rgba(139,92,246,.14); border-color: rgba(139,92,246,.4); }
+.world-card__btn:hover { background: rgba(var(--srv-rgb),.14); border-color: rgba(var(--srv-rgb),.4); }
 .world-card__btn:active { transform: scale(.99); }
 .world-card__btn--active {
   color: #fff; border-color: transparent;
-  background: linear-gradient(135deg, #7c3aed, #5b21b6);
-  box-shadow: 0 0 24px rgba(109,40,217,.3);
+  background: linear-gradient(135deg, var(--srv), var(--srv-dark));
+  box-shadow: 0 0 24px rgba(var(--srv-deep-rgb),.3);
   cursor: default;
 }
 
@@ -1441,7 +1669,7 @@ function nationAccent(nation) {
 .section-server-note {
   margin: .45rem 0 0;
   font-size: .78rem; font-weight: 600;
-  color: rgba(167,139,250,.6);
+  color: rgba(var(--srv-soft-rgb),.6);
 }
 
 /* ════════════════════════════════════
@@ -1466,19 +1694,19 @@ function nationAccent(nation) {
   border: 1px solid rgba(255,255,255,.08);
   border-radius: 22px;
   background:
-    linear-gradient(180deg, rgba(139,92,246,.055) 0%, transparent 50%),
+    linear-gradient(180deg, rgba(var(--srv-rgb),.055) 0%, transparent 50%),
     rgba(255,255,255,.022);
   padding: 2rem;
   display: flex; flex-direction: column; gap: .8rem;
   transition: border-color .28s, background .28s, transform .22s, box-shadow .28s;
 }
 .step-card:hover {
-  border-color: rgba(139,92,246,.32);
+  border-color: rgba(var(--srv-rgb),.32);
   background:
-    linear-gradient(180deg, rgba(139,92,246,.1) 0%, transparent 60%),
-    rgba(139,92,246,.04);
+    linear-gradient(180deg, rgba(var(--srv-rgb),.1) 0%, transparent 60%),
+    rgba(var(--srv-rgb),.04);
   transform: translateY(-4px);
-  box-shadow: 0 16px 48px rgba(0,0,0,.32), 0 0 0 1px rgba(139,92,246,.12);
+  box-shadow: 0 16px 48px rgba(0,0,0,.32), 0 0 0 1px rgba(var(--srv-rgb),.12);
 }
 
 /* large ghost number — decorative */
@@ -1495,21 +1723,21 @@ function nationAccent(nation) {
 
 .step-card--accent {
   background:
-    linear-gradient(180deg, rgba(109,40,217,.18) 0%, transparent 60%),
+    linear-gradient(180deg, rgba(var(--srv-deep-rgb),.18) 0%, transparent 60%),
     rgba(255,255,255,.032);
-  border-color: rgba(139,92,246,.28);
+  border-color: rgba(var(--srv-rgb),.28);
 }
 .step-card--accent:hover {
-  border-color: rgba(139,92,246,.52);
-  box-shadow: 0 16px 48px rgba(0,0,0,.32), 0 0 36px rgba(109,40,217,.16);
+  border-color: rgba(var(--srv-rgb),.52);
+  box-shadow: 0 16px 48px rgba(0,0,0,.32), 0 0 36px rgba(var(--srv-deep-rgb),.16);
 }
 .step-card--accent::before {
-  -webkit-text-stroke: 1px rgba(139,92,246,.1);
+  -webkit-text-stroke: 1px rgba(var(--srv-rgb),.1);
 }
 
 .step-card__num {
   font-size: .75rem; font-weight: 900; letter-spacing: .16em;
-  color: rgba(139,92,246,.7);
+  color: rgba(var(--srv-rgb),.7);
 }
 .step-card__title {
   font-size: 1.12rem; font-weight: 900; color: #f1f5f9; margin: 0;
@@ -1519,10 +1747,10 @@ function nationAccent(nation) {
 }
 .step-card__link {
   display: inline-block; font-size: .82rem; font-weight: 700;
-  color: #a78bfa; text-decoration: none;
+  color: var(--srv-soft); text-decoration: none;
   transition: color .18s, letter-spacing .18s;
 }
-.step-card__link:hover { color: #c4b5fd; letter-spacing: .01em; }
+.step-card__link:hover { color: var(--srv-pale); letter-spacing: .01em; }
 .step-card__link--muted { color: rgba(148,163,184,.4); pointer-events: none; }
 
 /* ════════════════════════════════════
@@ -1532,9 +1760,9 @@ function nationAccent(nation) {
 
 .launcher-card {
   position: relative; overflow: hidden;
-  border: 1px solid rgba(139,92,246,.32);
+  border: 1px solid rgba(var(--srv-rgb),.32);
   border-radius: 28px;
-  background: radial-gradient(ellipse at top left, rgba(109,40,217,.3) 0%, transparent 55%),
+  background: radial-gradient(ellipse at top left, rgba(var(--srv-deep-rgb),.3) 0%, transparent 55%),
     linear-gradient(135deg, rgba(20,16,42,.98), rgba(10,10,22,1));
   padding: 2.75rem;
   display: grid; gap: 2.5rem;
@@ -1543,13 +1771,13 @@ function nationAccent(nation) {
   transition: box-shadow .3s;
 }
 .launcher-card:hover {
-  box-shadow: 0 0 80px rgba(109,40,217,.15), 0 24px 60px rgba(0,0,0,.4);
+  box-shadow: 0 0 80px rgba(var(--srv-deep-rgb),.15), 0 24px 60px rgba(0,0,0,.4);
 }
 @media (max-width: 768px) { .launcher-card { grid-template-columns: 1fr; } }
 
 .launcher-card__glow {
   position: absolute; width: 500px; height: 350px;
-  background: rgba(109,40,217,.18);
+  background: rgba(var(--srv-deep-rgb),.18);
   filter: blur(100px); border-radius: 999px;
   top: -100px; left: -80px; pointer-events: none;
 }
@@ -1574,7 +1802,7 @@ function nationAccent(nation) {
 }
 .lf-dot {
   width: 5px; height: 5px; border-radius: 999px; flex-shrink: 0;
-  background: #a78bfa; box-shadow: 0 0 6px rgba(167,139,250,.65);
+  background: var(--srv-soft); box-shadow: 0 0 6px rgba(var(--srv-soft-rgb),.65);
 }
 
 .launcher-download-box {
@@ -1587,16 +1815,16 @@ function nationAccent(nation) {
   backdrop-filter: blur(10px);
   transition: border-color .25s;
 }
-.launcher-download-box:hover { border-color: rgba(139,92,246,.35); }
+.launcher-download-box:hover { border-color: rgba(var(--srv-rgb),.35); }
 
 .ldb-label {
   font-size: .75rem; font-weight: 700; letter-spacing: .18em;
-  text-transform: uppercase; color: rgba(167,139,250,.8); margin: 0;
+  text-transform: uppercase; color: rgba(var(--srv-soft-rgb),.8); margin: 0;
 }
 .ldb-btn {
   display: inline-flex; align-items: center; gap: .5rem;
   padding: .9rem 1.7rem; border-radius: 15px;
-  background: linear-gradient(135deg, #7c3aed, #5b21b6);
+  background: linear-gradient(135deg, var(--srv), var(--srv-dark));
   color: #fff; font-weight: 800; font-size: .95rem;
   text-decoration: none; white-space: nowrap;
   animation: ldb-pulse 3s ease-in-out infinite;
@@ -1606,8 +1834,8 @@ function nationAccent(nation) {
 .ldb-note {
   font-size: .75rem; line-height: 1.6; color: rgba(255,255,255,.38); margin: 0;
 }
-.ldb-note a { color: rgba(167,139,250,.75); text-decoration: none; transition: color .18s; }
-.ldb-note a:hover { color: #c4b5fd; }
+.ldb-note a { color: rgba(var(--srv-soft-rgb),.75); text-decoration: none; transition: color .18s; }
+.ldb-note a:hover { color: var(--srv-pale); }
 
 /* ════════════════════════════════════
    FEATURES
@@ -1627,10 +1855,10 @@ function nationAccent(nation) {
   transition: border-color .28s, background .28s, transform .22s, box-shadow .28s;
 }
 .feat-card:hover {
-  border-color: rgba(139,92,246,.28);
-  background: rgba(139,92,246,.05);
+  border-color: rgba(var(--srv-rgb),.28);
+  background: rgba(var(--srv-rgb),.05);
   transform: translateY(-4px);
-  box-shadow: 0 10px 38px rgba(0,0,0,.28), 0 0 0 1px rgba(139,92,246,.1);
+  box-shadow: 0 10px 38px rgba(0,0,0,.28), 0 0 0 1px rgba(var(--srv-rgb),.1);
 }
 
 /* gradient border reveal on hover */
@@ -1639,7 +1867,7 @@ function nationAccent(nation) {
   position: absolute; inset: 0;
   border-radius: inherit;
   padding: 1px;
-  background: linear-gradient(135deg, rgba(139,92,246,.55) 0%, rgba(56,189,248,.3) 50%, transparent 70%);
+  background: linear-gradient(135deg, rgba(var(--srv-rgb),.55) 0%, rgba(56,189,248,.3) 50%, transparent 70%);
   -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
   -webkit-mask-composite: xor;
   mask-composite: exclude;
@@ -1656,7 +1884,7 @@ function nationAccent(nation) {
 }
 .feat-card:hover .feat-card__icon { transform: scale(1.1); }
 
-.feat-icon--violet { background: rgba(139,92,246,.14);  border: 1px solid rgba(139,92,246,.24); color: #a78bfa; }
+.feat-icon--violet { background: rgba(var(--srv-rgb),.14);  border: 1px solid rgba(var(--srv-rgb),.24); color: var(--srv-soft); }
 .feat-icon--sky    { background: rgba(56,189,248,.11);  border: 1px solid rgba(56,189,248,.22);  color: #7dd3fc; }
 .feat-icon--green  { background: rgba(74,222,128,.11);  border: 1px solid rgba(74,222,128,.22);  color: #86efac; }
 .feat-icon--amber  { background: rgba(251,191,36,.09);  border: 1px solid rgba(251,191,36,.2);   color: #fcd34d; }
@@ -1678,7 +1906,7 @@ function nationAccent(nation) {
 .cta-card {
   position: relative; overflow: hidden;
   border: 1px solid rgba(255,255,255,.09); border-radius: 28px;
-  background: radial-gradient(ellipse at center top, rgba(109,40,217,.22) 0%, transparent 55%),
+  background: radial-gradient(ellipse at center top, rgba(var(--srv-deep-rgb),.22) 0%, transparent 55%),
     linear-gradient(180deg, rgba(18,14,36,.98), rgba(8,8,18,1));
   padding: 5.5rem 2rem;
   display: flex; flex-direction: column; align-items: center;
@@ -1687,7 +1915,7 @@ function nationAccent(nation) {
 
 .cta-card__glow {
   position: absolute; width: 600px; height: 200px;
-  background: rgba(109,40,217,.16); filter: blur(90px);
+  background: rgba(var(--srv-deep-rgb),.16); filter: blur(90px);
   border-radius: 999px; top: -30px; left: 50%; transform: translateX(-50%);
   pointer-events: none;
 }
@@ -1702,7 +1930,7 @@ function nationAccent(nation) {
 }
 .cta-card__orb--2 {
   width: 250px; height: 180px;
-  background: rgba(167,139,250,.07);
+  background: rgba(var(--srv-soft-rgb),.07);
   bottom: -30px; right: -50px;
   animation: orb-float-1 11s ease-in-out infinite alternate;
 }
@@ -1753,21 +1981,21 @@ function nationAccent(nation) {
 .feat-card::after {
   background: radial-gradient(
     circle 220px at var(--mx, 50%) var(--my, 50%),
-    rgba(139, 92, 246, .11) 0%,
+    rgba(var(--srv-rgb), .11) 0%,
     transparent 70%
   );
 }
 .launcher-card::after {
   background: radial-gradient(
     circle 300px at var(--mx, 50%) var(--my, 50%),
-    rgba(139, 92, 246, .14) 0%,
+    rgba(var(--srv-rgb), .14) 0%,
     transparent 65%
   );
 }
 .cta-card::after {
   background: radial-gradient(
     circle 340px at var(--mx, 50%) var(--my, 50%),
-    rgba(139, 92, 246, .11) 0%,
+    rgba(var(--srv-rgb), .11) 0%,
     rgba(56, 189, 248, .05) 50%,
     transparent 70%
   );
@@ -1845,7 +2073,7 @@ function nationAccent(nation) {
   width: 70px; height: 70px;
   top: 60%; right: 11%; opacity: .30;
   animation: mc-float-d 8.3s ease-in-out infinite;
-  filter: drop-shadow(0 0 12px rgba(167,139,250,.5)) drop-shadow(0 4px 8px rgba(0,0,0,.4));
+  filter: drop-shadow(0 0 12px rgba(var(--srv-soft-rgb),.5)) drop-shadow(0 4px 8px rgba(0,0,0,.4));
 }
 .mc-item--diamond {
   width: 64px; height: 64px;
@@ -1857,13 +2085,13 @@ function nationAccent(nation) {
   width: 82px; height: 82px;
   top: 72%; right: 26%; opacity: .28;
   animation: mc-float-a 10.5s ease-in-out infinite reverse;
-  filter: drop-shadow(0 0 12px rgba(139,92,246,.45)) drop-shadow(0 4px 8px rgba(0,0,0,.4));
+  filter: drop-shadow(0 0 12px rgba(var(--srv-rgb),.45)) drop-shadow(0 4px 8px rgba(0,0,0,.4));
 }
 .mc-item--obsidian {
   width: 66px; height: 66px;
   top: 46%; right: 38%; opacity: .22;
   animation: mc-float-b 13s ease-in-out infinite;
-  filter: drop-shadow(0 0 10px rgba(109,40,217,.4)) drop-shadow(0 4px 6px rgba(0,0,0,.35));
+  filter: drop-shadow(0 0 10px rgba(var(--srv-deep-rgb),.4)) drop-shadow(0 4px 6px rgba(0,0,0,.35));
 }
 
 @media (max-width: 1100px) {

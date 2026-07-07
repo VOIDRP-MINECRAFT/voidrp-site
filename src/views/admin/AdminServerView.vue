@@ -33,6 +33,7 @@ const BLANK = {
   status_host: '', status_port: null, max_players: 100,
   whitelist_mode: 'public', maintenance: false,
   map_url: '',
+  accent_color: '',
   easydonate_server_id: null,
   features: { nations: true, economy: true, shop: true, alliances: true, battlepass: true, quests: true, leaderboards: true, map: true },
 }
@@ -79,7 +80,7 @@ function buildPayload() {
   const p = { ...form }
   // Normalize empty strings to null for nullable fields
   for (const k of ['description', 'icon_url', 'banner_url', 'neoforge_version',
-    'pack_root', 'pack_base_url', 'manifest_url', 'status_host', 'map_url']) {
+    'pack_root', 'pack_base_url', 'manifest_url', 'status_host', 'map_url', 'accent_color']) {
     if (p[k] === '') p[k] = null
   }
   if (p.status_port === '' || p.status_port === undefined) p.status_port = null
@@ -279,6 +280,17 @@ onMounted(load)
             <input v-model="form.map_url" placeholder="https://map.void-rp.ru" /></label>
           <label class="fld"><span>EasyDonate server ID (магазин доната)</span>
             <input v-model.number="form.easydonate_server_id" type="number" placeholder="напр. 12345" /></label>
+          <label class="fld"><span>Акцентный цвет темы (тонирует сайт/лаунчер)</span>
+            <span class="accent-row">
+              <input
+                type="color"
+                class="accent-pick"
+                :value="form.accent_color || '#7c3aed'"
+                @input="form.accent_color = $event.target.value"
+              />
+              <input v-model="form.accent_color" placeholder="#7c3aed (пусто = фиолетовый)" />
+              <button v-if="form.accent_color" type="button" class="btn btn--ghost btn--sm" @click="form.accent_color = ''">Сброс</button>
+            </span></label>
         </div>
         <div class="features">
           <label v-for="(label, key) in FEATURE_LABELS" :key="key" class="feature-chk">
@@ -350,6 +362,12 @@ onMounted(load)
 .fld input, .fld textarea, .fld select { background: #0a1020; border: 1px solid rgba(255,255,255,0.09); border-radius: 8px; padding: 0.5rem 0.65rem; color: #e2e8f0; font-size: 0.85rem; font-family: inherit; }
 .fld input:focus, .fld textarea:focus, .fld select:focus { outline: none; border-color: rgba(139,92,246,0.5); }
 .fld input:disabled { opacity: 0.55; }
+.accent-row { display: flex; align-items: center; gap: 0.5rem; }
+.accent-row input:not(.accent-pick) { flex: 1; min-width: 0; }
+.accent-pick {
+  width: 2.4rem; height: 2.4rem; flex-shrink: 0; padding: 0.2rem !important;
+  cursor: pointer; border-radius: 8px;
+}
 .chk { display: inline-flex; align-items: center; gap: 0.4rem; font-size: 0.82rem; color: #cbd5e1; cursor: pointer; }
 .img-row { display: flex; align-items: center; gap: 0.6rem; }
 .img-prev { width: 2.75rem; height: 2.75rem; border-radius: 8px; object-fit: cover; }
