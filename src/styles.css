@@ -966,14 +966,24 @@ footer,
   }
 }
 
+/* The navbar gets a wider shell than page content: with every feature tab
+   enabled plus a logged-in cluster the row needs more than 1280px. */
+.site-navbar .container-shell {
+  width: min(100% - 2rem, 1400px);
+  /* App.vue глобально ужимает .container-shell до --compact-shell-width
+     (1180px) — для навбара со всеми вкладками и залогиненным кластером
+     этого мало на любом экране, перекрываем кап. */
+  max-width: 1400px;
+}
+
 /* Progressively trim non-essential chrome so the desktop bar never overflows. */
-@media (min-width: 1120px) and (max-width: 1439px) {
+@media (min-width: 1120px) and (max-width: 1499px) {
   .site-navbar__meta { display: none; }
 }
 
 /* When every feature tab is enabled the nav is at its widest — drop the
    brand text entirely (logo stays) so links can never overlap it. */
-@media (min-width: 1120px) and (max-width: 1299px) {
+@media (min-width: 1120px) and (max-width: 1399px) {
   .site-navbar__brand-text { display: none; }
   .site-navbar__brand { gap: 0; }
 }

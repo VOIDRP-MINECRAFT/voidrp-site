@@ -689,7 +689,7 @@ async function handleLogout() {
   font-size: 0.85rem;
   font-weight: 700;
   color: #e5eefc;
-  max-width: 9rem;
+  max-width: 7rem;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
