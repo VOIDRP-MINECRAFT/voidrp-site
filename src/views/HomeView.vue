@@ -981,6 +981,10 @@ function nationAccent(nation) {
   position: absolute; inset: 0; z-index: 0;
   pointer-events: none;
   isolation: isolate; /* keeps the color-blend tint inside the banner stack */
+  /* сам баннер растворяется по верхней и нижней кромке — переход к навбару
+     и к секции ниже происходит на прозрачности, а не на подгонке цвета */
+  -webkit-mask-image: linear-gradient(180deg, transparent 0%, #000 20%, #000 58%, transparent 94%);
+  mask-image: linear-gradient(180deg, transparent 0%, #000 20%, #000 58%, transparent 94%);
 }
 @keyframes banner-in {
   from { opacity: 0; transform: scale(1.06); }
@@ -989,10 +993,9 @@ function nationAccent(nation) {
 .hero__banner-img {
   position: absolute; inset: 0;
   background-size: cover; background-position: center;
-  /* duotone: убираем родные цвета баннера — остаётся только светотень,
-     которую tint ниже перекрашивает в акцент мира. Любой баннер гармонирует
-     и с навбаром, и с контентом после hero. */
-  filter: grayscale(.92) brightness(.6) contrast(1.06);
+  /* приглушаем и частично перекрашиваем баннер в акцент мира (маска выше
+     решает швы, поэтому духоту duotone ослабили — цвета живее) */
+  filter: grayscale(.55) brightness(.72) contrast(1.03);
   animation: banner-in 1.1s cubic-bezier(0.16, 1, 0.3, 1) both;
   will-change: opacity, transform;
 }
@@ -1002,17 +1005,16 @@ function nationAccent(nation) {
   position: absolute; inset: 0;
   background: linear-gradient(160deg, rgb(var(--srv-rgb)) 0%, rgb(var(--srv-deep-rgb)) 100%);
   mix-blend-mode: color;
-  opacity: .85;
+  opacity: .55;
 }
 .banner-leave-active { transition: opacity 1s ease; }
 .banner-leave-to { opacity: 0; }
-/* фейды строго в цвет фона сайта (#070b14 = 7,11,20): сверху сливается с
-   навбаром, снизу — с секцией миров; без видимых швов на любом баннере */
+/* затемнение под читаемость текста; кромки закрывает маска на .hero__banner */
 .hero__banner-veil {
   position: absolute; inset: 0;
   background:
-    linear-gradient(90deg, rgba(7,11,20,.9) 0%, rgba(7,11,20,.66) 42%, rgba(7,11,20,.38) 100%),
-    linear-gradient(180deg, rgba(7,11,20,.96) 0%, rgba(7,11,20,.5) 26%, rgba(7,11,20,.38) 55%, #070b14 100%);
+    linear-gradient(90deg, rgba(7,11,20,.82) 0%, rgba(7,11,20,.55) 42%, rgba(7,11,20,.3) 100%),
+    linear-gradient(180deg, rgba(7,11,20,.35) 0%, rgba(7,11,20,.25) 50%, rgba(7,11,20,.5) 100%);
 }
 
 /* server ribbon — launcher-style switcher */
