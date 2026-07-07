@@ -967,14 +967,30 @@ footer,
 }
 
 /* Progressively trim non-essential chrome so the desktop bar never overflows. */
-@media (min-width: 1120px) and (max-width: 1339px) {
+@media (min-width: 1120px) and (max-width: 1439px) {
   .site-navbar__meta { display: none; }
 }
 
+/* When every feature tab is enabled the nav is at its widest — drop the
+   brand text entirely (logo stays) so links can never overlap it. */
+@media (min-width: 1120px) and (max-width: 1299px) {
+  .site-navbar__brand-text { display: none; }
+  .site-navbar__brand { gap: 0; }
+}
+
 @media (min-width: 1120px) and (max-width: 1259px) {
+  .site-navbar__link { padding-left: 0.45rem; padding-right: 0.45rem; }
   .site-navbar__ext-link { padding-left: 0.5rem; padding-right: 0.5rem; }
   .site-navbar__avatar-name { max-width: 5.5rem; }
   .site-navbar__server-name { max-width: 4.5rem; }
+}
+
+/* Tightest desktop range: external links (Map/Discord live in the footer and
+   hero too) give way so the feature tabs and auth cluster always fit. */
+@media (min-width: 1120px) and (max-width: 1199px) {
+  .site-navbar__ext-link { display: none; }
+  .site-navbar__link { padding-left: 0.4rem; padding-right: 0.4rem; }
+  .site-navbar__server-name { max-width: 3.5rem; }
 }
 
 @media (max-width: 767px) {
