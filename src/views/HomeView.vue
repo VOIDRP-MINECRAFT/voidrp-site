@@ -289,6 +289,7 @@ function nationAccent(nation) {
           :style="layer.url ? { backgroundImage: `url(${layer.url})` } : {}"
         ></div>
       </TransitionGroup>
+      <div class="hero__banner-tint"></div>
       <div class="hero__banner-veil"></div>
     </div>
 
@@ -979,6 +980,7 @@ function nationAccent(nation) {
 .hero__banner {
   position: absolute; inset: 0; z-index: 0;
   pointer-events: none;
+  isolation: isolate; /* keeps the color-blend tint inside the banner stack */
 }
 @keyframes banner-in {
   from { opacity: 0; transform: scale(1.06); }
@@ -987,16 +989,29 @@ function nationAccent(nation) {
 .hero__banner-img {
   position: absolute; inset: 0;
   background-size: cover; background-position: center;
+  /* приглушаем сочность, чтобы любой баннер не спорил с темой страницы */
+  filter: saturate(.8) brightness(.88) contrast(.98);
   animation: banner-in 1.1s cubic-bezier(0.16, 1, 0.3, 1) both;
   will-change: opacity, transform;
 }
+
+/* перекраска баннера в акцент сервера: blend "color" переносит оттенок
+   акцента на изображение, сохраняя его светотень */
+.hero__banner-tint {
+  position: absolute; inset: 0;
+  background: linear-gradient(160deg, rgba(var(--srv-rgb), .85) 0%, rgba(var(--srv-deep-rgb), .65) 100%);
+  mix-blend-mode: color;
+  opacity: .45;
+}
 .banner-leave-active { transition: opacity 1s ease; }
 .banner-leave-to { opacity: 0; }
+/* фейды строго в цвет фона сайта (#070b14 = 7,11,20): сверху сливается с
+   навбаром, снизу — с секцией миров; без видимых швов на любом баннере */
 .hero__banner-veil {
   position: absolute; inset: 0;
   background:
-    linear-gradient(90deg, rgba(9,7,20,.92) 0%, rgba(9,7,20,.72) 42%, rgba(9,7,20,.45) 100%),
-    linear-gradient(180deg, rgba(9,7,20,.55) 0%, rgba(9,7,20,.35) 45%, rgba(9,7,20,.9) 100%);
+    linear-gradient(90deg, rgba(7,11,20,.9) 0%, rgba(7,11,20,.66) 42%, rgba(7,11,20,.38) 100%),
+    linear-gradient(180deg, rgba(7,11,20,.96) 0%, rgba(7,11,20,.5) 26%, rgba(7,11,20,.38) 55%, #070b14 100%);
 }
 
 /* server ribbon — launcher-style switcher */
@@ -1072,7 +1087,7 @@ function nationAccent(nation) {
   position: absolute;
   bottom: 0; left: 0; right: 0;
   height: 320px;
-  background: linear-gradient(to bottom, transparent 0%, rgba(9,7,20,.96) 100%);
+  background: linear-gradient(to bottom, transparent 0%, #070b14 100%);
   z-index: 2;
   pointer-events: none;
 }
@@ -1555,12 +1570,12 @@ function nationAccent(nation) {
 }
 .world-card__banner-img {
   position: absolute; inset: 0;
-  background: linear-gradient(135deg, rgba(76,29,149,.55) 0%, rgba(20,16,42,.9) 60%, rgba(9,7,20,.95) 100%);
+  background: linear-gradient(135deg, rgba(var(--srv-deep-rgb), .5) 0%, rgba(15,14,32,.9) 60%, rgba(7,11,20,.95) 100%);
   background-size: cover; background-position: center;
 }
 .world-card__banner-veil {
   position: absolute; inset: 0;
-  background: linear-gradient(180deg, rgba(9,7,20,.12) 0%, rgba(9,7,20,.5) 55%, rgba(11,9,24,.96) 100%);
+  background: linear-gradient(180deg, rgba(7,11,20,.12) 0%, rgba(7,11,20,.5) 55%, rgba(7,11,20,.96) 100%);
 }
 
 .world-status {
