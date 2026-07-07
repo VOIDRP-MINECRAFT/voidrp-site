@@ -1526,7 +1526,6 @@ function nationAccent(nation) {
 .worlds-section {
   position: relative; z-index: 3;
   padding: 0 0 5.5rem;
-  margin-top: -3.5rem; /* pull into the hero's bottom veil */
   scroll-margin-top: 5rem;
 }
 
