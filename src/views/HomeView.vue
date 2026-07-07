@@ -989,19 +989,20 @@ function nationAccent(nation) {
 .hero__banner-img {
   position: absolute; inset: 0;
   background-size: cover; background-position: center;
-  /* приглушаем сочность, чтобы любой баннер не спорил с темой страницы */
-  filter: saturate(.8) brightness(.88) contrast(.98);
+  /* duotone: убираем родные цвета баннера — остаётся только светотень,
+     которую tint ниже перекрашивает в акцент мира. Любой баннер гармонирует
+     и с навбаром, и с контентом после hero. */
+  filter: grayscale(.92) brightness(.6) contrast(1.06);
   animation: banner-in 1.1s cubic-bezier(0.16, 1, 0.3, 1) both;
   will-change: opacity, transform;
 }
 
-/* перекраска баннера в акцент сервера: blend "color" переносит оттенок
-   акцента на изображение, сохраняя его светотень */
+/* перекраска светотени баннера в акцент сервера */
 .hero__banner-tint {
   position: absolute; inset: 0;
-  background: linear-gradient(160deg, rgba(var(--srv-rgb), .85) 0%, rgba(var(--srv-deep-rgb), .65) 100%);
+  background: linear-gradient(160deg, rgb(var(--srv-rgb)) 0%, rgb(var(--srv-deep-rgb)) 100%);
   mix-blend-mode: color;
-  opacity: .45;
+  opacity: .85;
 }
 .banner-leave-active { transition: opacity 1s ease; }
 .banner-leave-to { opacity: 0; }
