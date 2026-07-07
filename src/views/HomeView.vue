@@ -193,11 +193,289 @@ const screenshots = ref([])
 const topNations = ref([])
 const nationsLoading = ref(true)
 
+// ── WOW FX: звёзды/метеоры, параллакс, аура курсора, tilt, магнит ──────────
+// Все эффекты отключаются при prefers-reduced-motion и на тач-устройствах;
+// canvas работает только пока hero в зоне видимости и вкладка активна.
+const heroEl = ref(null)
+const fxCanvas = ref(null)
+const auraEl = ref(null)
+
+const FX_ENABLED =
+  typeof window !== 'undefined' &&
+  window.matchMedia?.('(pointer: fine)').matches &&
+  !window.matchMedia?.('(prefers-reduced-motion: reduce)').matches
+
+let fxCleanups = []
+let accentCache = '124, 58, 237'
+
+function refreshAccentCache() {
+  const el = document.querySelector('.home-root')
+  const v = el ? getComputedStyle(el).getPropertyValue('--srv-rgb').trim() : ''
+  if (v) accentCache = v
+}
+watch(themeVars, () => nextTick(refreshAccentCache))
+
+function initStarfield() {
+  const canvas = fxCanvas.value
+  const hero = heroEl.value
+  if (!canvas || !hero) return
+  const ctx = canvas.getContext('2d')
+  let w = 0
+  let h = 0
+  const stars = []
+  const meteors = []
+  let mx = -1e4
+  let my = -1e4
+  let raf = 0
+  let visible = false
+  let nextMeteor = performance.now() + 2500
+
+  function resize() {
+    const dpr = Math.min(window.devicePixelRatio || 1, 2)
+    w = hero.clientWidth
+    h = hero.clientHeight
+    canvas.width = Math.round(w * dpr)
+    canvas.height = Math.round(h * dpr)
+    canvas.style.width = w + 'px'
+    canvas.style.height = h + 'px'
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0)
+    seed()
+  }
+
+  function seed() {
+    stars.length = 0
+    const n = Math.min(130, Math.round((w * h) / 15000))
+    for (let i = 0; i < n; i++) {
+      stars.push({
+        x: Math.random() * w,
+        y: Math.random() * h,
+        r: 0.6 + Math.random() * 1.6,
+        vy: 0.1 + Math.random() * 0.38,
+        vx: (Math.random() - 0.5) * 0.08,
+        ph: Math.random() * Math.PI * 2,
+        tw: 0.4 + Math.random() * 1.3,
+        depth: 0.35 + Math.random() * 0.65,
+      })
+    }
+  }
+
+  function frame(t) {
+    if (!visible) { raf = 0; return }
+    ctx.clearRect(0, 0, w, h)
+    const rgb = accentCache
+
+    for (const p of stars) {
+      p.y -= p.vy
+      p.x += p.vx
+      // мягкое отталкивание от курсора
+      const dx = p.x - mx
+      const dy = p.y - my
+      const d2 = dx * dx + dy * dy
+      if (d2 < 16900) {
+        const d = Math.sqrt(d2) || 1
+        const f = ((130 - d) / 130) * 1.5
+        p.x += (dx / d) * f
+        p.y += (dy / d) * f
+      }
+      if (p.y < -8) { p.y = h + 8; p.x = Math.random() * w }
+      if (p.x < -8) p.x = w + 8
+      else if (p.x > w + 8) p.x = -8
+      const a = (0.22 + 0.5 * (0.5 + 0.5 * Math.sin((t / 1000) * p.tw + p.ph))) * p.depth
+      ctx.beginPath()
+      ctx.arc(p.x, p.y, p.r, 0, 6.2832)
+      ctx.fillStyle = `rgba(${rgb}, ${a.toFixed(3)})`
+      ctx.fill()
+    }
+
+    if (t > nextMeteor && meteors.length < 2) {
+      meteors.push({
+        x: w * (0.3 + Math.random() * 0.68),
+        y: -30,
+        vx: -(3.2 + Math.random() * 3),
+        vy: 2.1 + Math.random() * 1.9,
+        life: 1,
+      })
+      nextMeteor = t + 4500 + Math.random() * 7000
+    }
+    for (let i = meteors.length - 1; i >= 0; i--) {
+      const m = meteors[i]
+      m.x += m.vx
+      m.y += m.vy
+      m.life -= 0.009
+      const tail = 17
+      const g = ctx.createLinearGradient(m.x, m.y, m.x - m.vx * tail, m.y - m.vy * tail)
+      g.addColorStop(0, `rgba(255,255,255,${(0.8 * m.life).toFixed(3)})`)
+      g.addColorStop(0.25, `rgba(${rgb},${(0.55 * m.life).toFixed(3)})`)
+      g.addColorStop(1, 'rgba(0,0,0,0)')
+      ctx.strokeStyle = g
+      ctx.lineWidth = 1.6
+      ctx.beginPath()
+      ctx.moveTo(m.x, m.y)
+      ctx.lineTo(m.x - m.vx * tail, m.y - m.vy * tail)
+      ctx.stroke()
+      if (m.life <= 0 || m.x < -120 || m.y > h + 120) meteors.splice(i, 1)
+    }
+
+    raf = requestAnimationFrame(frame)
+  }
+
+  function start() { if (!raf && visible && !document.hidden) raf = requestAnimationFrame(frame) }
+  function stop() { if (raf) { cancelAnimationFrame(raf); raf = 0 } }
+
+  const io = new IntersectionObserver((entries) => {
+    visible = entries[0]?.isIntersecting ?? false
+    visible ? start() : stop()
+  })
+  io.observe(hero)
+
+  const onVis = () => (document.hidden ? stop() : start())
+  const onMove = (e) => {
+    const r = canvas.getBoundingClientRect()
+    mx = e.clientX - r.left
+    my = e.clientY - r.top
+  }
+  const onLeave = () => { mx = -1e4; my = -1e4 }
+
+  resize()
+  window.addEventListener('resize', resize, { passive: true })
+  document.addEventListener('visibilitychange', onVis)
+  hero.addEventListener('mousemove', onMove, { passive: true })
+  hero.addEventListener('mouseleave', onLeave, { passive: true })
+
+  fxCleanups.push(() => {
+    stop()
+    io.disconnect()
+    window.removeEventListener('resize', resize)
+    document.removeEventListener('visibilitychange', onVis)
+    hero.removeEventListener('mousemove', onMove)
+    hero.removeEventListener('mouseleave', onLeave)
+  })
+}
+
+function initParallax() {
+  const hero = heroEl.value
+  if (!hero) return
+  let tx = 0, ty = 0, cx = 0, cy = 0
+  let ts = 0, cs = 0
+  let raf = 0
+
+  function kick() { if (!raf) raf = requestAnimationFrame(step) }
+  function step() {
+    raf = 0
+    cx += (tx - cx) * 0.07
+    cy += (ty - cy) * 0.07
+    cs += (ts - cs) * 0.12
+    hero.style.setProperty('--par-x', cx.toFixed(4))
+    hero.style.setProperty('--par-y', cy.toFixed(4))
+    hero.style.setProperty('--par-s', cs.toFixed(1) + 'px')
+    if (Math.abs(tx - cx) > 0.002 || Math.abs(ty - cy) > 0.002 || Math.abs(ts - cs) > 0.5) kick()
+  }
+  const onMove = (e) => {
+    const r = hero.getBoundingClientRect()
+    tx = ((e.clientX - r.left) / r.width - 0.5) * 2
+    ty = ((e.clientY - r.top) / r.height - 0.5) * 2
+    kick()
+  }
+  const onLeave = () => { tx = 0; ty = 0; kick() }
+  const onScroll = () => {
+    ts = Math.min(window.scrollY, window.innerHeight)
+    kick()
+  }
+
+  hero.addEventListener('mousemove', onMove, { passive: true })
+  hero.addEventListener('mouseleave', onLeave, { passive: true })
+  window.addEventListener('scroll', onScroll, { passive: true })
+
+  fxCleanups.push(() => {
+    if (raf) cancelAnimationFrame(raf)
+    hero.removeEventListener('mousemove', onMove)
+    hero.removeEventListener('mouseleave', onLeave)
+    window.removeEventListener('scroll', onScroll)
+  })
+}
+
+function initCursorAura() {
+  const el = auraEl.value
+  if (!el) return
+  let tx = -600, ty = -600, cx = -600, cy = -600
+  let raf = 0
+  let shown = false
+
+  function kick() { if (!raf) raf = requestAnimationFrame(step) }
+  function step() {
+    raf = 0
+    cx += (tx - cx) * 0.12
+    cy += (ty - cy) * 0.12
+    el.style.transform = `translate3d(${cx.toFixed(1)}px, ${cy.toFixed(1)}px, 0)`
+    if (Math.abs(tx - cx) > 0.4 || Math.abs(ty - cy) > 0.4) kick()
+  }
+  const onMove = (e) => {
+    tx = e.clientX
+    ty = e.clientY
+    if (!shown) { shown = true; el.style.opacity = '1' }
+    kick()
+  }
+  const onLeave = () => { shown = false; el.style.opacity = '0' }
+
+  document.addEventListener('mousemove', onMove, { passive: true })
+  document.documentElement.addEventListener('mouseleave', onLeave, { passive: true })
+
+  fxCleanups.push(() => {
+    if (raf) cancelAnimationFrame(raf)
+    document.removeEventListener('mousemove', onMove)
+    document.documentElement.removeEventListener('mouseleave', onLeave)
+  })
+}
+
+// 3D-tilt + магнитные кнопки — привязываются вместе со спотлайтом
+const TILT_SELECTOR = '.world-card, .nation-card, .launcher-card'
+const MAGNET_SELECTOR = '.btn-hero-primary, .ldb-btn'
+
+function bindTiltAndMagnet() {
+  if (!FX_ENABLED) return
+  document.querySelectorAll(TILT_SELECTOR).forEach((card) => {
+    if (card.dataset.tiltBound) return
+    card.dataset.tiltBound = '1'
+    function onMove(e) {
+      const r = card.getBoundingClientRect()
+      const x = (e.clientX - r.left) / r.width - 0.5
+      const y = (e.clientY - r.top) / r.height - 0.5
+      card.style.transform =
+        `perspective(900px) rotateX(${(-y * 5).toFixed(2)}deg) rotateY(${(x * 6).toFixed(2)}deg) translateY(-4px)`
+    }
+    function onLeave() { card.style.transform = '' }
+    card.addEventListener('mousemove', onMove, { passive: true })
+    card.addEventListener('mouseleave', onLeave, { passive: true })
+    fxCleanups.push(() => {
+      card.removeEventListener('mousemove', onMove)
+      card.removeEventListener('mouseleave', onLeave)
+    })
+  })
+  document.querySelectorAll(MAGNET_SELECTOR).forEach((btn) => {
+    if (btn.dataset.magBound) return
+    btn.dataset.magBound = '1'
+    function onMove(e) {
+      const r = btn.getBoundingClientRect()
+      const dx = Math.max(-7, Math.min(7, (e.clientX - r.left - r.width / 2) * 0.16))
+      const dy = Math.max(-6, Math.min(6, (e.clientY - r.top - r.height / 2) * 0.22))
+      btn.style.transform = `translate(${dx.toFixed(1)}px, ${dy.toFixed(1)}px)`
+    }
+    function onLeave() { btn.style.transform = '' }
+    btn.addEventListener('mousemove', onMove, { passive: true })
+    btn.addEventListener('mouseleave', onLeave, { passive: true })
+    fxCleanups.push(() => {
+      btn.removeEventListener('mousemove', onMove)
+      btn.removeEventListener('mouseleave', onLeave)
+    })
+  })
+}
+
 // ── Spotlight (mouse follow) ───────────────────────────────────────────────
 const LIGHT_SELECTOR = '.step-card, .feat-card, .launcher-card, .cta-card, .nation-card, .world-card'
 let lightCleanup = []
 
 function bindSpotlight() {
+  bindTiltAndMagnet()
   document.querySelectorAll(LIGHT_SELECTOR).forEach((card) => {
     if (card.dataset.litBound) return
     card.dataset.litBound = '1'
@@ -219,6 +497,12 @@ function bindSpotlight() {
 
 onMounted(async () => {
   bindSpotlight()
+  refreshAccentCache()
+  if (FX_ENABLED) {
+    initStarfield()
+    initParallax()
+    initCursorAura()
+  }
   const slugAtStart = serverState.activeSlug
 
   // Fetch all data in parallel
@@ -269,6 +553,8 @@ onMounted(async () => {
 onUnmounted(() => {
   lightCleanup.forEach((fn) => fn())
   lightCleanup = []
+  fxCleanups.forEach((fn) => fn())
+  fxCleanups = []
   statsObserver?.disconnect()
 })
 
@@ -280,7 +566,7 @@ function nationAccent(nation) {
 <template>
   <div class="home-root" :style="themeVars">
   <!-- ═══════════════════════ HERO ═══════════════════════ -->
-  <section class="hero">
+  <section ref="heroEl" class="hero">
     <!-- per-server banner background, crossfaded on switch -->
     <div class="hero__banner" aria-hidden="true">
       <TransitionGroup name="banner">
@@ -295,11 +581,22 @@ function nationAccent(nation) {
       <div class="hero__banner-veil"></div>
     </div>
 
+    <!-- звёздное поле + метеоры (интерактивный canvas) -->
+    <canvas ref="fxCanvas" class="hero__fx" aria-hidden="true"></canvas>
+
+    <!-- медленно вращающиеся световые лучи -->
+    <div class="hero__beams" aria-hidden="true">
+      <div class="hero__beam hero__beam--1"></div>
+      <div class="hero__beam hero__beam--2"></div>
+    </div>
+
     <div class="hero__noise"></div>
     <div class="hero__grid"></div>
-    <div class="hero__orb hero__orb--1"></div>
-    <div class="hero__orb hero__orb--2"></div>
-    <div class="hero__orb hero__orb--3"></div>
+    <div class="hero__orbs-par" aria-hidden="true">
+      <div class="hero__orb hero__orb--1"></div>
+      <div class="hero__orb hero__orb--2"></div>
+      <div class="hero__orb hero__orb--3"></div>
+    </div>
 
     <!-- ambient bloom pulse on load -->
     <div class="hero__bloom" aria-hidden="true"></div>
@@ -776,6 +1073,7 @@ function nationAccent(nation) {
   <section class="cta-section">
     <div class="container-shell">
       <div class="cta-card" data-reveal>
+        <div class="cta-card__beam" aria-hidden="true"></div>
         <div class="cta-card__glow"></div>
         <div class="cta-card__orb cta-card__orb--1"></div>
         <div class="cta-card__orb cta-card__orb--2"></div>
@@ -811,6 +1109,9 @@ function nationAccent(nation) {
       </div>
     </div>
   </section>
+
+  <!-- световая аура за курсором -->
+  <div ref="auraEl" class="cursor-aura" aria-hidden="true"></div>
   </div>
 </template>
 
@@ -987,6 +1288,8 @@ function nationAccent(nation) {
   pointer-events: none;
   overflow: hidden; /* клип баннера теперь тут, а не на всём hero */
   isolation: isolate; /* keeps the color-blend tint inside the banner stack */
+  transform: translate3d(calc(var(--par-x, 0) * 14px), calc(var(--par-y, 0) * 10px + var(--par-s, 0px) * 0.28), 0);
+  will-change: transform;
   /* сам баннер растворяется по верхней и нижней кромке — переход к навбару
      и к секции ниже происходит на прозрачности, а не на подгонке цвета */
   -webkit-mask-image: linear-gradient(180deg, transparent 0%, #000 34%, #000 50%, transparent 86%);
@@ -1073,6 +1376,74 @@ function nationAccent(nation) {
 .ribbon-pill__status.is-maint   { color: #fde047; }
 .ribbon-pill__status.is-maint .ribbon-pill__dot { background: #eab308; }
 
+/* ── WOW FX ────────────────────────────────────────────────── */
+/* интерактивное звёздное поле */
+.hero__fx {
+  position: absolute; inset: 0; z-index: 1;
+  pointer-events: none;
+}
+
+/* медленные световые лучи за контентом */
+.hero__beams {
+  position: absolute; inset: -20%;
+  z-index: 1; pointer-events: none;
+  mix-blend-mode: screen;
+}
+.hero__beam {
+  position: absolute; inset: 0;
+  border-radius: 999px;
+}
+.hero__beam--1 {
+  background: conic-gradient(
+    from 0deg at 62% 38%,
+    transparent 0deg,
+    rgba(var(--srv-rgb), .055) 42deg,
+    transparent 96deg,
+    transparent 208deg,
+    rgba(var(--srv-rgb), .04) 250deg,
+    transparent 300deg
+  );
+  animation: beam-rot 52s linear infinite;
+}
+.hero__beam--2 {
+  background: conic-gradient(
+    from 140deg at 38% 55%,
+    transparent 0deg,
+    rgba(125, 211, 252, .05) 50deg,
+    transparent 110deg
+  );
+  animation: beam-rot 74s linear infinite reverse;
+}
+@keyframes beam-rot { to { transform: rotate(360deg); } }
+
+/* параллакс-слои */
+.hero__orbs-par {
+  position: absolute; inset: 0;
+  transform: translate3d(calc(var(--par-x, 0) * 22px), calc(var(--par-y, 0) * 16px), 0);
+  will-change: transform;
+}
+
+/* аура за курсором — на всю страницу */
+.cursor-aura {
+  position: fixed; left: -260px; top: -260px;
+  width: 520px; height: 520px;
+  border-radius: 999px;
+  pointer-events: none;
+  z-index: 2;
+  background: radial-gradient(circle,
+    rgba(var(--srv-rgb), .07) 0%,
+    rgba(var(--srv-rgb), .025) 38%,
+    transparent 70%);
+  mix-blend-mode: screen;
+  opacity: 0;
+  transition: opacity .6s ease;
+  will-change: transform;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .hero__beams, .cursor-aura, .hero__fx { display: none; }
+}
+
 /* ambient bloom — fades in then expands out on load */
 .hero__bloom {
   position: absolute;
@@ -1143,6 +1514,8 @@ function nationAccent(nation) {
 .hero__inner {
   position: relative; z-index: 3;
   display: flex; flex-direction: column; align-items: flex-start;
+  transform: translate3d(calc(var(--par-x, 0) * -7px), calc(var(--par-y, 0) * -5px + var(--par-s, 0px) * 0.1), 0);
+  will-change: transform;
 }
 
 .hero__badge {
@@ -1381,10 +1754,16 @@ function nationAccent(nation) {
 .stat-num {
   font-size: clamp(2rem, 5vw, 2.9rem);
   font-weight: 900; letter-spacing: -.04em;
-  background: linear-gradient(120deg, #fff 0%, var(--srv-pale) 50%, #7dd3fc 100%);
+  background: linear-gradient(120deg, #fff 0%, var(--srv-pale) 40%, #7dd3fc 70%, #fff 100%);
+  background-size: 250% 100%;
   -webkit-background-clip: text; background-clip: text; color: transparent;
   line-height: 1;
   min-width: 4ch; text-align: center;
+  animation: stat-breathe 7s ease-in-out infinite alternate;
+}
+@keyframes stat-breathe {
+  from { background-position: 0% 50%; }
+  to   { background-position: 100% 50%; }
 }
 
 .stat-label {
@@ -1938,6 +2317,33 @@ function nationAccent(nation) {
   text-align: center;
 }
 
+/* бегущий по рамке луч */
+.cta-card__beam {
+  position: absolute; inset: 0;
+  border-radius: inherit;
+  padding: 1px;
+  -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+  pointer-events: none;
+  overflow: hidden;
+}
+.cta-card__beam::before {
+  content: '';
+  position: absolute; inset: -60%;
+  background: conic-gradient(
+    from 0deg,
+    transparent 0deg,
+    rgba(var(--srv-rgb), .65) 18deg,
+    rgba(125, 211, 252, .35) 32deg,
+    transparent 55deg
+  );
+  animation: beam-rot 8s linear infinite;
+}
+@media (prefers-reduced-motion: reduce) {
+  .cta-card__beam { display: none; }
+}
+
 .cta-card__glow {
   position: absolute; width: 600px; height: 200px;
   background: rgba(var(--srv-deep-rgb),.16); filter: blur(90px);
@@ -2062,11 +2468,13 @@ function nationAccent(nation) {
 .hero__mc-stage {
   position: absolute;
   top: 0; bottom: 0;
-  left: 50%; transform: translateX(-50%);
+  left: 50%;
+  transform: translateX(calc(-50% + var(--par-x, 0) * -18px)) translateY(calc(var(--par-y, 0) * -12px));
   width: min(1180px, 100vw);
   pointer-events: none;
   z-index: 1;
   animation: mc-stage-in 1.4s ease-out 1.1s both;
+  will-change: transform;
 }
 
 .mc-item {
