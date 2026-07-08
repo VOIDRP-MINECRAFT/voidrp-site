@@ -124,29 +124,27 @@ onMounted(load)
 </script>
 
 <template>
-  <div class="ac-page">
-    <div class="ac-header">
+  <div class="adm-page">
+    <div class="adm-page__head">
       <div>
-        <h1 class="ac-title">Античит</h1>
-        <p class="ac-sub">Мониторинг и настройка защиты</p>
+        <h1 class="adm-title">Античит</h1>
+        <p class="adm-sub">Мониторинг и настройка защиты · нарушения выбранного сервера</p>
       </div>
-    </div>
-
-    <!-- Tabs -->
-    <div class="ac-tabs">
-      <button class="ac-tab" :class="{ 'ac-tab--active': activeTab === 'players' }" @click="switchTab('players')">Игроки</button>
-      <button class="ac-tab" :class="{ 'ac-tab--active': activeTab === 'stats' }" @click="switchTab('stats')">Статистика</button>
-      <button class="ac-tab" :class="{ 'ac-tab--active': activeTab === 'config' }" @click="switchTab('config')">Настройки</button>
+      <div class="adm-tabs">
+        <button class="adm-tab" :class="{ 'adm-tab--active': activeTab === 'players' }" @click="switchTab('players')">Игроки</button>
+        <button class="adm-tab" :class="{ 'adm-tab--active': activeTab === 'stats' }" @click="switchTab('stats')">Статистика</button>
+        <button class="adm-tab" :class="{ 'adm-tab--active': activeTab === 'config' }" @click="switchTab('config')">Настройки</button>
+      </div>
     </div>
 
     <!-- ── Players ── -->
     <div v-if="activeTab === 'players'">
       <div class="ac-toolbar">
-        <label class="ac-toggle">
+        <label class="adm-check">
           <input v-model="onlySuspicious" type="checkbox" @change="load" />
           <span>Только с читами</span>
         </label>
-        <button class="ac-btn-refresh" :disabled="loading" @click="load">
+        <button class="adm-btn" :disabled="loading" @click="load">
           <svg v-if="!loading" xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg>
           <span v-if="loading" class="ac-spinner" />
           Обновить
@@ -224,14 +222,8 @@ onMounted(load)
 
       <div v-if="stats && !statsLoading">
         <div class="ac-stats-summary">
-          <div class="ac-stat-card">
-            <div class="ac-stat-val">{{ stats.total_violations }}</div>
-            <div class="ac-stat-lbl">всего нарушений</div>
-          </div>
-          <div class="ac-stat-card">
-            <div class="ac-stat-val">{{ stats.unique_players }}</div>
-            <div class="ac-stat-lbl">уникальных игроков</div>
-          </div>
+          <div class="adm-kpi"><div><div class="adm-kpi__val">{{ stats.total_violations }}</div><div class="adm-kpi__label">всего нарушений</div></div></div>
+          <div class="adm-kpi"><div><div class="adm-kpi__val">{{ stats.unique_players }}</div><div class="adm-kpi__label">уникальных игроков</div></div></div>
         </div>
 
         <div class="ac-table-wrap" style="margin-top:1rem">
@@ -319,7 +311,7 @@ onMounted(load)
         </div>
 
         <div class="ac-config-actions">
-          <button class="ac-btn-save" :disabled="configSaving" @click="saveConfig">
+          <button class="adm-btn adm-btn--acc" :disabled="configSaving" @click="saveConfig">
             <span v-if="configSaving" class="ac-spinner" />
             {{ configSaving ? 'Сохранение...' : 'Сохранить' }}
           </button>
@@ -333,58 +325,6 @@ onMounted(load)
 <style scoped>
 *, *::before, *::after { box-sizing: border-box; }
 
-.ac-page {
-  padding: 1.5rem 1.75rem;
-  color: #e2e8f0;
-  min-height: 100vh;
-}
-
-.ac-header {
-  margin-bottom: 1.25rem;
-}
-
-.ac-title {
-  font-size: 1.35rem;
-  font-weight: 800;
-  color: #e2e8f0;
-  margin: 0 0 0.2rem;
-}
-
-.ac-sub {
-  font-size: 0.8rem;
-  color: #475569;
-  margin: 0;
-}
-
-/* Tabs */
-.ac-tabs {
-  display: flex;
-  gap: 0.25rem;
-  margin-bottom: 1.5rem;
-  border-bottom: 1px solid rgba(255,255,255,0.07);
-  padding-bottom: 0;
-}
-
-.ac-tab {
-  padding: 0.5rem 1.1rem;
-  background: transparent;
-  border: none;
-  border-bottom: 2px solid transparent;
-  color: #475569;
-  font-size: 0.85rem;
-  font-weight: 600;
-  cursor: pointer;
-  transition: color 0.15s, border-color 0.15s;
-  margin-bottom: -1px;
-}
-
-.ac-tab:hover { color: #94a3b8; }
-
-.ac-tab--active {
-  color: #a78bfa;
-  border-bottom-color: #a78bfa;
-}
-
 /* Toolbar */
 .ac-toolbar {
   display: flex;
@@ -394,34 +334,6 @@ onMounted(load)
   flex-wrap: wrap;
 }
 
-.ac-toggle {
-  display: flex;
-  align-items: center;
-  gap: 0.4rem;
-  font-size: 0.82rem;
-  color: #64748b;
-  cursor: pointer;
-}
-
-.ac-toggle input { accent-color: #7c3aed; }
-
-.ac-btn-refresh {
-  display: flex;
-  align-items: center;
-  gap: 0.4rem;
-  padding: 0.45rem 0.9rem;
-  border-radius: 8px;
-  background: rgba(124,58,237,0.15);
-  border: 1px solid rgba(124,58,237,0.25);
-  color: #a78bfa;
-  font-size: 0.82rem;
-  font-weight: 600;
-  cursor: pointer;
-  transition: background 0.15s;
-}
-
-.ac-btn-refresh:hover:not(:disabled) { background: rgba(124,58,237,0.25); }
-.ac-btn-refresh:disabled { opacity: 0.5; cursor: not-allowed; }
 
 .ac-error {
   padding: 0.75rem 1rem;
@@ -439,13 +351,13 @@ onMounted(load)
   align-items: center;
   gap: 0.75rem;
   padding: 3rem;
-  color: #334155;
+  color: var(--adm-faint);
 }
 
 .ac-table-wrap {
   overflow-x: auto;
   border-radius: 12px;
-  border: 1px solid rgba(255,255,255,0.06);
+  border: 1px solid var(--adm-line);
 }
 
 .ac-table {
@@ -461,20 +373,20 @@ onMounted(load)
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.05em;
-  color: #334155;
+  color: var(--adm-faint);
   background: rgba(255,255,255,0.02);
-  border-bottom: 1px solid rgba(255,255,255,0.05);
+  border-bottom: 1px solid var(--adm-line);
   white-space: nowrap;
 }
 
 .ac-row {
   cursor: pointer;
   transition: background 0.12s;
-  border-bottom: 1px solid rgba(255,255,255,0.04);
+  border-bottom: 1px solid rgba(148,163,184,0.05);
 }
 
 .ac-row:last-child { border-bottom: none; }
-.ac-row:hover { background: rgba(255,255,255,0.04); }
+.ac-row:hover { background: rgba(148,163,184,0.05); }
 .ac-row--high { border-left: 3px solid rgba(239,68,68,0.5); }
 .ac-row--medium { border-left: 3px solid rgba(234,179,8,0.5); }
 .ac-row--low { border-left: 3px solid rgba(100,116,139,0.4); }
@@ -482,13 +394,13 @@ onMounted(load)
 
 .ac-table td {
   padding: 0.7rem 0.9rem;
-  color: #94a3b8;
+  color: var(--adm-mut);
   vertical-align: middle;
 }
 
 .ac-nick {
   font-weight: 700;
-  color: #e2e8f0 !important;
+  color: var(--adm-text) !important;
 }
 
 .ac-badge {
@@ -503,7 +415,7 @@ onMounted(load)
 
 .ac-badge--high { background: rgba(239,68,68,0.15); color: #f87171; border: 1px solid rgba(239,68,68,0.25); }
 .ac-badge--medium { background: rgba(234,179,8,0.12); color: #facc15; border: 1px solid rgba(234,179,8,0.2); }
-.ac-badge--low { background: rgba(100,116,139,0.12); color: #64748b; border: 1px solid rgba(100,116,139,0.2); }
+.ac-badge--low { background: rgba(100,116,139,0.12); color: var(--adm-mut); border: 1px solid rgba(100,116,139,0.2); }
 .ac-badge--none { background: rgba(34,197,94,0.1); color: #4ade80; border: 1px solid rgba(34,197,94,0.2); }
 
 .ac-counts { display: flex; gap: 0.35rem; align-items: center; }
@@ -520,7 +432,7 @@ onMounted(load)
 
 .ac-cnt--high { background: rgba(239,68,68,0.12); color: #f87171; }
 .ac-cnt--med { background: rgba(234,179,8,0.1); color: #facc15; }
-.ac-cnt--low { background: rgba(100,116,139,0.1); color: #64748b; }
+.ac-cnt--low { background: rgba(100,116,139,0.1); color: var(--adm-mut); }
 
 .ac-unreviewed {
   display: inline-block;
@@ -532,7 +444,7 @@ onMounted(load)
   font-weight: 700;
 }
 
-.ac-ok { color: #334155; font-size: 0.82rem; }
+.ac-ok { color: var(--adm-faint); font-size: 0.82rem; }
 
 .ac-mods-flag {
   color: #f97316;
@@ -540,21 +452,21 @@ onMounted(load)
   font-weight: 600;
 }
 
-.ac-date { font-size: 0.78rem; color: #475569 !important; white-space: nowrap; }
+.ac-date { font-size: 0.78rem; color: var(--adm-dim) !important; white-space: nowrap; }
 
 .ac-loading {
   display: flex;
   align-items: center;
   gap: 0.6rem;
   padding: 2rem;
-  color: #475569;
+  color: var(--adm-dim);
   font-size: 0.85rem;
 }
 
 .ac-footer {
   padding: 0.75rem 0.25rem;
   font-size: 0.78rem;
-  color: #334155;
+  color: var(--adm-faint);
   text-align: right;
 }
 
@@ -563,7 +475,7 @@ onMounted(load)
   width: 14px;
   height: 14px;
   border: 2px solid rgba(167,139,250,0.3);
-  border-top-color: #a78bfa;
+  border-top-color: var(--adm-acc-text);
   border-radius: 50%;
   animation: spin 0.7s linear infinite;
   flex-shrink: 0;
@@ -587,26 +499,26 @@ onMounted(load)
 .ac-stat-card {
   padding: 1rem 1.5rem;
   border-radius: 10px;
-  background: rgba(255,255,255,0.03);
-  border: 1px solid rgba(255,255,255,0.07);
+  background: rgba(148,163,184,0.04);
+  border: 1px solid var(--adm-line);
   min-width: 140px;
 }
 
 .ac-stat-val {
   font-size: 1.75rem;
   font-weight: 800;
-  color: #a78bfa;
+  color: var(--adm-acc-text);
 }
 
 .ac-stat-lbl {
   font-size: 0.75rem;
-  color: #475569;
+  color: var(--adm-dim);
   margin-top: 0.2rem;
 }
 
 .ac-stat-avg {
   font-weight: 700;
-  color: #e2e8f0;
+  color: var(--adm-text);
 }
 
 .ac-exceed {
@@ -623,14 +535,14 @@ onMounted(load)
 .ac-stats-hint {
   margin-top: 0.75rem;
   font-size: 0.78rem;
-  color: #334155;
+  color: var(--adm-faint);
   line-height: 1.5;
 }
 
 /* Config */
 .ac-config-hint {
   font-size: 0.82rem;
-  color: #475569;
+  color: var(--adm-dim);
   margin-bottom: 1.25rem;
   line-height: 1.5;
 }
@@ -643,8 +555,8 @@ onMounted(load)
 }
 
 .ac-config-card {
-  background: rgba(255,255,255,0.03);
-  border: 1px solid rgba(255,255,255,0.07);
+  background: rgba(148,163,184,0.04);
+  border: 1px solid var(--adm-line);
   border-radius: 10px;
   padding: 1rem 1.1rem;
 }
@@ -660,18 +572,18 @@ onMounted(load)
 .ac-config-label {
   font-weight: 700;
   font-size: 0.88rem;
-  color: #e2e8f0;
+  color: var(--adm-text);
 }
 
 .ac-config-key {
   font-size: 0.7rem;
-  color: #334155;
+  color: var(--adm-faint);
   font-family: monospace;
 }
 
 .ac-config-desc {
   font-size: 0.78rem;
-  color: #475569;
+  color: var(--adm-dim);
   margin: 0 0 0.75rem;
   line-height: 1.4;
 }
@@ -684,17 +596,17 @@ onMounted(load)
 
 .ac-slider {
   flex: 1;
-  accent-color: #7c3aed;
+  accent-color: var(--adm-acc);
   cursor: pointer;
 }
 
 .ac-num-input {
   width: 72px;
   padding: 0.3rem 0.45rem;
-  background: rgba(255,255,255,0.05);
+  background: var(--adm-line);
   border: 1px solid rgba(255,255,255,0.1);
   border-radius: 6px;
-  color: #e2e8f0;
+  color: var(--adm-text);
   font-size: 0.85rem;
   text-align: right;
 }
@@ -703,13 +615,13 @@ onMounted(load)
 
 .ac-config-range {
   font-size: 0.7rem;
-  color: #334155;
+  color: var(--adm-faint);
   margin-top: 0.3rem;
 }
 
 .ac-config-meta {
   font-size: 0.7rem;
-  color: #334155;
+  color: var(--adm-faint);
   margin-top: 0.2rem;
 }
 
@@ -728,7 +640,7 @@ onMounted(load)
   border-radius: 8px;
   background: rgba(124,58,237,0.2);
   border: 1px solid rgba(124,58,237,0.35);
-  color: #a78bfa;
+  color: var(--adm-acc-text);
   font-size: 0.85rem;
   font-weight: 700;
   cursor: pointer;

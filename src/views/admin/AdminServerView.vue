@@ -158,19 +158,19 @@ onMounted(load)
 </script>
 
 <template>
-  <div class="ap">
-    <div class="ap__header">
+  <div class="adm-page" style="max-width: 960px">
+    <div class="adm-page__head">
       <div>
-        <h1 class="ap__title">Серверы</h1>
-        <p class="ap__sub">Управление серверами: витрина, подключение, модпак, статус, секрет</p>
+        <h1 class="adm-title">Серверы</h1>
+        <p class="adm-sub">Витрина, подключение, модпак, статус, секрет — для каждого сервера платформы</p>
       </div>
-      <button v-if="!editing" class="btn btn--primary" @click="startCreate">+ Добавить сервер</button>
+      <button v-if="!editing" class="adm-btn adm-btn--acc" @click="startCreate">+ Добавить сервер</button>
     </div>
 
     <!-- LIST -->
     <template v-if="!editing">
-      <div v-if="loading" class="skel" />
-      <div v-else-if="!servers.length" class="empty">Пока нет серверов.</div>
+      <div v-if="loading" class="adm-skel" style="height: 120px" />
+      <div v-else-if="!servers.length" class="adm-empty"><div class="adm-empty__title">Пока нет серверов</div><div class="adm-empty__sub">Добавь первый сервер — он появится на сайте и в лаунчере</div></div>
       <div v-else class="srv-list">
         <div v-for="s in servers" :key="s.id" class="srv-card">
           <img v-if="s.icon_url" :src="s.icon_url" class="srv-card__icon" alt="" />
@@ -178,15 +178,15 @@ onMounted(load)
           <div class="srv-card__main">
             <div class="srv-card__title">
               {{ s.name }}
-              <span v-if="s.is_default" class="tag tag--violet">по умолчанию</span>
-              <span v-if="!s.is_visible" class="tag tag--gray">скрыт</span>
-              <span v-if="s.maintenance" class="tag tag--yellow">тех.работы</span>
+              <span v-if="s.is_default" class="adm-badge adm-badge--acc">по умолчанию</span>
+              <span v-if="!s.is_visible" class="adm-badge">скрыт</span>
+              <span v-if="s.maintenance" class="adm-badge adm-badge--warn">тех.работы</span>
             </div>
             <div class="srv-card__meta">{{ s.slug }} · {{ s.host }}:{{ s.port }} · MC {{ s.mc_version }}/{{ s.loader }}</div>
           </div>
           <div class="srv-card__actions">
-            <button class="btn btn--ghost btn--sm" @click="startEdit(s)">Изменить</button>
-            <button class="btn btn--ghost btn--sm btn--danger" @click="remove(s)">Удалить</button>
+            <button class="adm-btn adm-btn--sm" @click="startEdit(s)">Изменить</button>
+            <button class="adm-btn adm-btn--danger adm-btn--sm" @click="remove(s)">Удалить</button>
           </div>
         </div>
       </div>
@@ -196,9 +196,9 @@ onMounted(load)
     <template v-else>
       <div class="form">
         <div class="form__bar">
-          <button class="btn btn--ghost btn--sm" @click="cancel">← Назад</button>
+          <button class="adm-btn adm-btn--sm" @click="cancel">← Назад</button>
           <div class="form__bar-title">{{ editing === 'new' ? 'Новый сервер' : `Редактирование: ${form.name}` }}</div>
-          <button class="btn btn--primary btn--sm" :disabled="saving" @click="save">
+          <button class="adm-btn adm-btn--acc adm-btn--sm" :disabled="saving" @click="save">
             {{ saving ? 'Сохраняю…' : 'Сохранить' }}
           </button>
         </div>
@@ -222,14 +222,14 @@ onMounted(load)
           <div class="fld"><span>Иконка</span>
             <div class="img-row">
               <img v-if="form.icon_url" :src="form.icon_url" class="img-prev" alt="" />
-              <button class="btn btn--ghost btn--sm" @click="iconInput.click()">Загрузить</button>
+              <button class="adm-btn adm-btn--sm" @click="iconInput.click()">Загрузить</button>
               <input ref="iconInput" type="file" accept="image/*" hidden @change="(e) => onImage('icon', e)" />
             </div>
           </div>
           <div class="fld"><span>Баннер</span>
             <div class="img-row">
               <img v-if="form.banner_url" :src="form.banner_url" class="img-prev img-prev--wide" alt="" />
-              <button class="btn btn--ghost btn--sm" @click="bannerInput.click()">Загрузить</button>
+              <button class="adm-btn adm-btn--sm" @click="bannerInput.click()">Загрузить</button>
               <input ref="bannerInput" type="file" accept="image/*" hidden @change="(e) => onImage('banner', e)" />
             </div>
           </div>
@@ -293,7 +293,7 @@ onMounted(load)
                 @input="form.accent_color = $event.target.value"
               />
               <input v-model="form.accent_color" placeholder="#7c3aed (пусто = фиолетовый)" />
-              <button v-if="form.accent_color" type="button" class="btn btn--ghost btn--sm" @click="form.accent_color = ''">Сброс</button>
+              <button v-if="form.accent_color" type="button" class="adm-btn adm-btn--sm" @click="form.accent_color = ''">Сброс</button>
             </span></label>
         </div>
         <div class="features">
@@ -309,8 +309,8 @@ onMounted(load)
           <div class="sec">Секрет авторизации (X-Game-Auth-Secret)</div>
           <div class="secret-row">
             <code class="secret">{{ editing.game_auth_secret }}</code>
-            <button class="btn btn--ghost btn--sm" @click="copySecret(editing.game_auth_secret)">Копировать</button>
-            <button class="btn btn--ghost btn--sm btn--danger" @click="regen(editing)">Перегенерировать</button>
+            <button class="adm-btn adm-btn--sm" @click="copySecret(editing.game_auth_secret)">Копировать</button>
+            <button class="adm-btn adm-btn--danger adm-btn--sm" @click="regen(editing)">Перегенерировать</button>
           </div>
           <p class="hint">Этот секрет плагины/моды сервера шлют в заголовке для атрибуции данных.</p>
         </template>
@@ -320,71 +320,69 @@ onMounted(load)
 </template>
 
 <style scoped>
-*, *::before, *::after { box-sizing: border-box; }
-.ap { padding: 1.75rem 1.5rem 3rem; max-width: 920px; }
-.ap__header { display: flex; align-items: flex-start; justify-content: space-between; gap: 1rem; margin-bottom: 1.25rem; flex-wrap: wrap; }
-.ap__title { font-size: 1.4rem; font-weight: 800; color: #e2e8f0; margin: 0; }
-.ap__sub { font-size: 0.75rem; color: #475569; margin: 0.15rem 0 0; }
-
-.btn { display: inline-flex; align-items: center; gap: 0.35rem; padding: 0.45rem 0.85rem; border-radius: 8px; font-size: 0.8rem; font-weight: 700; cursor: pointer; border: none; transition: background 0.13s; }
-.btn:disabled { opacity: 0.5; cursor: not-allowed; }
-.btn--primary { background: #7c3aed; color: #fff; }
-.btn--primary:hover:not(:disabled) { background: #6d28d9; }
-.btn--ghost { background: rgba(255,255,255,0.05); color: #94a3b8; }
-.btn--ghost:hover:not(:disabled) { background: rgba(255,255,255,0.09); }
-.btn--sm { padding: 0.35rem 0.65rem; font-size: 0.76rem; }
-.btn--danger { color: #fca5a5; }
-.btn--danger:hover:not(:disabled) { background: rgba(239,68,68,0.12); }
-
-.skel { height: 120px; border-radius: 14px; background: linear-gradient(90deg,#0d1422 25%,#121929 50%,#0d1422 75%); background-size: 200% 100%; animation: shimmer 1.4s infinite; }
-@keyframes shimmer { 0% { background-position: 200% 0; } 100% { background-position: -200% 0; } }
-.empty { color: #475569; font-size: 0.85rem; padding: 1.5rem 0; }
-
-/* List */
+/* Список серверов */
 .srv-list { display: flex; flex-direction: column; gap: 0.65rem; }
-.srv-card { display: flex; align-items: center; gap: 0.9rem; padding: 0.85rem 1rem; border-radius: 14px; background: linear-gradient(145deg,#0f1628,#0a1020); border: 1px solid rgba(255,255,255,0.07); }
+.srv-card {
+  display: flex; align-items: center; gap: 0.9rem;
+  padding: 0.85rem 1rem; border-radius: var(--adm-r);
+  background: var(--adm-card); border: 1px solid var(--adm-line);
+  transition: border-color 0.16s;
+}
+.srv-card:hover { border-color: var(--adm-acc-line); }
 .srv-card__icon { width: 2.75rem; height: 2.75rem; border-radius: 10px; object-fit: cover; flex-shrink: 0; }
-.srv-card__icon--ph { display: flex; align-items: center; justify-content: center; background: #1a1440; color: #a78bfa; font-weight: 900; font-size: 1.2rem; }
+.srv-card__icon--ph { display: flex; align-items: center; justify-content: center; background: var(--adm-acc-soft); color: var(--adm-acc-text); font-weight: 900; font-size: 1.2rem; }
 .srv-card__main { flex: 1; min-width: 0; }
-.srv-card__title { font-size: 0.95rem; font-weight: 800; color: #e2e8f0; display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap; }
-.srv-card__meta { font-size: 0.75rem; color: #475569; margin-top: 0.15rem; }
+.srv-card__title { font-size: 0.95rem; font-weight: 800; color: var(--adm-text); display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap; }
+.srv-card__meta { font-size: 0.74rem; color: var(--adm-dim); margin-top: 0.15rem; }
 .srv-card__actions { display: flex; gap: 0.4rem; flex-shrink: 0; }
-.tag { font-size: 0.65rem; font-weight: 800; padding: 0.1rem 0.45rem; border-radius: 999px; }
-.tag--violet { color: #c4b5fd; background: rgba(139,92,246,0.15); }
-.tag--gray { color: #94a3b8; background: rgba(148,163,184,0.12); }
-.tag--yellow { color: #fde047; background: rgba(234,179,8,0.12); }
 
-/* Form */
-.form__bar { display: flex; align-items: center; justify-content: space-between; gap: 1rem; margin-bottom: 1.25rem; padding-bottom: 0.85rem; border-bottom: 1px solid rgba(255,255,255,0.07); }
-.form__bar-title { font-size: 0.95rem; font-weight: 800; color: #cbd5e1; flex: 1; text-align: center; }
-.sec { font-size: 0.72rem; font-weight: 900; text-transform: uppercase; letter-spacing: 0.07em; color: #64748b; margin: 1.5rem 0 0.75rem; padding-left: 0.6rem; border-left: 3px solid #7c3aed; }
+/* Форма */
+.form__bar { display: flex; align-items: center; justify-content: space-between; gap: 1rem; margin-bottom: 1.25rem; padding-bottom: 0.85rem; border-bottom: 1px solid var(--adm-line); }
+.form__bar-title { font-size: 0.95rem; font-weight: 800; color: var(--adm-mut); flex: 1; text-align: center; }
+.sec {
+  font-size: 0.66rem; font-weight: 900; text-transform: uppercase; letter-spacing: 0.11em;
+  color: var(--adm-dim); margin: 1.5rem 0 0.75rem; padding-left: 0.6rem;
+  border-left: 3px solid var(--adm-acc);
+  transition: border-color 0.4s;
+}
 .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 0.85rem; }
 .fld { display: flex; flex-direction: column; gap: 0.3rem; }
 .fld--wide { grid-column: 1 / -1; }
 .fld--row { flex-direction: row; align-items: center; gap: 1.25rem; flex-wrap: wrap; }
-.fld > span { font-size: 0.72rem; font-weight: 700; color: #64748b; }
-.fld input, .fld textarea, .fld select { background: #0a1020; border: 1px solid rgba(255,255,255,0.09); border-radius: 8px; padding: 0.5rem 0.65rem; color: #e2e8f0; font-size: 0.85rem; font-family: inherit; }
-.fld input:focus, .fld textarea:focus, .fld select:focus { outline: none; border-color: rgba(139,92,246,0.5); }
+.fld > span { font-size: 0.66rem; font-weight: 800; text-transform: uppercase; letter-spacing: 0.08em; color: var(--adm-dim); }
+.fld input, .fld textarea, .fld select {
+  background: #080c16; border: 1px solid var(--adm-line-strong); border-radius: var(--adm-r-sm);
+  padding: 0.5rem 0.65rem; color: var(--adm-text); font-size: 0.85rem; font-family: inherit;
+  transition: border-color 0.14s, box-shadow 0.14s;
+}
+.fld input:focus, .fld textarea:focus, .fld select:focus {
+  outline: none; border-color: var(--adm-acc-line);
+  box-shadow: 0 0 0 3px rgba(var(--adm-acc-rgb), 0.12);
+}
 .fld input:disabled { opacity: 0.55; }
 .accent-row { display: flex; align-items: center; gap: 0.5rem; }
 .accent-row input:not(.accent-pick) { flex: 1; min-width: 0; }
-.accent-pick {
-  width: 2.4rem; height: 2.4rem; flex-shrink: 0; padding: 0.2rem !important;
-  cursor: pointer; border-radius: 8px;
-}
-.chk { display: inline-flex; align-items: center; gap: 0.4rem; font-size: 0.82rem; color: #cbd5e1; cursor: pointer; }
+.accent-pick { width: 2.4rem; height: 2.4rem; flex-shrink: 0; padding: 0.2rem !important; cursor: pointer; border-radius: 8px; }
+.chk { display: inline-flex; align-items: center; gap: 0.4rem; font-size: 0.82rem; color: var(--adm-mut); cursor: pointer; }
+.chk input { accent-color: var(--adm-acc); }
 .img-row { display: flex; align-items: center; gap: 0.6rem; }
 .img-prev { width: 2.75rem; height: 2.75rem; border-radius: 8px; object-fit: cover; }
 .img-prev--wide { width: 5rem; }
-.hint { font-size: 0.75rem; color: #475569; margin: 0.5rem 0 0; }
+.hint { font-size: 0.74rem; color: var(--adm-dim); margin: 0.5rem 0 0; }
 .features { display: flex; flex-wrap: wrap; gap: 0.5rem; margin-top: 0.85rem; }
 .feature-chk {
   display: inline-flex; align-items: center; gap: 0.45rem;
   padding: 0.5rem 0.75rem; border-radius: 10px; cursor: pointer;
-  background: #0a1020; border: 1px solid rgba(255,255,255,0.09);
-  font-size: 0.82rem; color: #cbd5e1;
+  background: var(--adm-card); border: 1px solid var(--adm-line-strong);
+  font-size: 0.82rem; color: var(--adm-mut);
+  transition: border-color 0.14s, background-color 0.14s, color 0.14s;
 }
-.feature-chk:has(input:checked) { border-color: rgba(139,92,246,0.5); background: rgba(139,92,246,0.1); color: #e2e8f0; }
+.feature-chk input { accent-color: var(--adm-acc); }
+.feature-chk:has(input:checked) { border-color: var(--adm-acc-line); background: var(--adm-acc-soft); color: var(--adm-text); }
 .secret-row { display: flex; align-items: center; gap: 0.6rem; flex-wrap: wrap; }
-.secret { flex: 1; min-width: 220px; font-family: monospace; font-size: 0.78rem; color: #86efac; background: #0a1020; border: 1px solid rgba(255,255,255,0.09); border-radius: 8px; padding: 0.5rem 0.65rem; overflow-x: auto; white-space: nowrap; }
+.secret {
+  flex: 1; min-width: 220px; font-family: var(--adm-mono); font-size: 0.78rem;
+  color: #6ee7b7; background: #080c16; border: 1px solid var(--adm-line-strong);
+  border-radius: var(--adm-r-sm); padding: 0.5rem 0.65rem; overflow-x: auto; white-space: nowrap;
+}
 </style>

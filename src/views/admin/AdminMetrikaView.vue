@@ -43,8 +43,16 @@ function renderCharts() {
   renderDevices()
 }
 
+// Акцент активного сервера — графики перекрашиваются вместе с админкой
+function accColor() {
+  const shell = document.querySelector('.adm-shell')
+  const v = shell ? getComputedStyle(shell).getPropertyValue('--adm-acc').trim() : ''
+  return v || '#7c3aed'
+}
+
 function renderLine() {
   if (!lineCanvas.value) return
+  const acc = accColor()
   const byDay = data.value.by_day
   const labels = byDay.map(d => {
     const [, m, day] = d.date.split('-')
@@ -58,8 +66,8 @@ function renderLine() {
         {
           label: 'Визиты',
           data: byDay.map(d => d.visits),
-          borderColor: '#7c3aed',
-          backgroundColor: 'rgba(124,58,237,0.08)',
+          borderColor: acc,
+          backgroundColor: acc + '14',
           borderWidth: 2,
           pointRadius: byDay.length > 60 ? 0 : 3,
           pointHoverRadius: 5,
@@ -124,7 +132,7 @@ function renderLine() {
 
 function renderDevices() {
   if (!devicesCanvas.value || !data.value.devices.length) return
-  const COLORS = ['#7c3aed', '#06b6d4', '#22c55e', '#f97316']
+  const COLORS = [accColor(), '#06b6d4', '#22c55e', '#f97316']
   devicesChart = new Chart(devicesCanvas.value, {
     type: 'doughnut',
     data: {
@@ -197,21 +205,21 @@ onUnmounted(destroyCharts)
 </script>
 
 <template>
-  <div class="mk">
+  <div class="adm-page">
     <!-- Header -->
-    <div class="mk__header">
+    <div class="adm-page__head">
       <div>
-        <h1 class="mk__title">Яндекс.Метрика</h1>
-        <p class="mk__sub" v-if="data">{{ data.period.date1 }} — {{ data.period.date2 }}</p>
+        <h1 class="adm-title">Яндекс.Метрика</h1>
+        <p class="adm-sub" v-if="data">{{ data.period.date1 }} — {{ data.period.date2 }}</p>
       </div>
-      <div class="mk__controls">
-        <div class="period-tabs">
-          <button v-for="d in [7,30,90]" :key="d" class="period-tab" :class="{ 'period-tab--active': days === d }" @click="days = d">
+      <div class="adm-head-actions">
+        <div class="adm-tabs">
+          <button v-for="d in [7,30,90]" :key="d" class="adm-tab" :class="{ 'adm-tab--active': days === d }" @click="days = d">
             {{ d }}д
           </button>
         </div>
-        <button class="btn-refresh" :disabled="loading" @click="load" title="Обновить">
-          <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" :class="{ spin: loading }"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg>
+        <button class="adm-btn adm-btn--icon" :disabled="loading" @click="load" title="Обновить">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" :class="{ spin: loading }"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg>
         </button>
       </div>
     </div>
@@ -357,59 +365,7 @@ onUnmounted(destroyCharts)
 <style scoped>
 *, *::before, *::after { box-sizing: border-box; }
 
-.mk { padding: 1.75rem 1.5rem 3rem; max-width: 100%; }
 
-/* Header */
-.mk__header {
-  display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
-  gap: 1rem;
-  margin-bottom: 1.5rem;
-  flex-wrap: wrap;
-}
-.mk__title { font-size: 1.4rem; font-weight: 800; color: #e2e8f0; margin: 0; }
-.mk__sub { font-size: 0.75rem; color: #475569; margin: 0.15rem 0 0; }
-
-.mk__controls { display: flex; align-items: center; gap: 0.5rem; }
-
-.period-tabs {
-  display: flex;
-  gap: 0.2rem;
-  background: rgba(255,255,255,0.04);
-  border: 1px solid rgba(255,255,255,0.07);
-  border-radius: 9px;
-  padding: 0.2rem;
-}
-.period-tab {
-  border: none;
-  background: none;
-  color: #475569;
-  font-size: 0.78rem;
-  font-weight: 700;
-  padding: 0.28rem 0.65rem;
-  border-radius: 7px;
-  cursor: pointer;
-  transition: all 0.13s;
-}
-.period-tab:hover { color: #94a3b8; }
-.period-tab--active { background: rgba(124,58,237,0.25); color: #c4b5fd; }
-
-.btn-refresh {
-  width: 2rem;
-  height: 2rem;
-  border-radius: 8px;
-  border: 1px solid rgba(255,255,255,0.08);
-  background: rgba(255,255,255,0.04);
-  color: #64748b;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  cursor: pointer;
-  transition: all 0.13s;
-}
-.btn-refresh:hover:not(:disabled) { color: #94a3b8; background: rgba(255,255,255,0.08); }
-.btn-refresh:disabled { opacity: 0.4; cursor: not-allowed; }
 
 @keyframes spin { to { transform: rotate(360deg); } }
 .spin { animation: spin 0.8s linear infinite; }
@@ -434,8 +390,8 @@ onUnmounted(destroyCharts)
 }
 
 .total-card {
-  background: linear-gradient(145deg, #0f1628 0%, #0a1020 100%);
-  border: 1px solid rgba(255,255,255,0.07);
+  background: var(--adm-card);
+  border: 1px solid var(--adm-line);
   border-radius: 16px;
   padding: 1.2rem 1.2rem 1rem;
   position: relative;
@@ -447,7 +403,7 @@ onUnmounted(destroyCharts)
 .total-card__label {
   font-size: 0.72rem;
   font-weight: 700;
-  color: #475569;
+  color: var(--adm-dim);
   text-transform: uppercase;
   letter-spacing: 0.06em;
   margin-bottom: 0.5rem;
@@ -455,7 +411,7 @@ onUnmounted(destroyCharts)
 .total-card__value {
   font-size: 1.9rem;
   font-weight: 900;
-  color: #e2e8f0;
+  color: var(--adm-text);
   line-height: 1;
 }
 
@@ -470,15 +426,15 @@ onUnmounted(destroyCharts)
   align-items: center;
   justify-content: center;
 }
-.total-card__icon--violet { background: rgba(124,58,237,0.15); color: #c4b5fd; }
+.total-card__icon--violet { background: var(--adm-acc-soft); color: var(--adm-acc-text); }
 .total-card__icon--cyan { background: rgba(6,182,212,0.12); color: #67e8f9; }
 .total-card__icon--green { background: rgba(34,197,94,0.12); color: #86efac; }
 .total-card__icon--orange { background: rgba(249,115,22,0.12); color: #fdba74; }
 
 /* Panel */
 .panel {
-  background: linear-gradient(145deg, #0f1628 0%, #0a1020 100%);
-  border: 1px solid rgba(255,255,255,0.07);
+  background: var(--adm-card);
+  border: 1px solid var(--adm-line);
   border-radius: 16px;
   margin-bottom: 1.25rem;
   overflow: hidden;
@@ -489,14 +445,14 @@ onUnmounted(destroyCharts)
   align-items: center;
   gap: 0.6rem;
   padding: 1rem 1.25rem 0.85rem;
-  border-bottom: 1px solid rgba(255,255,255,0.05);
+  border-bottom: 1px solid var(--adm-line);
 }
-.panel__title { font-size: 0.85rem; font-weight: 800; color: #94a3b8; }
+.panel__title { font-size: 0.85rem; font-weight: 800; color: var(--adm-mut); }
 .panel__badge {
   font-size: 0.7rem;
   font-weight: 700;
-  background: rgba(124,58,237,0.15);
-  color: #c4b5fd;
+  background: var(--adm-acc-soft);
+  color: var(--adm-acc-text);
   padding: 0.1rem 0.5rem;
   border-radius: 999px;
 }
@@ -523,15 +479,15 @@ onUnmounted(destroyCharts)
   gap: 0.6rem;
 }
 .source-row__icon { display: flex; align-items: center; justify-content: center; }
-.source-row__name { font-size: 0.8rem; font-weight: 600; color: #64748b; }
+.source-row__name { font-size: 0.8rem; font-weight: 600; color: var(--adm-mut); }
 .source-row__bar-wrap {
   height: 5px;
-  background: rgba(255,255,255,0.05);
+  background: var(--adm-line);
   border-radius: 999px;
   overflow: hidden;
 }
 .source-row__bar { height: 100%; border-radius: 999px; transition: width 0.4s ease; opacity: 0.6; }
-.source-row__visits { font-size: 0.8rem; font-weight: 800; color: #94a3b8; text-align: right; }
+.source-row__visits { font-size: 0.8rem; font-weight: 800; color: var(--adm-mut); text-align: right; }
 
 /* Devices */
 .devices-wrap { padding: 1rem 1.25rem; display: flex; flex-direction: column; align-items: center; gap: 1rem; }
@@ -540,8 +496,8 @@ onUnmounted(destroyCharts)
 .devices-list { width: 100%; display: flex; flex-direction: column; gap: 0.45rem; }
 .devices-list__row { display: flex; align-items: center; gap: 0.6rem; }
 .devices-list__dot { width: 9px; height: 9px; border-radius: 50%; flex-shrink: 0; }
-.devices-list__name { font-size: 0.8rem; color: #64748b; flex: 1; }
-.devices-list__val { font-size: 0.8rem; font-weight: 700; color: #94a3b8; }
+.devices-list__name { font-size: 0.8rem; color: var(--adm-mut); flex: 1; }
+.devices-list__val { font-size: 0.8rem; font-weight: 700; color: var(--adm-mut); }
 
 /* Table */
 .table-wrap { overflow-x: auto; }
@@ -553,19 +509,19 @@ onUnmounted(destroyCharts)
   font-weight: 800;
   text-transform: uppercase;
   letter-spacing: 0.06em;
-  color: #2d3e5c;
+  color: var(--adm-faint);
   background: rgba(0,0,0,0.2);
-  border-bottom: 1px solid rgba(255,255,255,0.04);
+  border-bottom: 1px solid var(--adm-line);
 }
-.tbl tbody tr { border-bottom: 1px solid rgba(255,255,255,0.03); transition: background 0.1s; }
+.tbl tbody tr { border-bottom: 1px solid rgba(148,163,184,0.05); transition: background 0.1s; }
 .tbl tbody tr:last-child { border-bottom: none; }
-.tbl tbody tr:hover { background: rgba(124,58,237,0.04); }
-.tbl td { padding: 0.6rem 1rem; color: #475569; vertical-align: middle; }
+.tbl tbody tr:hover { background: rgba(148,163,184,0.045); }
+.tbl td { padding: 0.6rem 1rem; color: var(--adm-dim); vertical-align: middle; }
 
-.tbl__num { color: #2d3e5c !important; font-weight: 700; width: 2.5rem; }
-.tbl__path { font-family: monospace; font-size: 0.78rem; color: #c4b5fd !important; max-width: 260px; overflow: hidden; text-overflow: ellipsis; }
-.tbl__views { font-weight: 800; color: #94a3b8 !important; }
-.tbl__dur { color: #475569 !important; }
+.tbl__num { color: var(--adm-faint) !important; font-weight: 700; width: 2.5rem; }
+.tbl__path { font-family: monospace; font-size: 0.78rem; color: var(--adm-acc-text) !important; max-width: 260px; overflow: hidden; text-overflow: ellipsis; }
+.tbl__views { font-weight: 800; color: var(--adm-mut) !important; }
+.tbl__dur { color: var(--adm-dim) !important; }
 
 .bounce-badge {
   display: inline-block;
@@ -581,7 +537,7 @@ onUnmounted(destroyCharts)
 /* Skeleton */
 .skel {
   border-radius: 16px;
-  background: linear-gradient(90deg, #0d1422 25%, #121929 50%, #0d1422 75%);
+  background: linear-gradient(90deg, rgba(148,163,184,0.06) 40%, rgba(148,163,184,0.12) 50%, rgba(148,163,184,0.06) 60%);
   background-size: 200% 100%;
   animation: shimmer 1.4s infinite;
   margin-bottom: 1.25rem;
@@ -591,7 +547,7 @@ onUnmounted(destroyCharts)
 .skel--bottom { height: 260px; }
 @keyframes shimmer { 0% { background-position: 200% 0; } 100% { background-position: -200% 0; } }
 
-.no-data { color: #2d3e5c; font-size: 0.82rem; padding: 1rem 0; text-align: center; }
+.no-data { color: var(--adm-faint); font-size: 0.82rem; padding: 1rem 0; text-align: center; }
 .no-data--pad { padding: 1.5rem; }
 
 @media (max-width: 600px) { .mk { padding: 1rem 0.75rem 2rem; } }
