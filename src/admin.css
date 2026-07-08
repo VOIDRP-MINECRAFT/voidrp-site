@@ -45,6 +45,13 @@
   background: var(--adm-bg);
 }
 
+/* Публичная оболочка сайта не должна просвечивать в админке:
+   убираем отступ main и декоративные глоу-пятна, фон — админский. */
+.site-root:has(.adm-shell) { background: #06080f; }
+.site-root:has(.adm-shell)::before,
+.site-root:has(.adm-shell)::after { display: none; }
+.site-main:has(.adm-shell) { padding-top: 0; }
+
 /* ── Страница ─────────────────────────────────────────────────── */
 .adm-page {
   padding: 1.25rem 1.4rem 3rem;

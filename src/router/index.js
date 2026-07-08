@@ -112,7 +112,7 @@ const routes = [
       { path: '', name: 'admin-dashboard', component: AdminDashboardView, meta: { title: 'Панель управления', requiresAuth: true, requiresAdmin: true, hidePublicShell: true } },
       { path: 'players', name: 'admin-players', component: AdminPlayersView, meta: { title: 'Игроки', requiresAuth: true, requiresAdmin: true, hidePublicShell: true } },
       { path: 'market', name: 'admin-market-panel', component: AdminMarketPanelView, meta: { title: 'Рынок', requiresAuth: true, requiresAdmin: true, hidePublicShell: true } },
-      { path: 'server', name: 'admin-server', component: AdminServerView, meta: { title: 'Статус сервера', requiresAuth: true, requiresAdmin: true, hidePublicShell: true } },
+      { path: 'server', name: 'admin-server', component: AdminServerView, meta: { title: 'Серверы', requiresAuth: true, requiresAdmin: true, hidePublicShell: true } },
       { path: 'nations', name: 'admin-nations', component: AdminNationsView, meta: { title: 'Государства', requiresAuth: true, requiresAdmin: true, hidePublicShell: true } },
       { path: 'mod-suggestions', name: 'admin-mod-suggestions', component: AdminModSuggestionsView, meta: { title: 'Предложения модов', requiresAuth: true, requiresAdmin: true, hidePublicShell: true } },
       { path: 'metrika', name: 'admin-metrika', component: AdminMetrikaView, meta: { title: 'Метрика', requiresAuth: true, requiresAdmin: true, hidePublicShell: true } },
