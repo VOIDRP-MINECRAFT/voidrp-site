@@ -4,4 +4,4 @@ file_tree.txt
 dist/
 node_modules/
 
-public/
+public/vite.preview.local.mjs

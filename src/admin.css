@@ -1,0 +1,399 @@
+/* ══════════════════════════════════════════════════════════════════
+   VoidRP Admin — единая дизайн-система панели управления.
+
+   Идея: «пультовая» мультисерверной платформы. Акцент наследуется от
+   активного игрового сервера (--adm-acc задаёт AdminLayout), поэтому
+   переключение сервера перекрашивает всю админку — как сайт и лаунчер.
+   Данные (числа, ники, id) набираются моноширинным, ярлыки — микро-
+   капителью. Все классы с префиксом adm-, файл глобальный.
+   ══════════════════════════════════════════════════════════════════ */
+
+.adm-shell {
+  /* Поверхности */
+  --adm-bg: #06080f;
+  --adm-bg-soft: #090d18;
+  --adm-card: #0c1220;
+  --adm-card-2: #111a2e;
+  --adm-line: rgba(148, 163, 184, 0.1);
+  --adm-line-strong: rgba(148, 163, 184, 0.18);
+
+  /* Текст */
+  --adm-text: #e8ecf4;
+  --adm-mut: #94a0b8;
+  --adm-dim: #55617a;
+  --adm-faint: #323d54;
+
+  /* Акцент (перекрывается инлайн-стилем AdminLayout из accent_color сервера) */
+  --adm-acc: #7c3aed;
+  --adm-acc-rgb: 124, 58, 237;
+  --adm-acc-soft: rgba(var(--adm-acc-rgb), 0.13);
+  --adm-acc-line: rgba(var(--adm-acc-rgb), 0.3);
+  --adm-acc-text: rgba(var(--adm-acc-rgb), 1);
+
+  /* Статусы */
+  --adm-ok: #34d399;
+  --adm-warn: #fbbf24;
+  --adm-err: #f87171;
+  --adm-info: #38bdf8;
+
+  --adm-mono: ui-monospace, 'JetBrains Mono', 'Cascadia Code', 'SF Mono', Menlo, Consolas, monospace;
+  --adm-r: 14px;
+  --adm-r-sm: 9px;
+
+  font-family: Inter, ui-sans-serif, system-ui, -apple-system, 'Segoe UI', sans-serif;
+  color: var(--adm-text);
+  background: var(--adm-bg);
+}
+
+/* ── Страница ─────────────────────────────────────────────────── */
+.adm-page {
+  padding: 1.25rem 1.4rem 3rem;
+  max-width: 1460px;
+  display: flex;
+  flex-direction: column;
+  gap: 1.4rem;
+}
+@media (max-width: 640px) { .adm-page { padding: 0.9rem 0.85rem 2.5rem; } }
+
+.adm-page__head {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+.adm-title { font-size: 1.28rem; font-weight: 900; letter-spacing: -0.015em; color: var(--adm-text); line-height: 1.15; margin: 0; }
+.adm-sub { font-size: 0.8rem; color: var(--adm-dim); margin: 0.25rem 0 0; }
+.adm-head-actions { display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap; }
+
+/* Микро-ярлык секции: тонкая засечка акцентом */
+.adm-label {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.64rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.13em;
+  color: var(--adm-dim);
+  margin-bottom: 0.6rem;
+}
+.adm-label::before {
+  content: '';
+  width: 14px;
+  height: 2px;
+  border-radius: 2px;
+  background: var(--adm-acc);
+  transition: background-color 0.4s;
+  flex-shrink: 0;
+}
+
+/* ── Карточки ─────────────────────────────────────────────────── */
+.adm-card {
+  background: var(--adm-card);
+  border: 1px solid var(--adm-line);
+  border-radius: var(--adm-r);
+}
+.adm-card--pad { padding: 1.1rem 1.2rem; }
+.adm-card--hover { transition: border-color 0.16s, transform 0.16s, box-shadow 0.16s; }
+.adm-card--hover:hover {
+  border-color: var(--adm-acc-line);
+  transform: translateY(-1px);
+  box-shadow: 0 8px 26px rgba(0, 0, 0, 0.3);
+}
+.adm-card__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  padding: 0.85rem 1.2rem;
+  border-bottom: 1px solid var(--adm-line);
+}
+.adm-card__title { font-size: 0.86rem; font-weight: 800; color: var(--adm-text); margin: 0; }
+
+/* ── KPI-карточка ─────────────────────────────────────────────── */
+.adm-kpi {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.7rem;
+  padding: 0.95rem 1rem;
+  background: var(--adm-card);
+  border: 1px solid var(--adm-line);
+  border-radius: var(--adm-r);
+  text-decoration: none;
+  transition: border-color 0.16s, transform 0.16s;
+}
+a.adm-kpi:hover, .adm-kpi--hover:hover { border-color: var(--adm-acc-line); transform: translateY(-1px); }
+.adm-kpi--acc { border-color: var(--adm-acc-line); background: linear-gradient(150deg, var(--adm-acc-soft), var(--adm-card) 55%); }
+.adm-kpi__icon {
+  width: 2.05rem;
+  height: 2.05rem;
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+.adm-kpi__icon svg { width: 1rem; height: 1rem; }
+.adm-kpi__val {
+  font-family: var(--adm-mono);
+  font-size: 1.32rem;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  color: var(--adm-text);
+  line-height: 1.05;
+}
+.adm-kpi__label { font-size: 0.72rem; font-weight: 700; color: var(--adm-mut); margin-top: 0.22rem; }
+.adm-kpi__sub { font-size: 0.68rem; color: var(--adm-dim); margin-top: 0.12rem; }
+
+/* ── Кнопки ───────────────────────────────────────────────────── */
+.adm-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.45rem;
+  padding: 0.52rem 0.95rem;
+  border-radius: var(--adm-r-sm);
+  border: 1px solid var(--adm-line-strong);
+  background: var(--adm-card-2);
+  color: var(--adm-mut);
+  font-size: 0.78rem;
+  font-weight: 700;
+  line-height: 1;
+  cursor: pointer;
+  text-decoration: none;
+  white-space: nowrap;
+  transition: background-color 0.14s, border-color 0.14s, color 0.14s, transform 0.1s;
+}
+.adm-btn:hover { color: var(--adm-text); border-color: rgba(148, 163, 184, 0.3); }
+.adm-btn:active { transform: translateY(1px); }
+.adm-btn:disabled { opacity: 0.45; cursor: not-allowed; transform: none; }
+.adm-btn svg { width: 0.85rem; height: 0.85rem; flex-shrink: 0; }
+
+.adm-btn--acc {
+  background: var(--adm-acc);
+  border-color: transparent;
+  color: #fff;
+  box-shadow: 0 4px 18px rgba(var(--adm-acc-rgb), 0.32);
+  transition: background-color 0.4s, box-shadow 0.4s, filter 0.14s, transform 0.1s;
+}
+.adm-btn--acc:hover { color: #fff; border-color: transparent; filter: brightness(1.12); }
+
+.adm-btn--ghost { background: transparent; border-color: transparent; }
+.adm-btn--ghost:hover { background: rgba(148, 163, 184, 0.08); border-color: transparent; }
+
+.adm-btn--danger { color: #fca5a5; border-color: rgba(248, 113, 113, 0.25); background: rgba(248, 113, 113, 0.07); }
+.adm-btn--danger:hover { color: #fecaca; border-color: rgba(248, 113, 113, 0.45); background: rgba(248, 113, 113, 0.12); }
+
+.adm-btn--ok { color: #6ee7b7; border-color: rgba(52, 211, 153, 0.25); background: rgba(52, 211, 153, 0.07); }
+.adm-btn--ok:hover { color: #a7f3d0; border-color: rgba(52, 211, 153, 0.45); background: rgba(52, 211, 153, 0.12); }
+
+.adm-btn--sm { padding: 0.34rem 0.62rem; font-size: 0.72rem; border-radius: 7px; }
+.adm-btn--icon { padding: 0.45rem; }
+
+/* ── Формы ────────────────────────────────────────────────────── */
+.adm-input,
+.adm-select,
+.adm-textarea {
+  width: 100%;
+  background: #080c16;
+  border: 1px solid var(--adm-line-strong);
+  border-radius: var(--adm-r-sm);
+  padding: 0.52rem 0.7rem;
+  color: var(--adm-text);
+  font-size: 0.82rem;
+  font-weight: 600;
+  transition: border-color 0.14s, box-shadow 0.14s;
+}
+.adm-input::placeholder, .adm-textarea::placeholder { color: var(--adm-faint); font-weight: 500; }
+.adm-input:focus, .adm-select:focus, .adm-textarea:focus {
+  outline: none;
+  border-color: var(--adm-acc-line);
+  box-shadow: 0 0 0 3px rgba(var(--adm-acc-rgb), 0.12);
+}
+.adm-select { cursor: pointer; appearance: none; padding-right: 1.9rem; background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6' fill='none'%3E%3Cpath d='M1 1l4 4 4-4' stroke='%2355617a' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E"); background-repeat: no-repeat; background-position: right 0.7rem center; }
+.adm-textarea { resize: vertical; min-height: 90px; font-weight: 500; line-height: 1.5; }
+
+.adm-field { display: flex; flex-direction: column; gap: 0.32rem; min-width: 0; }
+.adm-field > span {
+  font-size: 0.63rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: var(--adm-dim);
+}
+
+.adm-check { display: flex; align-items: center; gap: 0.5rem; cursor: pointer; font-size: 0.8rem; font-weight: 600; color: var(--adm-mut); }
+.adm-check input { accent-color: var(--adm-acc); width: 0.95rem; height: 0.95rem; cursor: pointer; }
+
+/* ── Таблицы ──────────────────────────────────────────────────── */
+.adm-table-wrap {
+  background: var(--adm-card);
+  border: 1px solid var(--adm-line);
+  border-radius: var(--adm-r);
+  overflow: hidden;
+}
+.adm-table-scroll { overflow-x: auto; }
+.adm-table { width: 100%; border-collapse: collapse; font-size: 0.82rem; }
+.adm-table th {
+  padding: 0.6rem 1rem;
+  text-align: left;
+  font-size: 0.63rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.09em;
+  color: var(--adm-dim);
+  border-bottom: 1px solid var(--adm-line);
+  white-space: nowrap;
+  background: rgba(148, 163, 184, 0.03);
+}
+.adm-table td {
+  padding: 0.62rem 1rem;
+  vertical-align: middle;
+  border-bottom: 1px solid rgba(148, 163, 184, 0.06);
+}
+.adm-table tbody tr:last-child td { border-bottom: none; }
+.adm-table tbody tr { transition: background-color 0.12s; }
+.adm-table tbody tr:hover { background: rgba(148, 163, 184, 0.045); }
+.adm-table .is-clickable { cursor: pointer; }
+
+/* Числа/ники/id в таблицах и где угодно */
+.adm-mono { font-family: var(--adm-mono); font-size: 0.94em; letter-spacing: -0.01em; }
+.adm-num { font-family: var(--adm-mono); font-variant-numeric: tabular-nums; letter-spacing: -0.01em; }
+
+/* ── Бейджи и точки ───────────────────────────────────────────── */
+.adm-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  padding: 0.18rem 0.55rem;
+  border-radius: 999px;
+  border: 1px solid var(--adm-line-strong);
+  background: rgba(148, 163, 184, 0.07);
+  font-size: 0.68rem;
+  font-weight: 700;
+  color: var(--adm-mut);
+  white-space: nowrap;
+  line-height: 1.35;
+}
+.adm-badge--ok { color: #6ee7b7; border-color: rgba(52, 211, 153, 0.25); background: rgba(52, 211, 153, 0.08); }
+.adm-badge--warn { color: #fcd34d; border-color: rgba(251, 191, 36, 0.25); background: rgba(251, 191, 36, 0.08); }
+.adm-badge--err { color: #fca5a5; border-color: rgba(248, 113, 113, 0.25); background: rgba(248, 113, 113, 0.08); }
+.adm-badge--info { color: #7dd3fc; border-color: rgba(56, 189, 248, 0.25); background: rgba(56, 189, 248, 0.08); }
+.adm-badge--acc { color: var(--adm-acc-text); border-color: var(--adm-acc-line); background: var(--adm-acc-soft); }
+
+.adm-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; background: var(--adm-faint); }
+.adm-dot--ok { background: var(--adm-ok); box-shadow: 0 0 7px rgba(52, 211, 153, 0.65); }
+.adm-dot--err { background: var(--adm-err); }
+.adm-dot--warn { background: var(--adm-warn); box-shadow: 0 0 7px rgba(251, 191, 36, 0.5); }
+
+/* ── Табы ─────────────────────────────────────────────────────── */
+.adm-tabs {
+  display: inline-flex;
+  gap: 0.2rem;
+  padding: 0.22rem;
+  background: var(--adm-card);
+  border: 1px solid var(--adm-line);
+  border-radius: 11px;
+}
+.adm-tab {
+  padding: 0.4rem 0.8rem;
+  border-radius: 8px;
+  border: none;
+  background: transparent;
+  color: var(--adm-dim);
+  font-size: 0.75rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: background-color 0.14s, color 0.14s;
+  white-space: nowrap;
+}
+.adm-tab:hover { color: var(--adm-mut); }
+.adm-tab--active { background: var(--adm-acc-soft); color: var(--adm-acc-text); }
+
+/* ── Аватар-буква ─────────────────────────────────────────────── */
+.adm-avatar {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.9rem;
+  height: 1.9rem;
+  border-radius: 9px;
+  background: linear-gradient(135deg, var(--adm-acc), rgba(var(--adm-acc-rgb), 0.55));
+  color: #fff;
+  font-size: 0.78rem;
+  font-weight: 900;
+  flex-shrink: 0;
+  transition: background 0.4s;
+}
+
+/* ── Пустые состояния / скелетоны ─────────────────────────────── */
+.adm-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 2.6rem 1rem;
+  border: 1px dashed var(--adm-line-strong);
+  border-radius: var(--adm-r);
+  text-align: center;
+}
+.adm-empty__title { font-size: 0.84rem; font-weight: 800; color: var(--adm-mut); }
+.adm-empty__sub { font-size: 0.73rem; color: var(--adm-dim); max-width: 34ch; line-height: 1.5; }
+
+.adm-skel {
+  border-radius: var(--adm-r);
+  background: linear-gradient(100deg, rgba(148,163,184,0.06) 40%, rgba(148,163,184,0.12) 50%, rgba(148,163,184,0.06) 60%);
+  background-size: 200% 100%;
+  animation: adm-skel 1.4s ease-in-out infinite;
+}
+@keyframes adm-skel { from { background-position: 130% 0; } to { background-position: -30% 0; } }
+
+/* ── Модалка ──────────────────────────────────────────────────── */
+.adm-modal-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 90;
+  background: rgba(3, 5, 10, 0.72);
+  backdrop-filter: blur(3px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1rem;
+}
+.adm-modal {
+  width: 100%;
+  max-width: 560px;
+  max-height: 88vh;
+  overflow-y: auto;
+  background: var(--adm-card);
+  border: 1px solid var(--adm-line-strong);
+  border-radius: 16px;
+  box-shadow: 0 30px 80px rgba(0, 0, 0, 0.6);
+  padding: 1.3rem 1.4rem;
+}
+
+/* ── Пагинация ────────────────────────────────────────────────── */
+.adm-pager { display: flex; align-items: center; justify-content: space-between; gap: 0.75rem; padding-top: 0.2rem; }
+.adm-pager__info { font-size: 0.72rem; color: var(--adm-dim); font-weight: 600; }
+
+/* ── Скроллбар внутри админки ─────────────────────────────────── */
+.adm-shell ::-webkit-scrollbar { width: 9px; height: 9px; }
+.adm-shell ::-webkit-scrollbar-track { background: transparent; }
+.adm-shell ::-webkit-scrollbar-thumb { background: rgba(148, 163, 184, 0.16); border-radius: 99px; border: 2px solid var(--adm-bg); }
+.adm-shell ::-webkit-scrollbar-thumb:hover { background: rgba(148, 163, 184, 0.28); }
+
+/* ── Фокус с клавиатуры ───────────────────────────────────────── */
+.adm-shell :focus-visible {
+  outline: 2px solid var(--adm-acc);
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .adm-shell *, .adm-shell *::before, .adm-shell *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}

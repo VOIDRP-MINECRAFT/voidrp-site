@@ -5,6 +5,7 @@ import i18n from './i18n'
 import { bootstrapAuth, installAuthApiHooks } from './stores/authStore'
 import './styles.css'
 import './styles.toast-nations.css'
+import './admin.css'
 
 ;(async () => {
   installAuthApiHooks()
