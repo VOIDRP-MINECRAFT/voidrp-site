@@ -29,6 +29,7 @@ const BLANK = {
   host: '', port: 25565, mc_version: '1.21.1', loader: 'neoforge',
   java_version: 21, neoforge_version: '',
   pack_root: '', pack_base_url: '', manifest_url: '',
+  runtime_seed_url: '', runtime_manifest_url: '',
   pack_version: '1.0.0', min_launcher_version: '0.1.0',
   status_host: '', status_port: null, max_players: 100,
   whitelist_mode: 'public', maintenance: false,
@@ -80,7 +81,8 @@ function buildPayload() {
   const p = { ...form }
   // Normalize empty strings to null for nullable fields
   for (const k of ['description', 'icon_url', 'banner_url', 'neoforge_version',
-    'pack_root', 'pack_base_url', 'manifest_url', 'status_host', 'map_url', 'accent_color']) {
+    'pack_root', 'pack_base_url', 'manifest_url', 'runtime_seed_url', 'runtime_manifest_url',
+    'status_host', 'map_url', 'accent_color']) {
     if (p[k] === '') p[k] = null
   }
   if (p.status_port === '' || p.status_port === undefined) p.status_port = null
@@ -251,6 +253,8 @@ onMounted(load)
           <label class="fld"><span>Pack root (на сервере)</span><input v-model="form.pack_root" placeholder="/home/…/pack/voidrp" /></label>
           <label class="fld"><span>Pack base URL</span><input v-model="form.pack_base_url" placeholder="https://void-rp.ru/launcher/pack/voidrp" /></label>
           <label class="fld"><span>Manifest URL</span><input v-model="form.manifest_url" placeholder="https://…/manifests/voidrp.json" /></label>
+          <label class="fld"><span>Runtime seed URL</span><input v-model="form.runtime_seed_url" placeholder="https://…/launcher/runtime/runtime-seed.json" /></label>
+          <label class="fld"><span>Runtime manifest URL</span><input v-model="form.runtime_manifest_url" placeholder="https://…/launcher/runtime/runtime-windows.json (или base URL)" /></label>
           <label class="fld"><span>Версия пака</span><input v-model="form.pack_version" placeholder="1.0.0" /></label>
           <label class="fld"><span>Мин. версия лаунчера</span><input v-model="form.min_launcher_version" placeholder="0.1.0" /></label>
         </div>
