@@ -35,6 +35,12 @@ export function getActiveServerSlug() {
   return serverState.activeSlug
 }
 
+// A feature is enabled unless the active server explicitly disables it.
+export function serverFeatureEnabled(key) {
+  const f = activeServer.value?.features
+  return !f || f[key] !== false
+}
+
 function persistSlug(slug) {
   if (slug) {
     localStorage.setItem(ACTIVE_SLUG_KEY, slug)

@@ -6,6 +6,7 @@ import { getPublicProfileBySlug } from '../services/profileApi'
 import { followProfile, unfollowProfile } from '../services/socialApi'
 import { useAuthStore } from '../stores/authStore'
 import { getBattlePassProfileByNick } from '../services/battlepassApi'
+import { serverFeatureEnabled } from '../stores/serverStore'
 
 const { t } = useI18n()
 const route = useRoute()
@@ -163,7 +164,7 @@ async function loadProfile() {
     const payload = await getPublicProfileBySlug(route.params.slug, authStore.accessToken || null)
     profile.value = payload
     const nick = payload?.player_account?.minecraft_nickname
-    if (nick) {
+    if (nick && serverFeatureEnabled('battlepass')) {
       bpProfile.value = await getBattlePassProfileByNick(nick).catch(() => null)
     }
   } catch (err) {

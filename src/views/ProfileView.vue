@@ -10,6 +10,7 @@ import { getPlayerProgression } from '../services/progressionApi'
 import { getBattlePassProfileByNick } from '../services/battlepassApi'
 import { toastError, toastSuccess } from '../services/toast'
 import { reloadMe, useAuthStore } from '../stores/authStore'
+import { serverFeatureEnabled } from '../stores/serverStore'
 
 const { t } = useI18n()
 const auth = useAuthStore()
@@ -121,7 +122,7 @@ async function loadData() {
       auth.accessToken ? getMyPublicProfile(auth.accessToken) : null,
       auth.accessToken ? getMyNation(auth.accessToken) : null,
       nick ? getPlayerProgression(nick).catch(() => null) : null,
-      nick ? getBattlePassProfileByNick(nick).catch(() => null) : null,
+      nick && serverFeatureEnabled('battlepass') ? getBattlePassProfileByNick(nick).catch(() => null) : null,
     ])
     publicProfile.value = profilePayload || null
     myNation.value = nationPayload || null
@@ -374,8 +375,8 @@ onMounted(loadData)
             </div>
           </section>
 
-          <!-- Battle Pass -->
-          <section class="surface-card p-4 md:p-5">
+          <!-- Battle Pass (скрыт, если фича выключена у активного сервера) -->
+          <section v-if="serverFeatureEnabled('battlepass')" class="surface-card p-4 md:p-5">
             <div class="flex items-center justify-between gap-2">
               <div>
                 <div class="section-kicker !mb-1">{{ t('profile.bpKicker') }}</div>
