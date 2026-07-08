@@ -31,6 +31,13 @@ let methodChart = null
 // ── Helpers ────────────────────────────────────────────────────
 function fmt(n) { return Number(n).toLocaleString('ru') }
 
+// Акцент активного сервера — чтобы графики перекрашивались вместе с админкой
+function accColor() {
+  const shell = document.querySelector('.adm-shell')
+  const v = shell ? getComputedStyle(shell).getPropertyValue('--adm-acc').trim() : ''
+  return v || '#7c3aed'
+}
+
 function fmtDate(s) {
   if (!s) return '—'
   const d = new Date(s.replace(' ', 'T') + 'Z')
@@ -160,6 +167,7 @@ async function renderCharts(pays) {
   const mthData = buildMethodData(pays)
 
   if (revenueCanvas.value && revData.labels.length) {
+    const acc = accColor()
     revenueChart = new Chart(revenueCanvas.value, {
       type: 'bar',
       data: {
@@ -168,11 +176,11 @@ async function renderCharts(pays) {
           {
             label: 'Выручка ₽',
             data: revData.revenue,
-            backgroundColor: 'rgba(124,58,237,0.7)',
-            borderColor: '#7c3aed',
+            backgroundColor: acc + 'b3',
+            borderColor: acc,
             borderWidth: 1,
             borderRadius: 5,
-            hoverBackgroundColor: 'rgba(124,58,237,0.9)',
+            hoverBackgroundColor: acc,
           },
           {
             label: 'Платежи',
@@ -311,19 +319,16 @@ onUnmounted(destroyCharts)
 </script>
 
 <template>
-  <div class="p-4 md:p-6 space-y-6">
+  <div class="adm-page">
 
     <!-- Header -->
-    <div class="flex items-start justify-between gap-4">
+    <div class="adm-page__head">
       <div>
-        <h1 class="text-xl font-black text-slate-100">Донаты</h1>
-        <p class="text-sm text-slate-500">Отчётность EasyDonate — платежи, выручка, товары</p>
+        <h1 class="adm-title">Донаты</h1>
+        <p class="adm-sub">Отчётность EasyDonate — платежи, выручка, товары</p>
       </div>
-      <button
-        class="flex items-center gap-1.5 rounded-lg bg-slate-800 px-3 py-2 text-xs font-semibold text-slate-400 hover:text-slate-200 hover:bg-slate-700 transition"
-        @click="loadOverview"
-      >
-        <svg class="h-3.5 w-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0l3.181 3.183a8.25 8.25 0 0013.803-3.7M4.031 9.865a8.25 8.25 0 0113.803-3.7l3.181 3.182m0-4.991v4.99"/></svg>
+      <button class="adm-btn" @click="loadOverview">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0l3.181 3.183a8.25 8.25 0 0013.803-3.7M4.031 9.865a8.25 8.25 0 0113.803-3.7l3.181 3.182m0-4.991v4.99"/></svg>
         Обновить
       </button>
     </div>
@@ -333,61 +338,61 @@ onUnmounted(destroyCharts)
     <!-- Stats grid -->
     <div class="grid grid-cols-2 gap-3 xl:grid-cols-3">
       <template v-if="overviewLoading">
-        <div v-for="i in 6" :key="i" class="skeleton h-24 rounded-xl" />
+        <div v-for="i in 6" :key="i" class="adm-skel h-24" />
       </template>
       <template v-else-if="stats">
-        <div class="adm-stat-card">
-          <div class="adm-stat-card__icon bg-violet-500/10 text-violet-400">
+        <div class="adm-kpi">
+          <div class="adm-kpi__icon bg-violet-500/10 text-violet-400">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M12 6v12m-3-2.818l.879.659c1.171.879 3.07.879 4.242 0 1.172-.879 1.172-2.303 0-3.182C13.536 12.219 12.768 12 12 12c-.725 0-1.45-.22-2.003-.659-1.106-.879-1.106-2.303 0-3.182s2.9-.879 4.006 0l.415.33"/></svg>
           </div>
           <div>
-            <div class="adm-stat-card__value">{{ fmt(stats.total_revenue) }} ₽</div>
-            <div class="adm-stat-card__label">Общая выручка</div>
+            <div class="adm-kpi__val">{{ fmt(stats.total_revenue) }} ₽</div>
+            <div class="adm-kpi__label">Общая выручка</div>
           </div>
         </div>
-        <div class="adm-stat-card">
-          <div class="adm-stat-card__icon bg-emerald-500/10 text-emerald-400">
+        <div class="adm-kpi">
+          <div class="adm-kpi__icon bg-emerald-500/10 text-emerald-400">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M6.75 3v2.25M17.25 3v2.25M3 18.75V7.5a2.25 2.25 0 012.25-2.25h13.5A2.25 2.25 0 0121 7.5v11.25m-18 0A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75m-18 0v-7.5A2.25 2.25 0 015.25 9h13.5A2.25 2.25 0 0121 9v7.5"/></svg>
           </div>
           <div>
-            <div class="adm-stat-card__value">{{ fmt(stats.month_revenue) }} ₽</div>
-            <div class="adm-stat-card__label">Выручка за месяц</div>
+            <div class="adm-kpi__val">{{ fmt(stats.month_revenue) }} ₽</div>
+            <div class="adm-kpi__label">Выручка за месяц</div>
           </div>
         </div>
-        <div class="adm-stat-card">
-          <div class="adm-stat-card__icon bg-blue-500/10 text-blue-400">
+        <div class="adm-kpi">
+          <div class="adm-kpi__icon bg-blue-500/10 text-blue-400">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M2.25 8.25h19.5M2.25 9h19.5m-16.5 5.25h6m-6 2.25h3m-3.75 3h15a2.25 2.25 0 002.25-2.25V6.75A2.25 2.25 0 0019.5 4.5h-15a2.25 2.25 0 00-2.25 2.25v10.5A2.25 2.25 0 004.5 19.5z"/></svg>
           </div>
           <div>
-            <div class="adm-stat-card__value">{{ fmt(stats.total_payments) }}</div>
-            <div class="adm-stat-card__label">Всего платежей</div>
+            <div class="adm-kpi__val">{{ fmt(stats.total_payments) }}</div>
+            <div class="adm-kpi__label">Всего платежей</div>
           </div>
         </div>
-        <div class="adm-stat-card">
-          <div class="adm-stat-card__icon bg-amber-500/10 text-amber-400">
+        <div class="adm-kpi">
+          <div class="adm-kpi__icon bg-amber-500/10 text-amber-400">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M3 13.125C3 12.504 3.504 12 4.125 12h2.25c.621 0 1.125.504 1.125 1.125v6.75C7.5 20.496 6.996 21 6.375 21h-2.25A1.125 1.125 0 013 19.875v-6.75zM9.75 8.625c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125v11.25c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 01-1.125-1.125V8.625zM16.5 4.125c0-.621.504-1.125 1.125-1.125h2.25C20.496 3 21 3.504 21 4.125v15.75c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 01-1.125-1.125V4.125z"/></svg>
           </div>
           <div>
-            <div class="adm-stat-card__value">{{ fmt(stats.month_payments) }}</div>
-            <div class="adm-stat-card__label">Платежей за месяц</div>
+            <div class="adm-kpi__val">{{ fmt(stats.month_payments) }}</div>
+            <div class="adm-kpi__label">Платежей за месяц</div>
           </div>
         </div>
-        <div class="adm-stat-card">
-          <div class="adm-stat-card__icon bg-pink-500/10 text-pink-400">
+        <div class="adm-kpi">
+          <div class="adm-kpi__icon bg-pink-500/10 text-pink-400">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M15 19.128a9.38 9.38 0 002.625.372 9.337 9.337 0 004.121-.952 4.125 4.125 0 00-7.533-2.493M15 19.128v-.003c0-1.113-.285-2.16-.786-3.07M15 19.128v.106A12.318 12.318 0 018.624 21c-2.331 0-4.512-.645-6.374-1.766l-.001-.109a6.375 6.375 0 0111.964-3.07M12 6.375a3.375 3.375 0 11-6.75 0 3.375 3.375 0 016.75 0zm8.25 2.25a2.625 2.625 0 11-5.25 0 2.625 2.625 0 015.25 0z"/></svg>
           </div>
           <div>
-            <div class="adm-stat-card__value">{{ fmt(stats.unique_buyers) }}</div>
-            <div class="adm-stat-card__label">Уникальных покупателей</div>
+            <div class="adm-kpi__val">{{ fmt(stats.unique_buyers) }}</div>
+            <div class="adm-kpi__label">Уникальных покупателей</div>
           </div>
         </div>
-        <div class="adm-stat-card">
-          <div class="adm-stat-card__icon bg-indigo-500/10 text-indigo-400">
+        <div class="adm-kpi">
+          <div class="adm-kpi__icon bg-indigo-500/10 text-indigo-400">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M20.25 7.5l-.625 10.632a2.25 2.25 0 01-2.247 2.118H6.622a2.25 2.25 0 01-2.247-2.118L3.75 7.5M10 11.25h4M3.375 7.5h17.25c.621 0 1.125-.504 1.125-1.125v-1.5c0-.621-.504-1.125-1.125-1.125H3.375c-.621 0-1.125.504-1.125 1.125v1.5c0 .621.504 1.125 1.125 1.125z"/></svg>
           </div>
           <div>
-            <div class="adm-stat-card__value">{{ fmt(stats.products_count) }}</div>
-            <div class="adm-stat-card__label">Товаров в каталоге</div>
+            <div class="adm-kpi__val">{{ fmt(stats.products_count) }}</div>
+            <div class="adm-kpi__label">Товаров в каталоге</div>
           </div>
         </div>
       </template>
@@ -399,7 +404,7 @@ onUnmounted(destroyCharts)
       <!-- Revenue bar chart (2/3) -->
       <div class="adm-card p-4 lg:col-span-2">
         <div class="mb-3 flex items-center justify-between">
-          <h2 class="adm-section-title !mb-0">Выручка по дням</h2>
+          <h2 class="adm-label !mb-0">Выручка по дням</h2>
           <span class="text-xs text-slate-600">последние 100 платежей</span>
         </div>
         <div class="relative h-52">
@@ -410,7 +415,7 @@ onUnmounted(destroyCharts)
 
       <!-- Method doughnut (1/3) -->
       <div class="adm-card p-4">
-        <h2 class="adm-section-title mb-3">Методы оплаты</h2>
+        <h2 class="adm-label mb-3">Методы оплаты</h2>
         <div class="relative h-52">
           <canvas ref="methodCanvas" />
           <div v-if="!allPayments.length" class="absolute inset-0 flex items-center justify-center text-xs text-slate-600">Нет данных</div>
@@ -421,7 +426,7 @@ onUnmounted(destroyCharts)
 
     <!-- Products -->
     <div v-if="!overviewLoading && products.length">
-      <h2 class="adm-section-title">Товары</h2>
+      <h2 class="adm-label">Товары</h2>
       <div class="adm-card overflow-hidden p-0">
         <div class="divide-y divide-slate-700/30">
           <div v-for="p in products" :key="p.id" class="flex items-center gap-3 px-4 py-3 hover:bg-slate-800/40 transition">
@@ -445,14 +450,14 @@ onUnmounted(destroyCharts)
     <!-- Payments table -->
     <div>
       <div class="flex items-center justify-between mb-3">
-        <h2 class="adm-section-title !mb-0">
+        <h2 class="adm-label !mb-0">
           Платежи
           <span v-if="paymentsMeta.total" class="ml-2 text-xs font-normal text-slate-500">всего {{ fmt(paymentsMeta.total) }}</span>
         </h2>
       </div>
 
       <div v-if="paymentsLoading" class="adm-card p-4 space-y-3">
-        <div v-for="i in 5" :key="i" class="skeleton h-12 rounded-lg" />
+        <div v-for="i in 5" :key="i" class="adm-skel h-12" />
       </div>
 
       <div v-else-if="!payments.length" class="adm-card p-8 text-center text-sm text-slate-500">
@@ -478,7 +483,7 @@ onUnmounted(destroyCharts)
                 <td class="adm-td text-slate-500 font-mono text-xs">#{{ pay.id }}</td>
                 <td class="adm-td">
                   <div class="flex items-center gap-2">
-                    <div class="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-violet-600/15 text-xs font-black text-violet-300">
+                    <div class="adm-avatar" style="width: 1.75rem; height: 1.75rem; font-size: 0.7rem">
                       {{ (pay.customer || '?')[0].toUpperCase() }}
                     </div>
                     <div>
@@ -491,7 +496,7 @@ onUnmounted(destroyCharts)
                   <p class="truncate text-xs text-slate-400">{{ (pay.products || []).map(p => p.name).join(', ') || '—' }}</p>
                 </td>
                 <td class="adm-td text-right">
-                  <span class="font-black text-violet-400">{{ fmt(pay.cost) }} ₽</span>
+                  <span class="font-black adm-num" style="color: var(--adm-acc-text)">{{ fmt(pay.cost) }} ₽</span>
                 </td>
                 <td class="adm-td">
                   <span v-if="pay.payment_type" class="rounded-full border px-2 py-0.5 text-xs font-semibold" :class="pmClass(pay.payment_type)">{{ pmLabel(pay.payment_type) }}</span>
@@ -518,7 +523,7 @@ onUnmounted(destroyCharts)
             </button>
             <template v-for="(p, i) in pages" :key="p">
               <span v-if="i > 0 && pages[i-1] < p - 1" class="px-1 text-slate-600 text-xs">…</span>
-              <button class="adm-page-btn" :class="p === page ? 'bg-violet-600 text-white' : 'hover:bg-slate-700 text-slate-400'" @click="goPage(p)">{{ p }}</button>
+              <button class="adm-page-btn" :style="p === page ? { background: 'var(--adm-acc)', color: '#fff' } : {}" @click="goPage(p)">{{ p }}</button>
             </template>
             <button class="adm-page-btn" :class="page === paymentsMeta.last_page ? 'opacity-30 cursor-default' : 'hover:bg-slate-700'" @click="goPage(page + 1)">
               <svg class="h-3.5 w-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M8.25 4.5l7.5 7.5-7.5 7.5"/></svg>
@@ -532,48 +537,15 @@ onUnmounted(destroyCharts)
 </template>
 
 <style scoped>
-.adm-section-title {
-  font-size: 0.78rem;
-  font-weight: 800;
-  text-transform: uppercase;
-  letter-spacing: 0.07em;
-  color: #475569;
-  margin-bottom: 0.6rem;
-}
-.adm-card {
-  background: rgba(15, 23, 42, 0.7);
-  border: 1px solid rgba(255,255,255,0.06);
-  border-radius: 14px;
-}
-.adm-stat-card {
-  display: flex;
-  align-items: center;
-  gap: 0.75rem;
-  padding: 1rem;
-  background: rgba(15, 23, 42, 0.7);
-  border: 1px solid rgba(255,255,255,0.06);
-  border-radius: 14px;
-}
-.adm-stat-card__icon {
-  width: 2.4rem;
-  height: 2.4rem;
-  border-radius: 10px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  flex-shrink: 0;
-}
-.adm-stat-card__icon svg { width: 1.1rem; height: 1.1rem; }
-.adm-stat-card__value { font-size: 1.15rem; font-weight: 900; color: #e2e8f0; line-height: 1.2; }
-.adm-stat-card__label { font-size: 0.72rem; color: #475569; font-weight: 600; margin-top: 1px; }
+/* adm-label / adm-card / adm-kpi* приходят из глобального admin.css */
 .adm-th {
   padding: 0.6rem 1rem;
   text-align: left;
-  font-size: 0.7rem;
-  font-weight: 700;
+  font-size: 0.63rem;
+  font-weight: 800;
   text-transform: uppercase;
-  letter-spacing: 0.06em;
-  color: #475569;
+  letter-spacing: 0.09em;
+  color: var(--adm-dim);
   white-space: nowrap;
 }
 .adm-td { padding: 0.65rem 1rem; vertical-align: middle; }
@@ -587,10 +559,11 @@ onUnmounted(destroyCharts)
   border-radius: 6px;
   font-size: 0.78rem;
   font-weight: 700;
-  color: #94a3b8;
+  color: var(--adm-mut);
   background: transparent;
   border: none;
   cursor: pointer;
-  transition: background 0.13s, color 0.13s;
+  transition: background-color 0.13s, color 0.13s;
 }
+.adm-page-btn:hover { background: rgba(148, 163, 184, 0.1); }
 </style>
