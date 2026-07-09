@@ -42,6 +42,7 @@ import AdminLandingView from '../views/admin/AdminLandingView.vue'
 import AdminFeedbackView from '../views/admin/AdminFeedbackView.vue'
 import AdminCrashReportsView from '../views/admin/AdminCrashReportsView.vue'
 import ExpertGuideView from '../views/ExpertGuideView.vue'
+import ServerGuideView from '../views/ServerGuideView.vue'
 import MarketView from '../views/MarketView.vue'
 import MarketItemView from '../views/MarketItemView.vue'
 import PlayerMarketMyOrdersView from '../views/PlayerMarketMyOrdersView.vue'
@@ -67,6 +68,7 @@ const routes = [
   { path: '/servers', name: 'servers', component: ServersView, meta: { title: 'Серверы' } },
   { path: '/shop', name: 'shop', component: ShopView, meta: { title: 'Магазин', requiresAuth: true, feature: 'shop' } },
   { path: '/guide', name: 'expert-guide', component: ExpertGuideView, meta: { title: 'Гайд сборки' } },
+  { path: '/server-guide', name: 'server-guide', component: ServerGuideView, meta: { title: 'Гайд сервера' } },
   { path: '/recipes', name: 'recipes', component: RecipesView, meta: { title: 'Крафты сборки' } },
   { path: '/game-ui/menu', name: 'game-ui-menu', component: GameUiMenuView, meta: { title: 'Меню', hidePublicShell: true } },
   { path: '/game-ui/market', name: 'game-ui-market', component: GameUiMarketView, meta: { title: 'Рынок игроков', hidePublicShell: true } },

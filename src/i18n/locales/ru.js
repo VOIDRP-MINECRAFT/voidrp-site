@@ -1,9 +1,20 @@
 export default {
+  serverGuide: {
+    metaTitle: 'Гайд сервера — VoidRP',
+    metaDesc: 'Полное описание всех механик сервера: приваты, крафты, команды и правила.',
+    title: 'Гайд сервера',
+    eyebrow: 'Гайд',
+    contents: 'Содержание',
+    emptyTitle: 'Для этого сервера пока нет гайда',
+    emptyText: 'Выбери сервер, у которого есть свой гайд по механикам.',
+  },
   nav: {
     home: 'Главная',
     guide: 'Гайд',
     guideModpack: 'Гайд по сборке',
     guideModpackDesc: 'Прогрессия эпох и команды',
+    serverGuide: 'Гайд сервера',
+    serverGuideDesc: 'Механики, приваты, команды',
     recipes: 'Крафты',
     recipesDesc: '362 кастомных рецепта',
     economy: 'Экономика',

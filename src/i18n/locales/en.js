@@ -1,9 +1,20 @@
 export default {
+  serverGuide: {
+    metaTitle: 'Server Guide — VoidRP',
+    metaDesc: 'A full breakdown of every server mechanic: claims, recipes, commands and rules.',
+    title: 'Server Guide',
+    eyebrow: 'Guide',
+    contents: 'Contents',
+    emptyTitle: 'No guide for this server yet',
+    emptyText: 'Pick a server that has its own mechanics guide.',
+  },
   nav: {
     home: 'Home',
     guide: 'Guide',
     guideModpack: 'Modpack Guide',
     guideModpackDesc: 'Age progression & commands',
+    serverGuide: 'Server Guide',
+    serverGuideDesc: 'Mechanics, claims, commands',
     recipes: 'Recipes',
     recipesDesc: '362 custom recipes',
     economy: 'Economy',
