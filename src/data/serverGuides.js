@@ -29,7 +29,7 @@ const abyssRu = {
       icon: '🛡️',
       title: 'Приваты через блок',
       blocks: [
-        { t: 'p', text: 'Приват создаётся установкой блока «Ядро привата». Вокруг ядра защищается зона по чанкам: чужие не могут ломать, ставить и открывать блоки внутри.' },
+        { t: 'p', text: 'Приват создаётся установкой блока «Ядро привата». Вокруг ядра защищается куб 16×16×16 (объём, а не вся высота): чужие не могут ломать, ставить и открывать блоки внутри.' },
         { t: 'h', text: 'Как получить ядро' },
         { t: 'p', text: 'Скрафтить «Ядро привата» на верстаке или получить у администрации командой /claim give (только для операторов).' },
         { t: 'recipe', result: 'voidrp_claims:claim_core', resultName: 'Ядро привата',
@@ -46,7 +46,7 @@ const abyssRu = {
         { t: 'h', text: 'Как создать приват' },
         { t: 'ol', items: [
           'Поставь ядро в центре будущей базы.',
-          'Появится сообщение «Приват создан». Уровень 1 защищает 1 чанк — тот, где стоит ядро.',
+          'Появится сообщение «Приват создан». Уровень 1 — это один куб 16×16×16 вокруг ядра.',
           'Над ядром поднимаются частицы-маячок, чтобы приват было видно издалека.',
         ] },
         { t: 'h', text: 'Что защищено внутри' },
@@ -62,18 +62,23 @@ const abyssRu = {
     {
       id: 'levels',
       icon: '⬆️',
-      title: 'Уровни и расширение',
+      title: 'Расширение привата',
       blocks: [
-        { t: 'p', text: 'Размер привата растёт с уровнем ядра. Уровень L защищает квадрат (2L−1)×(2L−1) чанков вокруг чанка с ядром.' },
-        { t: 'ul', items: [
-          'Уровень 1 — 1 чанк (1×1).',
-          'Уровень 2 — 9 чанков (3×3).',
-          'Уровень 3 — 25 чанков (5×5).',
-          'И так далее, вплоть до уровня 10.',
+        { t: 'p', text: 'Приват растёт по кубам 16×16×16. Каждое улучшение добавляет один куб к объёму привата — в ту сторону, куда ты кликнул по ядру.' },
+        { t: 'h', text: 'Как расширить' },
+        { t: 'ol', items: [
+          'Возьми в руку предмет улучшения (по умолчанию — Алмазный блок).',
+          'Кликни правой кнопкой по ТОЙ ГРАНИ ядра, в сторону которой хочешь прирастить куб (вверх, вниз, вбок).',
+          'Прирастёт ещё один куб 16×16×16 с этой стороны. Кликая разные грани, строишь нужную форму базы.',
         ] },
-        { t: 'h', text: 'Как улучшить' },
-        { t: 'p', text: 'Кликни правой кнопкой по своему ядру, держа в руке предмет улучшения (по умолчанию — Алмазный блок, 1 шт. за уровень). Предмет израсходуется, уровень поднимется, зона расширится.' },
-        { t: 'note', text: 'Приваты не могут пересекаться. Нельзя создать или расширить приват так, чтобы он залез на чужой.' },
+        { t: 'h', text: 'Лимит и цена' },
+        { t: 'ul', items: [
+          'Максимум 30 улучшений — 31 куб вместе с ядром.',
+          'Чем больше прокачка, тем дороже: цена улучшения растёт по мере роста привата.',
+        ] },
+        { t: 'note', text: 'Приваты не пересекаются — нельзя прирастить куб на чужой приват.' },
+        { t: 'h', text: 'Показать сетку привата' },
+        { t: 'p', text: 'Кликни правой кнопкой по ядру ПУСТОЙ рукой (владелец, доверенный или админ) — вокруг привата покажется точная сетка из кубов частицами. Повторный клик выключает её.' },
       ],
     },
     {
@@ -183,7 +188,7 @@ const abyssEn = {
       icon: '🛡️',
       title: 'Block-based claims',
       blocks: [
-        { t: 'p', text: 'A claim is created by placing a Claim Core block. It protects a chunk area around the core: outsiders cannot break, place or open blocks inside.' },
+        { t: 'p', text: 'A claim is created by placing a Claim Core block. It protects a 16×16×16 cube around the core (a volume, not full height): outsiders cannot break, place or open blocks inside.' },
         { t: 'h', text: 'Getting a core' },
         { t: 'p', text: 'Craft a Claim Core at a crafting table, or get one from staff via /claim give (operators only).' },
         { t: 'recipe', result: 'voidrp_claims:claim_core', resultName: 'Claim Core',
@@ -200,7 +205,7 @@ const abyssEn = {
         { t: 'h', text: 'Creating a claim' },
         { t: 'ol', items: [
           'Place the core at the center of your future base.',
-          'You will see "Claim created". Level 1 protects a single chunk — the one the core sits in.',
+          'You will see "Claim created". Level 1 is a single 16×16×16 cube around the core.',
           'A particle plume rises above the core so claims are visible from afar.',
         ] },
         { t: 'h', text: 'What is protected inside' },
@@ -216,18 +221,23 @@ const abyssEn = {
     {
       id: 'levels',
       icon: '⬆️',
-      title: 'Levels and expansion',
+      title: 'Expanding a claim',
       blocks: [
-        { t: 'p', text: 'A claim grows with the core level. Level L protects a (2L−1)×(2L−1) chunk square around the core chunk.' },
-        { t: 'ul', items: [
-          'Level 1 — 1 chunk (1×1).',
-          'Level 2 — 9 chunks (3×3).',
-          'Level 3 — 25 chunks (5×5).',
-          'And so on, up to level 10.',
+        { t: 'p', text: 'A claim grows in 16×16×16 cubes. Each upgrade adds one cube to the claim volume — in the direction you clicked on the core.' },
+        { t: 'h', text: 'How to expand' },
+        { t: 'ol', items: [
+          'Hold the upgrade item (Block of Diamond by default).',
+          'Right-click the FACE of the core pointing the way you want to grow (up, down, sideways).',
+          'One more 16×16×16 cube is added on that side. Click different faces to shape your base.',
         ] },
-        { t: 'h', text: 'How to upgrade' },
-        { t: 'p', text: 'Right-click your core while holding the upgrade item (Block of Diamond by default, 1 per level). The item is consumed, the level goes up, and the area expands.' },
-        { t: 'note', text: 'Claims cannot overlap. You cannot create or expand a claim onto someone else’s claim.' },
+        { t: 'h', text: 'Limit and cost' },
+        { t: 'ul', items: [
+          'Up to 30 upgrades — 31 cubes including the core.',
+          'The more you upgrade, the more expensive it gets: the cost rises as the claim grows.',
+        ] },
+        { t: 'note', text: 'Claims cannot overlap — you can’t grow a cube onto someone else’s claim.' },
+        { t: 'h', text: 'Show the claim grid' },
+        { t: 'p', text: 'Right-click the core with an EMPTY hand (owner, trusted or admin) to show the exact cube grid around the claim as particles. Click again to turn it off.' },
       ],
     },
     {
