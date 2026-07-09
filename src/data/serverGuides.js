@@ -53,10 +53,10 @@ const abyssRu = {
         { t: 'ul', items: [
           'Ломание и установка блоков не-доверенными — запрещено.',
           'Контейнеры, двери, кнопки, рычаги — только для владельца и доверенных.',
-          'Взрывы (TNT, крипер, кристалл Края) не разрушают заприваченные блоки.',
           'Диспенсеры и мобы не могут ставить блоки внутри чужого привата.',
         ] },
         { t: 'note', text: 'PvP внутри привата работает — тебя всё ещё могут убить на своей же базе. Приват спасает постройки и сундуки, но не жизнь.' },
+        { t: 'note', text: 'Приват не вечен: его можно взять рейдом — пробить взрывами и выкопать ядро. Подробнее — в разделе «Как захватить чужой приват».' },
       ],
     },
     {
@@ -74,6 +74,24 @@ const abyssRu = {
         { t: 'h', text: 'Как улучшить' },
         { t: 'p', text: 'Кликни правой кнопкой по своему ядру, держа в руке предмет улучшения (по умолчанию — Алмазный блок, 1 шт. за уровень). Предмет израсходуется, уровень поднимется, зона расширится.' },
         { t: 'note', text: 'Приваты не могут пересекаться. Нельзя создать или расширить приват так, чтобы он залез на чужой.' },
+      ],
+    },
+    {
+      id: 'raid',
+      icon: '💥',
+      title: 'Как захватить чужой приват',
+      blocks: [
+        { t: 'p', text: 'Приваты не вечны — на анархии любую базу можно взять. Обычным способом заприваченные блоки не сломать, но есть путь рейда.' },
+        { t: 'h', text: 'Шаг 1 — пробей стены взрывами' },
+        { t: 'p', text: 'Взрывы (TNT и кристаллы Края) ПРОБИВАЮТ защиту привата — заприваченные блоки от них ломаются. Взрывай стены и прокапывайся к ядру.' },
+        { t: 'h', text: 'Шаг 2 — выкопай ядро' },
+        { t: 'ul', items: [
+          'Само ядро взорвать НЕЛЬЗЯ — оно взрывоустойчивое, как обсидиан.',
+          'Ядро нужно ВЫКОПАТЬ киркой. Оно очень прочное — копается очень долго (около 37 секунд алмазной киркой).',
+          'Нужна минимум алмазная кирка: камень и железо ядро почти не берут.',
+        ] },
+        { t: 'note', text: 'Пока копаешь ядро — стоишь на месте и уязвим, тебя могут убить в PvP. Рейди группой: кто-то копает, кто-то прикрывает.' },
+        { t: 'p', text: 'Как только ядро сломано — приват падает, и вся база открыта: ломай, грабь, забирай всё.' },
       ],
     },
     {
@@ -189,10 +207,10 @@ const abyssEn = {
         { t: 'ul', items: [
           'Breaking and placing blocks by non-trusted players is blocked.',
           'Containers, doors, buttons, levers — owner and trusted only.',
-          'Explosions (TNT, creeper, end crystal) do not destroy claimed blocks.',
           'Dispensers and mobs cannot place blocks inside someone else’s claim.',
         ] },
         { t: 'note', text: 'PvP still works inside a claim — you can be killed on your own base. Claims protect builds and chests, not your life.' },
+        { t: 'note', text: 'Claims are not forever: they can be raided — breach with explosives and mine out the core. See "Raiding someone’s claim" below.' },
       ],
     },
     {
@@ -210,6 +228,24 @@ const abyssEn = {
         { t: 'h', text: 'How to upgrade' },
         { t: 'p', text: 'Right-click your core while holding the upgrade item (Block of Diamond by default, 1 per level). The item is consumed, the level goes up, and the area expands.' },
         { t: 'note', text: 'Claims cannot overlap. You cannot create or expand a claim onto someone else’s claim.' },
+      ],
+    },
+    {
+      id: 'raid',
+      icon: '💥',
+      title: 'Raiding someone’s claim',
+      blocks: [
+        { t: 'p', text: 'Claims aren’t forever — on anarchy any base can be taken. You can’t hand-break claimed blocks, but there is a raid path.' },
+        { t: 'h', text: 'Step 1 — breach the walls with explosives' },
+        { t: 'p', text: 'Explosions (TNT and end crystals) BREACH claim protection — claimed blocks are destroyed by them. Blow through the walls and dig toward the core.' },
+        { t: 'h', text: 'Step 2 — mine out the core' },
+        { t: 'ul', items: [
+          'The core itself CANNOT be blown up — it is blast-proof like obsidian.',
+          'You must MINE the core with a pickaxe. It is extremely tough — about 37 seconds with a diamond pickaxe.',
+          'A diamond pickaxe is the minimum: stone and iron barely scratch it.',
+        ] },
+        { t: 'note', text: 'While mining the core you stand still and exposed — you can be killed in PvP. Raid in a group: one digs, others cover.' },
+        { t: 'p', text: 'Once the core is broken the claim falls and the whole base is open — break it, loot it, take everything.' },
       ],
     },
     {
