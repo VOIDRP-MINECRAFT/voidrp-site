@@ -19,15 +19,15 @@ const loading = ref(true)
 const leaderboard = ref(null)
 const myProfile = ref(null)
 
-const MAX_LEVEL = 120
-const XP_PER_LEVEL = 1000
+const MAX_LEVEL = 100
+const XP_PER_LEVEL = 10000
 
 const isAuthenticated = computed(() => !!auth.accessToken)
 
 const podium = computed(() => leaderboard.value?.entries?.slice(0, 3) ?? [])
 const rest = computed(() => leaderboard.value?.entries?.slice(3) ?? [])
 
-// Progress bar = XP within the current level (0–1000), not overall season progress
+// Progress bar = XP within the current level (0–10000), not overall season progress
 function xpPercent(xp) {
   return Math.round((xp % XP_PER_LEVEL) / XP_PER_LEVEL * 100)
 }

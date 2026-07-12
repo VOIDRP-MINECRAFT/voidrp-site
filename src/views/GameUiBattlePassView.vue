@@ -14,7 +14,7 @@ const profile = ref(null)
 const loading = ref(false)
 const error = ref(null)
 
-const XP_PER_LEVEL = 1000
+const XP_PER_LEVEL = 10000
 
 async function load() {
   loading.value = true

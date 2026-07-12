@@ -64,7 +64,7 @@ const abyssRu = {
       icon: '⬆️',
       title: 'Расширение привата',
       blocks: [
-        { t: 'p', text: 'Приват растёт по кубам 16×16×16. Каждое улучшение добавляет один куб к объёму привата — в ту сторону, куда ты кликнул по ядру.' },
+        { t: 'p', text: 'Первый куб 16×16×16 центрирован на ядре — защита расходится от ядра одинаково во все стороны. Каждое улучшение добавляет ещё один куб к объёму — в ту сторону, куда ты кликнул по ядру.' },
         { t: 'h', text: 'Как расширить' },
         { t: 'ol', items: [
           'Возьми в руку предмет улучшения (по умолчанию — Алмазный блок).',
@@ -77,8 +77,14 @@ const abyssRu = {
           'Чем больше прокачка, тем дороже: цена улучшения растёт по мере роста привата.',
         ] },
         { t: 'note', text: 'Приваты не пересекаются — нельзя прирастить куб на чужой приват.' },
+        { t: 'h', text: 'Заполнить пробелы' },
+        { t: 'p', text: 'Кубы растут только по осям (вверх/вниз/в стороны), но не по диагонали — поэтому в углах остаются пробелы. Команда /claim fill достраивает приват до сплошного прямоугольного объёма: заполняет все пустые ячейки внутри габаритов привата.' },
+        { t: 'ul', items: [
+          'Встань в свой приват и держи в руке предмет улучшения.',
+          'Стоимость — базовая цена за каждую добавленную ячейку; заполнение соблюдает лимит в 31 куб и не залезает на чужие приваты.',
+        ] },
         { t: 'h', text: 'Показать сетку привата' },
-        { t: 'p', text: 'Кликни правой кнопкой по ядру ПУСТОЙ рукой (владелец, доверенный или админ) — вокруг привата покажется точная сетка из кубов частицами. Повторный клик выключает её.' },
+        { t: 'p', text: 'Кликни правой кнопкой по ядру ПУСТОЙ рукой (владелец, доверенный или админ) — вокруг привата покажется точная сетка из кубов частицами (бело-фиолетовые для лучшей видимости). Повторный клик выключает её.' },
       ],
     },
     {
@@ -116,6 +122,7 @@ const abyssRu = {
       title: 'Команды приватов',
       blocks: [
         { t: 'cmd', text: '/claim info', desc: 'Информация о привате, в котором стоишь (владелец, уровень, размер, доверенные)' },
+        { t: 'cmd', text: '/claim fill', desc: 'Заполнить пробелы: достроить приват до сплошного объёма (нужен предмет улучшения в руке)' },
         { t: 'cmd', text: '/claim trust <ник>', desc: 'Добавить доверенного' },
         { t: 'cmd', text: '/claim untrust <ник>', desc: 'Убрать доверенного' },
         { t: 'cmd', text: '/claim remove', desc: 'Снять приват, в котором стоишь (только владелец)' },
@@ -223,7 +230,7 @@ const abyssEn = {
       icon: '⬆️',
       title: 'Expanding a claim',
       blocks: [
-        { t: 'p', text: 'A claim grows in 16×16×16 cubes. Each upgrade adds one cube to the claim volume — in the direction you clicked on the core.' },
+        { t: 'p', text: 'The first 16×16×16 cube is centered on the core — protection extends equally in every direction from it. Each upgrade adds one more cube to the volume, in the direction you clicked on the core.' },
         { t: 'h', text: 'How to expand' },
         { t: 'ol', items: [
           'Hold the upgrade item (Block of Diamond by default).',
@@ -236,8 +243,14 @@ const abyssEn = {
           'The more you upgrade, the more expensive it gets: the cost rises as the claim grows.',
         ] },
         { t: 'note', text: 'Claims cannot overlap — you can’t grow a cube onto someone else’s claim.' },
+        { t: 'h', text: 'Fill the gaps' },
+        { t: 'p', text: 'Cubes only grow along the axes (up/down/sideways), not diagonally — so corners stay empty. The /claim fill command completes the claim into a solid rectangular volume: it fills every empty cell inside the claim’s bounding box.' },
+        { t: 'ul', items: [
+          'Stand inside your claim and hold the upgrade item.',
+          'Cost is the base price per added cell; the fill respects the 31-cube limit and never overlaps other claims.',
+        ] },
         { t: 'h', text: 'Show the claim grid' },
-        { t: 'p', text: 'Right-click the core with an EMPTY hand (owner, trusted or admin) to show the exact cube grid around the claim as particles. Click again to turn it off.' },
+        { t: 'p', text: 'Right-click the core with an EMPTY hand (owner, trusted or admin) to show the exact cube grid around the claim as particles (alternating white/purple for visibility). Click again to turn it off.' },
       ],
     },
     {
@@ -275,6 +288,7 @@ const abyssEn = {
       title: 'Claim commands',
       blocks: [
         { t: 'cmd', text: '/claim info', desc: 'Info about the claim you stand in (owner, level, size, trusted)' },
+        { t: 'cmd', text: '/claim fill', desc: 'Fill the gaps: complete the claim into a solid volume (upgrade item in hand)' },
         { t: 'cmd', text: '/claim trust <name>', desc: 'Add a trusted player' },
         { t: 'cmd', text: '/claim untrust <name>', desc: 'Remove a trusted player' },
         { t: 'cmd', text: '/claim remove', desc: 'Remove the claim you stand in (owner only)' },

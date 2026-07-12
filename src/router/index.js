@@ -50,7 +50,6 @@ import PrivacyPolicyView from '../views/PrivacyPolicyView.vue'
 import OfferAgreementView from '../views/OfferAgreementView.vue'
 import LeaderboardView from '../views/LeaderboardView.vue'
 import PlayersTopView from '../views/PlayersTopView.vue'
-import RecipesView from '../views/RecipesView.vue'
 import ShopView from '../views/ShopView.vue'
 import BattlePassView from '../views/BattlePassView.vue'
 import GameUiMarketView from '../views/GameUiMarketView.vue'
@@ -69,7 +68,6 @@ const routes = [
   { path: '/shop', name: 'shop', component: ShopView, meta: { title: 'Магазин', requiresAuth: true, feature: 'shop' } },
   { path: '/guide', name: 'expert-guide', component: ExpertGuideView, meta: { title: 'Гайд сборки' } },
   { path: '/server-guide', name: 'server-guide', component: ServerGuideView, meta: { title: 'Гайд сервера' } },
-  { path: '/recipes', name: 'recipes', component: RecipesView, meta: { title: 'Крафты сборки' } },
   { path: '/game-ui/menu', name: 'game-ui-menu', component: GameUiMenuView, meta: { title: 'Меню', hidePublicShell: true } },
   { path: '/game-ui/market', name: 'game-ui-market', component: GameUiMarketView, meta: { title: 'Рынок игроков', hidePublicShell: true } },
   { path: '/game-ui/hud', name: 'game-ui-hud', component: GameUiHudView, meta: { title: 'HUD', hidePublicShell: true } },
