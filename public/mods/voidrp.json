@@ -1,0 +1,3026 @@
+[
+{
+"id": "aaron",
+"name": "Aaron",
+"description": "My library",
+"version": "1.16.0"
+},
+{
+"id": "accelerateddecay",
+"name": "Accelerated Decay",
+"description": "Speeds up the decay of leaves",
+"version": "21.0.0"
+},
+{
+"id": "actuallyadditions",
+"name": "Actually Additions",
+"description": "Do you want Automation? Wireless Transport? Better Machines? A cup o' Coffee? Chests? Better Hoppers? Leaf Blowers? Faster Growth? Plants? Well, Actually Additions has all that and a lot more!",
+"version": "1.3.26"
+},
+{
+"id": "aatiers",
+"name": "Actually Additions: Tiers",
+"description": "Adds tiered display stand variants (Iron, Gold, Diamond, Netherite) for Actually Additions with higher storage and input rates, configurable for pack devs.",
+"version": "21.1.1.0.0"
+},
+{
+"id": "advanced_ae",
+"name": "Advanced AE",
+"description": "An AE2 addon that adds a lot of utilities and quality of life.",
+"version": "1.6.11-1.21.1"
+},
+{
+"id": "advancedperipherals",
+"name": "Advanced Peripherals",
+"description": "Advanced Peripherals provides multiple extensions for ComputerCraft in form of Peripherals, Pocket Upgrades, Turtles or new gear. It also integrates with multiple third party mods.",
+"version": "0.7.62b"
+},
+{
+"id": "ali",
+"name": "AdvancedLootInfo",
+"description": "EMI/JEI/REI plugin for displaying advanced information about loot tables and trades",
+"version": "1.12.0"
+},
+{
+"id": "advancementplaques",
+"name": "Advancement Plaques",
+"description": "Replaces standard advancement toasts with fancy plaques.",
+"version": "1.6.8"
+},
+{
+"id": "ae2_draconic_fusion_autocrafter",
+"name": "AE2 Draconic Fusion Autocrafter",
+"description": "AE2 addon for automating Draconic Evolution Fusion Crafting through core-only connection.",
+"version": "0.1.4"
+},
+{
+"id": "ae2jeiintegration",
+"name": "AE2 JEI Integration",
+"description": "AE2 JEI integration",
+"version": "1.2.1"
+},
+{
+"id": "ae2labeledpatterns",
+"name": "AE2 Labeled Patterns",
+"description": "Add ability to label pattern providers to Applied Energistics 2, allowing you to organize your patterns in new pattern access terminal.",
+"version": "1.0.5"
+},
+{
+"id": "ae2things",
+"name": "AE2 Things",
+"description": "This mod adds a new type of cell the DISK: Deep Item Storage disK. This cell has no type limits and one item counts as one byte. Due to limitations with the cell format, you lose 24 bytes per kibibyte, but hey a small price to pay for no types right?",
+"version": ""
+},
+{
+"id": "ae2ct",
+"name": "AE2:Crafting Tree",
+"description": "AE2:Crafting Tree",
+"version": "1.21.1-1.1.1"
+},
+{
+"id": "ae2helpers",
+"name": "ae2helpers",
+"description": "Small mod that enables automatically putting requested crafting items in the grid, and also adds an import bus to pattern interfaces.",
+"version": "1.0.1"
+},
+{
+"id": "ae2netanalyser",
+"name": "AE2NetworkAnalyzer",
+"description": "Add a tool to analyze your AE network easily.",
+"version": "1.21-2.1.5-neoforge"
+},
+{
+"id": "ae2wtlib",
+"name": "AE2WTLib",
+"description": "Adds Wireless versions of ae2 Terminals with infinite range capabilities.",
+"version": "19.5.0"
+},
+{
+"id": "aeronauticscovers",
+"name": "Aeronautics Covers",
+"description": "Cable Facades support for Create contraptions and Aeronautics/Simulated physics ships.",
+"version": "1.0.1"
+},
+{
+"id": "aeroportals",
+"name": "AeroPortals",
+"description": "Teleport Sable SubLevels (Create: Aeronautics ships) through nether portals.",
+"version": "1.1.1"
+},
+{
+"id": "allarrowsinfinityfix",
+"name": "All Arrows Infinity Fix",
+"description": "Forces all arrows to work with the Infinity Enchantment.",
+"version": "1.7"
+},
+{
+"id": "alltheleaks",
+"name": "All The Leaks",
+"description": "This mod fixes memory leaks when needed!",
+"version": "1.1.9+1.21.1-neoforge"
+},
+{
+"id": "almostunified",
+"name": "AlmostUnified",
+"description": "Unify all resources.",
+"version": "1.21.1-1.4.2"
+},
+{
+"id": "ambientenvironment",
+"name": "AmbientEnvironment",
+"description": "Adds more ambiance to the game.",
+"version": "18.0.0.2"
+},
+{
+"id": "antiblocksrechiseled",
+"name": "AntiBlocksReChiseled",
+"description": "Readds The AnitBlocks From Chsiel",
+"version": "0.10.8"
+},
+{
+"id": "apotheosis",
+"name": "Apotheosis",
+"description": "All things that should have been",
+"version": "8.5.4"
+},
+{
+"id": "apothic_attributes",
+"name": "Apothic Attributes",
+"description": "A library mod providing Attributes and related things.",
+"version": "2.9.1"
+},
+{
+"id": "apothic_compat",
+"name": "Apothic Compat",
+"description": "Adds a loot category data map for items Apotheosis 8.x does not categorize on its own, mostly gun style ranged weapons that use no recognizable item class. Also keeps the config driven affix blacklist.",
+"version": "2.0.2"
+},
+{
+"id": "apothic_enchanting",
+"name": "Apothic Enchanting",
+"description": "The Enchanting Module of Apotheosis, overhauling major enchanting systems.",
+"version": "1.5.3"
+},
+{
+"id": "apothic_spawners",
+"name": "Apothic Spawners",
+"description": "The Spawner Module of Apotheosis, allowing for silk-touching and modification.",
+"version": "1.3.4"
+},
+{
+"id": "appleskin",
+"name": "AppleSkin",
+"description": "Adds various food-related HUD improvements",
+"version": ""
+},
+{
+"id": "appliedcreate",
+"name": "Applied Create",
+"description": "A bridge between Create and Applied Energistics 2 - stress storage, P2P tunnels, pattern providers, and more.",
+"version": "1.1.5"
+},
+{
+"id": "ae2",
+"name": "Applied Energistics 2",
+"description": "A Mod about Matter, Energy and using them to conquer the world...",
+"version": "19.2.17"
+},
+{
+"id": "appmek",
+"name": "Applied Mekanistics",
+"description": "Use Mekanism resources through your ME network",
+"version": "1.6.3"
+},
+{
+"id": "appliedpneumatics",
+"name": "Applied Pneumatics",
+"description": "A PneumaticCraft add-on that integrates with Applied Energistics.",
+"version": "1.0.8"
+},
+{
+"id": "appflux",
+"name": "AppliedFlux",
+"description": "Store energy in cells!",
+"version": "1.21-2.1.5-neoforge"
+},
+{
+"id": "architectury",
+"name": "Architectury",
+"description": "A intermediary api aimed to ease developing multiplatform mods.",
+"version": "13.0.8"
+},
+{
+"id": "armorposer",
+"name": "Armor Poser",
+"description": "A GUI to allow configuration of Armor Stand properties",
+"version": ""
+},
+{
+"id": "ars_additions",
+"name": "Ars Additions",
+"description": "An Ars Nouveau addon focused on small tweaks and quality of life additions.",
+"version": "1.21.1-21.3.0"
+},
+{
+"id": "ars_creo",
+"name": "Ars Creo",
+"description": "A create addon for Ars Nouveau",
+"version": ""
+},
+{
+"id": "ars_elemental",
+"name": "Ars Elemental",
+"description": "This Ars Nouveau add-on is about the Elemental Schools. More spell foci and equips, powering up one of the elemental schools, as well as new glyphs and hidden combos.",
+"version": ""
+},
+{
+"id": "ars_hex",
+"name": "Ars Hex",
+"description": "Starbuncles will conquer the world.",
+"version": ""
+},
+{
+"id": "ars_nouveau",
+"name": "Ars Nouveau",
+"description": "Craft spells, create powerful baubles, and summon magical creatures!",
+"version": ""
+},
+{
+"id": "arsdelight",
+"name": "Ars Nouveau's Flavors & Delight",
+"description": "Crossover contents between Twilight Forest and Farmer's Delight",
+"version": "2.2.2"
+},
+{
+"id": "ars_ocultas",
+"name": "Ars Ocultas",
+"description": "Ars Nouveau empowered by Occultism",
+"version": "2.4.1"
+},
+{
+"id": "ars_sable",
+"name": "Ars Sable",
+"description": "A Sable addon for Ars Nouveau",
+"version": ""
+},
+{
+"id": "ars_unification",
+"name": "Ars Unification",
+"description": "Lets Ars Nouveau take recipes from other mods.",
+"version": "1.2.18"
+},
+{
+"id": "arseng",
+"name": "Ars Énergistique",
+"description": "Bringing magic to the digital age. Adds digital source storage, P2P transport and various other cross-compatibility improvements to Ars Nouveau and AE2.",
+"version": "2.1.1-beta"
+},
+{
+"id": "ash_api",
+"name": "Ash API",
+"description": "An API that provides an abstraction layer between the APIs of NeoForge and Fabric.",
+"version": "21.1.1"
+},
+{
+"id": "athena",
+"name": "Athena",
+"description": "Crossplatform Baked Model Loader",
+"version": "4.0.2"
+},
+{
+"id": "attributefix",
+"name": "AttributeFix",
+"description": "Extends the maximum attribute ranges to allow for higher values.",
+"version": "21.1.3"
+},
+{
+"id": "auroral",
+"name": "Auroral",
+"description": "Auroral - A winter expansion mod centered around celestial energy and cozy vibes.",
+"version": "1.21.1-1.1.1"
+},
+{
+"id": "autochefsdelight",
+"name": "Autochef's Delight",
+"description": "",
+"version": ""
+},
+{
+"id": "bagofyurting",
+"name": "Bag of Yurting",
+"description": "The Bag of Yurting is a powerful, versatile, dyeable, upgradeable, all-purpose yurt storage tool. Combine bags at a crafting table to upgrade their size. Bags can be dyed like leather armor.",
+"version": ""
+},
+{
+"id": "baguettelib",
+"name": "BaguetteLib",
+"description": "A library mod about adding more events into the modding API (and more stuff)",
+"version": "2.0.3"
+},
+{
+"id": "balm",
+"name": "Balm",
+"description": "Abstraction Layer (but not really) for Blay's multiplatform mods",
+"version": "21.0.59"
+},
+{
+"id": "bhc",
+"name": "Baubley Heart Canisters",
+"description": "Heart Canisters for Curios, enjoy! :D",
+"version": "1.21.1-1.4.1"
+},
+{
+"id": "bcc",
+"name": "Better Compatibility Checker",
+"description": "Modpack compatibility checker for servers",
+"version": "21.1.8"
+},
+{
+"id": "betterp2p",
+"name": "Better P2P",
+"description": "An advanced tool for AE2, to manage P2P networks.",
+"version": "1.5.2"
+},
+{
+"id": "betterblockz",
+"name": "BetterBlockZ",
+"description": "A continuation of my original Ztones mod with enhanced textures and additional decorative blocks.",
+"version": "0.2.9-1.21.1-neoforge"
+},
+{
+"id": "betterf3",
+"name": "BetterF3",
+"description": "Better F3 for Minecraft NeoForge Replaces Minecraft's original debug HUD with a highly customizable, more human-readable HUD. The creator would like to thank: - cominixo for creating the Fabric version of the mod - Nirewen for creating the icon",
+"version": "11.0.3"
+},
+{
+"id": "bhmenu",
+"name": "BHMenu",
+"description": "Introducing the BisectHosting Server Integration Mod, exclusively designed for our Official BisectHosting Partners! This unique mod enables our partners to easily embed their partner links into the multiplayer menu of their modpacks. This functionality, developed with user-friendliness in mind, allows partners to gain commissions that support their projects and strengthen their community, all without spending unnecessary time on complex menu editing.",
+"version": "2.4.4"
+},
+{
+"id": "blockrunner",
+"name": "Block Runner",
+"description": "Encourages path building by making you run faster on certain blocks such as path blocks.",
+"version": "21.1.2"
+},
+{
+"id": "bookshelf",
+"name": "Bookshelf",
+"description": "Bookshelf is a library mod that provides code, frameworks, and utilities for other mods. Many mods make use of Bookshelf and are powered by its code.",
+"version": "21.1.81"
+},
+{
+"id": "bowinfinityfix",
+"name": "Bow Infinity Fix",
+"description": "Removes need to have an arrow in your inventory to use the Infinity enchant on your bow or crossbow.",
+"version": "3.1.1"
+},
+{
+"id": "brandonscore",
+"name": "Brandon's Core",
+"description": "",
+"version": "3.2.1.309"
+},
+{
+"id": "bridgingmod",
+"name": "Bridging Mod",
+"description": "Adds bridging assist similar to Bedrock & Quark's building mechanics.",
+"version": "2.6.2+1.21.1"
+},
+{
+"id": "buildinggadgets2",
+"name": "Building Gadgets 2",
+"description": "We can build it better, stronger, faster.",
+"version": "1.3.9"
+},
+{
+"id": "cable_facades",
+"name": "Cable Facades",
+"description": "Adds facades for most cables in the game.",
+"version": "2.1.3"
+},
+{
+"id": "cabletiers",
+"name": "Cable Tiers",
+"description": "Cable Tiers is an addon for Refined Storage which adds better Importer, Exporter, Constructor, Destructor, Disk Manipulator, Interface.",
+"version": "1.21.1-0.6.12"
+},
+{
+"id": "caelus",
+"name": "Caelus API",
+"description": "An API to provide developers access to the elytra's fall flying mechanics through an entity attribute.",
+"version": "7.0.1+1.21.1"
+},
+{
+"id": "camera",
+"name": "Camera Mod",
+"description": "This mod adds a working camera",
+"version": "1.21.1-1.0.21"
+},
+{
+"id": "carbonconfig",
+"name": "Carbon Config Library",
+"description": "Carbon Config is IC2Classics Config Implementation made open source",
+"version": ""
+},
+{
+"id": "computercraft",
+"name": "CC: Tweaked",
+"description": "CC: Tweaked is a fork of ComputerCraft, adding programmable computers, turtles and more to Minecraft.",
+"version": "1.119.0"
+},
+{
+"id": "chalk",
+"name": "Chalk",
+"description": "Leave the mark.",
+"version": "1.6.12"
+},
+{
+"id": "charmofundying",
+"name": "Charm of Undying",
+"description": "Adds accessory support for the Totem of Undying, so you don't have to be holding it.",
+"version": "9.1.0+1.21.1"
+},
+{
+"id": "chipped",
+"name": "Chipped",
+"description": "Every block needs a friend!",
+"version": "4.0.2"
+},
+{
+"id": "chisel",
+"name": "Chisel Modern",
+"description": "",
+"version": "1.3.4"
+},
+{
+"id": "ctov",
+"name": "ChoiceTheorem's Overhauled Village",
+"description": "Enhances and creates new villages and pillager outposts, that perfectly fit into your Minecraft world.",
+"version": "3.6.3"
+},
+{
+"id": "chunksending",
+"name": "chunksending mod",
+"description": "Balances chunk network load",
+"version": "2.9"
+},
+{
+"id": "cleanswing",
+"name": "Clean Swing",
+"description": "Stop hitting Grass instead of Creepers",
+"version": "1.9"
+},
+{
+"id": "cleanview",
+"name": "CleanView",
+"description": "removes potion particles from your viewpoint.",
+"version": "1.21.1-v1-neoforge"
+},
+{
+"id": "clickadv",
+"name": "Clickable Advancements mod",
+"description": "Clickable Advancements lets you click on advancements in chat",
+"version": "3.8"
+},
+{
+"id": "climbable_ropes",
+"name": "Climbable Ropes for Create Aeronautics",
+"description": "Addon for Create: Aeronautics (Simulated module). Adds empty-hand climb modes for hanging rope strands and plunger ropes, plus a wrench-zipline mode for plunger ropes. The original Simulated zipline on hanging ropes is left untouched. The mod runs on both client and dedicated server: the server owns climbing config (auto-synced to clients) and tracks rope-riding state; per-tick climb input is handled client-side.",
+"version": "2.1.0"
+},
+{
+"id": "cloth_config",
+"name": "Cloth Config v15 API",
+"description": "An API for config screens.",
+"version": "15.0.140"
+},
+{
+"id": "cloudglass",
+"name": "Cloud Glass",
+"description": "Decorative semi-transparent glass blocks that can be walked through",
+"version": ""
+},
+{
+"id": "clumps",
+"name": "Clumps",
+"description": "Clumps xp orbs together.",
+"version": "19.0.0.1"
+},
+{
+"id": "cobblegengalore",
+"name": "Cobblegen Galore",
+"description": "Adds block generator blocks for cobble and other block generators",
+"version": "1.21.1-0.2.8"
+},
+{
+"id": "codechickenlib",
+"name": "CodeChicken Lib",
+"description": "CodeChickenLib is a library of systems to help make various aspects of minecraft modding easier. It contains libraries for 3D math and transformations, model rendering, packets, config, colours, asm and a few other things..",
+"version": "4.6.1.526"
+},
+{
+"id": "cognition",
+"name": "Cognition",
+"description": "Overhaul your minecraft experience with strange and arcane technologies",
+"version": "2.4.12"
+},
+{
+"id": "collapsible_groups",
+"name": "Collapsible Groups",
+"description": "Collapsible item/fluid/ingredient groups for JEI. Supports KubeJS scripting.",
+"version": "1.2.3"
+},
+{
+"id": "collective",
+"name": "Collective",
+"description": "Collective is a shared library with common code for all of Serilum's mods.",
+"version": "8.39"
+},
+{
+"id": "colorfulhearts",
+"name": "Colorful Hearts",
+"description": "A client side mod that replaces multiple vanilla heart rows with a single row using colored hearts",
+"version": "10.5.9"
+},
+{
+"id": "comforts",
+"name": "Comforts",
+"description": "Adds sleeping bags and hammocks for, respectively, portability and turning day to night, without setting new spawns. Comes in 16 different colors!",
+"version": "9.0.5+1.21.1"
+},
+{
+"id": "commoncapabilities",
+"name": "CommonCapabilities",
+"description": "Capabilities that can be shared by multiple mods.",
+"version": "2.11.5"
+},
+{
+"id": "compactmachines",
+"name": "Compact Machines",
+"description": "It's all so tiny!",
+"version": "7.0.81"
+},
+{
+"id": "cmpreviewfixer",
+"name": "Compact Machines Preview Fixer",
+"description": "Releases the native and GPU memory that Compact Machines' room preview leaks via Gander's BakedLevel / SpatialRenderer. Each preview open allocates 270 MB+ of off-heap SectionBufferBuilderPack data and VertexBuffers that are never released. This mod hooks MachineRoomScreen.updateScene and MachineRoomScreen.onClose to dispose the prior BakedLevel cleanly on the render thread.",
+"version": "21.1-1.1.0"
+},
+{
+"id": "compressedblocks",
+"name": "Compressed Blocks",
+"description": "CB: Compressed Blocks A Block Compression and Crate mod to organize your storage.",
+"version": "1.7.2-1.21.1"
+},
+{
+"id": "connectedglass",
+"name": "Connected Glass",
+"description": "Connected Glass adds new types of glass with connecting textures!",
+"version": "1.1.14"
+},
+{
+"id": "ctm",
+"name": "ConnectedTexturesMod",
+"description": "Allows resource packs to add connected textures, emissive rendering, and much more.",
+"version": ""
+},
+{
+"id": "connector-2.0.0-beta.14+1.21.1-full",
+"name": "connector-2.0.0-beta.14+1.21.1-full",
+"description": "",
+"version": ""
+},
+{
+"id": "constructionstick",
+"name": "Construction Sticks",
+"description": "Construction Sticks make building easier! With a Construction Stick you can place multiple blocks (up to 1024) at once, extending your build on the side you're facing. If that's not enough: you can upgrade your wand with additional cores, allowing you to place a block behind the block you are facing, conjure blocks in mid air or destroy lots of blocks very fast.",
+"version": ""
+},
+{
+"id": "controlling",
+"name": "Controlling",
+"description": "Adds the ability to search for keybinds using their name in the KeyBinding menu, this allows players to easily find a key binding in the menu.",
+"version": "19.0.5"
+},
+{
+"id": "cookingforblockheads",
+"name": "Cooking for Blockheads",
+"description": "Adds a cooking book and multiblock kitchens that only shows recipes you can make with what you currently have in your inventory.",
+"version": "21.1.23"
+},
+{
+"id": "corgilib",
+"name": "CorgiLib",
+"description": "Library with handy utilities.",
+"version": "5.0.0.9"
+},
+{
+"id": "coroutil",
+"name": "CoroUtil",
+"description": "It utils",
+"version": "1.21.0-1.3.9"
+},
+{
+"id": "cosmeticarmorreworked",
+"name": "CosmeticArmorReworked",
+"description": "This mod allows you to wear two sets of armor, one for display, one for function. You can also hide armor for your skin. For PVP, you can stop the mod from functioning on your client side.",
+"version": "1.21.1-v1-neoforge"
+},
+{
+"id": "cottonly",
+"name": "Cottonly",
+"description": "Cotton Plant",
+"version": "0.16.6"
+},
+{
+"id": "crafting_on_a_stick",
+"name": "Crafting On A Stick",
+"description": "This mod adds multiple workbenches on a stick: - Crafting Table - Anvil - Loom - Grindstone - Grindstone - Cartography Table - Cartography Table - Stonecutter - Smithing Table",
+"version": "1.21.0.4"
+},
+{
+"id": "craftingstation",
+"name": "Crafting Station",
+"description": "A crafting station block that can access adjacent inventories and integrates with JEI.",
+"version": "2.1.1"
+},
+{
+"id": "craftingtweaks",
+"name": "Crafting Tweaks",
+"description": "Allows you to rotate, balance or clear the crafting matrix by the press of a button, in any (supported) crafting window.",
+"version": "21.1.10"
+},
+{
+"id": "crash_assistant",
+"name": "Crash Assistant",
+"description": "Shows a GUI after Minecraft crashes, immediately showing all affected logs, crash reports, or hs_err files. Provides a one-click solution to upload them, copy the link, and perform other actions for easier reporting, debugging, and troubleshooting, like analysis log for the most common crash reasons.",
+"version": "1.11.10"
+},
+{
+"id": "crashutilities",
+"name": "Crash Utilities",
+"description": "Mod for debugging and fixing Modded Minecraft Issues",
+"version": "9.0.4"
+},
+{
+"id": "create",
+"name": "Create",
+"description": "Technology that empowers the player.",
+"version": "6.0.10"
+},
+{
+"id": "aeronautics_bundled",
+"name": "Create Aeronautics",
+"description": "Expands the Create mod with physics-based contraptions, to build anything from cars to planes. This is a bundled JAR that contains Simulated, Aeronautics, and Offroad.",
+"version": "1.3.0"
+},
+{
+"id": "aeronautics_curios_compat",
+"name": "Create Aeronautics Curios Compat",
+"description": "Adds Curios slot and rendering support to the Create Aeronautics Aviator Goggles, and remote LinkedTypewriter usage via Curios slot.",
+"version": "2.0"
+},
+{
+"id": "create_aeronautics_ftb_chunks",
+"name": "Create Aeronautics: FTB Chunks",
+"description": "",
+"version": "1.1.0"
+},
+{
+"id": "create_mekanism_compat",
+"name": "Create Aeronautics: Mekanism Compatibility",
+"description": "Adds Create Aeronautics/Sable support for Mekanism Teleporters, Dimensional Stabilizers, transmitters, Wind Generators, Digital Miners, Lasers, and machine sounds on mounted contraptions. Integrations are enabled by default.",
+"version": "0.1.21"
+},
+{
+"id": "createaddition",
+"name": "Create Crafts & Additions",
+"description": "Create Crafts & Additions extends Create and acts as a bridge between electric and kinetic energy from Create. Join the Discord: https://discord.gg/mRbNnyKTEu Special thanks to: the Create team, the Forge team, and all contributors on the CC&A discord including: AlphaMode, Skippyall, BobDole, legoatoom, gobiidaiah, StockiesLad, THEREDSTONEBRO lawliet__, and Uraxys.",
+"version": "1.6.0"
+},
+{
+"id": "createpropulsion",
+"name": "Create Propulsion: Simulated",
+"description": "A mod that adds propulsion and fuel systems to Create with Sable-focused moving structure support.",
+"version": "1.1.4"
+},
+{
+"id": "createultimine",
+"name": "Create Ultimine",
+"description": "A Create mod addon that supports FTB Ultimine functionality",
+"version": "1.3.2"
+},
+{
+"id": "aeroworks",
+"name": "Create: Aeroworks",
+"description": "A collection of various addons for Create Aeronautics.",
+"version": "1.2.11"
+},
+{
+"id": "copycats",
+"name": "Create: Copycats+",
+"description": "All the copycats you've ever wanted, combined into a single mod!",
+"version": "3.0.4+mc.1.21.1-neoforge"
+},
+{
+"id": "createtransmission",
+"name": "Create: Transmission",
+"description": "This mod adds a single block: Transmission Chain! This block can be used to power belts in a cleaner way without using encased chain drive.",
+"version": "1.2.1+neoforge-create6-1.21.1"
+},
+{
+"id": "creativecore",
+"name": "CreativeCore",
+"description": "A simple but powerful coremod.",
+"version": "2.13.41"
+},
+{
+"id": "creeperoverhaul",
+"name": "Creeper Overhaul",
+"description": "Creeper overhaul adds a variety of different biome-specific creeper types to your world, some friendlier than others :)",
+"version": "4.0.6"
+},
+{
+"id": "cristellib",
+"name": "Cristel Lib",
+"description": "A Library mod for easy structure config and runtime datapacks.",
+"version": "3.1.7"
+},
+{
+"id": "crystalix",
+"name": "Crystalix",
+"description": "Adds a bunch of colored glass blocks with special properties.",
+"version": "3.0.0"
+},
+{
+"id": "cucumber",
+"name": "Cucumber Library",
+"description": "A library of shared code that all of my mods depend on.",
+"version": "8.0.16"
+},
+{
+"id": "cupboard",
+"name": "Cupboard mod",
+"description": "Cupboard library for utilities and configs",
+"version": "3.8"
+},
+{
+"id": "curios",
+"name": "Curios API",
+"description": "A flexible and expandable accessory/equipment API for users and developers.",
+"version": "9.5.1+1.21.1"
+},
+{
+"id": "cpm",
+"name": "Customizable Player Models",
+"description": "Customize your minecraft avatar!",
+"version": "0.6.25a"
+},
+{
+"id": "cyclopscore",
+"name": "Cyclops Core",
+"description": "Coremod for Integrated Dynamics, EvilCraft and others.",
+"version": "1.29.1"
+},
+{
+"id": "defaultoptions",
+"name": "Default Options",
+"description": "A way for modpacks to ship a default (key) configuration without having to include an options.txt file. Also allows local options from any mod .cfg file.",
+"version": "21.1.7"
+},
+{
+"id": "dsp",
+"name": "Default Server Properties",
+"description": "Simple mod that allows modpack developers to define a default server properties file. This is typically used for settings like the default_level_type.",
+"version": "21.0.0"
+},
+{
+"id": "deimos",
+"name": "Deimos",
+"description": "Configuration and data generation library",
+"version": "2.7"
+},
+{
+"id": "dimstorage",
+"name": "DimStorage",
+"description": "DimStorage add a technologic version of ender chest system with owner, frequence selection and lock system.",
+"version": "9.1.1"
+},
+{
+"id": "disconnect_packet_fix",
+"name": "Disconnect Packet Fix",
+"description": "Works around the MC-271325 bug (unknown disconnect packet)",
+"version": "2.0.1"
+},
+{
+"id": "doubledoors",
+"name": "Double Doors",
+"description": "Adds the ability for identical double doors, trapdoors and fence gates to be opened simultaneously via click or pressure plates and buttons.",
+"version": "7.2"
+},
+{
+"id": "draconicevolution",
+"name": "Draconic Evolution",
+"description": "",
+"version": "3.1.4.632"
+},
+{
+"id": "derenderpatcher",
+"name": "Draconic Evolution Render Patcher",
+"description": "Fixes render issues with Draconic Evolution and newer performance mods in Minecraft 1.21.1.",
+"version": "2.0.0"
+},
+{
+"id": "dragonfight",
+"name": "dragonfight mod",
+"description": "dragonfight mod",
+"version": "4.7"
+},
+{
+"id": "dungeoncrawl",
+"name": "Dungeon Crawl",
+"description": "Dungeon Crawl, a spiritual successor to Roguelike Dungeons.",
+"version": "2.3.17"
+},
+{
+"id": "mr_dungeons_andtavernsancientcityoverhaul",
+"name": "Dungeons and Taverns Ancient City Overhaul",
+"description": "Standalone Splinter version of Dungeons and Taverns Ancient City Overhaul",
+"version": "1-v2"
+},
+{
+"id": "durabilitytooltip",
+"name": "Durability Tooltip",
+"description": "Durability Tooltip shows you the durability of an item!",
+"version": "1.1.6"
+},
+{
+"id": "dysoncubeproject",
+"name": "Dyson Cube Project",
+"description": "Harvest the power of the sun by building a Dyson Sphere",
+"version": "1.0.5"
+},
+{
+"id": "easy_piglins",
+"name": "Easy Piglins",
+"description": "Easy Piglins",
+"version": "1.21.1-1.1.0"
+},
+{
+"id": "easy_villagers",
+"name": "Easy Villagers",
+"description": "Easy Villagers",
+"version": "1.21.1-1.1.42"
+},
+{
+"id": "eccentrictome",
+"name": "Eccentric Tome",
+"description": "This mod adds a single item: the Eccentric Tome. The Tome solves a single problem: managing all of your guide books. The Tome allows many (infinite?) books to be combined into a single item, and enables them to be retrieved when needed.",
+"version": "1.21.1-1.2.0"
+},
+{
+"id": "edivadlib",
+"name": "EdivadLib",
+"description": "Just a common library for all my mods",
+"version": "3.0.0"
+},
+{
+"id": "elevatorid",
+"name": "ElevatorMod",
+"description": "Simple port of the elevator from OpenBlocks to 1.8+",
+"version": "1.21.1-1.11.4"
+},
+{
+"id": "emojiful",
+"name": "Emojiful",
+"description": "Adds Emojis to the Game Chat!!!",
+"version": ""
+},
+{
+"id": "enchantableblocks",
+"name": "Enchantable Blocks",
+"description": "Allows enchanting of some blocks to change how they function",
+"version": ""
+},
+{
+"id": "enchdesc",
+"name": "EnchantmentDescriptions",
+"description": "Adds descriptions of enchantment effects to their descriptions.",
+"version": "21.1.10"
+},
+{
+"id": "enderio",
+"name": "Ender IO",
+"description": "Compact conduits, painted things and all sorts of stuff and bling. This is the monolithic jar, containing all core modules.",
+"version": "8.2.11-beta"
+},
+{
+"id": "enderrf",
+"name": "Ender Storage: Energy",
+"description": "Added an additional ender storage item, Ender Energy.",
+"version": "1.0.1"
+},
+{
+"id": "enderdrives",
+"name": "EnderDrives",
+"description": "Adds enderchest like AE2 drives",
+"version": "1.4.4"
+},
+{
+"id": "endermanoverhaul",
+"name": "Enderman Overhaul",
+"description": "Enderman Overhaul adds over 20 new enderman variants, each with their own sounds, models, and animations!",
+"version": "2.0.3"
+},
+{
+"id": "enderstorage",
+"name": "EnderStorage",
+"description": "Stores your stuff in the END! Credits: Ecu - original idea, design, chest and pouch texture Rosethorns - tank model Soaryn - tank texture",
+"version": "2.13.0.191"
+},
+{
+"id": "energymeter",
+"name": "Energy Meter",
+"description": "Easily measure your energy rates.",
+"version": "1.21.1-0.4.1"
+},
+{
+"id": "entangled",
+"name": "Entangled",
+"description": "Entangled allows you to 'entangle' two blocks together!",
+"version": "1.3.21"
+},
+{
+"id": "eternal_starlight",
+"name": "Eternal Starlight",
+"description": "A minecraft mod that adds the magical and mysterious starlight dimension",
+"version": "0.8.1+1.21.1+neoforge"
+},
+{
+"id": "euphoria_patcher",
+"name": "Euphoria Patcher",
+"description": "A mod that applies the Euphoria Patches add-on to Complementary Shaders. Enable and Change Euphoria Patches Settings in the shaderpack settings menu Report issues on discord!",
+"version": "1.9.3-r5.8.1-neoforge"
+},
+{
+"id": "eventslib",
+"name": "EventsLib",
+"description": "An events library adding in missing event listeners",
+"version": "1.0.57"
+},
+{
+"id": "explorerscompass",
+"name": "Explorer's Compass",
+"description": "Search for and locate structures anywhere in the world.",
+"version": "1.21.1-3.4.0-neoforge"
+},
+{
+"id": "explosiveenhancement",
+"name": "Explosive Enhancement",
+"description": "Explosive Enhancement.",
+"version": "1.1.2"
+},
+{
+"id": "extended_industrialization",
+"name": "Extended Industrialization",
+"description": "An addon mod that extends the content in Modern Industrialization",
+"version": "1.15.43-1.21.1"
+},
+{
+"id": "extendedae",
+"name": "ExtendedAE",
+"description": "Add some QoL extended contents for AE2",
+"version": "1.21-2.2.33-neoforge"
+},
+{
+"id": "extrastorage",
+"name": "ExtraStorage",
+"description": "ExtraStorage adds new blocks to Refined Storage",
+"version": "5.0.10"
+},
+{
+"id": "extremesoundmuffler",
+"name": "Extreme Sound Muffler",
+"description": "This mod allows you to muffle (almost) any sound selectively, allowing you to choose the volume of the sound you want between mute and 90%. This mod also works Clientside only.",
+"version": "3.56"
+},
+{
+"id": "fadingnightvision",
+"name": "Fading Night Vision",
+"description": "Fades in and out the night vision effect",
+"version": "1.3"
+},
+{
+"id": "fancymenu",
+"name": "FancyMenu",
+"description": "Customize Minecraft's menus with ease!",
+"version": "3.9.6"
+},
+{
+"id": "fargostalismans",
+"name": "Fargo's Talismans",
+"description": "A Fargo's inspiried set of equipable talismans",
+"version": "2.3.1"
+},
+{
+"id": "mr_farmers_cuttingohthebiomeswevegone",
+"name": "Farmer's Cutting: Oh The Biomes We've Gone",
+"description": "Adds Farmer's Delight cutting recipes for Oh The Biomes We've Gone",
+"version": "1.21.1-2.1-neoforge"
+},
+{
+"id": "farmersdelight",
+"name": "Farmer's Delight",
+"description": "A cozy farming and cooking expansion for Minecraft!",
+"version": "1.3.2"
+},
+{
+"id": "farmingforblockheads",
+"name": "Farming for Blockheads",
+"description": "Adds a seed market with a search bar and a scrolling grid and more farming utilities.",
+"version": "21.1.13"
+},
+{
+"id": "featurerecycler",
+"name": "Feature Recycler",
+"description": "Fixes the \"Feature order cycle\" error that occurs when various mods add placed features in different orders between their biomes. It does this by automatically recycling(resorting) their biome features to respect the rules set by a previous biome containing the same 2 elements.",
+"version": "2.0.0"
+},
+{
+"id": "ferritecore",
+"name": "Ferrite Core",
+"description": "Reduces memory usage.",
+"version": "7.0.3"
+},
+{
+"id": "findme",
+"name": "FindMe",
+"description": "FindMe allows you to search for items in nearby inventories by pressing a key.\"",
+"version": "3.3.3"
+},
+{
+"id": "flatbedrock",
+"name": "Flat Bedrock",
+"description": "This mod changes the vanilia bedrock generator to make flat bedrock in the overworld and nether",
+"version": "87.0.0"
+},
+{
+"id": "flickerfix",
+"name": "FlickerFix",
+"description": "Disables nightvision flickering when duration goes below 10 seconds.",
+"version": "6.1.0"
+},
+{
+"id": "flopper",
+"name": "Flopper",
+"description": "The Flopper is an early-game block to move around fluids, just like the Hopper does for items.",
+"version": "1.1.8"
+},
+{
+"id": "flourish",
+"name": "Flourish",
+"description": "Spread small flowers with bonemeal.",
+"version": "21.1.0"
+},
+{
+"id": "flowerpatch",
+"name": "Flower Patch",
+"description": "Allows you to combine multiple of the same flower similar to how you can have multiple sea pickles and candles in a block space.",
+"version": ""
+},
+{
+"id": "fluxnetworks",
+"name": "Flux Networks",
+"description": "Wireless Energy Networks",
+"version": "8.0.0"
+},
+{
+"id": "forbidden_arcanus",
+"name": "Forbidden Arcanus",
+"description": "",
+"version": "2.6.1"
+},
+{
+"id": "fabric_api",
+"name": "Forgified Fabric API",
+"description": "Core API module providing key hooks and intercompatibility features.",
+"version": ""
+},
+{
+"id": "forgified_fabric_api",
+"name": "Forgified Fabric API (dummy)",
+"description": "Dependency target for other mods",
+"version": ""
+},
+{
+"id": "framedblocks",
+"name": "FramedBlocks",
+"description": "Fancy building blocks",
+"version": "10.6.1"
+},
+{
+"id": "ftbauxilium",
+"name": "FTB Auxilium",
+"description": "Stats!",
+"version": "21.1.5"
+},
+{
+"id": "ftbbackups3",
+"name": "FTB Backups 3",
+"description": "Creates backups of your world",
+"version": "21.1.5"
+},
+{
+"id": "ftbchunks",
+"name": "FTB Chunks",
+"description": "Claim chunks to protect your base from griefers!",
+"version": "2101.1.20"
+},
+{
+"id": "ftbessentials",
+"name": "FTB Essentials",
+"description": "Adds many essential utility commands for servers",
+"version": "2101.1.9"
+},
+{
+"id": "ftbezcrystals",
+"name": "FTB EZ Crystals",
+"description": "FTB Ez Crystals is a lightweight quality-of-life mod that allows players to right-click budding amethyst blocks to instantly harvest a full amethyst cluster without breaking the block or waiting for growth stages. Designed for seamless integration and automation support, this mod simplifies crystal farming mechanics with minimal performance impact.",
+"version": "21.1.1"
+},
+{
+"id": "ftbfiltersystem",
+"name": "FTB Filter System",
+"description": "Smart and highly configurable item filtering system with useful GUI configuration",
+"version": "21.1.4"
+},
+{
+"id": "ftbjeiextras",
+"name": "FTB Jei Extras",
+"description": "Stand in mod to add extra JEI support for mods that don't have it.",
+"version": "21.1.7"
+},
+{
+"id": "ftblibrary",
+"name": "FTB Library",
+"description": "FTB Library adds nothing.",
+"version": "2101.1.32"
+},
+{
+"id": "ftbmaterials",
+"name": "FTB Materials",
+"description": "This is an example description! Tell everyone what your mod is about!",
+"version": "21.1.3"
+},
+{
+"id": "ftbobsidian",
+"name": "FTB Obsidian",
+"description": "Description",
+"version": "21.1.0"
+},
+{
+"id": "ftbpc",
+"name": "FTB Pack Companion",
+"description": "A Modpack developers best friend",
+"version": "21.1.21"
+},
+{
+"id": "ftbpmapi",
+"name": "FTB Pause Menu API",
+"description": "Unification API for mods modifying the pause menu.",
+"version": "21.1.3"
+},
+{
+"id": "ftbpromoter",
+"name": "FTB Promoter",
+"description": "Promotes our partners via GUI hits in-game.",
+"version": "21.1.62"
+},
+{
+"id": "ftbquests",
+"name": "FTB Quests",
+"description": "Lets you easily create and play with quests",
+"version": "2101.1.27"
+},
+{
+"id": "ftbranks",
+"name": "FTB Ranks",
+"description": "A simple mod that lets you create ranks for players, similar to Discord roles, and manage permissions for them",
+"version": "2101.1.3"
+},
+{
+"id": "ftbteams",
+"name": "FTB Teams",
+"description": "FTB Teams adds ability to create your own teams that can be used for quests etc.",
+"version": "2101.1.10"
+},
+{
+"id": "ftbultimine",
+"name": "FTB Ultimine",
+"description": "Allows you to break multiple blocks at once",
+"version": "2101.1.15"
+},
+{
+"id": "ftbxmodcompat",
+"name": "FTB XMod Compat",
+"description": "Provides cross-mod compatibilty/integration for all main FTB mods",
+"version": "21.1.8"
+},
+{
+"id": "functionalstorage",
+"name": "Functional Storage",
+"description": "Functional Storage",
+"version": ""
+},
+{
+"id": "fusion",
+"name": "Fusion",
+"description": "Fusion allows resource packs to use additional texture and model types such as connected textures!",
+"version": "1.3.3"
+},
+{
+"id": "fzzy_config",
+"name": "Fzzy Config",
+"description": "Configuration engine with automatic GUI generation, client-server syncing, powerful validation and error handling, and much more.",
+"version": "0.7.6+1.21+neoforge"
+},
+{
+"id": "gag",
+"name": "Gadgets Against Grind",
+"description": "A Minecraft mod that adds various different utility items and blocks!",
+"version": "1.21.1-5.2.0"
+},
+{
+"id": "gateways",
+"name": "Gateways To Eternity",
+"description": "Adds combat-based events which provide various rewards and challenges.",
+"version": "5.1.0"
+},
+{
+"id": "rsgauges",
+"name": "Gauges and Switches",
+"description": "Adds redstone metering gauges, levers, buttons, pressure plates, and all sorts of other sensors and detector switches to the game.",
+"version": "1.1.1"
+},
+{
+"id": "gaze",
+"name": "Gaze",
+"description": "A Malum addon that expands dark magic rituals and progression.",
+"version": "1.1.7.1"
+},
+{
+"id": "geckolib",
+"name": "GeckoLib 4",
+"description": "GeckoLib is an animation engine for Minecraft Mods, with support for complex 3D keyframe-based animations, 30+ easings, concurrent animation support, sound and particle keyframes, event keyframes, and more.",
+"version": "4.9.2"
+},
+{
+"id": "geneticsresequenced",
+"name": "Genetics: Resequenced",
+"description": "Extract mobs' Genes to gain their powers!",
+"version": "1.13.1"
+},
+{
+"id": "geore",
+"name": "GeOre",
+"description": "This mod takes heavy inspiration of the vanilla amethyst geode feature and applies it to other valuables to.",
+"version": ""
+},
+{
+"id": "georenouveau",
+"name": "GeOre Nouveau",
+"description": "Small addon mod for GeOre and Ars Nouveau",
+"version": ""
+},
+{
+"id": "glassential",
+"name": "Glassential-renewed",
+"description": "Various glasses for all your decorative needs.",
+"version": "3.4.4"
+},
+{
+"id": "glodium",
+"name": "Glodium",
+"description": "Codelib",
+"version": "1.21-2.2-neoforge"
+},
+{
+"id": "gmut",
+"name": "Gravitational Modulating Additional Unit",
+"description": "",
+"version": "6.4"
+},
+{
+"id": "growthacceleratortiers",
+"name": "Growth Accelerator Tiers",
+"description": "A simple mod that adds multiple tiers to the Applied Energistics 2 Growth Accelerators",
+"version": "1.0.4"
+},
+{
+"id": "guideme",
+"name": "GuideME",
+"description": "GuideME offers the foundation for your mods or modpacks guidebook.",
+"version": "21.1.16"
+},
+{
+"id": "handcrafted",
+"name": "Handcrafted",
+"description": "Epic Furniture mod!",
+"version": "4.0.3"
+},
+{
+"id": "hangglider",
+"name": "Hang Glider",
+"description": "Soar through the skies and explore the world's beauty with your brand-new hang glider!",
+"version": "21.1.0"
+},
+{
+"id": "heads",
+"name": "Heads",
+"description": "Adds more mob heads to the game",
+"version": ""
+},
+{
+"id": "hexerei",
+"name": "Hexerei",
+"description": "Magic/Exploration/Storage Mod",
+"version": "0.5"
+},
+{
+"id": "horsingaround",
+"name": "Horsing Around",
+"description": "Insert horse pun: neigh",
+"version": ""
+},
+{
+"id": "hostilenetworks",
+"name": "Hostile Neural Networks",
+"description": "Defeating hostile entities - but in simulations!",
+"version": "6.4.2"
+},
+{
+"id": "hyperbox",
+"name": "Hyperbox",
+"description": "The Hyperbox mod adds a block that's bigger on the inside than it is on the outside. The faces of the hyperbox on the outside are connected to the faces on the inside, and will transfer redstone power and forge capabilities. Right-click the hyperbox to travel inside it; right-click an inner aperture to exit the hyperbox.",
+"version": ""
+},
+{
+"id": "imfast",
+"name": "I'm Fast",
+"description": "A modern solution using mixin to remove minecraft speed limit",
+"version": "1.0.2"
+},
+{
+"id": "iceberg",
+"name": "Iceberg",
+"description": "A library containing events, helpers, and utilities to make modding easier.",
+"version": "1.3.2"
+},
+{
+"id": "ichunutil",
+"name": "iChunUtil",
+"description": "Shared library mod required by most of iChun's Mods.",
+"version": "1.0.3"
+},
+{
+"id": "immediatelyfast",
+"name": "ImmediatelyFast",
+"description": "Speed up and optimize immediate mode rendering in Minecraft",
+"version": "1.6.11+1.21.1"
+},
+{
+"id": "immersiveengineering",
+"name": "Immersive Engineering",
+"description": "A tech based mod focused on realism.",
+"version": "12.4.2-194"
+},
+{
+"id": "industrialforegoing",
+"name": "Industrial Foregoing",
+"description": "Automate Everything",
+"version": "1.21-3.6.38"
+},
+{
+"id": "industrialforegoingsouls",
+"name": "Industrial Foregoing Souls",
+"description": "Industrial Foregoing Souls",
+"version": "1.10.7"
+},
+{
+"id": "industrialization_overdrive",
+"name": "Industrialization Overdrive",
+"description": "Addon for Modern Industrialization that adds more machines.",
+"version": "1.11.2+1.21.1"
+},
+{
+"id": "infinity_cave",
+"name": "Infinity Cave",
+"description": "Infinity Cave adds a seemingly infinite cave system beneath the bedrock layer increasing the bedrock layer from -64 to -128. With this comes many new challenges and an overall different way of experiencing PvE.",
+"version": "0.7"
+},
+{
+"id": "integratedcrafting",
+"name": "IntegratedCrafting",
+"description": "Craft stuff in Integrated Dynamics networks.",
+"version": "1.4.6"
+},
+{
+"id": "integrateddynamics",
+"name": "IntegratedDynamics",
+"description": "Take full and automated control of your appliances.",
+"version": "1.33.3"
+},
+{
+"id": "integrateddynamicscompat",
+"name": "IntegratedDynamics-Compat",
+"description": "Integrated Dynamics compatibility with other mods.",
+"version": "1.0.0"
+},
+{
+"id": "integratedmekanism",
+"name": "IntegratedMekanism",
+"description": "Compability mod between Mekanism and the Integrated Dynamics mods.",
+"version": "1.0.4"
+},
+{
+"id": "integratedterminals",
+"name": "IntegratedTerminals",
+"description": "Terminals for managing and overviewing Integrated Dynamics networks.",
+"version": "1.7.0"
+},
+{
+"id": "integratedterminalscompat",
+"name": "IntegratedTerminals-Compat",
+"description": "Integrated Terminals compatibility with other mods. This mod is automatically packaged with Integrated Terminals.",
+"version": "1.0.0"
+},
+{
+"id": "integratedtunnels",
+"name": "IntegratedTunnels",
+"description": "Transfer other stuff over Integrated Dynamics networks.",
+"version": "1.9.4"
+},
+{
+"id": "integratedtunnelscompat",
+"name": "IntegratedTunnels-Compat",
+"description": "Integrated Tunnels compatibility with other mods.",
+"version": ""
+},
+{
+"id": "inventoryessentials",
+"name": "Inventory Essentials",
+"description": "Basic inventory tweaks. Lightweight and compatible.",
+"version": "21.1.16"
+},
+{
+"id": "inventorytotem",
+"name": "Inventory Totem",
+"description": "Makes the totem of undying effect work when existing in the player's inventory.",
+"version": "3.4"
+},
+{
+"id": "iris",
+"name": "Iris",
+"description": "Iris is a modern shaders mod for Minecraft intended to be compatible with existing OptiFine shader packs.",
+"version": "1.8.14-beta.1+mc1.21.1"
+},
+{
+"id": "ironfurnaces",
+"name": "Iron Furnaces",
+"description": "IronFurnaces introduces a selection of metal furnaces, offering different tiers to fulfill your smelting needs effortlessly.",
+"version": "4.3.2"
+},
+{
+"id": "ironjetpacks",
+"name": "Iron Jetpacks",
+"description": "A fully customizable FE powered jetpacks mod!",
+"version": "8.0.11"
+},
+{
+"id": "irons_apothic",
+"name": "Iron's Apothic",
+"description": "Compatibility between Apotheosis and Iron's Spells 'n Spellbooks",
+"version": "2.2.0"
+},
+{
+"id": "irons_lib",
+"name": "Iron's Lib",
+"description": "Provides common functionality and content for Iron431's mods.",
+"version": "1.21.1-1.1.0"
+},
+{
+"id": "irons_spellbooks",
+"name": "Iron's Spells 'n Spellbooks",
+"description": "A magic mod for Minecraft returning to the classic RPG spellcasting fantasy.",
+"version": "1.21.1-3.16.1"
+},
+{
+"id": "itemcollectors",
+"name": "Item Collectors",
+"description": "Item Collectors adds Collectors which collect items in a specified range! Item Collectors range can be changed and items can be whitelisted or blacklisted!",
+"version": "1.1.10"
+},
+{
+"id": "jade",
+"name": "Jade",
+"description": "Minecraft mod shows what you are looking at. (Hwyla fork)",
+"version": ""
+},
+{
+"id": "sablejade",
+"name": "Jade Sable Compat",
+"description": "Fixes Jade block targeting and tooltip selection for blocks on Sable sublevels and moving constructions.",
+"version": "1.2.1"
+},
+{
+"id": "jamlib",
+"name": "JamLib",
+"description": "The platform-agnostic library used in all of JamCore's mods",
+"version": "1.3.6+1.21.1"
+},
+{
+"id": "jaopca",
+"name": "JAOPCA",
+"description": "A mod that aims to make mods with ore processing support more ores.",
+"version": "5.0.13.22"
+},
+{
+"id": "jumbofurnace",
+"name": "Jumbo Furnace",
+"description": "Jumbo Furnaces are created when a player places 27 standard furnaces in a 3x3x3 cubes. Jumbo furnaces can smelt multiple items at once.",
+"version": ""
+},
+{
+"id": "jumpoverfences",
+"name": "Jump Over Fences",
+"description": "Fences! You can jump over them!",
+"version": ""
+},
+{
+"id": "jumpboat",
+"name": "Jumpy Boats",
+"description": "Makes it possible to jump a little while in a boat to transition from water to ground. See if you can find a boat.",
+"version": "1.21.0-1.0.5"
+},
+{
+"id": "jamd",
+"name": "Just Another Mining Dimension",
+"description": "Adds a mining dimension to the game.",
+"version": "21.1.1"
+},
+{
+"id": "javd",
+"name": "Just Another Void Dimension",
+"description": "Adds a void dimension to the game.",
+"version": "9.0.0"
+},
+{
+"id": "justdirefuels",
+"name": "Just Dire Fuels",
+"description": "Data-driven fuels for Just Dire Things. Datapack-overridable FE/mB and FE/tick for the fluid and solid generators, surfaced in JEI.",
+"version": "1.0.0"
+},
+{
+"id": "justdirethings",
+"name": "Just Dire Things",
+"description": "Just some things that Direwolf20 wanted.",
+"version": "1.5.7"
+},
+{
+"id": "jearchaeology",
+"name": "Just Enough Archaeology",
+"description": "JEI and EMI integration for the archaeology system and for sniffers added in 1.20",
+"version": "1.21.1-1.2.0"
+},
+{
+"id": "justenoughbreeding",
+"name": "Just Enough Breeding",
+"description": "JEI/REI/EMI plugin that displays breeding information",
+"version": "3.1.0"
+},
+{
+"id": "jei",
+"name": "Just Enough Items",
+"description": "JEI is an item and recipe viewing mod for Minecraft, built from the ground up for stability and performance.",
+"version": "19.27.0.344"
+},
+{
+"id": "jei_mekanism_multiblocks",
+"name": "Just Enough Mekanism Multiblocks",
+"description": "Add JEI page for calculate mekanism multiblock cost",
+"version": "7.15"
+},
+{
+"id": "justenoughprofessions",
+"name": "Just Enough Professions (JEP)",
+"description": "Adds info about professions to JEI",
+"version": ""
+},
+{
+"id": "jeresources",
+"name": "Just Enough Resources",
+"description": "Adds Resources and Mob Drops to JEI",
+"version": "1.6.0.17"
+},
+{
+"id": "justhammers",
+"name": "Just Hammers",
+"description": "Add hammers to the game that are able to mine in a 3x3, 3x3x3, 5x5x3 and finally a 5x5x5! They're pretty awesome.",
+"version": "21.1.4"
+},
+{
+"id": "justzoom",
+"name": "Just Zoom",
+"description": "Zoom by pressing a hotkey and adjust the zoom factor with your mouse wheel!",
+"version": "2.1.0"
+},
+{
+"id": "konkrete",
+"name": "Konkrete",
+"description": "Library for Keksuccino's mods.",
+"version": "1.9.9"
+},
+{
+"id": "kotlinforforge-5.12.0-all",
+"name": "kotlinforforge-5.12.0-all",
+"description": "",
+"version": ""
+},
+{
+"id": "kubejs",
+"name": "KubeJS",
+"description": "Customize your modpack or server with JavaScript!",
+"version": "2101.7.2-build.368"
+},
+{
+"id": "kubejs_mekanism",
+"name": "KubeJS Mekanism",
+"description": "KubeJS Mekanism integration",
+"version": "2101.1.7-build.18"
+},
+{
+"id": "cataclysm",
+"name": "L_Ender's Cataclysm 1.21.1",
+"description": "https://www.curseforge.com/minecraft/texture-packs/cataclysmic-tunes",
+"version": "3.31-optimaztion2"
+},
+{
+"id": "laserbridges",
+"name": "Laser Bridges & Doors",
+"description": "Laser Bridges & Doors",
+"version": "5.3"
+},
+{
+"id": "laserio",
+"name": "LaserIO",
+"description": "Can't have DireWire without Wire!",
+"version": "1.9.11"
+},
+{
+"id": "lionfishapi",
+"name": "lionfishapi",
+"description": "",
+"version": "3.1"
+},
+{
+"id": "lithostitched",
+"name": "Lithostitched",
+"description": "A library mod with new configurability and compatibility enhancements for worldgen",
+"version": "1.7.10+beta4"
+},
+{
+"id": "little_big_redstone",
+"name": "Little Big Redstone",
+"description": "Compact your big redstone into a little block!",
+"version": "1.9.1-1.21.1"
+},
+{
+"id": "lodestone",
+"name": "Lodestone",
+"description": "A library containing various utilities.",
+"version": "1.8.2"
+},
+{
+"id": "lootintegrations",
+"name": "Lootintegrations mod",
+"description": "Integrates items from loottables into other loottables for intermod loot compatibility",
+"version": "4.7"
+},
+{
+"id": "lootintegrations_ctov",
+"name": "lootintegrations_ctov mod",
+"description": "lootintegrations_ctov mod",
+"version": "1"
+},
+{
+"id": "lootintegrations_yungs",
+"name": "lootintegrations_yungs mod",
+"description": "lootintegrations_yungs mod",
+"version": "1"
+},
+{
+"id": "lootjs",
+"name": "LootJS",
+"description": "Modify loot through KubeJS.",
+"version": "1.21.1-3.7.0"
+},
+{
+"id": "lootr",
+"name": "Lootr",
+"description": "Generates unique loot for each player that opens a loot container.",
+"version": "1.21.1-1.11.37.121"
+},
+{
+"id": "mcwfurnitures",
+"name": "Macaw's Furniture",
+"description": "Chairs, Wardrobes, Drawers, Tables, Desks and more..!",
+"version": "3.4.1"
+},
+{
+"id": "mcwlights",
+"name": "Macaw's Lights and Lamps",
+"description": "Make your worlds brighter with lamps, tiki torches, paper lamps and more!",
+"version": "1.1.5"
+},
+{
+"id": "magic_doorknob",
+"name": "Magic Doorknob",
+"description": "A doorknob that does not require a door.",
+"version": ""
+},
+{
+"id": "malum",
+"name": "Malum",
+"description": "A dark magic mod focused on soul and spirit magic.",
+"version": "1.8.2"
+},
+{
+"id": "mcef",
+"name": "MCEF (Minecraft Chromium Embedded Framework)",
+"description": "Library mod for rendering a Chromium-based browser in Minecraft.",
+"version": "2.2.0"
+},
+{
+"id": "mcjtylib",
+"name": "McJtyLib",
+"description": "Base mod for all McJty mods",
+"version": ""
+},
+{
+"id": "merequester",
+"name": "ME Requester",
+"description": "Keep resources in your ME-System in stock.",
+"version": "1.21.1-1.4.3"
+},
+{
+"id": "measurements",
+"name": "Measurements",
+"description": "Measure the distance between positions :)",
+"version": ""
+},
+{
+"id": "megacells",
+"name": "MEGA Cells",
+"description": "ME Greater Accumulation Cells - For when kilobytes just won't do.",
+"version": "4.11.0"
+},
+{
+"id": "mekanism",
+"name": "Mekanism",
+"description": "Mekanism is a Minecraft add-on featuring high-tech machinery that can be used to create powerful tools, armor, and weapons.",
+"version": "10.7.19"
+},
+{
+"id": "mekanismcovers",
+"name": "Mekanism Covers",
+"description": "Adds covers to Mekanism cables and pipes.",
+"version": "1.3-BETA+1.21"
+},
+{
+"id": "mekanism_lasers",
+"name": "Mekanism Lasers",
+"description": "Mekanism Lasers mod adds a lot more features to mekanism lasers!",
+"version": "1.1.10.3-a"
+},
+{
+"id": "mekanism_turrets",
+"name": "Mekanism Turrets",
+"description": "An addon for Mekanism that adds turrets",
+"version": "2.2.3"
+},
+{
+"id": "mekanism_unleashed",
+"name": "Mekanism Unleashed",
+"description": "Ever wanted to add more than 8 speed/energy upgrades to your mekanism machines? Well... Now you can, go nuts.",
+"version": "1.21.1-0.3.4"
+},
+{
+"id": "mekanismadditions",
+"name": "Mekanism: Additions",
+"description": "Additions module for Mekanism, contains miscellaneous things that do not thematically fit in the other modules.",
+"version": "10.7.19"
+},
+{
+"id": "mekanismgenerators",
+"name": "Mekanism: Generators",
+"description": "Generators module for Mekanism",
+"version": "10.7.19"
+},
+{
+"id": "mekanismtools",
+"name": "Mekanism: Tools",
+"description": "Tools module for Mekanism",
+"version": "10.7.19"
+},
+{
+"id": "melody",
+"name": "Melody",
+"description": "OpenAL-based library mod to play background music.",
+"version": "1.0.10"
+},
+{
+"id": "mi_tweaks",
+"name": "MI Tweaks",
+"description": "Some tweaks to MI for pack creators and addon devs.",
+"version": "1.9.2-1.21.1"
+},
+{
+"id": "mininggadgets",
+"name": "Mining Gadgets",
+"description": "Mining is better with lasers.",
+"version": "1.18.6"
+},
+{
+"id": "minis",
+"name": "Minis",
+"description": "Adds Tiny Player Entities to Minecraft",
+"version": "1.21.1-1.0.0.25"
+},
+{
+"id": "dummmmmmy",
+"name": "MmmMmmMmmMmm",
+"description": "Don't hurt me pls :S",
+"version": "1.21-2.0.12"
+},
+{
+"id": "mob_grinding_utils",
+"name": "Mob Grinding Utils",
+"description": "A mod that adds a fun ways to farm mobs",
+"version": ""
+},
+{
+"id": "mob_tag_fixes",
+"name": "Mob Tag Fixes",
+"description": "Adds modded mobs to the vanilla entity type tags they belong in, so smite, raids, and bane of arthropods work on them. Every entry is a soft tag addition. A per-mod config can turn off any mod's additions, and a datapack can remove individual entries you disagree with.",
+"version": "1.0.0"
+},
+{
+"id": "moderndynamics",
+"name": "Modern Dynamics",
+"description": "Modern item, fluid and energy transport Minecraft mod.",
+"version": "0.9.6"
+},
+{
+"id": "modern_industrialization",
+"name": "Modern Industrialization",
+"description": "A modern industrial mod for Minecraft.",
+"version": "2.5.0"
+},
+{
+"id": "modernfix",
+"name": "ModernFix",
+"description": "Egregious, yet effective performance improvements for modern Minecraft",
+"version": "5.27.14+mc1.21.1"
+},
+{
+"id": "modonomicon",
+"name": "Modonomicon",
+"description": "Data-driven minecraft in-game documentation with progress visualization.",
+"version": "1.120.1"
+},
+{
+"id": "mffs",
+"name": "Modular Force Field System",
+"description": "Modular Force Field System is a mod that adds force fields, high tech machinery and defensive measures to Minecraft. Ever tired of nuclear explosions blowing up your house or want to keep people out of your secret bases? May the force (fields) be with you!",
+"version": ""
+},
+{
+"id": "modularrouters",
+"name": "Modular Routers",
+"description": "Modular Routers is a highly flexible mod for moving items/fluids/energy around the world in various ways.",
+"version": "13.2.5"
+},
+{
+"id": "moogs_structures",
+"name": "Moog's Structure Lib",
+"description": "Moogs Structure Lib is a library mod used to generate the structures from the moog structure mods. Feel free to use it for your own projects and mods.",
+"version": "3.0.0"
+},
+{
+"id": "mes",
+"name": "MoogsEndStructures",
+"description": "Lots of vanilla style structures to bring your end dimension to life! With plenty of mobs and great loot",
+"version": "2.0.3"
+},
+{
+"id": "mss",
+"name": "MoogsSoaringStructures",
+"description": "Moogs Soaring Structures brings life, fun and variety to your Minecraft world! Explore awesome new structures made with vanilla blocks and entities, and discover loot, enemies, and villagers along the way. This mod is compatible with any modpack and keeps the vanilla feel of the game!",
+"version": "2.1.2"
+},
+{
+"id": "moonlight",
+"name": "Moonlight Lib",
+"description": "A small library with many cool unique features, from dynamic asset generation to dynamic villager schedules, data driven trades and Map Markers, simple multi loader utilities and more",
+"version": "1.21.1-3.0.22"
+},
+{
+"id": "moreoverlays",
+"name": "More Overlays Updated",
+"description": "Adds some of the overlays from the old (MC 1.7.x) NotEnoughItems Mod: * Chunk and Region borders * Mob spawn / Light overlay * Item search when JEI (JustEnoughItems by Mezz) is installed Built for MC 1.21.1 (NeoForge)",
+"version": "1.24.2"
+},
+{
+"id": "morered",
+"name": "More Red",
+"description": "This mod adds a bunch of redstone logic gate plate blocks. Once you've crafted and placed the blocks, you can rotate them by poking them with a stick.",
+"version": ""
+},
+{
+"id": "moreredxcctcompat",
+"name": "More Red x CC:Tweaked Compat",
+"description": "Adds support for More Red colored and bundled cables to CC:Tweaked computers",
+"version": "1.21.1-1.3.0"
+},
+{
+"id": "morejs",
+"name": "MoreJS",
+"description": "More KubeJS stuff.",
+"version": "1.21.1-0.16.0"
+},
+{
+"id": "mousetweaks",
+"name": "Mouse Tweaks",
+"description": "A mod that enhances the inventory management by adding various additional functions to the usual mouse buttons.",
+"version": "2.26.1"
+},
+{
+"id": "mysticalagradditions",
+"name": "Mystical Agradditions",
+"description": "Grow all your resources!",
+"version": "8.0.13"
+},
+{
+"id": "mysticalagriculture",
+"name": "Mystical Agriculture",
+"description": "Grow all your resources!",
+"version": "8.0.27"
+},
+{
+"id": "mysticalcustomization",
+"name": "Mystical Customization",
+"description": "Allows modpack creators to add new content and modify existing content in Mystical Agriculture.",
+"version": "6.0.2"
+},
+{
+"id": "nanny",
+"name": "NaNny",
+"description": "Because some mods can't keep their floats in control.",
+"version": "1.0.1"
+},
+{
+"id": "naturescompass",
+"name": "Nature's Compass",
+"description": "Search for a biome and get information about it.",
+"version": "1.21.1-3.4.0-neoforge"
+},
+{
+"id": "nautec",
+"name": "NauTec",
+"description": "Mod for the curseforge 2024 modjam",
+"version": "0.4.1"
+},
+{
+"id": "neat",
+"name": "Neat",
+"description": "Minimalistic Functional Unit Plates for the modern Minecrafter",
+"version": "1.21-47-NEOFORGE"
+},
+{
+"id": "neovitae",
+"name": "Neo Vitae",
+"description": "A magical mod that focuses on the power of blood.",
+"version": "1.0.25"
+},
+{
+"id": "neo_auth",
+"name": "NeoAuth",
+"description": "A Neoforge port of AuthMe",
+"version": ""
+},
+{
+"id": "netherportalfix",
+"name": "NetherPortalFix",
+"description": "Ensures correct destinations when travelling back and forth through Nether Portals in Multiplayer.",
+"version": "21.1.1"
+},
+{
+"id": "nolijium",
+"name": "Nolijium",
+"description": "Various QoL enhancements by Nolij",
+"version": "0.5.6"
+},
+{
+"id": "not_enough_glyphs",
+"name": "Not Enough Glyphs",
+"description": "A mixed bag of add-ons to make Ars Nouveau spells more flexible, more intelligent, or maybe in a few cases just crazy convoluted combos. Also includes the spellbinder and its focus threads.",
+"version": ""
+},
+{
+"id": "nerb",
+"name": "Not Enough Recipe Book",
+"description": "Optimization tool that removes Minecraft's recipe book",
+"version": "0.4.3"
+},
+{
+"id": "nullscape",
+"name": "Nullscape",
+"description": "Transforms the boring Vanilla end into an alien dimension with the most surreal terrain imaginable. Topped with a couple of new biomes to add to the experience, whilst keeping the end desolate.",
+"version": "1.2.14"
+},
+{
+"id": "obsidianboat",
+"name": "Obsidian Boat",
+"description": "Adds an Obsidian Boat that works on lava",
+"version": "21.1.2"
+},
+{
+"id": "occultism",
+"name": "Occultism",
+"description": "A magic mod inspired by the world of Jonathan Stroud's Bartimaeus. With the help of occult rituals players can summon entities from the \"Other Side\" to perform magic.",
+"version": "1.223.0"
+},
+{
+"id": "octolib",
+"name": "OctoLib",
+"description": "Collection of shared code for OctoStudios' mods",
+"version": "0.6.2"
+},
+{
+"id": "biomeswevegone",
+"name": "Oh The Biomes We've Gone",
+"description": "Sequel to Oh The Biomes You'll Go, this mod adds a variety of new biomes to the game.",
+"version": "2.6.0"
+},
+{
+"id": "ohthetreesyoullgrow",
+"name": "Oh The Trees You'll Grow",
+"description": "A Minecraft library that aims to give users incredible configurability by allowing the creation of trees with Minecraft's structure template `.nbt` files.",
+"version": "5.3.2"
+},
+{
+"id": "oracle_index",
+"name": "Oracle Index",
+"description": "Multiplatform Wiki / Documentation mod for content from moddedmc.wiki",
+"version": "1.3.0"
+},
+{
+"id": "oritech",
+"name": "Oritech",
+"description": "Simple tech mod.",
+"version": "1.2.8"
+},
+{
+"id": "oritechthings",
+"name": "Oritech Things",
+"description": "Some additional things for Oritech mod.",
+"version": "0.0.44"
+},
+{
+"id": "overloadedarmorbar",
+"name": "OverloadedArmorBar",
+"description": "Enhanced armor bar rendering for armor levels above diamond",
+"version": "2"
+},
+{
+"id": "packagedauto",
+"name": "PackagedAuto",
+"description": "An Applied Energistics 2 addon that uses 'packages' to allow autocrafting with more than 9 items.",
+"version": "4.0.8.21"
+},
+{
+"id": "paganbless",
+"name": "paganbless",
+"description": "",
+"version": ""
+},
+{
+"id": "particular",
+"name": "Particular Reforged",
+"description": "Particular is a mod that enhances Minecraft's ambience with many hand-crafted visual effects.",
+"version": "1.5.5"
+},
+{
+"id": "patchful",
+"name": "Patchful",
+"description": "Hackily fixes Patchouli text rendering when Emojiful is intalled.",
+"version": "1.0.2"
+},
+{
+"id": "patchouli",
+"name": "Patchouli",
+"description": "Accessible, Data-Driven, Dependency-Free Documentation for Minecraft Modders and Pack Makers",
+"version": ""
+},
+{
+"id": "petrock",
+"name": "PetRock",
+"description": "A Mod that adds PetRocks!",
+"version": "0.18.7"
+},
+{
+"id": "pipe_connector",
+"name": "Pipe Connector",
+"description": "This tries to solve a long lasting issue of digging some blocks to put your pipes underground.",
+"version": "0.5.28"
+},
+{
+"id": "pipez",
+"name": "Pipez",
+"description": "Simple and efficient pipes",
+"version": "1.21.1-1.2.31"
+},
+{
+"id": "placebo",
+"name": "Placebo",
+"description": "1 (one) library boi",
+"version": "9.9.1"
+},
+{
+"id": "platform",
+"name": "Platform",
+"description": "Cross-Platform library mod based on Architectury to access both Forge and Fabric APIs",
+"version": "1.3.3"
+},
+{
+"id": "playeranimator",
+"name": "Player Animator",
+"description": "A lightweight library to easily animate the player",
+"version": "2.0.4+1.21.1"
+},
+{
+"id": "playerplates",
+"name": "Player Plates",
+"description": "Obsidian pressure plates and mossy plates",
+"version": "21.1.0+mc1.21.1"
+},
+{
+"id": "pneumaticcraft",
+"name": "PneumaticCraft: Repressurized",
+"description": "Doing cool stuff with compressed air.",
+"version": "8.2.20"
+},
+{
+"id": "pocketstorage",
+"name": "Pocket Storage",
+"description": "",
+"version": "1.2.5"
+},
+{
+"id": "polylib",
+"name": "PolyLib",
+"description": "\"PolyLib,\" developed by CreeperHost Ltd., is a compact Minecraft library mod focused on providing a collection of helper classes. These classes are designed to simplify various aspects of mod development, offering tools for easier GUI creation and other development enhancements to improve efficiency and user experience.",
+"version": "2100.1.0-build.183"
+},
+{
+"id": "powah",
+"name": "Powah",
+"description": "Various ways to generate, store and transmit FE power.",
+"version": "6.2.10"
+},
+{
+"id": "prickle",
+"name": "PrickleMC",
+"description": "Bringing Prickle, the JSON based configuration file format to Minecraft.",
+"version": "21.1.11"
+},
+{
+"id": "prism",
+"name": "Prism",
+"description": "A library all about color! Provides lots of color-related functionality for dependent mods.",
+"version": "1.0.11"
+},
+{
+"id": "productivebees",
+"name": "Productive Bees",
+"description": "Useful bees",
+"version": "1.21.1-13.13.5"
+},
+{
+"id": "productivetrees",
+"name": "Productive Trees",
+"description": "Trees for Bees",
+"version": "1.21.1-1.0.0"
+},
+{
+"id": "projectvibrantjourneys",
+"name": "Project: Vibrant Journeys",
+"description": "Decorates your world with items and objects to make it feel more dynamic and alive!",
+"version": "1.21.1-7.0.9"
+},
+{
+"id": "puffish_attributes",
+"name": "Pufferfish's Attributes",
+"description": "Adds more attributes to the game.",
+"version": "0.8.2"
+},
+{
+"id": "puffish_skills",
+"name": "Pufferfish's Skills",
+"description": "Adds a fully configurable skill system to the game.",
+"version": "0.18.0"
+},
+{
+"id": "puzzleslib",
+"name": "Puzzles Lib",
+"description": "Why it's called Puzzles, you ask? That's the puzzle!",
+"version": "21.1.52"
+},
+{
+"id": "pylons",
+"name": "Pylons",
+"description": "Utility Pylons",
+"version": "5.4.2"
+},
+{
+"id": "quarryplus",
+"name": "QuarryPlus",
+"description": "Adds some machines to make a big hole in your world.",
+"version": "21.1.153"
+},
+{
+"id": "rainshield",
+"name": "Rain Shield",
+"description": "Just a simple mod adding a Rain Shield",
+"version": ""
+},
+{
+"id": "randombonemealflowers",
+"name": "Random Bone Meal Flowers",
+"description": "Randomizes the flowers spawned by bone meal, allowing all (modded) types to spawn everywhere.",
+"version": "4.7"
+},
+{
+"id": "rechiseled",
+"name": "Rechiseled",
+"description": "Rechiseled allows you to exchange between various decorative blocks!",
+"version": "1.2.5"
+},
+{
+"id": "rechiseledae",
+"name": "Rechiseled: Applied Energistics 2",
+"description": "Rechiseled: Applied Energistics adds new decorative variants of blocks in Applied Energistics 2!",
+"version": "1.0.1"
+},
+{
+"id": "rechiseled_chipped",
+"name": "Rechiseled: Chipped",
+"description": "Adds a scrollbar to Rechiseled and integrates Chipped blocks into the Rechiseled Chiseling menu.",
+"version": "1.3"
+},
+{
+"id": "redstonepen",
+"name": "Redstone Pen",
+"description": "Adds a pen to draw detailed Redstone tracks, as well as Redstone relays, and the Redstone Logic Controller.",
+"version": "1.11.42"
+},
+{
+"id": "refinedstorage",
+"name": "Refined Storage",
+"description": "Refined Storage is a mass storage mod for Minecraft that offers the player a network-based storage system, allowing them to store items and fluids on a massively expandable device network.",
+"version": "2.0.9"
+},
+{
+"id": "refinedstorage_curios_integration",
+"name": "Refined Storage - Curios Integration",
+"description": "Curios integration for Refined Storage.",
+"version": "1.0.0"
+},
+{
+"id": "refinedstorage_jei_integration",
+"name": "Refined Storage - JEI Integration",
+"description": "JEI integration for Refined Storage.",
+"version": "1.0.0"
+},
+{
+"id": "refinedstorage_mekanism_integration",
+"name": "Refined Storage - Mekanism Integration",
+"description": "Mekanism integration for Refined Storage.",
+"version": "1.1.1"
+},
+{
+"id": "refinedstorage_quartz_arsenal",
+"name": "Refined Storage - Quartz Arsenal",
+"description": "Quartz Arsenal is an addon for Refined Storage that adds various new tools.",
+"version": "1.0.8"
+},
+{
+"id": "refinedtypes",
+"name": "Refined Types",
+"description": "Refined Types is an addon for Refined Storage which adds FE, Source and Souls Storage Disks.",
+"version": "1.21.1-0.3.2"
+},
+{
+"id": "relics",
+"name": "Relics",
+"description": "Just a mod about useful relics with unique mechanics ;)",
+"version": "0.10.7.8"
+},
+{
+"id": "reliquary",
+"name": "Reliquary Reincarnations",
+"description": "Two words: magical swag. Oh, and a gun.",
+"version": "2.0.75"
+},
+{
+"id": "reliquified_ars_nouveau",
+"name": "Reliquified Ars Nouveau",
+"description": "Compatibility addon between Relics & Ars Nouveau",
+"version": "0.6.1"
+},
+{
+"id": "reliquified_lenders_cataclysm",
+"name": "Reliquified L_Ender's Cataclysm",
+"description": "Compatibility addon between Relics & L_Ender's Cataclysm",
+"version": "0.1.1"
+},
+{
+"id": "repeatable_trial_vaults",
+"name": "Repeatable Trial Vaults",
+"description": "Consume a key to be able to use another trial vault",
+"version": "1.0.3"
+},
+{
+"id": "resourcefullib",
+"name": "Resourceful Lib",
+"description": "Team Resourceful Library",
+"version": "3.0.12"
+},
+{
+"id": "resourcefulconfig",
+"name": "Resourcefulconfig",
+"description": "A library for creating config files for your mod across multiple platforms.",
+"version": "3.0.11"
+},
+{
+"id": "rftoolsbase",
+"name": "RFToolsBase",
+"description": "The base class for all RFTools tech mods (and XNet/Deep Resonance)",
+"version": ""
+},
+{
+"id": "rftoolsbuilder",
+"name": "RFToolsBuilder",
+"description": "Everything related to the builder",
+"version": ""
+},
+{
+"id": "rftoolspower",
+"name": "RFToolsPower",
+"description": "Everything related to power generation",
+"version": ""
+},
+{
+"id": "rftoolsutility",
+"name": "RFToolsUtility",
+"description": "Generic RFTools utilities",
+"version": ""
+},
+{
+"id": "rhino",
+"name": "Rhino",
+"description": "A fork of Mozilla's Rhino library, modified for use in mods",
+"version": "2101.2.7-build.85"
+},
+{
+"id": "rightclickharvest",
+"name": "Right Click Harvest",
+"description": "Right click crops to harvest them - with style.",
+"version": "4.6.1+1.21.1"
+},
+{
+"id": "rgp_client",
+"name": "Rocket Game Platform Client",
+"description": "Provides functionality for your client to communicated with Rocket Game Platform.",
+"version": "2.0.7+mc21.1-neoforge"
+},
+{
+"id": "rootsclassic",
+"name": "Roots Classic",
+"description": "Classic port of Roots, the Druidic Magic Mod",
+"version": ""
+},
+{
+"id": "rsrequestify",
+"name": "RS: Requestify",
+"description": "Refined Storage requester and more!",
+"version": "3.0.0"
+},
+{
+"id": "rsinfinitybooster",
+"name": "RSInfinityBooster",
+"description": "Adds Infinite Range Card and Dimension Card to Refine Storage",
+"version": "1.21.1-1.0.0.48"
+},
+{
+"id": "sable",
+"name": "Sable",
+"description": "Interactive moving block structures with physics.",
+"version": "2.0.3"
+},
+{
+"id": "sablephysicscompat",
+"name": "Sable: Physics Compat",
+"description": "A Compat mod for Sable/Aeronautics providing tags for several modded blocks.",
+"version": "1.3.0"
+},
+{
+"id": "sablemassview",
+"name": "SableMassView",
+"description": "Shows Sable block mass in advanced block tooltips.",
+"version": "1.0.0"
+},
+{
+"id": "scalablecatsforce-neoforge-3.7.1-build-11-with-library",
+"name": "ScalableCatsForce-NeoForge-3.7.1-build-11-with-library",
+"description": "",
+"version": ""
+},
+{
+"id": "schematicenergistics",
+"name": "Schematic Energistics",
+"description": "Adds a block that grants the Schematic Cannon access to AE2 system.",
+"version": "1.5.3"
+},
+{
+"id": "searchables",
+"name": "Searchables",
+"description": "A library mod to facilitate adding search bars with auto complete and search types.",
+"version": "1.0.2"
+},
+{
+"id": "servercore",
+"name": "ServerCore",
+"description": "A NeoForge mod that aims to optimize the minecraft server.",
+"version": "1.5.19+1.21.1"
+},
+{
+"id": "showcaseitem",
+"name": "Showcase Item",
+"description": "This mod allows to showcase items in the chat.",
+"version": "1.21.1-1.1.0"
+},
+{
+"id": "shrink",
+"name": "Shrink",
+"description": "Honey I shrunk the children",
+"version": "2.0.1.47"
+},
+{
+"id": "shtreimel",
+"name": "Shtreimel",
+"description": "Server-side admin tools for Sable and Create Aeronautics: list, inspect, and remove sub-level grids; surface lag hotspots; enrich crash reports.",
+"version": "0.3.1"
+},
+{
+"id": "silentgear",
+"name": "Silent Gear",
+"description": "Modular and upgradeable tools, weapons, and armor. Allows full customization of materials and parts used in gear crafting, even user-defined ones!",
+"version": "4.2.1.1"
+},
+{
+"id": "silentlib",
+"name": "Silent Lib",
+"description": "Shared library for SilentChaos512's mods",
+"version": "10.6.0"
+},
+{
+"id": "belts",
+"name": "Simple Belts",
+"description": "This is an example description! Tell everyone what your mod is about!",
+"version": "0.2.2"
+},
+{
+"id": "sdrp",
+"name": "Simple Discord Rich Presence",
+"description": "Simple Discord Rich Presence",
+"version": "88.0.1-build.54+mc1.21.1"
+},
+{
+"id": "inventorysorter",
+"name": "Simple Inventory Sorter",
+"description": "Simple inventory sorting. Middle click to sort your inventory. Scroll wheel on a stack to move in and out.",
+"version": "24.0.24"
+},
+{
+"id": "simplemagnets",
+"name": "Simple Magnets",
+"description": "Simple Magnets adds Magnets that pickup items around the player!",
+"version": "1.1.12+c"
+},
+{
+"id": "simpleteleporters",
+"name": "Simple Teleporters",
+"description": "Simple Teleporters adds a craftable teleporter block to quickly travel your world!",
+"version": ""
+},
+{
+"id": "simpletomb",
+"name": "Simple Tombstone",
+"description": "When you die, a tomb is spawned in the world with your items, sneak on it to reclaim. On respawn you get a key. The key is not required to reclaim your tomb, but it will help you find the tomb. For reports goto https://github.com/lothrazar/SimpleTomb/issues",
+"version": ""
+},
+{
+"id": "voicechat",
+"name": "Simple Voice Chat",
+"description": "A working voice chat in Minecraft!",
+"version": "1.21.1-2.6.12"
+},
+{
+"id": "voicechat_api",
+"name": "Simple Voice Chat API",
+"description": "The Simple Voice Chat API",
+"version": "2.6.0"
+},
+{
+"id": "simple_weather",
+"name": "Simple Weather",
+"description": "An alternative, yet elegant solution to Minecraft's weather effects",
+"version": "1.0.13-hotfix"
+},
+{
+"id": "simplylight",
+"name": "Simply Light",
+"description": "Simple light, for a complicated world.",
+"version": "1.5.3"
+},
+{
+"id": "smartbrainlib",
+"name": "SmartBrainLib",
+"description": "A library mod for smarter Brains and easier usage of the Brain system.",
+"version": "1.16.11"
+},
+{
+"id": "sodium",
+"name": "Sodium",
+"description": "Sodium is a powerful rendering engine for Minecraft which improves frame rates and reduces lag spikes.",
+"version": "0.8.12-beta.1+mc1.21.1"
+},
+{
+"id": "sophisticatedbackpacks",
+"name": "Sophisticated Backpacks",
+"description": "Fancy and functional backpacks.",
+"version": "3.25.65"
+},
+{
+"id": "sophisticatedbackpackscreateintegration",
+"name": "Sophisticated Backpacks Create Integration",
+"description": "Full Featured Sophisticated Backpacks on Create Contraptions",
+"version": "0.1.7"
+},
+{
+"id": "sophisticatedcore",
+"name": "Sophisticated Core",
+"description": "A library / shared functionality mod for Sophisticated Storage and Backpacks",
+"version": "1.4.62"
+},
+{
+"id": "sophisticateditemactions",
+"name": "Sophisticated Item Actions",
+"description": "Highlight nearby inventories containing an item, and restock items from or deposit items to them directly from your inventory.",
+"version": "0.5.7"
+},
+{
+"id": "sophisticatedstorage",
+"name": "Sophisticated Storage",
+"description": "Fancy and functional storage containers.",
+"version": "1.5.65"
+},
+{
+"id": "sophisticatedstoragecreateintegration",
+"name": "Sophisticated Storage Create Integration",
+"description": "Full Featured Sophisticated Storage on Create Contraptions",
+"version": "0.1.17"
+},
+{
+"id": "soulplied_energistics",
+"name": "Soulplied Energistics",
+"description": "A bridge addon for Industrial Foregoing souls and Applied Energistics",
+"version": "1.0.3"
+},
+{
+"id": "spark",
+"name": "spark",
+"description": "spark is a performance profiling plugin/mod for Minecraft clients, servers and proxies.",
+"version": "1.10.124"
+},
+{
+"id": "solonion",
+"name": "Spice of Life Onion",
+"description": "A mod designed to encourage dietary variety by rewarding the player with customizable benefits depending on how diverse their diet is.",
+"version": "1.5.6"
+},
+{
+"id": "squatgrow",
+"name": "Squat Grow",
+"description": "Squat up and down to grow your plant",
+"version": "21.1.3+mc1.21.1"
+},
+{
+"id": "statues",
+"name": "Statues Mod",
+"description": "Just a little functional decoration.",
+"version": ""
+},
+{
+"id": "stevescarts",
+"name": "StevesCarts2",
+"description": "I like trains.",
+"version": "1.2.18"
+},
+{
+"id": "structureessentials",
+"name": "Structure Essentials mod",
+"description": "Essential Utilities for structures",
+"version": "5.0"
+},
+{
+"id": "structureexpansion",
+"name": "Structure Expansion",
+"description": "Small mod that Increases the size limit of the vanilla structure blocks Increases the size limit of the structure block from 48x48x48 to 127x127x127",
+"version": "88.0.1"
+},
+{
+"id": "structure_layout_optimizer",
+"name": "Structure Layout Optimizer",
+"description": "An attempt at optimizing jigsaw generation",
+"version": "1.0.12"
+},
+{
+"id": "structurify",
+"name": "Structurify",
+"description": "Configuration mod that makes customizing world generation features easy and accessible without creating datapacks.",
+"version": "2.0.28"
+},
+{
+"id": "sfm",
+"name": "Super Factory Manager (SFM)",
+"description": "Adds a certain magical factory manager to the game. Automation is within your grasp!",
+"version": "4.32.0"
+},
+{
+"id": "supermartijn642configlib",
+"name": "SuperMartijn642's Config Library",
+"description": "Config Lib makes dealing with config files just a bit easier.",
+"version": "1.1.8"
+},
+{
+"id": "supermartijn642corelib",
+"name": "SuperMartijn642's Core Lib",
+"description": "SuperMartijn642's Core Lib adds lots of basic implementations for guis that allow for similar code between Minecraft 1.12, 1.14, 1.15, and 1.16!",
+"version": "1.1.21"
+},
+{
+"id": "supplementaries",
+"name": "Supplementaries",
+"description": "Many functional and useful Vanilla+ blocks",
+"version": "1.21.1-3.7.6"
+},
+{
+"id": "sussysniffers",
+"name": "Sussy Sniffers",
+"description": "Expand your sniffers interests to suspicious sand and gravel.",
+"version": "1.21.1-0.1.3"
+},
+{
+"id": "tectonic",
+"name": "Tectonic",
+"description": "Terrain shaping brought to new heights, grander and more varied than ever before!",
+"version": "3.0.22"
+},
+{
+"id": "tempad",
+"name": "Tempad",
+"description": "Create a portal to anywhere from anywhere!",
+"version": "3.0.4"
+},
+{
+"id": "terrablender",
+"name": "TerraBlender",
+"description": "A library mod for adding biomes in a simple and compatible manner with Minecraft's new biome/terrain system.",
+"version": ""
+},
+{
+"id": "terrablenderfix",
+"name": "TerraBlenderFix",
+"description": "A continuation of https://github.com/TerraForged/TerraForged",
+"version": "0.0.1"
+},
+{
+"id": "terralith",
+"name": "Terralith",
+"description": "Explore almost 100 new biomes consisting of both realism and light fantasy, using just Vanilla blocks. Complete with several immersive structures to compliment the overhauled terrain.",
+"version": "2.5.8"
+},
+{
+"id": "tesseract_api",
+"name": "Tesseract API",
+"description": "Another library mod for mod developers",
+"version": "1.12.4-1.21.1"
+},
+{
+"id": "the_afterdark",
+"name": "The Afterdark",
+"description": "A dimension Minecraft mod related to the afterlife, the dark, and the unknown.",
+"version": "1.0.3.1"
+},
+{
+"id": "the_bumblezone",
+"name": "The Bumblezone",
+"description": "A wonderful bee dimension mod with lots of new exploration and adventuring to do! Check out the advancements for how to play the mod!",
+"version": "7.15.0+1.21.1-neoforge"
+},
+{
+"id": "titanium",
+"name": "Titanium",
+"description": "A Lib",
+"version": ""
+},
+{
+"id": "toolbelt",
+"name": "Tool Belt",
+"description": "Declutter your inventory of tools",
+"version": ""
+},
+{
+"id": "toolkit",
+"name": "Toolkit",
+"description": "This mod adds bunch of useful commands",
+"version": "87.0.3"
+},
+{
+"id": "tooltipoverhaul",
+"name": "Tooltip overhaul",
+"description": "Every tooltip, more modern, sharper, clearer",
+"version": "1.4.4"
+},
+{
+"id": "torchmaster",
+"name": "Torchmaster",
+"description": "Special lamp and torch which prevents mob spawning.",
+"version": "21.1.9"
+},
+{
+"id": "transfer_labels",
+"name": "Transfer Labels",
+"description": "Place labels between blocks to transfer items & fluids",
+"version": "0.1.8"
+},
+{
+"id": "trashcans",
+"name": "Trash Cans",
+"description": "Trash Cans adds Trash Cans which can be used to void items, liquids and energy!",
+"version": "1.0.18+c"
+},
+{
+"id": "trashslot",
+"name": "TrashSlot",
+"description": "Adds a trash slot to the inventory screen that allows deletion of unwanted items.",
+"version": "21.1.11"
+},
+{
+"id": "travelerscompass",
+"name": "Traveler's Compass",
+"description": "Compass for finding mobs and blocks.",
+"version": "4.0.05"
+},
+{
+"id": "travelerstitles",
+"name": "Traveler's Titles",
+"description": "Epic, RPG-like titles when entering biomes & dimensions",
+"version": "1.21.1-NeoForge-5.1.3"
+},
+{
+"id": "treasuredistance",
+"name": "Treasure Distance",
+"description": "Display Treasure Distance on Maps",
+"version": "1.0"
+},
+{
+"id": "treetap",
+"name": "Tree Tap",
+"description": "Extract stuff from tree trunks.",
+"version": "1.21.1-0.4.6"
+},
+{
+"id": "trenzalore",
+"name": "Trenzalore",
+"description": "This mod adds a few small helpers to provide compatibility with Forge / Fabric.",
+"version": "6.1.1"
+},
+{
+"id": "trimeffects",
+"name": "TrimsEffects",
+"description": "Makes armor trims grant special effects.",
+"version": "2.1.1"
+},
+{
+"id": "underground_bunkers",
+"name": "Underground Bunkers",
+"description": "Randomly generated bunkers hidden underground...",
+"version": "1.0.4"
+},
+{
+"id": "utilitarian",
+"name": "Utilitarian",
+"description": "Various features and changes to the base game.",
+"version": "1.21.1-0.19.2"
+},
+{
+"id": "valhelsia_core",
+"name": "Valhelsia Core",
+"description": "",
+"version": "1.1.5"
+},
+{
+"id": "vanillabackport",
+"name": "VanillaBackport",
+"description": "Backporting Minecraft Features to previous versions!",
+"version": "1.1.7.10"
+},
+{
+"id": "voidrp_anticheat",
+"name": "VoidRP Anticheat",
+"description": "Server-side anticheat with client mod verification for VoidRP.",
+"version": "1.0.0"
+},
+{
+"id": "voidrp_auth_bridge",
+"name": "VoidRP Auth Bridge",
+"description": "Bridge between VoidRP launcher play tickets, backend auth and in-game NeoForge login flow.",
+"version": "0.1.0-SKELETON"
+},
+{
+"id": "waystones",
+"name": "Waystones",
+"description": "Teleport back to activated waystones. For Survival, Adventure or Servers.",
+"version": "21.1.34"
+},
+{
+"id": "waystonessable",
+"name": "WaystonesSable",
+"description": "A compatibility mod that allows Waystones to work properly within Sable's SubLevel system. Fixes teleportation, validation, distance calculation, and client synchronization for waystones placed inside or targeting SubLevels.",
+"version": "1.0.3"
+},
+{
+"id": "weathergate",
+"name": "Weather Gate",
+"description": "Gate the weather",
+"version": "2.0.0"
+},
+{
+"id": "webgui",
+"name": "WebGUI",
+"description": "Embed any web page as a full-screen GUI or transparent HUD overlay inside Minecraft. Powered by MCEF (Chromium).",
+"version": "1.3.0"
+},
+{
+"id": "watut",
+"name": "What Are They Up To",
+"description": "Lets you see if players are typing, in a GUI, idle, with cool ingame visuals",
+"version": "1.21.0-1.2.7"
+},
+{
+"id": "whatthebucket",
+"name": "WhatTheBucket",
+"description": "Fixes MC-151457 which resulted in some bucket variants not producing an empty bucket when used as an ingredient.",
+"version": "21.1.1"
+},
+{
+"id": "dungeons_arise",
+"name": "When Dungeons Arise",
+"description": "Elegant - and likely dangerous - structures and roguelike dungeons to lose yourself in...",
+"version": "2.1.68"
+},
+{
+"id": "wits",
+"name": "WITS",
+"description": "Use `\\wits` command to get registry name of all structures where you are standing.",
+"version": "1.3.0+1.21-neoforge"
+},
+{
+"id": "xnet",
+"name": "XNet",
+"description": "Powerful item/fluid/energy transfer",
+"version": ""
+},
+{
+"id": "xnetgases",
+"name": "XNet Gases",
+"description": "A simple addon for XNet that enables the movement of chemicals from Mekanism.",
+"version": ""
+},
+{
+"id": "xp_synthesiser",
+"name": "XP Synthesiser",
+"description": "A mod that allows you to synthesise XP from power",
+"version": "1.0.3"
+},
+{
+"id": "xpbook",
+"name": "XP Tome",
+"description": "Adds a book that can store a configurable amount of XP.",
+"version": ""
+},
+{
+"id": "xycraft_core",
+"name": "XyCraft Core",
+"description": "Foundational component to XyCraft. Provides a majority of the backend as well as a Texture loader for Connected Textures for others to use.",
+"version": "0.7.53"
+},
+{
+"id": "xycraft_machines",
+"name": "XyCraft Machines",
+"description": "Provides an assortment of machines, utilities and a unique power-net that was started over a decade ago. Do you like building tanks out of random blocks? Perhaps you enjoy lasers? Or even having a modular set of armor? Then XyCraft Machines may be for you!",
+"version": "0.7.53"
+},
+{
+"id": "xycraft_world",
+"name": "XyCraft World",
+"description": "World generation and aesthetic blocks for XyCraft",
+"version": "0.7.53"
+},
+{
+"id": "yeetusexperimentus",
+"name": "Yeetus Experimentus",
+"description": "Disables the Experimental Settings popup, which appears when you create or load world.",
+"version": "87.0.0"
+},
+{
+"id": "yet_another_config_lib_v3",
+"name": "YetAnotherConfigLib",
+"description": "YetAnotherConfigLib (yacl) is just that. A builder-based configuration library for Minecraft.",
+"version": "3.8.2+1.21.1-neoforge"
+},
+{
+"id": "yungsapi",
+"name": "YUNG's API",
+"description": "API Library for YUNG's minecraft mods.",
+"version": "1.21.1-NeoForge-5.1.6"
+},
+{
+"id": "betterdeserttemples",
+"name": "YUNG's Better Desert Temples",
+"description": "A complete redesign of Minecraft's desert temples!",
+"version": "1.21.1-NeoForge-4.1.5"
+},
+{
+"id": "betterjungletemples",
+"name": "YUNG's Better Jungle Temples",
+"description": "A complete redesign of Minecraft's Jungle Temples!",
+"version": "1.21.1-NeoForge-3.1.2"
+},
+{
+"id": "bettermineshafts",
+"name": "YUNG's Better Mineshafts",
+"description": "The long-awaited and much-needed abandoned mineshaft overhaul!",
+"version": "1.21.1-NeoForge-5.1.1"
+},
+{
+"id": "betterstrongholds",
+"name": "YUNG's Better Strongholds",
+"description": "A complete redesign of Minecraft's strongholds!",
+"version": "1.21.1-NeoForge-5.1.3"
+},
+{
+"id": "betterwitchhuts",
+"name": "YUNG's Better Witch Huts",
+"description": "Adds new and improved witch huts to swamps!",
+"version": "1.21.1-NeoForge-4.1.1"
+},
+{
+"id": "yungsbridges",
+"name": "YUNG's Bridges",
+"description": "Adds naturally occurring bridges throughout the world!",
+"version": "1.21.1-NeoForge-5.1.1"
+},
+{
+"id": "yungsextras",
+"name": "YUNG's Extras",
+"description": "Extra structures and vanilla+ content added throughout the game!",
+"version": "1.21.1-NeoForge-5.1.1"
+}
+]
