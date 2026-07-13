@@ -51,6 +51,7 @@ import OfferAgreementView from '../views/OfferAgreementView.vue'
 import LeaderboardView from '../views/LeaderboardView.vue'
 import PlayersTopView from '../views/PlayersTopView.vue'
 import BountyBoardView from '../views/BountyBoardView.vue'
+import KillfeedView from '../views/KillfeedView.vue'
 import ShopView from '../views/ShopView.vue'
 import BattlePassView from '../views/BattlePassView.vue'
 import GameUiMarketView from '../views/GameUiMarketView.vue'
@@ -103,6 +104,7 @@ const routes = [
   { path: '/leaderboard', name: 'leaderboard', component: LeaderboardView, meta: { title: 'Рейтинг прогрессии', feature: 'leaderboards' } },
   { path: '/players/top', name: 'players-top', component: PlayersTopView, meta: { title: 'Топ игроков', feature: 'leaderboards' } },
   { path: '/bounties', name: 'bounties', component: BountyBoardView, meta: { title: 'Награды за головы', feature: 'bounties' } },
+  { path: '/killfeed', name: 'killfeed', component: KillfeedView, meta: { title: 'Пульс Abyss', feature: 'killfeed' } },
   { path: '/battlepass', name: 'battlepass', component: BattlePassView, meta: { title: 'Боевой пропуск', feature: 'battlepass' } },
   { path: '/internal-admin', name: 'admin-legacy', component: AdminLegacyView, meta: { title: 'Legacy Admin', hidePublicShell: true } },
   { path: '/internal-admin/market', name: 'admin-market', component: AdminMarketView, meta: { title: 'Market Admin', hidePublicShell: true } },
