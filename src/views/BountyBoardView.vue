@@ -98,10 +98,16 @@ onMounted(load)
               />
 
               <div class="min-w-0 flex-1">
-                <router-link
-                  :to="`/u/${b.target_nick}`"
-                  class="truncate text-sm font-semibold text-slate-100 hover:text-violet-300 transition"
-                >{{ b.target_nick }}</router-link>
+                <div class="flex items-center gap-2">
+                  <router-link
+                    :to="`/u/${b.target_nick}`"
+                    class="truncate text-sm font-semibold text-slate-100 hover:text-violet-300 transition"
+                  >{{ b.target_nick }}</router-link>
+                  <span
+                    v-if="b.is_wanted"
+                    class="shrink-0 rounded-full bg-red-500/15 px-2 py-0.5 text-[10px] font-black uppercase tracking-wide text-red-400 ring-1 ring-red-500/30"
+                  >{{ t('bounties.wanted') }}</span>
+                </div>
                 <p class="text-xs text-slate-500">
                   {{ t('bounties.contributors', { n: b.contributor_count }) }}
                 </p>

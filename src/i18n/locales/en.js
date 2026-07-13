@@ -994,8 +994,9 @@ export default {
     boardTitle: 'Active bounties',
     summary: '{n} targets · {total} 💎 total',
     contributors: '{n} contributors',
+    wanted: 'Wanted',
     empty: 'No bounties yet. Place the first one in-game: /bounty <nick> <diamonds>.',
-    hint: 'Place a bounty in-game: /bounty <nick> <diamonds>. It is paid in diamonds to whoever kills the target.',
+    hint: 'Place a bounty in-game: /bounty <nick> <diamonds>. It is paid in diamonds to whoever kills the target. A long kill streak makes a player wanted — the server itself puts a price on their head.',
     loadError: 'Could not load the bounty board.',
   },
   killfeed: {

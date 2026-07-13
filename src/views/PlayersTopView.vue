@@ -14,6 +14,8 @@ const activeKey = ref(null)
 const CATEGORY_ICONS = {
   balance: '💰',
   pvp_kills: '⚔️',
+  kd: '💀',
+  best_kill_streak: '🔥',
   mob_kills: '🗡️',
   playtime: '⏱️',
   blocks_broken: '⛏️',
@@ -63,6 +65,9 @@ function fmtValue(entry, category) {
   }
   if (category.key === 'playtime') {
     return formatNumber(entry.value) + ' ч'
+  }
+  if (category.key === 'kd') {
+    return entry.value.toFixed(2)
   }
   return formatNumber(Math.floor(entry.value))
 }
