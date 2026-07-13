@@ -1,5 +1,5 @@
 <script setup>
-import { onMounted, ref } from 'vue'
+import { computed, onMounted, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import {
   anticheatListPlayers,
@@ -8,9 +8,11 @@ import {
   anticheatGetStats,
 } from '../../services/adminAnticheatApi.js'
 import { authState } from '../../stores/authStore'
+import { activeServer } from '../../stores/serverStore'
 
 const router = useRouter()
 const token = () => authState.accessToken
+const activeServerName = computed(() => activeServer.value?.name || 'сервер')
 
 // ── Tabs ──────────────────────────────────────────────────────────────────────
 const activeTab = ref('players')
@@ -120,6 +122,8 @@ async function saveConfig() {
   }
 }
 
+// The layout keys server-scoped views by the active slug, so switching servers
+// remounts this view and re-runs load() with the new server — no watcher needed.
 onMounted(load)
 </script>
 
@@ -128,7 +132,7 @@ onMounted(load)
     <div class="adm-page__head">
       <div>
         <h1 class="adm-title">Античит</h1>
-        <p class="adm-sub">Мониторинг и настройка защиты · нарушения выбранного сервера</p>
+        <p class="adm-sub">Мониторинг и настройка защиты · нарушения сервера «{{ activeServerName }}»</p>
       </div>
       <div class="adm-tabs">
         <button class="adm-tab" :class="{ 'adm-tab--active': activeTab === 'players' }" @click="switchTab('players')">Игроки</button>
@@ -276,6 +280,8 @@ onMounted(load)
         <p class="ac-config-hint">
           Пороги применяются на сервере автоматически каждые 5 минут без перезагрузки мода.
           Локальный TOML-конфиг используется как запасной вариант при недоступности API.
+          Настройки общие для всех серверов. Ползунок ограничен рекомендуемым диапазоном —
+          в числовом поле можно вписать любое значение выше него.
         </p>
 
         <div class="ac-config-grid">
@@ -298,12 +304,11 @@ onMounted(load)
                 v-model.number="c.value"
                 type="number"
                 :min="c.min_value"
-                :max="c.max_value"
                 :step="c.step"
                 class="ac-num-input"
               />
             </div>
-            <div class="ac-config-range">{{ c.min_value }} — {{ c.max_value }}</div>
+            <div class="ac-config-range">ползунок: {{ c.min_value }} — {{ c.max_value }} · в поле можно ввести и больше</div>
             <div v-if="c.updated_by" class="ac-config-meta">
               Изменено: {{ c.updated_by }}
             </div>

@@ -1,5 +1,9 @@
 import { apiRequest, buildAuthHeaders } from './apiBase.js'
 
+// Anticheat data (players/violations/stats) is per-server. The active server is set
+// by the admin layout's top-bar switcher (public serverStore); apiBase attaches it
+// centrally as X-Server-Slug, so these calls need no explicit slug — the backend
+// scopes by it. Views must re-fetch when the active server changes.
 function ah(token) { return { headers: buildAuthHeaders(token) } }
 
 export async function anticheatListPlayers(token, params = {}) {
