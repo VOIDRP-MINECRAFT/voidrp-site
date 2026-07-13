@@ -1,0 +1,15 @@
+User-agent: *
+Allow: /
+
+# Закрываем личные и служебные страницы
+Disallow: /admin
+Disallow: /internal-admin
+Disallow: /profile
+Disallow: /profile/
+Disallow: /nation/studio
+
+# Разрешаем статику
+Allow: /item-icons/
+Allow: /logo.jpg
+
+Sitemap: https://void-rp.ru/sitemap.xml
