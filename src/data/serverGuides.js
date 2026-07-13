@@ -18,7 +18,7 @@ const abyssRu = {
           'PvP включён везде, в том числе внутри приватов — приват защищает постройки, а не игрока.',
           'Инвентарь при смерти НЕ сохраняется (keepInventory выключен). Умер — потерял всё, что было при себе.',
           'Вне приватов гриф разрешён: любой может ломать и строить где угодно.',
-          'Телепортов, /home и /tpa нет — перемещайся ногами, лодкой, порталами.',
+          '/home и /tpa нет, но телепортироваться можно через Вейстоны (мод Waystones) — см. раздел «Телепортация». В остальном перемещайся ногами, лодкой и порталами.',
           'Откатов и восстановления вещей нет. Всё, что случилось, — случилось.',
         ] },
         { t: 'note', text: 'Хочешь сохранить базу — поставь ядро привата. Без него любой прохожий может тебя разграбить.' },
@@ -167,6 +167,20 @@ const abyssRu = {
       ],
     },
     {
+      id: 'travel',
+      icon: '🧭',
+      title: 'Телепортация (Вейстоны)',
+      blocks: [
+        { t: 'p', text: 'В сборке есть мод Waystones — «Вейстоны». Это единственная быстрая телепортация на сервере: /home, /tpa и обычных телепортов нет.' },
+        { t: 'ol', items: [
+          'Скрафти или найди блок «Вейстон» и поставь его.',
+          'Активируй его правым кликом — он станет точкой телепортации.',
+          'Подойди к любому активированному вейстону и выбери в списке другой, чтобы телепортироваться. Варп-камень (Warp Stone) позволяет телепортироваться к известным вейстонам издалека с перезарядкой.',
+        ] },
+        { t: 'note', text: 'Это анархия: вейстон, стоящий в открытую, могут найти, использовать и сломать другие игроки. Важные вейстоны ставь внутри привата.' },
+      ],
+    },
+    {
       id: 'skins',
       icon: '🎨',
       title: 'Скины',
@@ -221,7 +235,7 @@ const abyssEn = {
           'PvP is on everywhere, including inside claims — a claim protects builds, not the player.',
           'Inventory is NOT kept on death (keepInventory off). Die and you lose everything you carried.',
           'Outside claims, griefing is allowed: anyone can break and build anywhere.',
-          'No teleports, /home or /tpa — travel on foot, by boat or through portals.',
+          'No /home or /tpa, but you can teleport via Waystones (the Waystones mod) — see the “Travel” section. Otherwise travel on foot, by boat or through portals.',
           'No rollbacks or item restoration. What happens, happens.',
         ] },
         { t: 'note', text: 'Want to keep your base? Place a claim core. Without one, any passer-by can loot you.' },
@@ -367,6 +381,20 @@ const abyssEn = {
         { t: 'cmd', text: '/claim untrust <name>', desc: 'Remove a trusted player' },
         { t: 'cmd', text: '/claim remove', desc: 'Remove the claim you stand in (owner only)' },
         { t: 'p', text: 'You can also remove a claim by breaking your own core. Right-clicking the core with an empty hand shows a quick summary.' },
+      ],
+    },
+    {
+      id: 'travel',
+      icon: '🧭',
+      title: 'Travel (Waystones)',
+      blocks: [
+        { t: 'p', text: 'The modpack includes the Waystones mod. Waystones are the only fast travel on the server — there is no /home, /tpa or vanilla teleport.' },
+        { t: 'ol', items: [
+          'Craft or find a Waystone block and place it.',
+          'Right-click to activate it — it becomes a teleport point.',
+          'Walk up to any activated waystone and pick another from the list to teleport. A Warp Stone lets you teleport to known waystones from afar on a cooldown.',
+        ] },
+        { t: 'note', text: 'This is anarchy: a waystone out in the open can be found, used and destroyed by other players. Put important ones inside a claim.' },
       ],
     },
     {
