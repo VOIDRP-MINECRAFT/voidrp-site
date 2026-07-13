@@ -41,8 +41,8 @@ import AdminAnticheatPlayerView from '../views/admin/AdminAnticheatPlayerView.vu
 import AdminLandingView from '../views/admin/AdminLandingView.vue'
 import AdminFeedbackView from '../views/admin/AdminFeedbackView.vue'
 import AdminCrashReportsView from '../views/admin/AdminCrashReportsView.vue'
-import ExpertGuideView from '../views/ExpertGuideView.vue'
 import ServerGuideView from '../views/ServerGuideView.vue'
+import ModsView from '../views/ModsView.vue'
 import MarketView from '../views/MarketView.vue'
 import MarketItemView from '../views/MarketItemView.vue'
 import PlayerMarketMyOrdersView from '../views/PlayerMarketMyOrdersView.vue'
@@ -68,8 +68,9 @@ const routes = [
   { path: '/', name: 'home', component: HomeView, meta: { title: 'Главная' } },
   { path: '/servers', name: 'servers', component: ServersView, meta: { title: 'Серверы' } },
   { path: '/shop', name: 'shop', component: ShopView, meta: { title: 'Магазин', requiresAuth: true, feature: 'shop' } },
-  { path: '/guide', name: 'expert-guide', component: ExpertGuideView, meta: { title: 'Гайд сборки' } },
+  { path: '/guide', redirect: '/server-guide' },
   { path: '/server-guide', name: 'server-guide', component: ServerGuideView, meta: { title: 'Гайд сервера' } },
+  { path: '/mods', name: 'mods', component: ModsView, meta: { title: 'Моды сборки' } },
   { path: '/game-ui/menu', name: 'game-ui-menu', component: GameUiMenuView, meta: { title: 'Меню', hidePublicShell: true } },
   { path: '/game-ui/market', name: 'game-ui-market', component: GameUiMarketView, meta: { title: 'Рынок игроков', hidePublicShell: true } },
   { path: '/game-ui/hud', name: 'game-ui-hud', component: GameUiHudView, meta: { title: 'HUD', hidePublicShell: true } },
