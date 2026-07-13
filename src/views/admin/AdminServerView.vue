@@ -36,7 +36,7 @@ const BLANK = {
   map_url: '',
   accent_color: '',
   easydonate_server_id: null,
-  features: { nations: true, economy: true, shop: true, alliances: true, battlepass: true, quests: true, leaderboards: true, map: true, bounties: true, killfeed: true },
+  features: { nations: true, economy: true, shop: true, alliances: true, battlepass: true, quests: true, leaderboards: true, progression: true, map: true, bounties: true, killfeed: true },
 }
 
 const FEATURE_LABELS = {
@@ -46,7 +46,8 @@ const FEATURE_LABELS = {
   alliances: 'Альянсы',
   battlepass: 'Battle Pass',
   quests: 'Квесты',
-  leaderboards: 'Рейтинги',
+  leaderboards: 'Топ игроков',
+  progression: 'Прогрессия эпох',
   map: 'Карта',
   bounties: 'Награды за головы',
   killfeed: 'Пульс (killfeed)',

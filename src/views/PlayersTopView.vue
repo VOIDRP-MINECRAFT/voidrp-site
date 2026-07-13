@@ -4,6 +4,7 @@ import { useI18n } from 'vue-i18n'
 import { getPlayersTop } from '../services/playerStatsApi'
 import { formatNumber } from '../utils/formatters'
 import { toastError } from '../services/toast'
+import { activeServer } from '../stores/serverStore.js'
 
 const { t } = useI18n()
 const loading = ref(true)
@@ -20,6 +21,30 @@ const CATEGORY_ICONS = {
   completed_quests: '📜',
   deaths: '☠️',
 }
+
+// Categories that only make sense when the server has the matching feature —
+// e.g. "richest" (balance) needs an economy, quests need the quests system.
+const CATEGORY_FEATURE = {
+  balance: 'economy',
+  completed_quests: 'quests',
+}
+
+function feat(key) {
+  const f = activeServer.value?.features
+  return !f || f[key] !== false
+}
+
+// Hide categories the active server doesn't support (by feature) or that have no
+// real data yet (all zero) — so an anarchy server doesn't show empty "richest" etc.
+const visibleCategories = computed(() => {
+  if (!data.value?.categories) return []
+  return data.value.categories.filter((c) => {
+    const req = CATEGORY_FEATURE[c.key]
+    if (req && !feat(req)) return false
+    if (!c.entries?.length) return false
+    return c.entries.some((e) => Number(e.value) > 0)
+  })
+})
 
 const RANK_MEDALS = ['🥇', '🥈', '🥉']
 
@@ -48,8 +73,9 @@ function fmtDate(iso) {
 }
 
 const activeCategory = computed(() => {
-  if (!data.value || !activeKey.value) return null
-  return data.value.categories.find((c) => c.key === activeKey.value) || null
+  const cats = visibleCategories.value
+  if (!cats.length) return null
+  return cats.find((c) => c.key === activeKey.value) || cats[0]
 })
 
 async function load() {
@@ -57,9 +83,7 @@ async function load() {
   try {
     const result = await getPlayersTop()
     data.value = result
-    if (result?.categories?.length) {
-      activeKey.value = result.categories[0].key
-    }
+    activeKey.value = visibleCategories.value[0]?.key || null
   } catch (e) {
     toastError(e.message || t('playersTop.loadError'))
   } finally {
@@ -86,12 +110,12 @@ onMounted(load)
         <div class="skeleton h-72 rounded-[28px]"></div>
       </div>
 
-      <template v-else-if="data">
+      <template v-else-if="visibleCategories.length">
 
         <!-- Category tabs -->
         <div class="mb-4 flex flex-wrap gap-2">
           <button
-            v-for="cat in data.categories"
+            v-for="cat in visibleCategories"
             :key="cat.key"
             type="button"
             class="flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-semibold transition"

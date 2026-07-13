@@ -101,7 +101,7 @@ const routes = [
   { path: '/nations/rankings', name: 'nation-rankings', component: NationRankingsView, meta: { title: 'Рейтинг государств', feature: 'nations' } },
   { path: '/alliances', name: 'alliances', component: AlliancesListView, meta: { title: 'Альянсы', feature: 'alliances' } },
   { path: '/alliances/:slug', name: 'alliance-public', component: AlliancePublicView, meta: { title: 'Альянс', feature: 'alliances' } },
-  { path: '/leaderboard', name: 'leaderboard', component: LeaderboardView, meta: { title: 'Рейтинг прогрессии', feature: 'leaderboards' } },
+  { path: '/leaderboard', name: 'leaderboard', component: LeaderboardView, meta: { title: 'Рейтинг прогрессии', feature: 'progression' } },
   { path: '/players/top', name: 'players-top', component: PlayersTopView, meta: { title: 'Топ игроков', feature: 'leaderboards' } },
   { path: '/bounties', name: 'bounties', component: BountyBoardView, meta: { title: 'Награды за головы', feature: 'bounties' } },
   { path: '/killfeed', name: 'killfeed', component: KillfeedView, meta: { title: 'Пульс Abyss', feature: 'killfeed' } },
