@@ -42,6 +42,20 @@ export default defineConfig({
       lastmod: new Date(),
     }),
   ],
+  build: {
+    // Немного поднимаем порог предупреждения — после code-splitting отдельные
+    // чанки крупных вьюх (гайд, рынок) всё ещё могут превышать дефолтные 500 KB.
+    chunkSizeWarningLimit: 700,
+    rollupOptions: {
+      output: {
+        // Выносим стабильные библиотеки в отдельный vendor-чанк: он редко
+        // меняется и хорошо кэшируется между релизами приложения.
+        manualChunks: {
+          vendor: ['vue', 'vue-router', 'vue-i18n', 'nprogress'],
+        },
+      },
+    },
+  },
   server: {
     host: true,
     port: 5175,

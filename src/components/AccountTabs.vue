@@ -1,10 +1,15 @@
 <script setup>
-const tabs = [
-  { to: '/profile', label: 'Кабинет' },
-  { to: '/profile/public', label: 'Оформление профиля' },
-  { to: '/profile/referrals', label: 'Рефералы' },
-  { to: '/profile/social', label: 'Друзья' },
-]
+import { computed } from 'vue'
+import { useI18n } from 'vue-i18n'
+
+const { t } = useI18n()
+
+const tabs = computed(() => [
+  { to: '/profile', label: t('app.tabDashboard') },
+  { to: '/profile/public', label: t('app.tabProfileDesign') },
+  { to: '/profile/referrals', label: t('app.tabReferrals') },
+  { to: '/profile/social', label: t('app.tabFriends') },
+])
 </script>
 
 <template>

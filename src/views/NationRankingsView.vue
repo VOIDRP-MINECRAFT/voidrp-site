@@ -4,21 +4,21 @@ import { RouterLink, useRouter } from 'vue-router'
 import { useI18n } from 'vue-i18n'
 import { getNationRankings } from '../services/nationStatsApi'
 import { usePageMeta } from '../composables/usePageMeta.js'
-
-usePageMeta({
-  title: 'Рейтинг государств',
-  description: 'Рейтинг государств сервера VoidRP по богатству, активности и размеру. Кто сильнейший на этой неделе?',
-  url: 'https://void-rp.ru/nations/rankings',
-  breadcrumbs: [
-    { name: 'Главная', url: '/' },
-    { name: 'Государства', url: '/nations' },
-    { name: 'Рейтинг' },
-  ],
-})
 import { useAuthStore } from '../stores/authStore'
 import { formatCompactHoursFromMinutes, formatNumber } from '../utils/formatters'
 
 const { t } = useI18n()
+
+usePageMeta({
+  title: t('meta.nationRankingsTitle'),
+  description: t('meta.nationRankingsDesc'),
+  url: 'https://void-rp.ru/nations/rankings',
+  breadcrumbs: [
+    { name: t('nav.home'), url: '/' },
+    { name: t('nav.nations'), url: '/nations' },
+    { name: t('meta.rankingsCrumb') },
+  ],
+})
 const auth = useAuthStore()
 const router = useRouter()
 const loading = ref(true)

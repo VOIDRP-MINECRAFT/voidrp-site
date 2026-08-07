@@ -8,17 +8,18 @@ import { getMyNation } from '../services/nationsApi'
 import { toastError, toastSuccess } from '../services/toast'
 import { useAuthStore } from '../stores/authStore'
 
+const { t } = useI18n()
+
 usePageMeta({
-  title: 'Альянсы',
-  description: 'Межгосударственные альянсы сервера VoidRP — военные блоки, экономические союзы и политические федерации между государствами.',
+  title: t('allianceHub.metaListTitle'),
+  description: t('allianceHub.metaListDesc'),
   url: 'https://void-rp.ru/alliances',
   breadcrumbs: [
-    { name: 'Главная', url: '/' },
-    { name: 'Альянсы' },
+    { name: t('nav.home'), url: '/' },
+    { name: t('allianceHub.metaListTitle') },
   ],
 })
 
-const { t } = useI18n()
 const auth = useAuthStore()
 const router = useRouter()
 
@@ -75,9 +76,9 @@ function typeColor(type) {
 }
 
 function typeShortLabel(type) {
-  if (type === 'nato') return 'Военный'
-  if (type === 'economic') return 'Экономика'
-  return 'Политика'
+  if (type === 'nato') return t('allianceHub.typeShortMilitary')
+  if (type === 'economic') return t('allianceHub.typeShortEconomic')
+  return t('allianceHub.typeShortPolitical')
 }
 
 function money(value) {
@@ -147,7 +148,7 @@ onMounted(loadPage)
           <button v-if="showCreateEligible" type="button" class="al-btn-accent" @click="showCreateForm = !showCreateForm">
             {{ t('allianceHub.createAllianceTitle') }}
           </button>
-          <RouterLink v-else-if="!isAuthenticated" to="/login" class="al-btn-accent">Войти</RouterLink>
+          <RouterLink v-else-if="!isAuthenticated" to="/login" class="al-btn-accent">{{ t('allianceHub.loginBtn') }}</RouterLink>
         </div>
       </header>
 
@@ -169,7 +170,7 @@ onMounted(loadPage)
           </select>
           <textarea v-model="createForm.description" class="textarea" rows="2" :placeholder="t('allianceHub.descPlaceholder')"></textarea>
           <div class="al-create-actions">
-            <button type="button" class="btn btn-ghost btn-sm" @click="showCreateForm = false">Отмена</button>
+            <button type="button" class="btn btn-ghost btn-sm" @click="showCreateForm = false">{{ t('allianceHub.cancelBtn') }}</button>
             <button type="button" class="btn btn-primary btn-sm" :disabled="createLoading" @click="createAllianceAction">
               {{ t('allianceHub.createBtn') }}
             </button>
@@ -212,8 +213,8 @@ onMounted(loadPage)
 
       <!-- no results -->
       <div v-else-if="!filteredAlliances.length" class="surface-card al-empty">
-        <h2>Ничего не найдено</h2>
-        <p>Попробуйте изменить запрос</p>
+        <h2>{{ t('allianceHub.notFoundTitle') }}</h2>
+        <p>{{ t('allianceHub.notFoundHint') }}</p>
       </div>
 
       <!-- grid -->
@@ -237,7 +238,7 @@ onMounted(loadPage)
                 {{ typeShortLabel(item.alliance_type) }}
               </span>
               <span v-if="myAllianceSlug === item.slug" class="al-badge" style="color:#86efac;border-color:rgba(134,239,172,.3);background:rgba(134,239,172,.15)">
-                Ваш
+                {{ t('allianceHub.yoursShort') }}
               </span>
             </div>
             <div class="al-card__banner-bar" :style="{ background: typeColor(item.alliance_type) }"></div>
@@ -257,7 +258,7 @@ onMounted(loadPage)
             <div class="al-card__meta">
               <span class="al-card__meta-item">
                 <svg viewBox="0 0 20 20" fill="currentColor"><path d="M9 6a3 3 0 11-6 0 3 3 0 016 0zM17 6a3 3 0 11-6 0 3 3 0 016 0zM12.93 17c.046-.327.07-.66.07-1a6.97 6.97 0 00-1.5-4.33A5 5 0 0119 16v1h-6.07zM6 11a5 5 0 015 5v1H1v-1a5 5 0 015-5z"/></svg>
-                {{ item.members_count ?? 0 }} уч.
+                {{ item.members_count ?? 0 }} {{ t('allianceHub.membersShort') }}
               </span>
               <span v-if="item.allow_pvp_protection" class="al-card__meta-item al-card__meta-item--green">
                 <svg viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M2.166 4.999A11.954 11.954 0 0010 1.944 11.954 11.954 0 0017.834 5c.11.65.166 1.32.166 2.001 0 5.225-3.34 9.67-8 11.317C5.34 16.67 2 12.225 2 7c0-.682.057-1.35.166-2.001zm11.541 3.708a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/></svg>
@@ -265,7 +266,7 @@ onMounted(loadPage)
               </span>
               <span v-if="item.allow_joint_defense" class="al-card__meta-item al-card__meta-item--blue">
                 <svg viewBox="0 0 20 20" fill="currentColor"><path d="M9 6a3 3 0 11-6 0 3 3 0 016 0zM17 6a3 3 0 11-6 0 3 3 0 016 0zM12.93 17c.046-.327.07-.66.07-1a6.97 6.97 0 00-1.5-4.33A5 5 0 0119 16v1h-6.07zM6 11a5 5 0 015 5v1H1v-1a5 5 0 015-5z"/></svg>
-                Оборона
+                {{ t('allianceHub.defenseShort') }}
               </span>
             </div>
 

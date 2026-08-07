@@ -3,6 +3,7 @@ import { computed, onBeforeUnmount, onMounted, ref } from 'vue'
 import { useRoute, RouterLink } from 'vue-router'
 import { logoutCurrentSession, useAuthStore } from '../../stores/authStore'
 import { serverState, activeServer, fetchServers, setActiveServer } from '../../stores/serverStore'
+import ConfirmDialog from '../../components/admin/ConfirmDialog.vue'
 
 const auth = useAuthStore()
 const route = useRoute()
@@ -65,6 +66,7 @@ const srvPlayers = computed(() => activeServer.value?.status?.players_online ?? 
 const icons = {
   dashboard: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>',
   metrika: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>',
+  monitoring: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg>',
   market: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>',
   nations: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>',
   battlepass: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>',
@@ -98,6 +100,7 @@ const navGroups = computed(() => [
     label: activeServer.value?.name || 'Сервер',
     scoped: true,
     items: [
+      { to: '/admin/monitoring', label: 'Мониторинг', icon: icons.monitoring },
       { to: '/admin/market', label: 'Рынок', icon: icons.market },
       { to: '/admin/nations', label: 'Государства', icon: icons.nations },
       { to: '/admin/battlepass', label: 'Battle Pass', icon: icons.battlepass },
@@ -252,6 +255,9 @@ async function handleLogout() {
         <RouterView :key="routeScopeKey" />
       </div>
     </div>
+
+    <!-- Единая модалка подтверждения для всей админки -->
+    <ConfirmDialog />
   </div>
 </template>
 

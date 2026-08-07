@@ -1,10 +1,13 @@
 <script setup>
 import { computed } from 'vue'
+import { useI18n } from 'vue-i18n'
+
+const { t, locale } = useI18n()
 
 const props = defineProps({
   items: { type: Array, default: () => [] },
   loading: { type: Boolean, default: false },
-  title: { type: String, default: 'Активность' },
+  title: { type: String, default: '' },
   subtitle: { type: String, default: '' },
   cardStyle: { type: Object, default: () => ({}) },
   compact: { type: Boolean, default: false },
@@ -28,35 +31,35 @@ const EVENT_ICONS = {
 
 function formatActor(entry, key = 'actor') {
   const value = entry?.[key]
-  if (!value) return 'Система'
-  return value.minecraft_nickname || value.site_login || 'Игрок'
+  if (!value) return t('nationActivity.system')
+  return value.minecraft_nickname || value.site_login || t('nationActivity.player')
 }
 
 function formatTime(value) {
   if (!value) return '—'
   const date = new Date(value)
   if (Number.isNaN(date.getTime())) return value
-  return new Intl.DateTimeFormat('ru-RU', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' }).format(date)
+  return new Intl.DateTimeFormat(locale.value === 'en' ? 'en-GB' : 'ru-RU', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' }).format(date)
 }
 
 function buildMessage(entry) {
   const actor = formatActor(entry, 'actor')
   const target = formatActor(entry, 'target')
   switch (entry?.event_type) {
-    case 'nation_created': return `${actor} основал государство`
-    case 'nation_updated': return `${actor} обновил настройки`
-    case 'nation_disbanded': return `${actor} расформировал государство`
-    case 'join_requested': return `${actor} подал заявку`
-    case 'join_approved': return `${actor} принял ${target}`
-    case 'join_rejected': return `${actor} отклонил заявку ${target}`
-    case 'member_joined': return `${target} вступил`
-    case 'member_left': return `${target} покинул государство`
-    case 'member_removed': return `${actor} исключил ${target}`
-    case 'member_role_updated': return `${actor} изменил роль ${target}`
-    case 'leadership_transferred': return `Лидерство передано ${target}`
-    case 'asset_updated': return `${actor} обновил оформление`
-    case 'asset_deleted': return `${actor} удалил элемент`
-    default: return entry?.message || 'Событие'
+    case 'nation_created': return t('nationActivity.created', { actor })
+    case 'nation_updated': return t('nationActivity.updated', { actor })
+    case 'nation_disbanded': return t('nationActivity.disbanded', { actor })
+    case 'join_requested': return t('nationActivity.joinRequested', { actor })
+    case 'join_approved': return t('nationActivity.joinApproved', { actor, target })
+    case 'join_rejected': return t('nationActivity.joinRejected', { actor, target })
+    case 'member_joined': return t('nationActivity.memberJoined', { target })
+    case 'member_left': return t('nationActivity.memberLeft', { target })
+    case 'member_removed': return t('nationActivity.memberRemoved', { actor, target })
+    case 'member_role_updated': return t('nationActivity.roleUpdated', { actor, target })
+    case 'leadership_transferred': return t('nationActivity.leadershipTransferred', { target })
+    case 'asset_updated': return t('nationActivity.assetUpdated', { actor })
+    case 'asset_deleted': return t('nationActivity.assetDeleted', { actor })
+    default: return entry?.message || t('nationActivity.defaultEvent')
   }
 }
 
@@ -72,14 +75,14 @@ const normalizedItems = computed(() =>
 
 <template>
   <section class="surface-card naf" :style="cardStyle">
-    <h2 class="naf__title">{{ title }}</h2>
+    <h2 class="naf__title">{{ title || t('nationActivity.title') }}</h2>
 
     <div v-if="loading" class="naf__skeletons">
       <div v-for="i in 5" :key="i" class="skeleton" style="height:30px;border-radius:8px"></div>
     </div>
 
     <div v-else-if="!normalizedItems.length" class="naf__empty">
-      Событий пока нет
+      {{ t('nationActivity.empty') }}
     </div>
 
     <ul v-else class="naf__list">

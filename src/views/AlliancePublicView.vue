@@ -19,16 +19,17 @@ import { useAuthStore } from '../stores/authStore'
 import { formatRoleLabel } from '../utils/formatters'
 import { usePageMeta } from '../composables/usePageMeta.js'
 
+const { t } = useI18n()
+
 usePageMeta({
-  title: 'Альянс',
+  title: t('allianceHub.metaDetailTitle'),
   breadcrumbs: [
-    { name: 'Главная', url: '/' },
-    { name: 'Альянсы', url: '/alliances' },
-    { name: 'Альянс' },
+    { name: t('nav.home'), url: '/' },
+    { name: t('allianceHub.metaListTitle'), url: '/alliances' },
+    { name: t('allianceHub.metaDetailTitle') },
   ],
 })
 
-const { t } = useI18n()
 const route = useRoute()
 const router = useRouter()
 const auth = useAuthStore()
@@ -80,9 +81,9 @@ function typeColor(type) {
 }
 
 function typeLabel(type) {
-  if (type === 'nato') return 'Военный союз'
-  if (type === 'economic') return 'Экономический союз'
-  return 'Политический союз'
+  if (type === 'nato') return t('allianceHub.typeNato')
+  if (type === 'economic') return t('allianceHub.typeEconomic')
+  return t('allianceHub.typeUn')
 }
 
 function money(value) {
@@ -278,10 +279,10 @@ onMounted(() => loadPage(route.params.slug))
                   <span class="ap-chip" :style="{ color: typeColor(alliance.alliance_type), borderColor: typeColor(alliance.alliance_type) + '44', background: typeColor(alliance.alliance_type) + '15' }">
                     {{ typeLabel(alliance.alliance_type) }}
                   </span>
-                  <span v-if="isMember" class="ap-chip ap-chip--member">Ваш альянс</span>
+                  <span v-if="isMember" class="ap-chip ap-chip--member">{{ t('allianceHub.myAllianceLabel') }}</span>
                 </div>
                 <h1 class="ap-hero__title">{{ alliance.title }}</h1>
-                <p class="ap-hero__sub">[{{ alliance.tag }}] · Основан {{ formatDate(alliance.created_at) }}</p>
+                <p class="ap-hero__sub">[{{ alliance.tag }}] · {{ t('allianceHub.foundedLabel') }} {{ formatDate(alliance.created_at) }}</p>
               </div>
             </div>
 
@@ -289,15 +290,15 @@ onMounted(() => loadPage(route.params.slug))
             <div class="ap-hero__stats">
               <div class="ap-sstat">
                 <span class="ap-sstat__val">{{ alliance.members_count ?? members.length }}</span>
-                <span class="ap-sstat__lbl">участников</span>
+                <span class="ap-sstat__lbl">{{ t('allianceHub.membersLabel') }}</span>
               </div>
               <div v-if="Number(alliance.treasury_balance) > 0" class="ap-sstat">
                 <span class="ap-sstat__val">{{ money(alliance.treasury_balance) }}</span>
-                <span class="ap-sstat__lbl">в казне</span>
+                <span class="ap-sstat__lbl">{{ t('allianceHub.treasuryLabel') }}</span>
               </div>
               <div v-if="Number(alliance.transfer_fee_percent) > 0" class="ap-sstat">
                 <span class="ap-sstat__val">{{ alliance.transfer_fee_percent }}%</span>
-                <span class="ap-sstat__lbl">комиссия</span>
+                <span class="ap-sstat__lbl">{{ t('allianceHub.feeLabel') }}</span>
               </div>
             </div>
 
@@ -305,19 +306,19 @@ onMounted(() => loadPage(route.params.slug))
             <div class="ap-flags">
               <span v-if="alliance.allow_pvp_protection" class="ap-flag ap-flag--green">
                 <svg viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M2.166 4.999A11.954 11.954 0 0010 1.944 11.954 11.954 0 0017.834 5c.11.65.166 1.32.166 2.001 0 5.225-3.34 9.67-8 11.317C5.34 16.67 2 12.225 2 7c0-.682.057-1.35.166-2.001zm11.541 3.708a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/></svg>
-                PvP защита
+                {{ t('allianceHub.pvpBadge') }}
               </span>
               <span v-if="alliance.allow_joint_defense" class="ap-flag ap-flag--blue">
                 <svg viewBox="0 0 20 20" fill="currentColor"><path d="M9 6a3 3 0 11-6 0 3 3 0 016 0zM17 6a3 3 0 11-6 0 3 3 0 016 0zM12.93 17c.046-.327.07-.66.07-1a6.97 6.97 0 00-1.5-4.33A5 5 0 0119 16v1h-6.07zM6 11a5 5 0 015 5v1H1v-1a5 5 0 015-5z"/></svg>
-                Взаимооборона
+                {{ t('allianceHub.defenseBadge') }}
               </span>
               <span v-if="alliance.allow_trade_bonus" class="ap-flag ap-flag--amber">
                 <svg viewBox="0 0 20 20" fill="currentColor"><path d="M8.433 7.418c.155-.103.346-.196.567-.267v1.698a2.305 2.305 0 01-.567-.267C8.07 8.34 8 8.114 8 8c0-.114.07-.34.433-.582zM11 12.849v-1.698c.22.071.412.164.567.267.364.243.433.468.433.582 0 .114-.07.34-.433.582a2.305 2.305 0 01-.567.267z"/><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-13a1 1 0 10-2 0v.092a4.535 4.535 0 00-1.676.662C6.602 6.234 6 7.009 6 8c0 .99.602 1.765 1.324 2.246.48.32 1.054.545 1.676.662v1.941c-.391-.127-.68-.317-.843-.504a1 1 0 10-1.51 1.31c.562.649 1.413 1.077 2.353 1.253V15a1 1 0 102 0v-.092a4.535 4.535 0 001.676-.662C13.398 13.766 14 12.991 14 12c0-.99-.602-1.765-1.324-2.246A4.535 4.535 0 0011 9.092V7.151c.391.127.68.317.843.504a1 1 0 101.511-1.31c-.563-.649-1.413-1.077-2.354-1.253V5z" clip-rule="evenodd"/></svg>
-                Торговый бонус
+                {{ t('allianceHub.tradeBadge') }}
               </span>
               <span v-if="alliance.allow_internal_transfers" class="ap-flag">
                 <svg viewBox="0 0 20 20" fill="currentColor"><path d="M8 5a1 1 0 100 2h5.586l-1.293 1.293a1 1 0 001.414 1.414l3-3a1 1 0 000-1.414l-3-3a1 1 0 10-1.414 1.414L13.586 5H8zM12 15a1 1 0 100-2H6.414l1.293-1.293a1 1 0 10-1.414-1.414l-3 3a1 1 0 000 1.414l3 3a1 1 0 001.414-1.414L6.414 15H12z"/></svg>
-                Внутренние переводы
+                {{ t('allianceHub.internalTransfers') }}
               </span>
             </div>
 
@@ -336,7 +337,7 @@ onMounted(() => loadPage(route.params.slug))
             <button v-if="canLeave" type="button" class="ap-btn ap-btn--danger" :disabled="actionLoading" @click="leaveAction">
               {{ t('allianceHub.leaveAlliance') }}
             </button>
-            <RouterLink v-if="!isAuthenticated" to="/login" class="ap-btn ap-btn--outline">Войти</RouterLink>
+            <RouterLink v-if="!isAuthenticated" to="/login" class="ap-btn ap-btn--outline">{{ t('allianceHub.loginBtn') }}</RouterLink>
             <p v-else-if="!hasNation && !isMember" class="ap-hero__hint">{{ t('allianceHub.noNationHint') }}</p>
           </div>
         </div>

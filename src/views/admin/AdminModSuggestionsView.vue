@@ -2,6 +2,7 @@
 import { onMounted, ref, computed } from 'vue'
 import { adminListModSuggestions, adminDeleteModSuggestion } from '../../services/adminApi'
 import { authState } from '../../stores/authStore'
+import { confirmDialog } from '../../composables/useConfirm'
 
 const token = () => authState.accessToken
 
@@ -23,7 +24,7 @@ async function load() {
 }
 
 async function remove(id) {
-  if (!confirm('Удалить это предложение?')) return
+  if (!(await confirmDialog({ title: 'Удалить предложение', message: 'Удалить это предложение мода?', confirmLabel: 'Удалить', danger: true }))) return
   deletingId.value = id
   try {
     await adminDeleteModSuggestion(token(), id)

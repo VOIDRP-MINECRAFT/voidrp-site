@@ -10,7 +10,7 @@ import {
 import ItemIcon from '../components/ItemIcon.vue'
 import { useItemNames } from '../composables/useItemNames'
 
-const { t } = useI18n()
+const { t, locale } = useI18n()
 const itemNames = useItemNames()
 const route = useRoute()
 
@@ -234,10 +234,10 @@ function fmtTime(dateStr) {
   const d = new Date(dateStr)
   const now = new Date()
   const diff = (now - d) / 1000
-  if (diff < 60) return 'только что'
-  if (diff < 3600) return `${Math.floor(diff / 60)} мин назад`
-  if (diff < 86400) return `${Math.floor(diff / 3600)} ч назад`
-  return d.toLocaleDateString('ru-RU', { day: '2-digit', month: '2-digit' })
+  if (diff < 60) return t('market.pmAgoNow')
+  if (diff < 3600) return `${Math.floor(diff / 60)} ${t('market.miAgoMin')}`
+  if (diff < 86400) return `${Math.floor(diff / 3600)} ${t('market.miAgoHour')}`
+  return d.toLocaleDateString(locale.value === 'en' ? 'en-GB' : 'ru-RU', { day: '2-digit', month: '2-digit' })
 }
 </script>
 
@@ -252,13 +252,13 @@ function fmtTime(dateStr) {
         <svg class="mi-back__icon" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
           <path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7"/>
         </svg>
-        Рынок игроков
+        {{ t('market.pmMetaTitle') }}
       </RouterLink>
 
       <!-- ── Loader ── -->
       <div v-if="loading" class="mi-loader">
         <span class="loading loading-spinner loading-md text-violet-500" />
-        <span class="mi-loader__label">Загрузка…</span>
+        <span class="mi-loader__label">{{ t('market.miLoading') }}</span>
       </div>
 
       <template v-else>
@@ -276,7 +276,7 @@ function fmtTime(dateStr) {
                 <ItemIcon :item-key="itemKey" :size="52" />
               </div>
               <div class="mi-hero__name-block">
-                <div class="section-kicker" style="margin-bottom:.4rem">Предмет рынка</div>
+                <div class="section-kicker" style="margin-bottom:.4rem">{{ t('market.miKicker') }}</div>
                 <h1 class="mi-hero__title">{{ displayName }}</h1>
                 <code class="mi-hero__key">{{ itemKey }}</code>
               </div>
@@ -285,24 +285,24 @@ function fmtTime(dateStr) {
             <!-- Stat chips -->
             <div class="mi-stats">
               <div class="mi-stat mi-stat--primary" v-if="lastPrice != null">
-                <span class="mi-stat__label">Последняя сделка</span>
+                <span class="mi-stat__label">{{ t('market.miLastTrade') }}</span>
                 <span class="mi-stat__val">{{ fmt(lastPrice) }} ₽</span>
                 <span v-if="priceChange" class="mi-stat__change" :class="priceChange.pct >= 0 ? 'mi-stat__change--up' : 'mi-stat__change--dn'">
-                  {{ priceChange.label }} / {{ historyDays }}д
+                  {{ priceChange.label }} / {{ historyDays }}{{ t('market.pmAgoDay') }}
                 </span>
               </div>
               <div class="mi-stat mi-stat--ask" v-if="bestAsk != null">
-                <span class="mi-stat__label">Лучший ASK</span>
+                <span class="mi-stat__label">{{ t('market.miBestAsk') }}</span>
                 <span class="mi-stat__val mi-stat__val--ask">{{ fmt(bestAsk) }} ₽</span>
-                <span class="mi-stat__sub">продают от</span>
+                <span class="mi-stat__sub">{{ t('market.miSellFrom') }}</span>
               </div>
               <div class="mi-stat mi-stat--bid" v-if="bestBid != null">
-                <span class="mi-stat__label">Лучший BID</span>
+                <span class="mi-stat__label">{{ t('market.miBestBid') }}</span>
                 <span class="mi-stat__val mi-stat__val--bid">{{ fmt(bestBid) }} ₽</span>
-                <span class="mi-stat__sub">покупают до</span>
+                <span class="mi-stat__sub">{{ t('market.miBuyUpTo') }}</span>
               </div>
               <div class="mi-stat" v-if="spread != null">
-                <span class="mi-stat__label">Спред</span>
+                <span class="mi-stat__label">{{ t('market.miSpread') }}</span>
                 <span class="mi-stat__val">{{ fmt(spread) }} ₽</span>
                 <span class="mi-stat__sub">ASK − BID</span>
               </div>
@@ -316,14 +316,14 @@ function fmtTime(dateStr) {
           <!-- ORDER BOOK -->
           <div class="mi-ob surface-card">
             <div class="mi-ob__head">
-              <span class="mi-ob__title">Стакан заявок</span>
-              <span class="mi-ob__hint">цена · объём</span>
+              <span class="mi-ob__title">{{ t('market.miOrderBook') }}</span>
+              <span class="mi-ob__hint">{{ t('market.miPriceVol') }}</span>
             </div>
 
             <!-- ASK side -->
             <div class="mi-ob__section">
-              <div class="mi-ob__section-label mi-ob__section-label--ask">ASK — Продают</div>
-              <div v-if="!orderBook?.sell_side?.length" class="mi-ob__empty">Нет предложений</div>
+              <div class="mi-ob__section-label mi-ob__section-label--ask">{{ t('market.miAskSelling') }}</div>
+              <div v-if="!orderBook?.sell_side?.length" class="mi-ob__empty">{{ t('market.miNoOffers') }}</div>
               <div v-else class="mi-ob__rows">
                 <div
                   v-for="(row, i) in orderBook.sell_side"
@@ -345,14 +345,14 @@ function fmtTime(dateStr) {
             <!-- Spread divider -->
             <div v-if="spread != null" class="mi-ob__spread">
               <div class="mi-ob__spread-line" />
-              <span class="mi-ob__spread-val">Спред {{ fmt(spread) }} ₽</span>
+              <span class="mi-ob__spread-val">{{ t('market.miSpread') }} {{ fmt(spread) }} ₽</span>
               <div class="mi-ob__spread-line" />
             </div>
 
             <!-- BID side -->
             <div class="mi-ob__section">
-              <div class="mi-ob__section-label mi-ob__section-label--bid">BID — Покупают</div>
-              <div v-if="!orderBook?.buy_side?.length" class="mi-ob__empty">Нет заявок</div>
+              <div class="mi-ob__section-label mi-ob__section-label--bid">{{ t('market.miBidBuying') }}</div>
+              <div v-if="!orderBook?.buy_side?.length" class="mi-ob__empty">{{ t('market.miNoBids') }}</div>
               <div v-else class="mi-ob__rows">
                 <div
                   v-for="(row, i) in orderBook.buy_side"
@@ -373,8 +373,8 @@ function fmtTime(dateStr) {
 
             <!-- Quick commands -->
             <div class="mi-ob__cmds">
-              <code class="mi-ob__cmd">/pm sell &lt;кол-во&gt; &lt;цена&gt;</code>
-              <code class="mi-ob__cmd">/pm buy {{ itemKey }} &lt;кол-во&gt; &lt;цена&gt;</code>
+              <code class="mi-ob__cmd">/pm sell &lt;{{ t('market.miCmdAmount') }}&gt; &lt;{{ t('market.miCmdPrice') }}&gt;</code>
+              <code class="mi-ob__cmd">/pm buy {{ itemKey }} &lt;{{ t('market.miCmdAmount') }}&gt; &lt;{{ t('market.miCmdPrice') }}&gt;</code>
             </div>
           </div>
 
@@ -385,8 +385,8 @@ function fmtTime(dateStr) {
             <div class="mi-chart surface-card">
               <div class="mi-chart__head">
                 <div>
-                  <h3 class="mi-chart__title">История цен</h3>
-                  <p class="mi-chart__sub">Средняя цена сделок по дням</p>
+                  <h3 class="mi-chart__title">{{ t('market.miPriceHistory') }}</h3>
+                  <p class="mi-chart__sub">{{ t('market.miPriceHistorySub') }}</p>
                 </div>
                 <div class="mi-chart__tabs">
                   <button
@@ -395,12 +395,12 @@ function fmtTime(dateStr) {
                     class="mi-chart__tab"
                     :class="{ 'mi-chart__tab--active': historyDays === days }"
                     @click="setHistoryDays(days)"
-                  >{{ days }}д</button>
+                  >{{ days }}{{ t('market.pmAgoDay') }}</button>
                 </div>
               </div>
 
               <div v-if="!chartData" class="mi-chart__empty">
-                Недостаточно данных для графика
+                {{ t('market.miNotEnoughData') }}
               </div>
               <div v-else class="mi-chart__canvas">
                 <svg :viewBox="`0 0 ${CW} ${CH}`" class="w-full" style="max-height:220px">
@@ -432,11 +432,11 @@ function fmtTime(dateStr) {
                 <div class="mi-chart__legend">
                   <span class="mi-chart__leg-item">
                     <span class="mi-chart__leg-dot mi-chart__leg-dot--bid" />
-                    Покупка
+                    {{ t('market.txBuy') }}
                   </span>
                   <span v-if="sellPath" class="mi-chart__leg-item">
                     <span class="mi-chart__leg-dot mi-chart__leg-dot--ask" />
-                    Продажа
+                    {{ t('market.txSell') }}
                   </span>
                 </div>
               </div>
@@ -444,18 +444,18 @@ function fmtTime(dateStr) {
 
             <!-- TRADE HISTORY -->
             <div class="mi-trades surface-card">
-              <h3 class="mi-trades__title">История сделок</h3>
-              <div v-if="!trades.length" class="mi-trades__empty">Сделок пока нет</div>
+              <h3 class="mi-trades__title">{{ t('market.miTradeHistory') }}</h3>
+              <div v-if="!trades.length" class="mi-trades__empty">{{ t('market.pmNoTrades') }}</div>
               <div v-else class="mi-trades__scroll">
                 <table class="mi-trades__table">
                   <thead>
                     <tr class="mi-trades__thead-row">
-                      <th class="mi-trades__th">Время</th>
-                      <th class="mi-trades__th mi-trades__th--r">Кол-во</th>
-                      <th class="mi-trades__th mi-trades__th--r">Цена</th>
-                      <th class="mi-trades__th mi-trades__th--r">Сумма</th>
-                      <th class="mi-trades__th mi-trades__th--ask">Продавец</th>
-                      <th class="mi-trades__th mi-trades__th--bid">Покупатель</th>
+                      <th class="mi-trades__th">{{ t('market.miThTime') }}</th>
+                      <th class="mi-trades__th mi-trades__th--r">{{ t('market.miThQty') }}</th>
+                      <th class="mi-trades__th mi-trades__th--r">{{ t('market.miThPrice') }}</th>
+                      <th class="mi-trades__th mi-trades__th--r">{{ t('market.miThSum') }}</th>
+                      <th class="mi-trades__th mi-trades__th--ask">{{ t('market.miThSeller') }}</th>
+                      <th class="mi-trades__th mi-trades__th--bid">{{ t('market.miThBuyer') }}</th>
                     </tr>
                   </thead>
                   <tbody>

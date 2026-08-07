@@ -65,19 +65,19 @@ async function vote(p, choice) {
 }
 
 function typeLabel(type) {
-  return { nato: 'НАТО', un: 'ООН', economic: 'Экономический' }[type] || type
+  return { nato: t('gameUiAlliance.typeNato'), un: t('gameUiAlliance.typeUn'), economic: t('gameUiAlliance.typeEconomic') }[type] || type
 }
 function roleLabel(r) {
-  return { founder: 'Основатель', leader: 'Лидер', member: 'Участник' }[r] || r
+  return { founder: t('gameUiAlliance.roleFounder'), leader: t('gameUiAlliance.roleLeader'), member: t('gameUiAlliance.roleMember') }[r] || r
 }
 function propTypeLabel(type) {
-  return { add_member: 'Принятие', remove_member: 'Исключение', set_policy: 'Политика', treasury_transfer: 'Перевод' }[type] || type
+  return { add_member: t('gameUiAlliance.propAdd'), remove_member: t('gameUiAlliance.propRemove'), set_policy: t('gameUiAlliance.propPolicy'), treasury_transfer: t('gameUiAlliance.propTransfer') }[type] || type
 }
 function statusBadge(s) {
   return { open: 'gui-badge-warning', approved: 'gui-badge-success', rejected: 'gui-badge-error', executed: 'gui-badge-info', expired: 'gui-badge-neutral' }[s] || 'gui-badge-neutral'
 }
 function statusLabel(s) {
-  return { open: 'открыто', approved: 'одобрено', rejected: 'отклонено', executed: 'исполнено', expired: 'истекло' }[s] || s
+  return { open: t('gameUiAlliance.statusOpen'), approved: t('gameUiAlliance.statusApproved'), rejected: t('gameUiAlliance.statusRejected'), executed: t('gameUiAlliance.statusExecuted'), expired: t('gameUiAlliance.statusExpired') }[s] || s
 }
 </script>
 
@@ -127,7 +127,7 @@ function statusLabel(s) {
             <span class="al-mname">{{ m.nation_title }}</span>
             <span class="al-mrole" :class="{ founder: m.role === 'founder' }">{{ roleLabel(m.role) }}</span>
           </div>
-          <span v-if="m.nation_slug === alliance.player_nation_slug" class="al-you">ВЫ</span>
+          <span v-if="m.nation_slug === alliance.player_nation_slug" class="al-you">{{ t('gameUiAlliance.you') }}</span>
         </div>
       </div>
 

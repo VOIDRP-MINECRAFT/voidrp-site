@@ -7,17 +7,18 @@ import { useAuthStore } from '../stores/authStore'
 import { formatNumber } from '../utils/formatters'
 import { usePageMeta } from '../composables/usePageMeta.js'
 
+const { t } = useI18n()
+
 usePageMeta({
-  title: 'Государства',
-  description: 'Список всех государств сервера VoidRP. Смотри состав, казну и статистику каждого государства. Создай своё или вступи в существующее.',
+  title: t('meta.nationsTitle'),
+  description: t('meta.nationsDesc'),
   url: 'https://void-rp.ru/nations',
   breadcrumbs: [
-    { name: 'Главная', url: '/' },
-    { name: 'Государства' },
+    { name: t('nav.home'), url: '/' },
+    { name: t('meta.nationsTitle') },
   ],
 })
 
-const { t } = useI18n()
 const auth = useAuthStore()
 
 const loading = ref(true)

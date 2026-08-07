@@ -1,5 +1,8 @@
 <script setup>
 import { computed, ref } from 'vue'
+import { useI18n } from 'vue-i18n'
+
+const { t } = useI18n()
 
 const props = defineProps({
   title: { type: String, required: true },
@@ -27,9 +30,9 @@ const previewClass = computed(() => {
 })
 
 const slotChip = computed(() => {
-  if (props.slotName === 'avatar') return 'Аватар'
-  if (props.slotName === 'background') return 'Фон'
-  return 'Баннер'
+  if (props.slotName === 'avatar') return t('mediaSlot.slotAvatar')
+  if (props.slotName === 'background') return t('mediaSlot.slotBackground')
+  return t('mediaSlot.slotBanner')
 })
 
 const pickerPanelClass = computed(() => {
@@ -39,7 +42,7 @@ const pickerPanelClass = computed(() => {
 })
 
 const pickerHint = computed(() => {
-  return props.selectedFileName ? 'Файл выбран. Можно загружать.' : 'Нажми, чтобы выбрать файл.'
+  return props.selectedFileName ? t('mediaSlot.hintSelected') : t('mediaSlot.hintEmpty')
 })
 
 function onSelect(event) {
@@ -70,19 +73,19 @@ function openFilePicker() {
         <div class="flex w-full items-center justify-center overflow-hidden border border-white/10 bg-slate-950 shadow-sm" :class="previewClass">
           <img v-if="previewUrl" :src="previewUrl" :alt="title" class="h-full w-full object-cover" />
           <div v-else class="flex h-full w-full items-center justify-center px-6 text-center text-sm font-semibold leading-6 text-slate-500">
-            Изображение пока не выбрано
+            {{ t('mediaSlot.noImage') }}
           </div>
         </div>
       </div>
 
       <div class="mt-4 grid gap-3 md:grid-cols-2">
         <div class="rounded-[18px] border border-white/10 bg-slate-950/60 px-4 py-3">
-          <p class="text-xs font-bold uppercase tracking-[0.22em] text-slate-500">Файл</p>
-          <p class="mt-2 break-words text-sm font-medium leading-6 text-slate-200">{{ selectedFileName || 'Ничего не выбрано' }}</p>
+          <p class="text-xs font-bold uppercase tracking-[0.22em] text-slate-500">{{ t('mediaSlot.fileLabel') }}</p>
+          <p class="mt-2 break-words text-sm font-medium leading-6 text-slate-200">{{ selectedFileName || t('mediaSlot.nothingSelected') }}</p>
         </div>
 
         <div class="rounded-[18px] border border-white/10 bg-slate-950/60 px-4 py-3">
-          <p class="text-xs font-bold uppercase tracking-[0.22em] text-slate-500">Рекомендации</p>
+          <p class="text-xs font-bold uppercase tracking-[0.22em] text-slate-500">{{ t('mediaSlot.recommendations') }}</p>
           <p class="mt-2 text-sm leading-6 text-slate-300">{{ recommendation }}</p>
         </div>
       </div>
@@ -97,7 +100,7 @@ function openFilePicker() {
           @click="openFilePicker"
         >
           <div class="min-w-0">
-            <p class="text-sm font-semibold text-slate-100 group-hover:text-white">Выбрать файл</p>
+            <p class="text-sm font-semibold text-slate-100 group-hover:text-white">{{ t('mediaSlot.chooseFile') }}</p>
             <p class="mt-1 text-sm leading-6" :class="selectedFileName ? 'text-emerald-200' : 'text-slate-400 group-hover:text-slate-300'">
               {{ pickerHint }}
             </p>
@@ -107,18 +110,18 @@ function openFilePicker() {
             class="shrink-0 rounded-full border px-3 py-1.5 text-xs font-bold uppercase tracking-[0.18em] transition"
             :class="selectedFileName ? 'border-emerald-400/30 bg-emerald-400/10 text-emerald-200' : 'border-white/10 bg-black/20 text-slate-300 group-hover:border-violet-400/30 group-hover:bg-violet-500/10 group-hover:text-violet-200'"
           >
-            Нажать
+            {{ t('mediaSlot.tapToChoose') }}
           </div>
         </button>
 
         <div class="mt-3 flex flex-wrap gap-2">
           <button type="button" class="btn btn-primary rounded-2xl" :disabled="uploading || !selectedFileName" @click="$emit('upload')">
             <span v-if="uploading" class="spinner"></span>
-            <span v-else>Загрузить</span>
+            <span v-else>{{ t('mediaSlot.upload') }}</span>
           </button>
 
           <button type="button" class="btn btn-outline rounded-2xl" :disabled="uploading || !hasAsset" @click="$emit('remove')">
-            Удалить
+            {{ t('mediaSlot.remove') }}
           </button>
         </div>
       </div>

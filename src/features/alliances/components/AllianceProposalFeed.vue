@@ -1,4 +1,8 @@
 <script setup>
+import { useI18n } from 'vue-i18n'
+
+const { t } = useI18n()
+
 const props = defineProps({
   items: { type: Array, default: () => [] },
   loading: { type: Boolean, default: false },
@@ -12,27 +16,27 @@ function statusLabel(item) {
   const status = String(item?.status || '').toLowerCase()
   const executionStatus = String(item?.execution_status || '').toLowerCase()
 
-  if (status === 'executed') return 'Исполнено'
-  if (status === 'approved' && executionStatus === 'executed') return 'Исполнено'
-  if (status === 'approved' && executionStatus === 'failed') return 'Одобрено, но не исполнено'
-  if (status === 'approved') return 'Одобрено'
-  if (status === 'rejected') return 'Отклонено'
-  if (status === 'expired') return 'Закрыто'
-  return 'Открыто'
+  if (status === 'executed') return t('allianceProposals.statusExecuted')
+  if (status === 'approved' && executionStatus === 'executed') return t('allianceProposals.statusExecuted')
+  if (status === 'approved' && executionStatus === 'failed') return t('allianceProposals.statusApprovedNotExecuted')
+  if (status === 'approved') return t('allianceProposals.statusApproved')
+  if (status === 'rejected') return t('allianceProposals.statusRejected')
+  if (status === 'expired') return t('allianceProposals.statusClosed')
+  return t('allianceProposals.statusOpen')
 }
 
 function typeLabel(value) {
   switch (String(value || '').toLowerCase()) {
     case 'set_policy':
-      return 'Изменение правил'
+      return t('allianceProposals.typePolicy')
     case 'accept_member':
-      return 'Принять участника'
+      return t('allianceProposals.typeAccept')
     case 'remove_member':
-      return 'Исключить участника'
+      return t('allianceProposals.typeRemove')
     case 'transfer':
-      return 'Перевод средств'
+      return t('allianceProposals.typeTransfer')
     default:
-      return 'Решение союза'
+      return t('allianceProposals.typeDefault')
   }
 }
 
@@ -41,7 +45,7 @@ function voteSummary(item) {
   const yes = votes.filter((v) => String(v?.vote || '').toLowerCase() === 'yes').length
   const no = votes.filter((v) => String(v?.vote || '').toLowerCase() === 'no').length
   const veto = votes.filter((v) => String(v?.vote || '').toLowerCase() === 'veto').length
-  return `За: ${yes} · Против: ${no} · Вето: ${veto}`
+  return t('allianceProposals.votes', { yes, no, veto })
 }
 
 function canVoteForItem(item) {
@@ -55,8 +59,8 @@ function vote(id, value) {
 
 <template>
   <section class="surface-card p-4 md:p-5">
-    <div class="section-kicker !mb-2">Решения</div>
-    <h2 class="text-xl font-black text-slate-50 md:text-2xl">Предложения союза</h2>
+    <div class="section-kicker !mb-2">{{ t('allianceProposals.kicker') }}</div>
+    <h2 class="text-xl font-black text-slate-50 md:text-2xl">{{ t('allianceProposals.title') }}</h2>
 
     <div v-if="loading" class="mt-5 space-y-3">
       <div class="skeleton h-28 rounded-[22px]"></div>
@@ -64,7 +68,7 @@ function vote(id, value) {
     </div>
 
     <div v-else-if="!items.length" class="action-card mt-5 text-sm text-slate-400">
-      Пока нет предложений.
+      {{ t('allianceProposals.empty') }}
     </div>
 
     <div v-else class="mt-5 space-y-3">
@@ -82,9 +86,9 @@ function vote(id, value) {
           </div>
 
           <div v-if="canVoteForItem(item)" class="flex shrink-0 flex-wrap gap-2">
-            <button type="button" class="btn btn-primary btn-sm" @click="vote(item.id, 'yes')">За</button>
-            <button type="button" class="btn btn-outline btn-sm" @click="vote(item.id, 'no')">Против</button>
-            <button type="button" class="btn btn-ghost btn-sm" @click="vote(item.id, 'veto')">Вето</button>
+            <button type="button" class="btn btn-primary btn-sm" @click="vote(item.id, 'yes')">{{ t('allianceProposals.voteYes') }}</button>
+            <button type="button" class="btn btn-outline btn-sm" @click="vote(item.id, 'no')">{{ t('allianceProposals.voteNo') }}</button>
+            <button type="button" class="btn btn-ghost btn-sm" @click="vote(item.id, 'veto')">{{ t('allianceProposals.voteVeto') }}</button>
           </div>
         </div>
       </article>

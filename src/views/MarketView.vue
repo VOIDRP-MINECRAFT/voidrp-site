@@ -1,19 +1,21 @@
 <script setup>
 import { computed, onMounted, ref } from 'vue'
 import { useRouter, RouterLink } from 'vue-router'
+import { useI18n } from 'vue-i18n'
 import { usePageMeta } from '../composables/usePageMeta.js'
 import { getIsAuthenticated } from '../stores/authStore'
 import { getPlayerMarketItems, getPlayerMarketTrades } from '../services/marketApi'
 import ItemIcon from '../components/ItemIcon.vue'
 import { useItemNames } from '../composables/useItemNames'
 
+const { t } = useI18n()
 const itemNames = useItemNames()
 
 usePageMeta({
-  title: 'Рынок игроков',
-  description: 'Биржа предметов VoidRP — ордера на покупку и продажу от игроков в реальном времени.',
+  title: t('market.pmMetaTitle'),
+  description: t('market.pmMetaDesc'),
   url: 'https://void-rp.ru/market',
-  breadcrumbs: [{ name: 'Главная', url: '/' }, { name: 'Рынок' }],
+  breadcrumbs: [{ name: t('nav.home'), url: '/' }, { name: t('market.pmBreadcrumb') }],
 })
 
 const router = useRouter()
@@ -37,7 +39,7 @@ onMounted(async () => {
     items.value = itemsRes.items || []
     recentTrades.value = tradesRes.items || []
   } catch (e) {
-    error.value = 'Не удалось загрузить рынок'
+    error.value = t('market.loadError')
   } finally {
     loading.value = false
   }
@@ -109,10 +111,10 @@ function formatKey(key) {
 function timeAgo(dateStr) {
   if (!dateStr) return ''
   const diff = (Date.now() - new Date(dateStr).getTime()) / 1000
-  if (diff < 60) return 'только что'
-  if (diff < 3600) return `${Math.floor(diff / 60)} мин`
-  if (diff < 86400) return `${Math.floor(diff / 3600)} ч`
-  return `${Math.floor(diff / 86400)} д`
+  if (diff < 60) return t('market.pmAgoNow')
+  if (diff < 3600) return `${Math.floor(diff / 60)} ${t('market.pmAgoMin')}`
+  if (diff < 86400) return `${Math.floor(diff / 3600)} ${t('market.pmAgoHour')}`
+  return `${Math.floor(diff / 86400)} ${t('market.pmAgoDay')}`
 }
 </script>
 
@@ -129,24 +131,24 @@ function timeAgo(dateStr) {
         <div class="mv-hero__glow mv-hero__glow--br" />
         <div class="mv-hero__inner">
           <div class="mv-hero__left">
-            <div class="section-kicker">Торговая площадка</div>
-            <h1 class="mv-title">Рынок <span class="mv-title__accent">игроков</span></h1>
-            <p class="mv-subtitle">Ордерная биржа VoidRP · Ваниль и моды · Авто-матчинг · Комиссия 2%</p>
+            <div class="section-kicker">{{ t('market.pmKicker') }}</div>
+            <h1 class="mv-title">{{ t('market.pmTitleMain') }} <span class="mv-title__accent">{{ t('market.pmTitleAccent') }}</span></h1>
+            <p class="mv-subtitle">{{ t('market.pmSubtitle') }}</p>
             <div class="mv-badges">
               <span class="mv-badge mv-badge--emerald">
                 <svg class="mv-badge__icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
-                Авто-матчинг ордеров
+                {{ t('market.pmBadgeAutomatch') }}
               </span>
               <span class="mv-badge mv-badge--amber">
                 <svg class="mv-badge__icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
-                Комиссия 2% → казна
+                {{ t('market.pmBadgeFee') }}
               </span>
               <code class="mv-badge mv-badge--code">/shop</code>
             </div>
           </div>
           <RouterLink v-if="isAuthenticated" to="/market/me/orders" class="mv-orders-btn">
             <svg class="h-4 w-4 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/></svg>
-            Мои ордера
+            {{ t('market.pmMyOrders') }}
           </RouterLink>
         </div>
       </header>
@@ -160,25 +162,25 @@ function timeAgo(dateStr) {
           <input
             v-model="search"
             type="text"
-            placeholder="Поиск предмета — алмаз, diamond, зелье…"
+            :placeholder="t('market.pmSearchPlaceholder')"
             class="mv-search__input"
           />
           <span v-if="search && !loading" class="mv-search__count">{{ filteredItems.length }}</span>
         </div>
         <select class="mv-select" :value="sortBy + ':' + sortDir" @change="e => { const [c,d] = e.target.value.split(':'); sortBy = c; sortDir = d }">
-          <option value="volume_24h:desc">Объём ↓</option>
-          <option value="volume_24h:asc">Объём ↑</option>
-          <option value="best_ask:asc">Цена продажи ↑</option>
-          <option value="best_ask:desc">Цена продажи ↓</option>
-          <option value="best_bid:desc">Цена покупки ↓</option>
-          <option value="item_key:asc">Название А→Я</option>
+          <option value="volume_24h:desc">{{ t('market.pmSortVolDesc') }}</option>
+          <option value="volume_24h:asc">{{ t('market.pmSortVolAsc') }}</option>
+          <option value="best_ask:asc">{{ t('market.pmSortAskAsc') }}</option>
+          <option value="best_ask:desc">{{ t('market.pmSortAskDesc') }}</option>
+          <option value="best_bid:desc">{{ t('market.pmSortBidDesc') }}</option>
+          <option value="item_key:asc">{{ t('market.pmSortNameAsc') }}</option>
         </select>
       </div>
 
       <!-- ── LOADING ── -->
       <div v-if="loading" class="mv-loader">
         <span class="loading loading-spinner loading-md text-violet-500" />
-        <span class="mv-loader__label">Загрузка рынка…</span>
+        <span class="mv-loader__label">{{ t('market.pmLoading') }}</span>
       </div>
 
       <!-- ── ERROR ── -->
@@ -191,8 +193,8 @@ function timeAgo(dateStr) {
           <div class="mv-empty__icon">
             <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.2"><path stroke-linecap="round" stroke-linejoin="round" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"/></svg>
           </div>
-          <p class="mv-empty__title">{{ search ? 'Нет предметов по запросу' : 'Активных ордеров пока нет' }}</p>
-          <p class="mv-empty__hint">Зайди в игру · <code class="mv-code">/shop</code></p>
+          <p class="mv-empty__title">{{ search ? t('market.pmEmptySearch') : t('market.pmEmptyNone') }}</p>
+          <p class="mv-empty__hint">{{ t('market.pmEmptyHint') }} <code class="mv-code">/shop</code></p>
         </div>
 
         <!-- ── MAIN LAYOUT ── -->
@@ -205,7 +207,7 @@ function timeAgo(dateStr) {
                 <thead>
                   <tr class="mv-thead-row">
                     <th class="mv-th mv-th--left" @click="setSort('item_key')">
-                      Предмет <span class="mv-sort">{{ sortIcon('item_key') }}</span>
+                      {{ t('market.colItem') }} <span class="mv-sort">{{ sortIcon('item_key') }}</span>
                     </th>
                     <th class="mv-th mv-th--ask" @click="setSort('best_sell_price')">
                       ASK <span class="mv-sort">{{ sortIcon('best_sell_price') }}</span>
@@ -213,13 +215,13 @@ function timeAgo(dateStr) {
                     <th class="mv-th mv-th--bid" @click="setSort('best_buy_price')">
                       BID <span class="mv-sort">{{ sortIcon('best_buy_price') }}</span>
                     </th>
-                    <th class="mv-th mv-th--muted hidden md:table-cell">Спред</th>
+                    <th class="mv-th mv-th--muted hidden md:table-cell">{{ t('market.pmColSpread') }}</th>
                     <th class="mv-th mv-th--vol hidden lg:table-cell" @click="setSort('volume_24h')">
-                      Объём 24ч <span class="mv-sort">{{ sortIcon('volume_24h') }}</span>
+                      {{ t('market.pmColVol24') }} <span class="mv-sort">{{ sortIcon('volume_24h') }}</span>
                     </th>
-                    <th class="mv-th mv-th--orders hidden lg:table-cell">Ордера ↑↓</th>
+                    <th class="mv-th mv-th--orders hidden lg:table-cell">{{ t('market.pmColOrders') }}</th>
                     <th class="mv-th mv-th--right" @click="setSort('last_trade_price')">
-                      Последняя <span class="mv-sort">{{ sortIcon('last_trade_price') }}</span>
+                      {{ t('market.pmColLast') }} <span class="mv-sort">{{ sortIcon('last_trade_price') }}</span>
                     </th>
                   </tr>
                 </thead>
@@ -290,8 +292,8 @@ function timeAgo(dateStr) {
               </table>
             </div>
             <div class="mv-table-footer">
-              <span>ASK — лучшая цена продавца · BID — лучшая цена покупателя · все цены в ₽</span>
-              <span>{{ sortedItems.length }} {{ sortedItems.length === 1 ? 'предмет' : 'предметов' }}</span>
+              <span>{{ t('market.pmFooterLegend') }}</span>
+              <span>{{ sortedItems.length }} {{ sortedItems.length === 1 ? t('market.pmItemOne') : t('market.pmItemMany') }}</span>
             </div>
           </div>
 
@@ -300,8 +302,8 @@ function timeAgo(dateStr) {
 
             <!-- Recent trades feed -->
             <div class="surface-card mv-scard">
-              <h3 class="mv-scard__title">Последние сделки</h3>
-              <div v-if="recentTrades.length === 0" class="mv-scard__empty">Сделок пока нет</div>
+              <h3 class="mv-scard__title">{{ t('market.recentTrades') }}</h3>
+              <div v-if="recentTrades.length === 0" class="mv-scard__empty">{{ t('market.pmNoTrades') }}</div>
               <div v-else class="mv-feed">
                 <div
                   v-for="trade in recentTrades"
@@ -326,32 +328,32 @@ function timeAgo(dateStr) {
 
             <!-- How to trade -->
             <div class="surface-card mv-scard">
-              <h3 class="mv-scard__title">Как торговать</h3>
+              <h3 class="mv-scard__title">{{ t('market.pmHowTo') }}</h3>
               <div class="mv-steps">
                 <div class="mv-step">
                   <div class="mv-step__num mv-step__num--v">1</div>
-                  <p class="mv-step__text">Зайди на сервер, введи <code class="mv-code">/shop</code> — откроется GUI рынка</p>
+                  <p class="mv-step__text">{{ t('market.pmStep1Pre') }} <code class="mv-code">/shop</code> {{ t('market.pmStep1Post') }}</p>
                 </div>
                 <div class="mv-step">
                   <div class="mv-step__num mv-step__num--r">2</div>
-                  <p class="mv-step__text"><strong class="text-rose-400">Продать</strong>: предмет в руке → «Выставить» → количество и цена</p>
+                  <p class="mv-step__text"><strong class="text-rose-400">{{ t('market.pmSell') }}</strong>{{ t('market.pmStep2Post') }}</p>
                 </div>
                 <div class="mv-step">
                   <div class="mv-step__num mv-step__num--e">3</div>
-                  <p class="mv-step__text"><strong class="text-emerald-400">Купить</strong>: кликни по предмету в GUI или размести заявку</p>
+                  <p class="mv-step__text"><strong class="text-emerald-400">{{ t('market.pmBuy') }}</strong>{{ t('market.pmStep3Post') }}</p>
                 </div>
               </div>
               <div class="mv-meta">
                 <div class="mv-meta__item">
-                  <span class="mv-meta__label">Комиссия</span>
+                  <span class="mv-meta__label">{{ t('market.pmMetaFee') }}</span>
                   <span class="mv-meta__val">2% (1% Premium)</span>
                 </div>
                 <div class="mv-meta__item">
-                  <span class="mv-meta__label">Срок ордера</span>
-                  <span class="mv-meta__val">30 дней</span>
+                  <span class="mv-meta__label">{{ t('market.pmMetaOrderTerm') }}</span>
+                  <span class="mv-meta__val">{{ t('market.pmMetaOrderTermVal') }}</span>
                 </div>
                 <div class="mv-meta__item">
-                  <span class="mv-meta__label">Забрать товар</span>
+                  <span class="mv-meta__label">{{ t('market.pmMetaPickup') }}</span>
                   <span class="mv-meta__val">/pm pickup</span>
                 </div>
               </div>

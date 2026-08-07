@@ -1,6 +1,7 @@
 <script setup>
 import { onMounted, reactive, ref } from 'vue'
 import { authState } from '../../stores/authStore'
+import { confirmDialog } from '../../composables/useConfirm'
 import { toastSuccess, toastError } from '../../services/toast'
 import {
   listServers,
@@ -36,6 +37,8 @@ const BLANK = {
   map_url: '',
   accent_color: '',
   easydonate_server_id: null,
+  systemd_unit: '', data_dir: '', log_path: '',
+  rcon_host: '', rcon_port: null, rcon_password: '',
   features: { nations: true, economy: true, shop: true, alliances: true, battlepass: true, quests: true, leaderboards: true, progression: true, map: true, bounties: true, killfeed: true },
 }
 
@@ -85,10 +88,12 @@ function buildPayload() {
   // Normalize empty strings to null for nullable fields
   for (const k of ['description', 'icon_url', 'banner_url', 'neoforge_version',
     'pack_root', 'pack_base_url', 'manifest_url', 'runtime_seed_url', 'runtime_manifest_url',
-    'status_host', 'map_url', 'accent_color']) {
+    'status_host', 'map_url', 'accent_color',
+    'systemd_unit', 'data_dir', 'log_path', 'rcon_host', 'rcon_password']) {
     if (p[k] === '') p[k] = null
   }
   if (p.status_port === '' || p.status_port === undefined) p.status_port = null
+  if (p.rcon_port === '' || p.rcon_port === undefined || Number.isNaN(p.rcon_port)) p.rcon_port = null
   if (p.easydonate_server_id === '' || p.easydonate_server_id === undefined || Number.isNaN(p.easydonate_server_id)) p.easydonate_server_id = null
   return p
 }
@@ -116,7 +121,13 @@ async function save() {
 }
 
 async function remove(server) {
-  if (!confirm(`Удалить сервер «${server.name}»? Данные этого сервера удалятся каскадно.`)) return
+  const ok = await confirmDialog({
+    title: 'Удалить сервер',
+    message: `Удалить сервер «${server.name}»? Все игровые данные этого сервера удалятся каскадно и безвозвратно.`,
+    confirmLabel: 'Удалить',
+    danger: true,
+  })
+  if (!ok) return
   try {
     await deleteServer(token(), server.id)
     toastSuccess('Сервер удалён')
@@ -127,7 +138,13 @@ async function remove(server) {
 }
 
 async function regen(server) {
-  if (!confirm('Сгенерировать новый секрет? Плагины этого сервера перестанут работать до обновления конфига.')) return
+  const ok = await confirmDialog({
+    title: 'Перегенерировать секрет',
+    message: 'Плагины и моды этого сервера перестанут работать, пока не обновишь секрет в их конфигах. Продолжить?',
+    confirmLabel: 'Сгенерировать',
+    danger: true,
+  })
+  if (!ok) return
   try {
     const updated = await regenerateSecret(token(), server.id)
     if (editing.value && editing.value.id === server.id) editing.value = updated
@@ -306,6 +323,27 @@ onMounted(load)
           </label>
         </div>
         <p class="hint">Выключенные функции скрывают соответствующие вкладки/разделы на сайте и в лаунчере для этого сервера.</p>
+
+        <!-- Мониторинг и RCON -->
+        <div class="sec">Мониторинг и RCON (админ-панель сервера)</div>
+        <div class="grid">
+          <label class="fld"><span>systemd-юнит</span>
+            <input v-model="form.systemd_unit" placeholder="youer.service" /></label>
+          <label class="fld"><span>RCON host</span>
+            <input v-model="form.rcon_host" placeholder="127.0.0.1" /></label>
+          <label class="fld"><span>RCON port</span>
+            <input v-model.number="form.rcon_port" type="number" placeholder="25575" /></label>
+          <label class="fld"><span>RCON пароль</span>
+            <input v-model="form.rcon_password" type="password" placeholder="из server.properties" autocomplete="new-password" /></label>
+          <label class="fld"><span>Директория данных (необязательно)</span>
+            <input v-model="form.data_dir" placeholder="= WorkingDirectory юнита" /></label>
+          <label class="fld"><span>Путь к логу (необязательно)</span>
+            <input v-model="form.log_path" placeholder="= <data_dir>/logs/latest.log" /></label>
+        </div>
+        <p class="hint">
+          Юнит нужен для метрик CPU/RAM/диска и статуса службы (MainPID и WorkingDirectory берутся из systemd).
+          RCON — для консоли, TPS, списка онлайна и модерации. Оба необязательны: раздел «Мониторинг» покажет то, что настроено.
+        </p>
 
         <!-- Секрет -->
         <template v-if="editing !== 'new'">

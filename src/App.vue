@@ -1,13 +1,16 @@
 <script setup>
 import { computed, onMounted, onUnmounted } from 'vue'
 import { useRoute } from 'vue-router'
+import { useI18n } from 'vue-i18n'
 import AppFooter from './components/AppFooter.vue'
 import FeatureUnavailableNotice from './components/FeatureUnavailableNotice.vue'
+import CookieConsent from './components/CookieConsent.vue'
 import GlobalToastStack from './components/GlobalToastStack.vue'
 import SiteNavbar from './components/SiteNavbar.vue'
 import { useAuthStore } from './stores/authStore'
 import { serverState, activeServer } from './stores/serverStore'
 
+const { t } = useI18n()
 const auth = useAuthStore()
 const route = useRoute()
 
@@ -67,9 +70,9 @@ onUnmounted(() => {
         <div class="container-shell max-w-3xl">
           <div class="surface-card p-5 text-center md:p-6">
             <div class="section-kicker">VoidRP</div>
-            <h1 class="section-title">Открываем сайт</h1>
+            <h1 class="section-title">{{ t('app.bootTitle') }}</h1>
             <p class="section-subtitle mx-auto max-w-2xl">
-              Проверяем сохранённый вход и загружаем кабинет.
+              {{ t('app.bootDesc') }}
             </p>
             <div class="mt-4 flex justify-center text-violet-300">
               <span class="spinner spinner-lg"></span>
@@ -84,6 +87,7 @@ onUnmounted(() => {
 
     <AppFooter v-if="!hidePublicShell" />
     <GlobalToastStack />
+    <CookieConsent v-if="!hidePublicShell" />
   </div>
 </template>
 

@@ -1,6 +1,7 @@
 <script setup>
 import { ref, computed, onMounted, onUnmounted, watch } from 'vue'
 import { useRoute } from 'vue-router'
+import { useI18n } from 'vue-i18n'
 import {
   setWebguiToken, getItems, getOrderBook, getMySellOrders,
   getMyBuyOrders, getMyTrades, getPickupReady, createPendingAction,
@@ -9,6 +10,7 @@ import { useItemNames } from '../composables/useItemNames'
 import ItemIcon from '../components/ItemIcon.vue'
 import { toastSuccess, toastError, toastInfo } from '../services/toast'
 
+const { t } = useI18n()
 const route = useRoute()
 const itemNames = useItemNames()
 const tokenValid = ref(true)
@@ -189,18 +191,18 @@ async function submitBuy() {
       unit_price:   price,
       display_name: label(itemKey),
     })
-    buyForm.value.res = { ok: true, msg: buyForm.value.instant ? '⏳ Обрабатывается — смотри инвентарь' : 'Заявка размещена — ждём продавца' }
+    buyForm.value.res = { ok: true, msg: buyForm.value.instant ? t('vmarket.msgBuyInstant') : t('vmarket.msgBuyQueued') }
     toastInfo(
       buyForm.value.instant
-        ? `Покупка ${label(itemKey)} ×${amt} — выдача через секунду`
-        : `Заявка на покупку: ${label(itemKey)} ×${amt} по ${money(price)} ₽`,
-      'Рынок',
+        ? t('vmarket.toastBuyInstant', { item: label(itemKey), amt })
+        : t('vmarket.toastBuyQueued', { item: label(itemKey), amt, price: money(price) }),
+      t('vmarket.marketTitle'),
     )
     setTimeout(() => { buyForm.value.show = false; buyForm.value.res = null }, 2500)
   } catch (e) {
     if (buyForm.value.instant) refreshAfterAction()
     buyForm.value.res = { ok: false, msg: e.message }
-    toastError(e.message, 'Ошибка покупки')
+    toastError(e.message, t('vmarket.errBuy'))
   } finally {
     buyForm.value.busy = false
     refreshAfterAction()
@@ -221,18 +223,18 @@ async function submitSell() {
       amount:     amt,
       unit_price: price,
     })
-    sellForm.value.res = { ok: true, msg: sellForm.value.instant ? '✓ Деньги зачислены' : 'Ордер размещён — ждём покупателя' }
+    sellForm.value.res = { ok: true, msg: sellForm.value.instant ? t('vmarket.msgSellInstant') : t('vmarket.msgSellQueued') }
     toastSuccess(
       sellForm.value.instant
-        ? `Продано сразу: ${label(itemKey)} ×${amt} — деньги придут через сек.`
-        : `Ордер на продажу: ${label(itemKey)} ×${amt} по ${money(price)} ₽`,
-      'Рынок',
+        ? t('vmarket.toastSellInstant', { item: label(itemKey), amt })
+        : t('vmarket.toastSellQueued', { item: label(itemKey), amt, price: money(price) }),
+      t('vmarket.marketTitle'),
     )
     setTimeout(() => { sellForm.value.show = false; sellForm.value.res = null }, 3500)
   } catch (e) {
     if (sellForm.value.instant) refreshAfterAction()
     sellForm.value.res = { ok: false, msg: e.message }
-    toastError(e.message, 'Ошибка продажи')
+    toastError(e.message, t('vmarket.errSell'))
   } finally {
     sellForm.value.busy = false
     refreshAfterAction()
@@ -250,12 +252,12 @@ async function submitHandSell() {
       amount:     handForm.value.amount,
       unit_price: price,
     })
-    handForm.value.res = { ok: true, msg: 'Запрос принят — берётся предмет из вашей руки' }
-    toastSuccess(`Ордер на продажу из руки ×${handForm.value.amount} по ${money(price)} ₽`, 'Рынок')
+    handForm.value.res = { ok: true, msg: t('vmarket.msgHand') }
+    toastSuccess(t('vmarket.toastHand', { amt: handForm.value.amount, price: money(price) }), t('vmarket.marketTitle'))
     setTimeout(() => { handForm.value.show = false; handForm.value.res = null }, 3500)
   } catch (e) {
     handForm.value.res = { ok: false, msg: e.message }
-    toastError(e.message, 'Ошибка продажи')
+    toastError(e.message, t('vmarket.errSell'))
   } finally {
     handForm.value.busy = false
   }
@@ -268,10 +270,10 @@ async function cancelOrder(type, id) {
     await createPendingAction(type === 'sell' ? 'cancel_sell' : 'cancel_buy', { order_id: id })
     if (type === 'sell') mySell.value = mySell.value.filter(o => o.id !== id)
     else                 myBuy.value  = myBuy.value.filter(o => o.id !== id)
-    toastInfo('Ордер отменён, предметы/средства будут возвращены', 'Рынок')
+    toastInfo(t('vmarket.toastCancel'), t('vmarket.marketTitle'))
   } catch (e) {
     globalErr.value = e.message
-    toastError(e.message, 'Ошибка отмены')
+    toastError(e.message, t('vmarket.errCancel'))
   } finally {
     cancelId.value = null
   }
@@ -283,11 +285,11 @@ async function requestPickup() {
   try {
     await createPendingAction('pickup', {})
     pickupRes.value = { ok: true }
-    toastSuccess('Предметы и деньги будут выданы в течение секунды', 'Рынок — Выдача')
+    toastSuccess(t('vmarket.toastPickup'), t('vmarket.toastPickupTitle'))
     pickupCnt.value = 0
   } catch (e) {
     pickupRes.value = { ok: false, msg: e.message }
-    toastError(e.message, 'Ошибка выдачи')
+    toastError(e.message, t('vmarket.errPickup'))
   } finally {
     pickupBusy.value = false
   }
@@ -297,8 +299,8 @@ async function requestPickup() {
 watch(pickupCnt, (newVal, oldVal) => {
   if (newVal > oldVal && oldVal !== null) {
     toastInfo(
-      `У вас ${newVal} позиций для получения — зайдите во вкладку «Забрать»`,
-      '🛒 Рынок — новая выдача',
+      t('vmarket.toastNewPickup', { n: newVal }),
+      t('vmarket.toastNewPickupTitle'),
     )
   }
 })
@@ -365,8 +367,8 @@ onUnmounted(() => { if (poll) clearInterval(poll) })
   <!-- Token error -->
   <div v-if="!tokenValid" class="vm-fatal">
     <div class="vm-fatal-icon">⚠</div>
-    <div class="vm-fatal-title">Сессия истекла</div>
-    <div class="vm-fatal-sub">Закройте меню и откройте снова через <code>/shop</code></div>
+    <div class="vm-fatal-title">{{ t('vmarket.fatalTitle') }}</div>
+    <div class="vm-fatal-sub">{{ t('vmarket.fatalSubPre') }} <code>/shop</code></div>
   </div>
 
   <template v-else>
@@ -379,26 +381,26 @@ onUnmounted(() => { if (poll) clearInterval(poll) })
       </span>
       <span class="vm-brand-text">
         <span class="vm-brand-name">VOID<span class="vm-brand-accent">RP</span></span>
-        <span class="vm-brand-sub">Биржа игроков</span>
+        <span class="vm-brand-sub">{{ t('vmarket.brandSub') }}</span>
       </span>
     </div>
 
     <nav class="vm-nav">
       <button class="vm-nav-btn" :class="{ active: tab === 'market' }" @click="switchTab('market')">
         <svg width="15" height="15" viewBox="0 0 16 16" fill="none"><path d="M2 11l3.5-4 3 2.5L13 4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/><path d="M10 4h3v3" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
-        <span>Рынок</span>
+        <span>{{ t('vmarket.tabMarket') }}</span>
       </button>
       <button class="vm-nav-btn" :class="{ active: tab === 'orders' }" @click="switchTab('orders')">
         <svg width="15" height="15" viewBox="0 0 16 16" fill="none"><rect x="2.5" y="2.5" width="11" height="11" rx="2" stroke="currentColor" stroke-width="1.4"/><path d="M5.5 6.5h5M5.5 9.5h3" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg>
-        <span>Мои ордера</span>
+        <span>{{ t('vmarket.tabMyOrders') }}</span>
       </button>
       <button class="vm-nav-btn" :class="{ active: tab === 'history' }" @click="switchTab('history')">
         <svg width="15" height="15" viewBox="0 0 16 16" fill="none"><circle cx="8" cy="8" r="5.5" stroke="currentColor" stroke-width="1.4"/><path d="M8 5v3l2 1.5" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/></svg>
-        <span>История</span>
+        <span>{{ t('vmarket.tabHistory') }}</span>
       </button>
       <button class="vm-nav-btn" :class="{ active: tab === 'pickup' }" @click="switchTab('pickup')">
         <svg width="15" height="15" viewBox="0 0 16 16" fill="none"><path d="M3 4h10l-1 8.5a1 1 0 0 1-1 .9H5a1 1 0 0 1-1-.9L3 4z" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round"/><path d="M6 4V3a2 2 0 0 1 4 0v1" stroke="currentColor" stroke-width="1.4"/></svg>
-        <span>Забрать</span>
+        <span>{{ t('vmarket.tabPickup') }}</span>
         <span v-if="pickupCnt > 0" class="vm-nav-badge">{{ pickupCnt }}</span>
       </button>
     </nav>
@@ -406,9 +408,9 @@ onUnmounted(() => { if (poll) clearInterval(poll) })
     <div class="vm-header-actions">
       <button class="vm-hand-btn" @click="handForm = { show: true, price: '', amount: 1, busy: false, res: null }">
         <svg width="15" height="15" viewBox="0 0 16 16" fill="none"><path d="M6 3a1 1 0 0 1 1-1h2a1 1 0 0 1 1 1v5h1a1 1 0 0 1 1 1v4a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V9a1 1 0 0 1 1-1h1V3z" stroke="currentColor" stroke-width="1.3"/></svg>
-        <span>Продать из руки</span>
+        <span>{{ t('vmarket.tabHandSell') }}</span>
       </button>
-      <button class="vm-icon-btn" :class="{ spin: loading }" @click="switchTab(tab)" title="Обновить">
+      <button class="vm-icon-btn" :class="{ spin: loading }" @click="switchTab(tab)" :title="t('vmarket.refresh')">
         <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M13.5 8a5.5 5.5 0 1 1-1.6-3.9" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/><path d="M13.5 2.5V5.5H10.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
       </button>
     </div>
@@ -432,20 +434,20 @@ onUnmounted(() => { if (poll) clearInterval(poll) })
     <aside class="vm-list-panel">
       <div class="vm-search-wrap">
         <svg class="vm-search-ico" width="15" height="15" viewBox="0 0 15 15" fill="none"><circle cx="6.5" cy="6.5" r="4.5" stroke="currentColor" stroke-width="1.4"/><path d="M10 10l2.5 2.5" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg>
-        <input v-model="search" class="vm-search" placeholder="Поиск предметов…" />
+        <input v-model="search" class="vm-search" :placeholder="t('vmarket.searchPlaceholder')" />
         <span v-if="search" class="vm-search-clear" @click="search = ''">✕</span>
       </div>
 
       <div class="vm-list-head">
-        <span>Предмет</span>
-        <span class="ar">Продажа</span>
-        <span class="ar">Покупка</span>
+        <span>{{ t('vmarket.colItem') }}</span>
+        <span class="ar">{{ t('vmarket.colSell') }}</span>
+        <span class="ar">{{ t('vmarket.colBuy') }}</span>
       </div>
 
       <div class="vm-list-scroll">
         <div v-if="!filtered.length" class="vm-list-empty">
           <span class="vm-list-empty-ico">🔍</span>
-          Ничего не найдено
+          {{ t('vmarket.nothingFound') }}
         </div>
         <button
           v-for="item in filtered"
@@ -472,8 +474,8 @@ onUnmounted(() => { if (poll) clearInterval(poll) })
         <div class="vm-ph-orb">
           <svg width="40" height="40" viewBox="0 0 24 24" fill="none"><path d="M3 17l5-6 4 3 6-8" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/><path d="M15 6h4v4" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
         </div>
-        <div class="vm-ph-title">Выберите предмет</div>
-        <div class="vm-ph-sub">Нажмите на любой предмет в списке слева, чтобы увидеть книгу ордеров и начать торговать.</div>
+        <div class="vm-ph-title">{{ t('vmarket.selectItem') }}</div>
+        <div class="vm-ph-sub">{{ t('vmarket.selectItemSub') }}</div>
       </div>
 
       <template v-else>
@@ -488,15 +490,15 @@ onUnmounted(() => { if (poll) clearInterval(poll) })
           </div>
           <div class="vm-item-quotes">
             <div class="vm-quote sell">
-              <span class="vm-quote-label">Мин. продажа</span>
+              <span class="vm-quote-label">{{ t('vmarket.minSell') }}</span>
               <span class="vm-quote-val">{{ selected.best_sell_price != null ? money(selected.best_sell_price) + ' ₽' : '—' }}</span>
             </div>
             <div class="vm-quote buy">
-              <span class="vm-quote-label">Макс. покупка</span>
+              <span class="vm-quote-label">{{ t('vmarket.maxBuy') }}</span>
               <span class="vm-quote-val">{{ selected.best_buy_price != null ? money(selected.best_buy_price) + ' ₽' : '—' }}</span>
             </div>
             <div v-if="selected.volume_24h" class="vm-quote vol">
-              <span class="vm-quote-label">Объём 24ч</span>
+              <span class="vm-quote-label">{{ t('vmarket.vol24') }}</span>
               <span class="vm-quote-val">{{ money(selected.volume_24h) }}</span>
             </div>
           </div>
@@ -514,11 +516,11 @@ onUnmounted(() => { if (poll) clearInterval(poll) })
             <div class="vm-trade-tabs">
               <button class="vm-trade-tab buy" :class="{ active: buyForm.show }" @click="buyForm.show ? (buyForm.show=false) : openBuy()">
                 <svg width="13" height="13" viewBox="0 0 13 13" fill="none"><path d="M6.5 1v10M2 7.5l4.5 4 4.5-4" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
-                Купить
+                {{ t('vmarket.buy') }}
               </button>
               <button class="vm-trade-tab sell" :class="{ active: sellForm.show }" @click="sellForm.show ? (sellForm.show=false) : openSell()">
                 <svg width="13" height="13" viewBox="0 0 13 13" fill="none"><path d="M6.5 11V1M2 4.5L6.5 1 11 4.5" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
-                Продать
+                {{ t('vmarket.sell') }}
               </button>
             </div>
 
@@ -526,33 +528,31 @@ onUnmounted(() => { if (poll) clearInterval(poll) })
             <transition name="vm-slide">
               <div v-if="buyForm.show" class="vm-form buy">
                 <div class="vm-form-mode">
-                  <span v-if="buyForm.instant" class="vm-chip instant-buy">⚡ Исполнится сразу</span>
-                  <span v-else class="vm-chip wait">⏳ Ордер в очереди</span>
+                  <span v-if="buyForm.instant" class="vm-chip instant-buy">{{ t('vmarket.instantBuy') }}</span>
+                  <span v-else class="vm-chip wait">{{ t('vmarket.orderQueued') }}</span>
                 </div>
                 <div class="vm-form-grid">
                   <label class="vm-field">
-                    <span class="vm-field-label">Цена за шт. <i>₽</i></span>
+                    <span class="vm-field-label">{{ t('vmarket.pricePerUnit') }} <i>₽</i></span>
                     <input v-model="buyForm.price" type="number" min="1" class="vm-input" placeholder="0" @input="checkInstantBuy" />
                   </label>
                   <label class="vm-field">
-                    <span class="vm-field-label">Количество <em v-if="buyForm.avail">доступно {{ buyForm.avail }}</em></span>
+                    <span class="vm-field-label">{{ t('vmarket.amount') }} <em v-if="buyForm.avail">{{ t('vmarket.available', { n: buyForm.avail }) }}</em></span>
                     <input v-model.number="buyForm.amount" type="number" min="1" class="vm-input" />
                   </label>
                 </div>
                 <div v-if="buyForm.price && buyForm.amount" class="vm-form-total">
-                  <span>Спишется</span>
+                  <span>{{ t('vmarket.willCharge') }}</span>
                   <strong>{{ money(parsePrice(buyForm.price) * buyForm.amount) }} ₽</strong>
                 </div>
                 <transition name="vm-fade">
                   <div v-if="buyForm.res" class="vm-form-res" :class="buyForm.res.ok ? 'ok' : 'err'">{{ buyForm.res.msg }}</div>
                 </transition>
                 <button class="vm-submit buy" :disabled="buyForm.busy || !buyForm.price || buyForm.amount < 1" @click="submitBuy">
-                  {{ buyForm.busy ? 'Отправка…' : buyForm.instant ? '⚡ Купить сразу' : 'Создать заявку на покупку' }}
+                  {{ buyForm.busy ? t('vmarket.sending') : buyForm.instant ? t('vmarket.buyInstantBtn') : t('vmarket.buyQueueBtn') }}
                 </button>
                 <p class="vm-form-note">
-                  {{ buyForm.instant
-                      ? 'Деньги списываются сразу, предмет выдаётся немедленно.'
-                      : 'Деньги резервируются. Предмет придёт, когда кто-то продаст по вашей цене.' }}
+                  {{ buyForm.instant ? t('vmarket.buyInstantHint') : t('vmarket.buyQueueHint') }}
                 </p>
               </div>
             </transition>
@@ -561,33 +561,31 @@ onUnmounted(() => { if (poll) clearInterval(poll) })
             <transition name="vm-slide">
               <div v-if="sellForm.show" class="vm-form sell">
                 <div class="vm-form-mode">
-                  <span v-if="sellForm.instant" class="vm-chip instant-sell">⚡ Продастся сразу</span>
-                  <span v-else class="vm-chip wait">⏳ Ордер в очереди</span>
+                  <span v-if="sellForm.instant" class="vm-chip instant-sell">{{ t('vmarket.instantSell') }}</span>
+                  <span v-else class="vm-chip wait">{{ t('vmarket.orderQueued') }}</span>
                 </div>
                 <div class="vm-form-grid">
                   <label class="vm-field">
-                    <span class="vm-field-label">Цена за шт. <i>₽</i></span>
+                    <span class="vm-field-label">{{ t('vmarket.pricePerUnit') }} <i>₽</i></span>
                     <input v-model="sellForm.price" type="number" min="1" class="vm-input" placeholder="0" @input="checkInstantSell" />
                   </label>
                   <label class="vm-field">
-                    <span class="vm-field-label">Количество <em v-if="sellForm.avail">покупают {{ sellForm.avail }}</em></span>
+                    <span class="vm-field-label">{{ t('vmarket.amount') }} <em v-if="sellForm.avail">{{ t('vmarket.buying', { n: sellForm.avail }) }}</em></span>
                     <input v-model.number="sellForm.amount" type="number" min="1" class="vm-input" />
                   </label>
                 </div>
                 <div v-if="sellForm.price && sellForm.amount" class="vm-form-total">
-                  <span>Выручка <i>−2%</i></span>
+                  <span>{{ t('vmarket.revenue') }} <i>−2%</i></span>
                   <strong>{{ money(parsePrice(sellForm.price) * sellForm.amount * 0.98) }} ₽</strong>
                 </div>
                 <transition name="vm-fade">
                   <div v-if="sellForm.res" class="vm-form-res" :class="sellForm.res.ok ? 'ok' : 'err'">{{ sellForm.res.msg }}</div>
                 </transition>
                 <button class="vm-submit sell" :disabled="sellForm.busy || !sellForm.price || sellForm.amount < 1" @click="submitSell">
-                  {{ sellForm.busy ? 'Отправка…' : sellForm.instant ? '⚡ Продать сразу' : 'Выставить ордер' }}
+                  {{ sellForm.busy ? t('vmarket.sending') : sellForm.instant ? t('vmarket.sellInstantBtn') : t('vmarket.sellQueueBtn') }}
                 </button>
                 <p class="vm-form-note">
-                  {{ sellForm.instant
-                      ? 'Предмет изымается из инвентаря, деньги зачисляются немедленно.'
-                      : 'Предмет изымается из инвентаря и ждёт покупателя.' }}
+                  {{ sellForm.instant ? t('vmarket.sellInstantHint') : t('vmarket.sellQueueHint') }}
                 </p>
               </div>
             </transition>
@@ -598,23 +596,23 @@ onUnmounted(() => { if (poll) clearInterval(poll) })
             <!-- asks (sell) -->
             <div class="vm-book-col asks">
               <div class="vm-book-head sell">
-                <span class="vm-book-title"><span class="vm-dot sell"></span> Продают</span>
-                <span class="vm-book-cols"><span>Цена</span><span>Кол-во</span></span>
+                <span class="vm-book-title"><span class="vm-dot sell"></span> {{ t('vmarket.bookSelling') }}</span>
+                <span class="vm-book-cols"><span>{{ t('vmarket.colPrice') }}</span><span>{{ t('vmarket.colAmount') }}</span></span>
               </div>
               <div class="vm-book-rows">
-                <div v-if="!(orderBook.sell_side||[]).length" class="vm-book-empty">Нет ордеров</div>
+                <div v-if="!(orderBook.sell_side||[]).length" class="vm-book-empty">{{ t('vmarket.noOrders') }}</div>
                 <button
                   v-for="(so, i) in (orderBook.sell_side||[]).slice(0,12)"
                   :key="so.unit_price"
                   class="vm-book-row sell"
                   :class="{ best: i === 0 }"
                   @click="openBuy(so.unit_price, so.total_amount)"
-                  title="Купить по этой цене"
+                  :title="t('vmarket.buyAtPrice')"
                 >
                   <span class="vm-depth sell" :style="{ width: obBarWidth(so, orderBook.sell_side, 'sell') + '%' }"></span>
                   <span class="vm-book-price sell">{{ money(so.unit_price) }}</span>
                   <span class="vm-book-qty">{{ so.total_amount.toLocaleString('ru-RU') }}</span>
-                  <span class="vm-book-cta sell">Купить →</span>
+                  <span class="vm-book-cta sell">{{ t('vmarket.buyArrow') }}</span>
                 </button>
               </div>
             </div>
@@ -622,10 +620,10 @@ onUnmounted(() => { if (poll) clearInterval(poll) })
             <!-- spread / center -->
             <div class="vm-book-mid">
               <div class="vm-spread">
-                <span class="vm-spread-label">Спред</span>
+                <span class="vm-spread-label">{{ t('vmarket.spread') }}</span>
                 <span class="vm-spread-val">{{ orderBook.spread != null ? money(orderBook.spread) + ' ₽' : '—' }}</span>
                 <span v-if="orderBook.last_trade_price != null" class="vm-spread-last">
-                  посл. {{ money(orderBook.last_trade_price) }} ₽
+                  {{ t('vmarket.lastPrefix') }} {{ money(orderBook.last_trade_price) }} ₽
                 </span>
               </div>
             </div>
@@ -633,23 +631,23 @@ onUnmounted(() => { if (poll) clearInterval(poll) })
             <!-- bids (buy) -->
             <div class="vm-book-col bids">
               <div class="vm-book-head buy">
-                <span class="vm-book-title"><span class="vm-dot buy"></span> Покупают</span>
-                <span class="vm-book-cols"><span>Цена</span><span>Кол-во</span></span>
+                <span class="vm-book-title"><span class="vm-dot buy"></span> {{ t('vmarket.bookBuying') }}</span>
+                <span class="vm-book-cols"><span>{{ t('vmarket.colPrice') }}</span><span>{{ t('vmarket.colAmount') }}</span></span>
               </div>
               <div class="vm-book-rows">
-                <div v-if="!(orderBook.buy_side||[]).length" class="vm-book-empty">Нет ордеров</div>
+                <div v-if="!(orderBook.buy_side||[]).length" class="vm-book-empty">{{ t('vmarket.noOrders') }}</div>
                 <button
                   v-for="(bo, i) in (orderBook.buy_side||[]).slice(0,12)"
                   :key="bo.unit_price"
                   class="vm-book-row buy"
                   :class="{ best: i === 0 }"
                   @click="openSell(bo.unit_price, bo.total_amount)"
-                  title="Продать по этой цене"
+                  :title="t('vmarket.sellAtPrice')"
                 >
                   <span class="vm-depth buy" :style="{ width: obBarWidth(bo, orderBook.buy_side, 'buy') + '%' }"></span>
                   <span class="vm-book-price buy">{{ money(bo.unit_price) }}</span>
                   <span class="vm-book-qty">{{ bo.total_amount.toLocaleString('ru-RU') }}</span>
-                  <span class="vm-book-cta buy">Продать →</span>
+                  <span class="vm-book-cta buy">{{ t('vmarket.sellArrow') }}</span>
                 </button>
               </div>
             </div>
@@ -657,7 +655,7 @@ onUnmounted(() => { if (poll) clearInterval(poll) })
 
           <div class="vm-book-hint">
             <svg width="13" height="13" viewBox="0 0 14 14" fill="none"><circle cx="7" cy="7" r="6" stroke="currentColor" stroke-width="1.2"/><path d="M7 6.2v3.3M7 4.5v.01" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/></svg>
-            Нажмите на строку — цена и количество подставятся в форму автоматически
+            {{ t('vmarket.clickRowHint') }}
           </div>
 
         </template>
@@ -674,9 +672,9 @@ onUnmounted(() => { if (poll) clearInterval(poll) })
       <div class="vm-orders-col">
         <div class="vm-orders-title sell">
           <svg width="13" height="13" viewBox="0 0 13 13" fill="none"><path d="M6.5 1v10M2 5.5L6.5 1 11 5.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
-          Мои продажи <span class="vm-orders-count">{{ mySell.length }}</span>
+          {{ t('vmarket.mySells') }} <span class="vm-orders-count">{{ mySell.length }}</span>
         </div>
-        <div v-if="!mySell.length" class="vm-orders-empty">Нет активных ордеров на продажу</div>
+        <div v-if="!mySell.length" class="vm-orders-empty">{{ t('vmarket.noMySells') }}</div>
         <div v-for="o in mySell" :key="o.id" class="vm-order">
           <span class="vm-order-ico"><ItemIcon :item-key="o.item_key" :size="26" /></span>
           <div class="vm-order-info">
@@ -684,16 +682,16 @@ onUnmounted(() => { if (poll) clearInterval(poll) })
             <span class="vm-order-key">{{ o.item_key }}</span>
           </div>
           <div class="vm-order-meta">
-            <span class="vm-order-price sell">{{ money(o.unit_price) }} ₽/шт.</span>
+            <span class="vm-order-price sell">{{ money(o.unit_price) }} {{ t('vmarket.perUnit') }}</span>
             <span class="vm-order-qty">
-              {{ o.remaining_amount }}/{{ o.total_amount }} шт.
+              {{ o.remaining_amount }}/{{ o.total_amount }} {{ t('vmarket.unitsShort') }}
               <span class="vm-order-status" :class="o.status === 'partially_filled' ? 'partial' : 'waiting'">
-                {{ o.status === 'partially_filled' ? 'частично' : 'ожидает' }}
+                {{ o.status === 'partially_filled' ? t('vmarket.partial') : t('vmarket.waiting') }}
               </span>
             </span>
           </div>
           <button class="vm-order-cancel" :disabled="!!cancelId" @click="cancelOrder('sell', o.id)">
-            {{ cancelId === o.id ? '…' : 'Отменить' }}
+            {{ cancelId === o.id ? '…' : t('vmarket.cancel') }}
           </button>
         </div>
       </div>
@@ -701,9 +699,9 @@ onUnmounted(() => { if (poll) clearInterval(poll) })
       <div class="vm-orders-col">
         <div class="vm-orders-title buy">
           <svg width="13" height="13" viewBox="0 0 13 13" fill="none"><path d="M6.5 12V2M2 7.5L6.5 12 11 7.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
-          Мои покупки <span class="vm-orders-count">{{ myBuy.length }}</span>
+          {{ t('vmarket.myBuys') }} <span class="vm-orders-count">{{ myBuy.length }}</span>
         </div>
-        <div v-if="!myBuy.length" class="vm-orders-empty">Нет активных ордеров на покупку</div>
+        <div v-if="!myBuy.length" class="vm-orders-empty">{{ t('vmarket.noMyBuys') }}</div>
         <div v-for="o in myBuy" :key="o.id" class="vm-order">
           <span class="vm-order-ico"><ItemIcon :item-key="o.item_key" :size="26" /></span>
           <div class="vm-order-info">
@@ -711,16 +709,16 @@ onUnmounted(() => { if (poll) clearInterval(poll) })
             <span class="vm-order-key">{{ o.item_key }}</span>
           </div>
           <div class="vm-order-meta">
-            <span class="vm-order-price buy">{{ money(o.unit_price) }} ₽/шт.</span>
+            <span class="vm-order-price buy">{{ money(o.unit_price) }} {{ t('vmarket.perUnit') }}</span>
             <span class="vm-order-qty">
-              {{ o.remaining_amount }}/{{ o.total_amount }} шт.
+              {{ o.remaining_amount }}/{{ o.total_amount }} {{ t('vmarket.unitsShort') }}
               <span class="vm-order-status" :class="o.status === 'partially_filled' ? 'partial' : 'waiting'">
-                {{ o.status === 'partially_filled' ? 'частично' : 'ожидает' }}
+                {{ o.status === 'partially_filled' ? t('vmarket.partial') : t('vmarket.waiting') }}
               </span>
             </span>
           </div>
           <button class="vm-order-cancel" :disabled="!!cancelId" @click="cancelOrder('buy', o.id)">
-            {{ cancelId === o.id ? '…' : 'Отменить' }}
+            {{ cancelId === o.id ? '…' : t('vmarket.cancel') }}
           </button>
         </div>
       </div>
@@ -731,16 +729,16 @@ onUnmounted(() => { if (poll) clearInterval(poll) })
   <div v-else-if="tab === 'history'" class="vm-page">
     <div v-if="!myTrades.length" class="vm-empty-state">
       <div class="vm-empty-ico">📊</div>
-      <div class="vm-empty-title">Сделок пока нет</div>
-      <div class="vm-empty-sub">Здесь появится история ваших покупок и продаж</div>
+      <div class="vm-empty-title">{{ t('vmarket.noTradesTitle') }}</div>
+      <div class="vm-empty-sub">{{ t('vmarket.noTradesSub') }}</div>
     </div>
     <div v-else class="vm-table-card">
       <table class="vm-table">
         <thead><tr>
-          <th>Предмет</th>
-          <th class="ar">Цена/шт.</th>
-          <th class="ar">Кол-во</th>
-          <th class="ar">Итого</th>
+          <th>{{ t('vmarket.colItem') }}</th>
+          <th class="ar">{{ t('vmarket.colPriceUnit') }}</th>
+          <th class="ar">{{ t('vmarket.colAmount') }}</th>
+          <th class="ar">{{ t('vmarket.colTotal') }}</th>
         </tr></thead>
         <tbody>
           <tr v-for="tr in myTrades" :key="tr.id">
@@ -765,16 +763,16 @@ onUnmounted(() => { if (poll) clearInterval(poll) })
       <div class="vm-pickup-ring" :class="{ active: pickupCnt > 0 }">
         <span class="vm-pickup-num" :class="{ zero: pickupCnt === 0 }">{{ pickupCnt }}</span>
       </div>
-      <div class="vm-pickup-label">{{ pickupCnt > 0 ? 'позиций ждут выдачи' : 'Нечего забирать' }}</div>
+      <div class="vm-pickup-label">{{ pickupCnt > 0 ? t('vmarket.pickupWaiting') : t('vmarket.pickupNothing') }}</div>
       <transition name="vm-fade">
         <div v-if="pickupRes" class="vm-pickup-res" :class="pickupRes.ok ? 'ok' : 'err'">
-          {{ pickupRes.ok ? '✓ Запрос отправлен — предметы появятся в инвентаре' : (pickupRes.msg || 'Ошибка') }}
+          {{ pickupRes.ok ? t('vmarket.pickupSent') : (pickupRes.msg || t('vmarket.error')) }}
         </div>
       </transition>
       <button class="vm-pickup-btn" :disabled="pickupBusy || pickupCnt === 0" @click="requestPickup">
-        {{ pickupBusy ? 'Отправка…' : 'Получить всё' }}
+        {{ pickupBusy ? t('vmarket.sending') : t('vmarket.pickupAll') }}
       </button>
-      <div class="vm-pickup-hint">Предметы и деньги появятся в инвентаре в течение 1–2 секунд</div>
+      <div class="vm-pickup-hint">{{ t('vmarket.pickupHint') }}</div>
     </div>
   </div>
 
@@ -787,34 +785,34 @@ onUnmounted(() => { if (poll) clearInterval(poll) })
         <div class="vm-modal-head">
           <div class="vm-modal-title">
             <svg width="17" height="17" viewBox="0 0 16 16" fill="none"><path d="M6 3a1 1 0 0 1 1-1h2a1 1 0 0 1 1 1v5h1a1 1 0 0 1 1 1v4a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V9a1 1 0 0 1 1-1h1V3z" stroke="currentColor" stroke-width="1.3"/></svg>
-            Продать предмет из руки
+            {{ t('vmarket.handTitle') }}
           </div>
           <button class="vm-modal-close" @click="handForm.show = false">✕</button>
         </div>
         <div class="vm-modal-info">
-          Будет продан предмет в вашей <strong>основной руке</strong>. Убедитесь, что держите нужный предмет перед подтверждением.
+          {{ t('vmarket.handDescPre') }} <strong>{{ t('vmarket.handDescStrong') }}</strong>{{ t('vmarket.handDescPost') }}
         </div>
         <div class="vm-form-grid">
           <label class="vm-field">
-            <span class="vm-field-label">Цена за шт. <i>₽</i></span>
+            <span class="vm-field-label">{{ t('vmarket.pricePerUnit') }} <i>₽</i></span>
             <input v-model="handForm.price" type="number" min="1" class="vm-input" placeholder="0" autofocus />
           </label>
           <label class="vm-field">
-            <span class="vm-field-label">Количество</span>
+            <span class="vm-field-label">{{ t('vmarket.amount') }}</span>
             <input v-model.number="handForm.amount" type="number" min="1" class="vm-input" />
           </label>
         </div>
         <div v-if="handForm.price && handForm.amount" class="vm-form-total">
-          <span>Выручка <i>−2%</i></span>
+          <span>{{ t('vmarket.revenue') }} <i>−2%</i></span>
           <strong>{{ money(parsePrice(handForm.price) * handForm.amount * 0.98) }} ₽</strong>
         </div>
         <transition name="vm-fade">
           <div v-if="handForm.res" class="vm-form-res" :class="handForm.res.ok ? 'ok' : 'err'">{{ handForm.res.msg }}</div>
         </transition>
         <div class="vm-modal-actions">
-          <button class="vm-modal-cancel" @click="handForm.show = false">Отмена</button>
+          <button class="vm-modal-cancel" @click="handForm.show = false">{{ t('vmarket.cancelBtn') }}</button>
           <button class="vm-submit sell" :disabled="handForm.busy || !handForm.price || handForm.amount < 1" @click="submitHandSell">
-            {{ handForm.busy ? 'Отправка…' : 'Продать из руки' }}
+            {{ handForm.busy ? t('vmarket.sending') : t('vmarket.handSellBtn') }}
           </button>
         </div>
       </div>

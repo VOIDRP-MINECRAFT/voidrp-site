@@ -110,10 +110,10 @@ async function submit() {
     })
 
     await router.push({
-      path: '/verify-email',
+      path: '/download-launcher',
       query: {
+        justRegistered: '1',
         email: form.email,
-        sent: '1',
         redirect: typeof route.query.redirect === 'string' ? route.query.redirect : '',
       },
     })

@@ -1,5 +1,8 @@
 <script setup>
 import { computed } from 'vue'
+import { useI18n } from 'vue-i18n'
+
+const { t } = useI18n()
 
 const props = defineProps({
   nation: { type: Object, default: null },
@@ -7,10 +10,10 @@ const props = defineProps({
   publicNationUrl: { type: String, default: '' },
 })
 
-const title = computed(() => props.form.title || props.nation?.title || 'Название государства')
+const title = computed(() => props.form.title || props.nation?.title || t('studioPreview.nationTitleFallback'))
 const tag = computed(() => props.form.tag || props.nation?.tag || 'TAG')
-const shortDescription = computed(() => props.form.short_description || props.nation?.short_description || 'Короткое описание государства')
-const description = computed(() => props.form.description || props.nation?.description || 'Подробное описание государства')
+const shortDescription = computed(() => props.form.short_description || props.nation?.short_description || t('studioPreview.nationShortFallback'))
+const description = computed(() => props.form.description || props.nation?.description || t('studioPreview.nationDescFallback'))
 const accent = computed(() => props.form.accent_color || props.nation?.accent_color || '#6d5df6')
 
 const iconUrl = computed(() => props.nation?.assets?.icon_url || props.nation?.assets?.icon_preview_url || '')
@@ -58,19 +61,19 @@ const iconFallback = computed(() => tag.value.slice(0, 2).toUpperCase())
             </div>
 
             <div class="min-w-0 flex-1 pb-1">
-              <div class="text-xs font-bold uppercase tracking-[0.22em] text-slate-500">Государство</div>
+              <div class="text-xs font-bold uppercase tracking-[0.22em] text-slate-500">{{ t('studioPreview.nationLabel') }}</div>
               <h3 class="mt-2 truncate text-2xl font-black tracking-tight text-slate-950">{{ title }}</h3>
               <p class="mt-1 text-sm leading-6 text-slate-600">[{{ tag }}] · {{ shortDescription }}</p>
             </div>
           </div>
 
           <div class="mt-4 rounded-[20px] border border-slate-200 bg-white/82 p-4">
-            <p class="text-xs font-bold uppercase tracking-[0.22em] text-slate-500">Описание</p>
+            <p class="text-xs font-bold uppercase tracking-[0.22em] text-slate-500">{{ t('studioPreview.description') }}</p>
             <p class="mt-2 text-sm leading-6 text-slate-700">{{ description }}</p>
           </div>
 
           <div class="mt-3 rounded-[20px] border border-slate-200 bg-white/82 p-4">
-            <p class="text-xs font-bold uppercase tracking-[0.22em] text-slate-500">Ссылка</p>
+            <p class="text-xs font-bold uppercase tracking-[0.22em] text-slate-500">{{ t('studioPreview.link') }}</p>
             <p class="mt-2 break-all text-sm leading-6 text-slate-700">
               {{ publicNationUrl || `/nation/${props.form.slug || props.nation?.slug || 'your-nation'}` }}
             </p>

@@ -7,6 +7,8 @@ import {
   adminRevokeBattlePassPremium,
 } from '../../services/battlepassAdminApi'
 import { authState } from '../../stores/authStore'
+import { toastError, toastSuccess } from '../../services/toast'
+import { confirmDialog } from '../../composables/useConfirm'
 
 const token = () => authState.accessToken
 
@@ -84,13 +86,20 @@ async function doGrant() {
 }
 
 async function doRevoke(uuid, nickname) {
-  if (!confirm(`Отозвать Premium у ${nickname}?`)) return
+  const ok = await confirmDialog({
+    title: 'Отозвать Premium',
+    message: `Отозвать Battle Pass Premium у игрока ${nickname}?`,
+    confirmLabel: 'Отозвать',
+    danger: true,
+  })
+  if (!ok) return
   revokeLoading.value = uuid
   try {
     await adminRevokeBattlePassPremium(token(), uuid)
+    toastSuccess(`Premium отозван у ${nickname}`)
     await loadAll()
   } catch (e) {
-    alert('Ошибка: ' + (e.message || 'Не удалось отозвать'))
+    toastError(e.message || 'Не удалось отозвать')
   } finally {
     revokeLoading.value = null
   }

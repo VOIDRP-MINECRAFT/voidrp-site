@@ -10,7 +10,16 @@ import './admin.css'
 ;(async () => {
   installAuthApiHooks()
   await bootstrapAuth()
-  createApp(App).use(router).use(i18n).mount('#app')
+
+  const app = createApp(App)
+
+  // Глобальный перехват ошибок рендера/жизненного цикла компонентов, чтобы
+  // единичный сбой не обнулял весь SPA белым экраном.
+  app.config.errorHandler = (error, _instance, info) => {
+    console.error('[VoidRP] Vue error:', info, error)
+  }
+
+  app.use(router).use(i18n).mount('#app')
 })().catch((error) => {
   console.error('Failed to bootstrap app:', error)
 })

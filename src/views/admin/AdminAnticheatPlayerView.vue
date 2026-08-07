@@ -104,12 +104,9 @@ function fmtDate(iso) {
       Назад к списку
     </button>
 
-    <div v-if="loading" class="acp-loading">
-      <span class="acp-spinner acp-spinner--lg" />
-      Загрузка...
-    </div>
+    <div v-if="loading" class="adm-skel" style="height: 280px; margin-top: 1rem" />
 
-    <div v-else-if="error" class="acp-error">{{ error }}</div>
+    <div v-else-if="error" class="acp-alert">{{ error }}</div>
 
     <template v-else-if="data">
       <!-- Header -->
@@ -144,21 +141,21 @@ function fmtDate(iso) {
       <div class="acp-actions-card">
         <div class="acp-actions-title">Действия</div>
         <div class="acp-actions-row">
-          <input v-model="actionReason" class="acp-reason-input" placeholder="Причина (необязательно)" />
-          <button class="acp-action-btn acp-action-btn--kick" :disabled="actionLoading" @click="doAction('kick')">Кикнуть</button>
+          <input v-model="actionReason" class="adm-input acp-reason-input" placeholder="Причина (необязательно)" />
+          <button class="adm-btn" :disabled="actionLoading" @click="doAction('kick')">Кикнуть</button>
           <button
             v-if="data.account_active !== false"
-            class="acp-action-btn acp-action-btn--disable"
+            class="adm-btn adm-btn--danger"
             :disabled="actionLoading || data.account_active === null"
             @click="doAction('disable')"
           >Заблокировать аккаунт</button>
           <button
             v-else
-            class="acp-action-btn acp-action-btn--enable"
+            class="adm-btn adm-btn--ok"
             :disabled="actionLoading"
             @click="doAction('enable')"
           >Разблокировать аккаунт</button>
-          <button class="acp-action-btn acp-action-btn--clear" :disabled="actionLoading" @click="doAction('clear_violations')">Снять все нарушения</button>
+          <button class="adm-btn" :disabled="actionLoading" @click="doAction('clear_violations')">Снять все нарушения</button>
         </div>
         <div v-if="actionMsg" class="acp-action-ok">{{ actionMsg }}</div>
         <div v-if="actionErr" class="acp-action-err">{{ actionErr }}</div>
@@ -417,44 +414,8 @@ function fmtDate(iso) {
   align-items: center;
 }
 
-.acp-reason-input {
-  flex: 1;
-  min-width: 180px;
-  padding: 0.45rem 0.75rem;
-  border-radius: 8px;
-  background: rgba(148,163,184,0.05);
-  border: 1px solid var(--adm-line-strong);
-  color: var(--adm-text);
-  font-size: 0.82rem;
-  outline: none;
-}
-
-.acp-reason-input::placeholder { color: var(--adm-faint); }
-.acp-reason-input:focus { border-color: rgba(124,58,237,0.4); }
-
-.acp-action-btn {
-  padding: 0.45rem 0.9rem;
-  border-radius: 8px;
-  border: 1px solid transparent;
-  font-size: 0.82rem;
-  font-weight: 700;
-  cursor: pointer;
-  transition: background 0.13s, opacity 0.13s;
-}
-
-.acp-action-btn:disabled { opacity: 0.45; cursor: not-allowed; }
-
-.acp-action-btn--kick { background: rgba(234,179,8,0.12); border-color: rgba(234,179,8,0.2); color: #facc15; }
-.acp-action-btn--kick:hover:not(:disabled) { background: rgba(234,179,8,0.2); }
-
-.acp-action-btn--disable { background: rgba(239,68,68,0.1); border-color: rgba(239,68,68,0.2); color: #f87171; }
-.acp-action-btn--disable:hover:not(:disabled) { background: rgba(239,68,68,0.2); }
-
-.acp-action-btn--enable { background: rgba(34,197,94,0.1); border-color: rgba(34,197,94,0.2); color: #4ade80; }
-.acp-action-btn--enable:hover:not(:disabled) { background: rgba(34,197,94,0.2); }
-
-.acp-action-btn--clear { background: rgba(100,116,139,0.1); border-color: rgba(100,116,139,0.2); color: var(--adm-mut); }
-.acp-action-btn--clear:hover:not(:disabled) { background: rgba(100,116,139,0.2); }
+/* input inherits adm-input; just size it inside the actions row */
+.acp-reason-input { flex: 1; min-width: 180px; }
 
 .acp-action-ok { margin-top: 0.5rem; font-size: 0.8rem; color: #4ade80; }
 .acp-action-err { margin-top: 0.5rem; font-size: 0.8rem; color: #f87171; }
@@ -659,36 +620,14 @@ function fmtDate(iso) {
 .acp-inject-subtitle { font-size: 0.7rem; font-weight: 700; text-transform: uppercase; color: var(--adm-dim); margin-bottom: 0.3rem; letter-spacing: 0.05em; }
 
 /* States */
-.acp-loading {
-  display: flex;
-  align-items: center;
-  gap: 0.6rem;
-  padding: 2rem;
-  color: var(--adm-dim);
-  font-size: 0.85rem;
+.acp-alert {
+  margin-top: 1rem;
+  padding: 0.7rem 1rem;
+  background: rgba(248, 113, 113, 0.08);
+  border: 1px solid rgba(248, 113, 113, 0.25);
+  border-radius: var(--adm-r-sm);
+  color: #fca5a5;
+  font-size: 0.83rem;
+  font-weight: 600;
 }
-
-.acp-error {
-  padding: 0.75rem 1rem;
-  background: rgba(239,68,68,0.1);
-  border: 1px solid rgba(239,68,68,0.2);
-  border-radius: 8px;
-  color: #f87171;
-  font-size: 0.85rem;
-}
-
-.acp-spinner {
-  display: inline-block;
-  width: 14px;
-  height: 14px;
-  border: 2px solid rgba(167,139,250,0.3);
-  border-top-color: var(--adm-acc-text);
-  border-radius: 50%;
-  animation: spin 0.7s linear infinite;
-  flex-shrink: 0;
-}
-
-.acp-spinner--lg { width: 20px; height: 20px; }
-
-@keyframes spin { to { transform: rotate(360deg); } }
 </style>

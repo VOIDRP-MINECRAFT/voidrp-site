@@ -23,16 +23,16 @@ const progression = ref(null)
 const bpProfile = ref(null)
 
 const TIERS = [
-  { key: 'create_age',   label: 'Механизмы',   icon: '⚙️' },
-  { key: 'mekanism_age', label: 'Сталь',        icon: '🔩' },
-  { key: 'ae2_age',      label: 'Автоматизация',icon: '💾' },
-  { key: 'reactor_age',  label: 'Реакторы',     icon: '⚛️' },
-  { key: 'draconic_age', label: 'Дракон',        icon: '🐉' },
-  { key: 'quantum_age',  label: 'Квантум',       icon: '🌌' },
-  { key: 'endgame',      label: 'Эндгейм',       icon: '♾️' },
+  { key: 'create_age',   icon: '⚙️' },
+  { key: 'mekanism_age', icon: '🔩' },
+  { key: 'ae2_age',      icon: '💾' },
+  { key: 'reactor_age',  icon: '⚛️' },
+  { key: 'draconic_age', icon: '🐉' },
+  { key: 'quantum_age',  icon: '🌌' },
+  { key: 'endgame',      icon: '♾️' },
 ]
 
-const displayName = computed(() => auth.displayName.value || 'Игрок')
+const displayName = computed(() => auth.displayName.value || t('app.playerFallback'))
 
 const avatarUrl = computed(
   () => publicProfile.value?.assets?.avatar_url || publicProfile.value?.assets?.avatar_preview_url || '',
@@ -189,7 +189,7 @@ onMounted(loadData)
                 {{ nationRoleText }} · {{ myNation.tag }}
               </span>
             </div>
-            <p class="mt-1 text-xs text-slate-500">{{ auth.accountModeText.value }} · с {{ createdAtText }}</p>
+            <p class="mt-1 text-xs text-slate-500">{{ auth.accountModeText.value }} · {{ t('app.accountSince') }} {{ createdAtText }}</p>
           </div>
 
           <div class="hidden shrink-0 gap-2 sm:flex">
@@ -265,7 +265,7 @@ onMounted(loadData)
                   class="flex-1 text-sm font-medium"
                   :class="tier.unlocked ? 'text-slate-100' : 'text-slate-500'"
                 >
-                  {{ tier.label }}
+                  {{ t('ages.' + tier.key) }}
                 </span>
                 <span v-if="tier.unlocked" class="text-xs text-slate-400">{{ fmtDate(tier.unlocked_at) }}</span>
                 <span v-else class="h-2 w-2 shrink-0 rounded-full bg-slate-700"></span>

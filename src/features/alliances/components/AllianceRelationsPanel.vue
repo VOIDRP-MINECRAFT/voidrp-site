@@ -1,5 +1,8 @@
 <script setup>
 import { computed } from 'vue'
+import { useI18n } from 'vue-i18n'
+
+const { t } = useI18n()
 
 const props = defineProps({
   alliance: { type: Object, default: null },
@@ -10,34 +13,29 @@ const props = defineProps({
 function allianceTypeLabel(value) {
   switch (String(value || '').toLowerCase()) {
     case 'nato':
-      return 'Военный союз'
+      return t('allianceHub.typeNato')
     case 'economic':
-      return 'Экономический союз'
+      return t('allianceHub.typeEconomic')
     case 'un':
-      return 'Политический союз'
+      return t('allianceHub.typeUn')
     default:
-      return 'Союз государств'
+      return t('allianceHub.typeDefault')
   }
 }
 
 function memberRoleLabel(value) {
-  switch (String(value || '').toLowerCase()) {
-    case 'founder':
-      return 'Основатель'
-    case 'member':
-      return 'Участник'
-    default:
-      return 'Участник'
-  }
+  return String(value || '').toLowerCase() === 'founder'
+    ? t('allianceRelations.roleFounder')
+    : t('allianceRelations.roleMember')
 }
 
 const overviewItems = computed(() => {
   const alliance = props.alliance || {}
   return [
-    { label: 'Тип союза', value: allianceTypeLabel(alliance.alliance_type) },
-    { label: 'Государств в составе', value: String(alliance.members_count ?? alliance.members?.length ?? 0) },
-    { label: 'Казна союза', value: String(alliance.treasury_balance ?? 0) },
-    { label: 'Порог для создания', value: String(alliance.min_power_required ?? 0) },
+    { label: t('allianceRelations.statType'), value: allianceTypeLabel(alliance.alliance_type) },
+    { label: t('allianceRelations.statMembers'), value: String(alliance.members_count ?? alliance.members?.length ?? 0) },
+    { label: t('allianceRelations.statTreasury'), value: String(alliance.treasury_balance ?? 0) },
+    { label: t('allianceRelations.statThreshold'), value: String(alliance.min_power_required ?? 0) },
   ]
 })
 
@@ -45,32 +43,32 @@ const publicRules = computed(() => {
   const alliance = props.alliance || {}
   return [
     {
-      title: 'Переводы между союзниками',
-      value: alliance.allow_internal_transfers ? 'Разрешены' : 'Отключены',
+      title: t('allianceRelations.transfersTitle'),
+      value: alliance.allow_internal_transfers ? t('allianceRelations.transfersOn') : t('allianceRelations.transfersOff'),
       description: alliance.allow_internal_transfers
-        ? 'Государства внутри союза могут переводить средства друг другу.'
-        : 'Переводы между государствами внутри союза сейчас отключены.',
+        ? t('allianceRelations.transfersDescOn')
+        : t('allianceRelations.transfersDescOff'),
     },
     {
-      title: 'Совместная оборона',
-      value: alliance.allow_joint_defense ? 'Включена' : 'Отключена',
+      title: t('allianceRelations.defenseTitle'),
+      value: alliance.allow_joint_defense ? t('allianceRelations.defenseOn') : t('allianceRelations.defenseOff'),
       description: alliance.allow_joint_defense
-        ? 'Союз рассчитан на взаимную поддержку участников.'
-        : 'Сейчас это больше нейтральный союз без общей оборонной логики.',
+        ? t('allianceRelations.defenseDescOn')
+        : t('allianceRelations.defenseDescOff'),
     },
     {
-      title: 'Торговые бонусы',
-      value: alliance.allow_trade_bonus ? 'Работают' : 'Не используются',
+      title: t('allianceRelations.tradeTitle'),
+      value: alliance.allow_trade_bonus ? t('allianceRelations.tradeOn') : t('allianceRelations.tradeOff'),
       description: alliance.allow_trade_bonus
-        ? 'Союз ориентирован на торговлю и совместную выгоду.'
-        : 'Торговые послабления для участников пока не включены.',
+        ? t('allianceRelations.tradeDescOn')
+        : t('allianceRelations.tradeDescOff'),
     },
     {
-      title: 'PvP защита',
-      value: alliance.allow_pvp_protection ? 'Есть защита' : 'Нет защиты',
+      title: t('allianceRelations.pvpTitle'),
+      value: alliance.allow_pvp_protection ? t('allianceRelations.pvpOn') : t('allianceRelations.pvpOff'),
       description: alliance.allow_pvp_protection
-        ? 'Для союзников действуют дополнительные ограничения на внутренний PvP.'
-        : 'Внутренние PvP-ограничения сейчас не включены.',
+        ? t('allianceRelations.pvpDescOn')
+        : t('allianceRelations.pvpDescOff'),
     },
   ]
 })
@@ -78,18 +76,18 @@ const publicRules = computed(() => {
 const managementRules = computed(() => {
   const alliance = props.alliance || {}
   return [
-    { label: 'Комиссия перевода', value: `${alliance.transfer_fee_percent ?? 0}%` },
+    { label: t('allianceRelations.feeLabel'), value: `${alliance.transfer_fee_percent ?? 0}%` },
     { label: 'Slug', value: alliance.slug || '—' },
-    { label: 'ID основателя', value: alliance.founder_nation_id || '—' },
+    { label: t('allianceRelations.founderIdLabel'), value: alliance.founder_nation_id || '—' },
   ]
 })
 </script>
 
 <template>
   <section class="surface-card p-4 md:p-5">
-    <div class="section-kicker !mb-2">Альянс</div>
+    <div class="section-kicker !mb-2">{{ t('allianceRelations.headerKicker') }}</div>
     <h2 class="text-xl font-black tracking-tight text-slate-50 md:text-2xl">
-      {{ editable ? 'Обзор и параметры союза' : 'О союзе' }}
+      {{ editable ? t('allianceRelations.headerEditable') : t('allianceRelations.headerReadonly') }}
     </h2>
 
     <div v-if="loading" class="mt-5 space-y-3">
@@ -98,7 +96,7 @@ const managementRules = computed(() => {
     </div>
 
     <div v-else-if="!alliance" class="action-card mt-5 text-sm text-slate-400">
-      Альянс пока не выбран.
+      {{ t('allianceRelations.notSelected') }}
     </div>
 
     <div v-else class="mt-5 space-y-5">
@@ -110,7 +108,7 @@ const managementRules = computed(() => {
       </div>
 
       <div>
-        <div class="section-kicker !mb-2">Что даёт союз</div>
+        <div class="section-kicker !mb-2">{{ t('allianceRelations.benefitsKicker') }}</div>
         <div class="grid gap-3 md:grid-cols-2">
           <div v-for="item in publicRules" :key="item.title" class="action-card">
             <div class="flex items-start justify-between gap-3">
@@ -123,7 +121,7 @@ const managementRules = computed(() => {
       </div>
 
       <div>
-        <div class="section-kicker !mb-2">Государства в составе</div>
+        <div class="section-kicker !mb-2">{{ t('allianceRelations.membersKicker') }}</div>
         <div class="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
           <div v-for="member in alliance.members || []" :key="member.id" class="action-card">
             <p class="font-semibold text-slate-100">{{ member.nation?.title || member.nation?.slug }}</p>
@@ -136,7 +134,7 @@ const managementRules = computed(() => {
       </div>
 
       <div v-if="editable">
-        <div class="section-kicker !mb-2">Служебные параметры</div>
+        <div class="section-kicker !mb-2">{{ t('allianceRelations.serviceKicker') }}</div>
         <div class="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
           <div v-for="item in managementRules" :key="item.label" class="metric-card">
             <p class="metric-label">{{ item.label }}</p>

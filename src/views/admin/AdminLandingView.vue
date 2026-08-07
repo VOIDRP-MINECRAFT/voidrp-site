@@ -78,7 +78,7 @@ async function confirmDelete(id) {
     <!-- Header -->
     <div class="adm-page__head">
       <div>
-        <div class="flex items-center gap-2">
+        <div style="display: flex; align-items: center; gap: 0.5rem">
           <h1 class="adm-title">Галерея главной страницы</h1>
           <span v-if="!loading" class="adm-badge adm-badge--acc">{{ count }}</span>
         </div>
@@ -92,11 +92,8 @@ async function confirmDelete(id) {
 
     <!-- Upload zone -->
     <div
-      class="dropzone rounded-[16px] border-2 border-dashed px-6 py-8 flex flex-col items-center gap-3 cursor-pointer select-none transition"
-      :class="[
-        dragover  ? 'border-violet-500/60 bg-violet-500/8' : 'border-violet-500/25 bg-violet-500/3 hover:border-violet-500/45 hover:bg-violet-500/6',
-        uploading ? 'pointer-events-none opacity-70' : ''
-      ]"
+      class="lz"
+      :class="{ 'lz--over': dragover, 'lz--busy': uploading }"
       @dragover.prevent="dragover = true"
       @dragleave="dragover = false"
       @drop.prevent="onDrop"
@@ -105,95 +102,62 @@ async function confirmDelete(id) {
       <input ref="fileInput" type="file" accept="image/*" multiple class="sr-only" @change="onFileChange" />
 
       <template v-if="uploading">
-        <svg class="animate-spin text-violet-400" xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12a9 9 0 1 1-6.219-8.56"/></svg>
-        <p class="text-sm font-semibold text-slate-300">
-          Загружаю {{ uploadProgress.done + 1 }} из {{ uploadProgress.total }}…
-        </p>
-        <div class="w-40 h-1 rounded-full bg-slate-700/60 overflow-hidden">
-          <div
-            class="h-full rounded-full bg-violet-500 transition-all duration-200"
-            :style="{ width: uploadProgress.total ? (uploadProgress.done / uploadProgress.total * 100) + '%' : '0%' }"
-          />
-        </div>
+        <span class="lz__spin" />
+        <p class="lz__title">Загружаю {{ uploadProgress.done + 1 }} из {{ uploadProgress.total }}…</p>
+        <div class="lz__bar"><div class="lz__bar-fill" :style="{ width: uploadProgress.total ? (uploadProgress.done / uploadProgress.total * 100) + '%' : '0%' }" /></div>
       </template>
 
       <template v-else>
-        <div
-          class="w-12 h-12 rounded-xl flex items-center justify-center border transition"
-          :class="dragover ? 'bg-violet-500/20 border-violet-500/40 scale-110' : 'bg-violet-500/10 border-violet-500/20'"
-        >
-          <svg class="text-violet-400" xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
+        <div class="lz__icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
         </div>
-        <p class="text-sm text-slate-400">
-          <span class="font-semibold text-violet-400">Выбери файлы</span> или перетащи сюда
-        </p>
-        <p class="text-xs text-slate-600">PNG · JPEG · WebP &nbsp;·&nbsp; до 12 МБ &nbsp;·&nbsp; несколько за раз</p>
+        <p class="lz__title"><span class="lz__accent">Выбери файлы</span> или перетащи сюда</p>
+        <p class="lz__hint">PNG · JPEG · WebP · до 12 МБ · несколько за раз</p>
       </template>
     </div>
 
     <!-- Loading skeletons -->
-    <div v-if="loading" class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
-      <div v-for="i in 8" :key="i" class="aspect-video rounded-xl bg-slate-800/60 animate-pulse" />
+    <div v-if="loading" class="sc-grid">
+      <div v-for="i in 8" :key="i" class="adm-skel" style="aspect-ratio: 16/9" />
     </div>
 
     <!-- Empty state -->
-    <div v-else-if="!count" class="flex flex-col items-center gap-3 py-14 text-center">
-      <div class="text-slate-700">
-        <svg xmlns="http://www.w3.org/2000/svg" width="44" height="44" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.1" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
-      </div>
-      <p class="text-sm font-semibold text-slate-500">Фотографий пока нет</p>
-      <p class="text-xs text-slate-600 max-w-xs">Загрузи скриншоты сервера — они появятся в ленте на главной странице</p>
+    <div v-else-if="!count" class="adm-empty">
+      <div class="adm-empty__title">Фотографий пока нет</div>
+      <div class="adm-empty__sub">Загрузи скриншоты сервера — они появятся в бесконечной ленте на главной странице</div>
     </div>
 
     <!-- Grid -->
-    <div v-else class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
+    <div v-else class="sc-grid">
       <div
         v-for="(s, idx) in screenshots"
         :key="s.id"
-        class="sc-card group relative aspect-video rounded-xl overflow-hidden border border-white/7 bg-white/3 transition"
-        :class="deletingId === s.id ? 'opacity-40 pointer-events-none' : 'hover:border-white/14 hover:shadow-lg hover:shadow-black/30'"
+        class="sc-card"
+        :class="{ 'sc-card--busy': deletingId === s.id }"
       >
-        <img :src="s.url" class="w-full h-full object-cover block transition duration-300 group-hover:scale-[1.03]" loading="lazy" decoding="async" />
+        <img :src="s.url" :alt="'Скриншот ' + (idx + 1)" class="sc-card__img" loading="lazy" decoding="async" />
 
-        <!-- order badge -->
-        <span class="absolute top-1.5 left-1.5 min-w-[20px] h-5 px-1 rounded-md text-[10px] font-bold bg-black/55 backdrop-blur-sm text-white/60 flex items-center justify-center pointer-events-none">
-          {{ idx + 1 }}
-        </span>
+        <span class="sc-card__num adm-num">{{ idx + 1 }}</span>
 
         <!-- hover overlay: delete button -->
-        <div v-if="confirmDeleteId !== s.id && deletingId !== s.id"
-          class="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent opacity-0 group-hover:opacity-100 transition-opacity flex items-end p-2"
-        >
-          <button
-            class="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-semibold bg-red-500/15 border border-red-500/30 text-red-300 hover:bg-red-500/28 transition"
-            @click.stop="askDelete(s.id)"
-          >
-            <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4h6v2"/></svg>
+        <div v-if="confirmDeleteId !== s.id && deletingId !== s.id" class="sc-card__hover">
+          <button class="adm-btn adm-btn--danger adm-btn--sm" @click.stop="askDelete(s.id)">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4h6v2"/></svg>
             Удалить
           </button>
         </div>
 
         <!-- confirm overlay -->
-        <div v-else-if="confirmDeleteId === s.id"
-          class="absolute inset-0 bg-black/75 backdrop-blur-[3px] flex flex-col items-center justify-center gap-2.5"
-        >
-          <p class="text-sm font-bold text-slate-100">Удалить фото?</p>
-          <div class="flex gap-2">
-            <button
-              class="px-3 py-1.5 rounded-lg text-xs font-bold bg-red-500/20 border border-red-500/35 text-red-300 hover:bg-red-500/32 transition"
-              @click.stop="confirmDelete(s.id)"
-            >Да</button>
-            <button
-              class="px-3 py-1.5 rounded-lg text-xs font-bold bg-white/6 border border-white/12 text-slate-400 hover:bg-white/10 transition"
-              @click.stop="cancelDelete()"
-            >Отмена</button>
+        <div v-else-if="confirmDeleteId === s.id" class="sc-card__confirm">
+          <p class="sc-card__q">Удалить фото?</p>
+          <div class="sc-card__q-btns">
+            <button class="adm-btn adm-btn--danger adm-btn--sm" @click.stop="confirmDelete(s.id)">Да</button>
+            <button class="adm-btn adm-btn--sm" @click.stop="cancelDelete()">Отмена</button>
           </div>
         </div>
 
         <!-- deleting spinner -->
-        <div v-else class="absolute inset-0 bg-black/60 flex items-center justify-center">
-          <svg class="animate-spin text-violet-400" xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12a9 9 0 1 1-6.219-8.56"/></svg>
-        </div>
+        <div v-else class="sc-card__busy-ov"><span class="lz__spin" /></div>
       </div>
     </div>
 
@@ -202,11 +166,68 @@ async function confirmDelete(id) {
 
 <style scoped>
 .sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0,0,0,0); }
-.bg-violet-500\/3  { background-color: rgb(139 92 246 / 0.03); }
-.bg-violet-500\/6  { background-color: rgb(139 92 246 / 0.06); }
-.bg-violet-500\/8  { background-color: rgb(139 92 246 / 0.08); }
-.border-white\/7   { border-color: rgb(255 255 255 / 0.07); }
-.border-white\/14  { border-color: rgb(255 255 255 / 0.14); }
-.bg-white\/3       { background-color: rgb(255 255 255 / 0.03); }
-.bg-white\/6       { background-color: rgb(255 255 255 / 0.06); }
+
+/* Зона загрузки */
+.lz {
+  display: flex; flex-direction: column; align-items: center; gap: 0.75rem;
+  padding: 2rem 1.5rem; border-radius: var(--adm-r);
+  border: 2px dashed var(--adm-acc-line); background: var(--adm-acc-soft);
+  cursor: pointer; user-select: none; text-align: center;
+  transition: border-color 0.15s, background-color 0.15s;
+}
+.lz:hover { border-color: rgba(var(--adm-acc-rgb), 0.5); }
+.lz--over { border-color: rgba(var(--adm-acc-rgb), 0.7); background: rgba(var(--adm-acc-rgb), 0.12); }
+.lz--busy { pointer-events: none; opacity: 0.7; }
+.lz__icon {
+  width: 3rem; height: 3rem; border-radius: 12px;
+  display: flex; align-items: center; justify-content: center;
+  background: var(--adm-acc-soft); border: 1px solid var(--adm-acc-line); color: var(--adm-acc-text);
+  transition: transform 0.15s;
+}
+.lz--over .lz__icon { transform: scale(1.1); }
+.lz__icon svg { width: 1.35rem; height: 1.35rem; }
+.lz__title { font-size: 0.85rem; font-weight: 600; color: var(--adm-mut); margin: 0; }
+.lz__accent { font-weight: 800; color: var(--adm-acc-text); }
+.lz__hint { font-size: 0.72rem; color: var(--adm-dim); margin: 0; }
+.lz__bar { width: 10rem; height: 4px; border-radius: 99px; background: rgba(148,163,184,0.2); overflow: hidden; }
+.lz__bar-fill { height: 100%; border-radius: 99px; background: var(--adm-acc); transition: width 0.2s; }
+.lz__spin {
+  width: 24px; height: 24px; border-radius: 50%;
+  border: 2px solid var(--adm-acc-line); border-top-color: var(--adm-acc-text);
+  animation: lz-spin 0.7s linear infinite;
+}
+@keyframes lz-spin { to { transform: rotate(360deg); } }
+
+/* Сетка скриншотов */
+.sc-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 0.75rem; }
+.sc-card {
+  position: relative; aspect-ratio: 16/9; border-radius: var(--adm-r-sm); overflow: hidden;
+  border: 1px solid var(--adm-line); background: var(--adm-card);
+  transition: border-color 0.15s, transform 0.15s, box-shadow 0.15s;
+}
+.sc-card:hover { border-color: var(--adm-line-strong); box-shadow: 0 8px 24px rgba(0,0,0,0.35); }
+.sc-card--busy { opacity: 0.4; pointer-events: none; }
+.sc-card__img { width: 100%; height: 100%; object-fit: cover; display: block; transition: transform 0.3s; }
+.sc-card:hover .sc-card__img { transform: scale(1.03); }
+.sc-card__num {
+  position: absolute; top: 0.35rem; left: 0.35rem;
+  min-width: 20px; height: 20px; padding: 0 0.3rem; border-radius: 6px;
+  font-size: 0.62rem; font-weight: 700; color: rgba(255,255,255,0.7);
+  background: rgba(0,0,0,0.55); backdrop-filter: blur(3px);
+  display: flex; align-items: center; justify-content: center; pointer-events: none;
+}
+.sc-card__hover {
+  position: absolute; inset: 0; display: flex; align-items: flex-end; padding: 0.5rem;
+  background: linear-gradient(to top, rgba(0,0,0,0.6), transparent);
+  opacity: 0; transition: opacity 0.15s;
+}
+.sc-card:hover .sc-card__hover { opacity: 1; }
+.sc-card__confirm {
+  position: absolute; inset: 0; display: flex; flex-direction: column;
+  align-items: center; justify-content: center; gap: 0.6rem;
+  background: rgba(3,5,10,0.78); backdrop-filter: blur(3px);
+}
+.sc-card__q { font-size: 0.85rem; font-weight: 800; color: var(--adm-text); margin: 0; }
+.sc-card__q-btns { display: flex; gap: 0.4rem; }
+.sc-card__busy-ov { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; background: rgba(3,5,10,0.6); }
 </style>

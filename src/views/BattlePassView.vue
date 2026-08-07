@@ -6,13 +6,14 @@ import { useAuthStore } from '../stores/authStore'
 import { getBattlePassLeaderboard, getBattlePassProfile } from '../services/battlepassApi'
 import { usePageMeta } from '../composables/usePageMeta.js'
 
+const { t } = useI18n()
+
 usePageMeta({
-  title: 'Боевой пропуск',
-  description: 'Прогресс боевого пропуска сервера VoidRP — топ игроков, текущий сезон и ваш уровень.',
+  title: t('meta.battlepassTitle'),
+  description: t('meta.battlepassDesc'),
   url: 'https://void-rp.ru/battlepass',
 })
 
-const { t } = useI18n()
 const auth = useAuthStore()
 
 const loading = ref(true)

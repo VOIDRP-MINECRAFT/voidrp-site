@@ -2,6 +2,7 @@
 import { onMounted, ref, computed } from 'vue'
 import { adminListCrashes, adminDeleteCrash } from '../../services/adminCrashesApi'
 import { authState } from '../../stores/authStore'
+import { confirmDialog } from '../../composables/useConfirm'
 
 const token = () => authState.accessToken
 
@@ -24,7 +25,7 @@ async function load() {
 }
 
 async function remove(id) {
-  if (!confirm('Удалить этот краш-репорт?')) return
+  if (!(await confirmDialog({ title: 'Удалить краш-репорт', message: 'Удалить этот краш-репорт?', confirmLabel: 'Удалить', danger: true }))) return
   deletingId.value = id
   try {
     await adminDeleteCrash(token(), id)

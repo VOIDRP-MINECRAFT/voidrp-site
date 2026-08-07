@@ -12,6 +12,11 @@ export async function getLastPayments() {
   return await apiRequest('/donate/payments/last', { method: 'GET' })
 }
 
+// PII-free leaderboard of top supporters: [{ nickname, total, count }].
+export async function getTopDonors() {
+  return await apiRequest('/donate/top-donors', { method: 'GET' })
+}
+
 export async function createPayment(token, products, coupon = null) {
   return await apiRequest('/donate/payment', {
     method: 'POST',

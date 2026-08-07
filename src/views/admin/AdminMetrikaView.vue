@@ -398,7 +398,7 @@ onUnmounted(destroyCharts)
   overflow: hidden;
   transition: transform 0.15s, border-color 0.15s;
 }
-.total-card:hover { transform: translateY(-2px); border-color: rgba(255,255,255,0.11); }
+.total-card:hover { transform: translateY(-2px); border-color: var(--adm-acc-line); }
 
 .total-card__label {
   font-size: 0.72rem;

@@ -1,11 +1,13 @@
 <script setup>
 import { ref, computed, onMounted } from 'vue'
 import { RouterLink } from 'vue-router'
+import { useI18n } from 'vue-i18n'
 import { authState } from '../stores/authStore'
 import { getMyPlayerMarketSellOrders, getMyPlayerMarketBuyOrders, getMyPlayerMarketTrades } from '../services/marketApi'
 import ItemIcon from '../components/ItemIcon.vue'
 import { useItemNames } from '../composables/useItemNames'
 
+const { t } = useI18n()
 const itemNames = useItemNames()
 const tab = ref('sells')
 const loading = ref(true)
@@ -60,9 +62,17 @@ async function loadTrades() {
   } catch { myTrades.value = [] }
 }
 
+// Возвращает стабильный ключ роли ('seller'/'buyer'/'') — по нему сравниваем в
+// шаблоне и выбираем стили; человекочитаемая подпись идёт через roleLabel().
 function tradeRole(trade) {
-  if (!myNick.value) return '—'
-  return trade.seller_player_name.toLowerCase() === myNick.value.toLowerCase() ? 'Продавец' : 'Покупатель'
+  if (!myNick.value) return ''
+  return trade.seller_player_name.toLowerCase() === myNick.value.toLowerCase() ? 'seller' : 'buyer'
+}
+
+function roleLabel(role) {
+  if (role === 'seller') return t('market.moSeller')
+  if (role === 'buyer') return t('market.moBuyer')
+  return '—'
 }
 
 function fmt(val) {
@@ -83,7 +93,13 @@ function fillPct(o) {
 }
 
 function statusLabel(s) {
-  const map = { active: 'Активен', partially_filled: 'Частично', filled: 'Исполнен', cancelled: 'Отменён', expired: 'Истёк' }
+  const map = {
+    active: t('market.moStatusActive'),
+    partially_filled: t('market.moStatusPartial'),
+    filled: t('market.moStatusFilled'),
+    cancelled: t('market.moStatusCancelled'),
+    expired: t('market.moStatusExpired'),
+  }
   return map[s] || s
 }
 
@@ -106,10 +122,10 @@ function formatDate(dateStr) {
 function timeAgo(dateStr) {
   if (!dateStr) return ''
   const diff = (Date.now() - new Date(dateStr).getTime()) / 1000
-  if (diff < 60) return 'только что'
-  if (diff < 3600) return `${Math.floor(diff / 60)} мин назад`
-  if (diff < 86400) return `${Math.floor(diff / 3600)} ч назад`
-  return `${Math.floor(diff / 86400)} д назад`
+  if (diff < 60) return t('market.pmAgoNow')
+  if (diff < 3600) return `${Math.floor(diff / 60)} ${t('market.miAgoMin')}`
+  if (diff < 86400) return `${Math.floor(diff / 3600)} ${t('market.miAgoHour')}`
+  return `${Math.floor(diff / 86400)} ${t('market.moAgoDay')}`
 }
 </script>
 
@@ -128,28 +144,28 @@ function timeAgo(dateStr) {
               <svg class="mo-back__icon" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
                 <path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7"/>
               </svg>
-              Рынок игроков
+              {{ t('market.pmMetaTitle') }}
             </RouterLink>
-            <h1 class="mo-title">Мои <span class="mo-title__accent">ордера</span></h1>
-            <p class="mo-subtitle">Активные заявки и история сделок на рынке игроков VoidRP</p>
+            <h1 class="mo-title">{{ t('market.moTitleMain') }} <span class="mo-title__accent">{{ t('market.moTitleAccent') }}</span></h1>
+            <p class="mo-subtitle">{{ t('market.moSubtitle') }}</p>
           </div>
 
           <!-- Summary chips -->
           <div v-if="!loading" class="mo-summary">
             <div class="mo-chip mo-chip--ask">
-              <span class="mo-chip__label">Продажи</span>
+              <span class="mo-chip__label">{{ t('market.moChipSales') }}</span>
               <span class="mo-chip__val">{{ activeSellCount }}</span>
               <span class="mo-chip__sub">{{ fmt(totalSellValue) }} ₽</span>
             </div>
             <div class="mo-chip mo-chip--bid">
-              <span class="mo-chip__label">Покупки</span>
+              <span class="mo-chip__label">{{ t('market.moChipBuys') }}</span>
               <span class="mo-chip__val">{{ activeBuyCount }}</span>
               <span class="mo-chip__sub">{{ fmt(totalBuyReserved) }} ₽</span>
             </div>
             <div class="mo-chip">
-              <span class="mo-chip__label">Сделок</span>
+              <span class="mo-chip__label">{{ t('market.moChipTrades') }}</span>
               <span class="mo-chip__val">{{ myTrades.length }}</span>
-              <span class="mo-chip__sub">история</span>
+              <span class="mo-chip__sub">{{ t('market.moChipHistory') }}</span>
             </div>
           </div>
         </div>
@@ -158,7 +174,7 @@ function timeAgo(dateStr) {
       <!-- ── Loader ── -->
       <div v-if="loading" class="mo-loader">
         <span class="loading loading-spinner loading-md text-violet-500" />
-        <span class="mo-loader__label">Загрузка ордеров…</span>
+        <span class="mo-loader__label">{{ t('market.moLoading') }}</span>
       </div>
 
       <template v-else>
@@ -167,17 +183,17 @@ function timeAgo(dateStr) {
         <div class="mo-tabs">
           <button class="mo-tab" :class="{ 'mo-tab--active': tab === 'sells' }" @click="tab = 'sells'">
             <svg class="mo-tab__icon" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M5 10l7-7m0 0l7 7m-7-7v18"/></svg>
-            Продажи
+            {{ t('market.moChipSales') }}
             <span v-if="activeSellCount > 0" class="mo-tab__badge mo-tab__badge--ask">{{ activeSellCount }}</span>
           </button>
           <button class="mo-tab" :class="{ 'mo-tab--active': tab === 'buys' }" @click="tab = 'buys'">
             <svg class="mo-tab__icon" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M19 14l-7 7m0 0l-7-7m7 7V3"/></svg>
-            Покупки
+            {{ t('market.moChipBuys') }}
             <span v-if="activeBuyCount > 0" class="mo-tab__badge mo-tab__badge--bid">{{ activeBuyCount }}</span>
           </button>
           <button class="mo-tab" :class="{ 'mo-tab--active': tab === 'trades' }" @click="tab = 'trades'">
             <svg class="mo-tab__icon" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4"/></svg>
-            История сделок
+            {{ t('market.miTradeHistory') }}
             <span v-if="myTrades.length > 0" class="mo-tab__badge mo-tab__badge--neutral">{{ myTrades.length }}</span>
           </button>
         </div>
@@ -188,17 +204,17 @@ function timeAgo(dateStr) {
             <label class="mo-toggle">
               <input v-model="showInactiveSells" type="checkbox" class="mo-toggle__input" @change="loadSellOrders" />
               <span class="mo-toggle__track"><span class="mo-toggle__thumb" /></span>
-              <span class="mo-toggle__label">Показать завершённые</span>
+              <span class="mo-toggle__label">{{ t('market.moShowCompleted') }}</span>
             </label>
-            <span class="mo-section__hint">Для отмены: <code class="mo-code">/pm cancel sell &lt;id&gt;</code></span>
+            <span class="mo-section__hint">{{ t('market.moCancelHint') }} <code class="mo-code">/pm cancel sell &lt;id&gt;</code></span>
           </div>
 
           <div v-if="sellOrders.length === 0" class="mo-empty">
             <div class="mo-empty__icon mo-empty__icon--ask">
               <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5"><path stroke-linecap="round" stroke-linejoin="round" d="M5 10l7-7m0 0l7 7m-7-7v18"/></svg>
             </div>
-            <p class="mo-empty__title">Нет ордеров на продажу</p>
-            <p class="mo-empty__hint">Разместите ордер командой <code class="mo-code">/pm sell</code> в игре</p>
+            <p class="mo-empty__title">{{ t('market.moNoSellOrders') }}</p>
+            <p class="mo-empty__hint">{{ t('market.moPlaceOrderPre') }} <code class="mo-code">/pm sell</code> {{ t('market.moPlaceOrderPost') }}</p>
           </div>
 
           <div v-else class="surface-card mo-table-card">
@@ -206,12 +222,12 @@ function timeAgo(dateStr) {
               <table class="mo-table">
                 <thead>
                   <tr class="mo-thead-row">
-                    <th class="mo-th mo-th--left">Предмет</th>
-                    <th class="mo-th mo-th--center">Исполнение</th>
-                    <th class="mo-th mo-th--right">Цена</th>
-                    <th class="mo-th mo-th--right">Остаток</th>
-                    <th class="mo-th mo-th--center">Статус</th>
-                    <th class="mo-th mo-th--right hidden md:table-cell">Истекает</th>
+                    <th class="mo-th mo-th--left">{{ t('market.colItem') }}</th>
+                    <th class="mo-th mo-th--center">{{ t('market.moColFill') }}</th>
+                    <th class="mo-th mo-th--right">{{ t('market.miThPrice') }}</th>
+                    <th class="mo-th mo-th--right">{{ t('market.moColRemainder') }}</th>
+                    <th class="mo-th mo-th--center">{{ t('market.moColStatus') }}</th>
+                    <th class="mo-th mo-th--right hidden md:table-cell">{{ t('market.moColExpires') }}</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -261,17 +277,17 @@ function timeAgo(dateStr) {
             <label class="mo-toggle">
               <input v-model="showInactiveBuys" type="checkbox" class="mo-toggle__input" @change="loadBuyOrders" />
               <span class="mo-toggle__track"><span class="mo-toggle__thumb" /></span>
-              <span class="mo-toggle__label">Показать завершённые</span>
+              <span class="mo-toggle__label">{{ t('market.moShowCompleted') }}</span>
             </label>
-            <span class="mo-section__hint">Для отмены: <code class="mo-code">/pm cancel buy &lt;id&gt;</code></span>
+            <span class="mo-section__hint">{{ t('market.moCancelHint') }} <code class="mo-code">/pm cancel buy &lt;id&gt;</code></span>
           </div>
 
           <div v-if="buyOrders.length === 0" class="mo-empty">
             <div class="mo-empty__icon mo-empty__icon--bid">
               <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5"><path stroke-linecap="round" stroke-linejoin="round" d="M19 14l-7 7m0 0l-7-7m7 7V3"/></svg>
             </div>
-            <p class="mo-empty__title">Нет ордеров на покупку</p>
-            <p class="mo-empty__hint">Разместите ордер командой <code class="mo-code">/pm buy</code> в игре</p>
+            <p class="mo-empty__title">{{ t('market.moNoBuyOrders') }}</p>
+            <p class="mo-empty__hint">{{ t('market.moPlaceOrderPre') }} <code class="mo-code">/pm buy</code> {{ t('market.moPlaceOrderPost') }}</p>
           </div>
 
           <div v-else class="surface-card mo-table-card">
@@ -279,12 +295,12 @@ function timeAgo(dateStr) {
               <table class="mo-table">
                 <thead>
                   <tr class="mo-thead-row">
-                    <th class="mo-th mo-th--left">Предмет</th>
-                    <th class="mo-th mo-th--center">Исполнение</th>
-                    <th class="mo-th mo-th--right">Цена</th>
-                    <th class="mo-th mo-th--right">Зарезервировано</th>
-                    <th class="mo-th mo-th--center">Статус</th>
-                    <th class="mo-th mo-th--right hidden md:table-cell">Истекает</th>
+                    <th class="mo-th mo-th--left">{{ t('market.colItem') }}</th>
+                    <th class="mo-th mo-th--center">{{ t('market.moColFill') }}</th>
+                    <th class="mo-th mo-th--right">{{ t('market.miThPrice') }}</th>
+                    <th class="mo-th mo-th--right">{{ t('market.moColReserved') }}</th>
+                    <th class="mo-th mo-th--center">{{ t('market.moColStatus') }}</th>
+                    <th class="mo-th mo-th--right hidden md:table-cell">{{ t('market.moColExpires') }}</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -334,8 +350,8 @@ function timeAgo(dateStr) {
             <div class="mo-empty__icon">
               <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5"><path stroke-linecap="round" stroke-linejoin="round" d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4"/></svg>
             </div>
-            <p class="mo-empty__title">История сделок пуста</p>
-            <p class="mo-empty__hint">Завершённые сделки появятся здесь</p>
+            <p class="mo-empty__title">{{ t('market.moHistoryEmpty') }}</p>
+            <p class="mo-empty__hint">{{ t('market.moHistoryEmptyHint') }}</p>
           </div>
 
           <div v-else class="surface-card mo-table-card">
@@ -343,49 +359,49 @@ function timeAgo(dateStr) {
               <table class="mo-table">
                 <thead>
                   <tr class="mo-thead-row">
-                    <th class="mo-th mo-th--left">Предмет</th>
-                    <th class="mo-th mo-th--right">Кол-во</th>
-                    <th class="mo-th mo-th--right">Цена</th>
-                    <th class="mo-th mo-th--right">Сумма</th>
-                    <th class="mo-th mo-th--center">Роль</th>
-                    <th class="mo-th mo-th--left hidden md:table-cell">Контрагент</th>
-                    <th class="mo-th mo-th--right hidden sm:table-cell">Время</th>
+                    <th class="mo-th mo-th--left">{{ t('market.colItem') }}</th>
+                    <th class="mo-th mo-th--right">{{ t('market.miThQty') }}</th>
+                    <th class="mo-th mo-th--right">{{ t('market.miThPrice') }}</th>
+                    <th class="mo-th mo-th--right">{{ t('market.miThSum') }}</th>
+                    <th class="mo-th mo-th--center">{{ t('market.moColRole') }}</th>
+                    <th class="mo-th mo-th--left hidden md:table-cell">{{ t('market.moColCounterparty') }}</th>
+                    <th class="mo-th mo-th--right hidden sm:table-cell">{{ t('market.miThTime') }}</th>
                   </tr>
                 </thead>
                 <tbody>
-                  <tr v-for="t in myTrades" :key="t.id" class="mo-row">
+                  <tr v-for="trade in myTrades" :key="trade.id" class="mo-row">
                     <td class="mo-td mo-td--item">
                       <div class="mo-item">
-                        <div class="mo-item__icon" :class="tradeRole(t) === 'Продавец' ? 'mo-item__icon--ask' : 'mo-item__icon--bid'">
-                          <ItemIcon :item-key="t.item_key" :size="28" />
+                        <div class="mo-item__icon" :class="tradeRole(trade) === 'seller' ? 'mo-item__icon--ask' : 'mo-item__icon--bid'">
+                          <ItemIcon :item-key="trade.item_key" :size="28" />
                         </div>
                         <div class="mo-item__body">
-                          <span class="mo-item__name">{{ t.display_name || formatKey(t.item_key) }}</span>
-                          <span class="mo-item__key">{{ t.item_key }}</span>
+                          <span class="mo-item__name">{{ trade.display_name || formatKey(trade.item_key) }}</span>
+                          <span class="mo-item__key">{{ trade.item_key }}</span>
                         </div>
                       </div>
                     </td>
                     <td class="mo-td mo-td--right">
-                      <span class="mo-value">{{ t.amount.toLocaleString() }}</span>
+                      <span class="mo-value">{{ trade.amount.toLocaleString() }}</span>
                     </td>
                     <td class="mo-td mo-td--right">
-                      <span class="mo-price" :class="tradeRole(t) === 'Продавец' ? 'mo-price--ask' : 'mo-price--bid'">
-                        {{ fmt(t.unit_price) }} ₽
+                      <span class="mo-price" :class="tradeRole(trade) === 'seller' ? 'mo-price--ask' : 'mo-price--bid'">
+                        {{ fmt(trade.unit_price) }} ₽
                       </span>
                     </td>
                     <td class="mo-td mo-td--right">
-                      <span class="mo-value mo-value--bright">{{ fmt(t.gross_total) }} ₽</span>
+                      <span class="mo-value mo-value--bright">{{ fmt(trade.gross_total) }} ₽</span>
                     </td>
                     <td class="mo-td mo-td--center">
-                      <span class="mo-role" :class="tradeRole(t) === 'Продавец' ? 'mo-role--ask' : 'mo-role--bid'">
-                        {{ tradeRole(t) }}
+                      <span class="mo-role" :class="tradeRole(trade) === 'seller' ? 'mo-role--ask' : 'mo-role--bid'">
+                        {{ roleLabel(tradeRole(trade)) }}
                       </span>
                     </td>
                     <td class="mo-td hidden md:table-cell">
-                      <span class="mo-counterparty">{{ tradeRole(t) === 'Продавец' ? t.buyer_player_name : t.seller_player_name }}</span>
+                      <span class="mo-counterparty">{{ tradeRole(trade) === 'seller' ? trade.buyer_player_name : trade.seller_player_name }}</span>
                     </td>
                     <td class="mo-td mo-td--right hidden sm:table-cell">
-                      <span class="mo-date">{{ timeAgo(t.created_at) }}</span>
+                      <span class="mo-date">{{ timeAgo(trade.created_at) }}</span>
                     </td>
                   </tr>
                 </tbody>

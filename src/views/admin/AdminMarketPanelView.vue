@@ -12,6 +12,7 @@ import {
   adminPatchMarketItem,
 } from '../../services/adminApi'
 import { authState } from '../../stores/authStore'
+import { confirmDialog } from '../../composables/useConfirm'
 
 const token = () => authState.accessToken
 
@@ -64,7 +65,7 @@ async function doDisable(material) {
 }
 
 async function doReset(material) {
-  if (!confirm(`Сбросить цены для ${material}?`)) return
+  if (!(await confirmDialog({ title: 'Сбросить цены', message: `Сбросить рыночные цены для «${material}» к базовым?`, confirmLabel: 'Сбросить' }))) return
   actionLoading.value = material
   try { await adminResetMarketItem(token(), material); await loadItems() } catch { /* noop */ }
   finally { actionLoading.value = null }

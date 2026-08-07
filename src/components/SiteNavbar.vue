@@ -323,11 +323,11 @@ async function handleLogout() {
                   </RouterLink>
                   <RouterLink v-if="isAdmin" to="/admin" class="site-navbar__dropdown-item" @click="userMenuOpen = false">
                     <span class="site-navbar__dropdown-item-icon"><svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg></span>
-                    <span class="site-navbar__dropdown-item-label">Админ-панель</span>
+                    <span class="site-navbar__dropdown-item-label">{{ t('auth.adminPanel') }}</span>
                   </RouterLink>
                   <button type="button" class="site-navbar__dropdown-item site-navbar__dropdown-item--danger" @click="handleLogout">
                     <span class="site-navbar__dropdown-item-icon"><svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg></span>
-                    <span class="site-navbar__dropdown-item-label">Выйти</span>
+                    <span class="site-navbar__dropdown-item-label">{{ t('auth.logout') }}</span>
                   </button>
                 </div>
               </Transition>
@@ -335,8 +335,8 @@ async function handleLogout() {
           </template>
 
           <template v-else>
-            <RouterLink to="/login" class="btn btn-outline btn-sm">Войти</RouterLink>
-            <RouterLink to="/register" class="btn btn-primary btn-sm">Создать</RouterLink>
+            <RouterLink to="/login" class="btn btn-outline btn-sm">{{ t('auth.login') }}</RouterLink>
+            <RouterLink to="/register" class="btn btn-primary btn-sm">{{ t('auth.register') }}</RouterLink>
           </template>
         </div>
 
@@ -435,12 +435,12 @@ async function handleLogout() {
                 </span>
                 {{ minecraftNick || displayName }}
               </RouterLink>
-              <button type="button" class="btn btn-ghost" @click="handleLogout">Выйти</button>
+              <button type="button" class="btn btn-ghost" @click="handleLogout">{{ t('auth.logout') }}</button>
             </template>
 
             <template v-else>
-              <RouterLink to="/login" class="btn btn-outline">Войти</RouterLink>
-              <RouterLink to="/register" class="btn btn-primary">Создать аккаунт</RouterLink>
+              <RouterLink to="/login" class="btn btn-outline">{{ t('auth.login') }}</RouterLink>
+              <RouterLink to="/register" class="btn btn-primary">{{ t('auth.createAccount') }}</RouterLink>
             </template>
           </div>
         </div>

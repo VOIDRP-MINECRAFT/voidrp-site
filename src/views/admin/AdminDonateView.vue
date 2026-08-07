@@ -63,7 +63,7 @@ function pmClass(type) {
     sbp: 'text-emerald-400 bg-emerald-500/10 border-emerald-500/20',
     card: 'text-blue-400 bg-blue-500/10 border-blue-500/20',
     yoomoney: 'text-violet-400 bg-violet-500/10 border-violet-500/20',
-  }[type] || 'text-slate-400 bg-slate-700/40 border-slate-600/30'
+  }[type] || 'd-mut d-chip'
 }
 
 function statusLabel(s) {
@@ -75,7 +75,7 @@ function statusClass(s) {
     2: 'text-emerald-400 bg-emerald-500/10 border-emerald-500/20',
     3: 'text-red-400 bg-red-500/10 border-red-500/20',
     4: 'text-amber-400 bg-amber-500/10 border-amber-500/20',
-  }[s] || 'text-slate-400 bg-slate-700/40 border-slate-600/30'
+  }[s] || 'd-mut d-chip'
 }
 
 const pages = computed(() => {
@@ -333,7 +333,7 @@ onUnmounted(destroyCharts)
       </button>
     </div>
 
-    <div v-if="error" class="rounded-xl bg-red-500/10 border border-red-500/20 px-4 py-3 text-sm text-red-400">{{ error }}</div>
+    <div v-if="error" class="d-alert">{{ error }}</div>
 
     <!-- Stats grid -->
     <div class="grid grid-cols-2 gap-3 xl:grid-cols-3">
@@ -405,11 +405,11 @@ onUnmounted(destroyCharts)
       <div class="adm-card p-4 lg:col-span-2">
         <div class="mb-3 flex items-center justify-between">
           <h2 class="adm-label !mb-0">Выручка по дням</h2>
-          <span class="text-xs text-slate-600">последние 100 платежей</span>
+          <span class="text-xs d-faint">последние 100 платежей</span>
         </div>
         <div class="relative h-52">
           <canvas ref="revenueCanvas" />
-          <div v-if="!allPayments.length" class="absolute inset-0 flex items-center justify-center text-xs text-slate-600">Нет данных</div>
+          <div v-if="!allPayments.length" class="absolute inset-0 flex items-center justify-center text-xs d-faint">Нет данных</div>
         </div>
       </div>
 
@@ -418,7 +418,7 @@ onUnmounted(destroyCharts)
         <h2 class="adm-label mb-3">Методы оплаты</h2>
         <div class="relative h-52">
           <canvas ref="methodCanvas" />
-          <div v-if="!allPayments.length" class="absolute inset-0 flex items-center justify-center text-xs text-slate-600">Нет данных</div>
+          <div v-if="!allPayments.length" class="absolute inset-0 flex items-center justify-center text-xs d-faint">Нет данных</div>
         </div>
       </div>
 
@@ -428,19 +428,19 @@ onUnmounted(destroyCharts)
     <div v-if="!overviewLoading && products.length">
       <h2 class="adm-label">Товары</h2>
       <div class="adm-card overflow-hidden p-0">
-        <div class="divide-y divide-slate-700/30">
-          <div v-for="p in products" :key="p.id" class="flex items-center gap-3 px-4 py-3 hover:bg-slate-800/40 transition">
-            <img v-if="p.image" :src="p.image" :alt="p.name" class="h-10 w-10 rounded-lg object-cover shrink-0 bg-slate-900" />
-            <div v-else class="h-10 w-10 rounded-lg bg-slate-800 shrink-0 flex items-center justify-center">
-              <svg class="h-5 w-5 text-slate-600" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path stroke-linecap="round" stroke-linejoin="round" d="M20.25 7.5l-.625 10.632a2.25 2.25 0 01-2.247 2.118H6.622a2.25 2.25 0 01-2.247-2.118L3.75 7.5M10 11.25h4M3.375 7.5h17.25c.621 0 1.125-.504 1.125-1.125v-1.5c0-.621-.504-1.125-1.125-1.125H3.375c-.621 0-1.125.504-1.125 1.125v1.5c0 .621.504 1.125 1.125 1.125z"/></svg>
+        <div class="d-divide">
+          <div v-for="p in products" :key="p.id" class="flex items-center gap-3 px-4 py-3 d-row">
+            <img v-if="p.image" :src="p.image" :alt="p.name" class="h-10 w-10 rounded-lg object-cover shrink-0 d-ph" />
+            <div v-else class="h-10 w-10 rounded-lg d-ph shrink-0 flex items-center justify-center">
+              <svg class="h-5 w-5 d-faint" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path stroke-linecap="round" stroke-linejoin="round" d="M20.25 7.5l-.625 10.632a2.25 2.25 0 01-2.247 2.118H6.622a2.25 2.25 0 01-2.247-2.118L3.75 7.5M10 11.25h4M3.375 7.5h17.25c.621 0 1.125-.504 1.125-1.125v-1.5c0-.621-.504-1.125-1.125-1.125H3.375c-.621 0-1.125.504-1.125 1.125v1.5c0 .621.504 1.125 1.125 1.125z"/></svg>
             </div>
             <div class="flex-1 min-w-0">
-              <p class="text-sm font-semibold text-slate-100 truncate">{{ p.name }}</p>
-              <p class="text-xs text-slate-500">ID: {{ p.id }}</p>
+              <p class="text-sm font-semibold d-strong truncate">{{ p.name }}</p>
+              <p class="text-xs d-dim">ID: {{ p.id }}</p>
             </div>
             <div class="text-right shrink-0">
-              <div class="text-sm font-black text-slate-100">{{ fmt(p.price) }} ₽</div>
-              <div v-if="p.old_price && Number(p.old_price) > Number(p.price)" class="text-xs text-slate-600 line-through">{{ fmt(p.old_price) }} ₽</div>
+              <div class="text-sm font-black d-strong">{{ fmt(p.price) }} ₽</div>
+              <div v-if="p.old_price && Number(p.old_price) > Number(p.price)" class="text-xs d-faint line-through">{{ fmt(p.old_price) }} ₽</div>
             </div>
           </div>
         </div>
@@ -452,7 +452,7 @@ onUnmounted(destroyCharts)
       <div class="flex items-center justify-between mb-3">
         <h2 class="adm-label !mb-0">
           Платежи
-          <span v-if="paymentsMeta.total" class="ml-2 text-xs font-normal text-slate-500">всего {{ fmt(paymentsMeta.total) }}</span>
+          <span v-if="paymentsMeta.total" class="ml-2 text-xs font-normal d-dim">всего {{ fmt(paymentsMeta.total) }}</span>
         </h2>
       </div>
 
@@ -460,7 +460,7 @@ onUnmounted(destroyCharts)
         <div v-for="i in 5" :key="i" class="adm-skel h-12" />
       </div>
 
-      <div v-else-if="!payments.length" class="adm-card p-8 text-center text-sm text-slate-500">
+      <div v-else-if="!payments.length" class="adm-card p-8 text-center text-sm d-dim">
         Платежей нет
       </div>
 
@@ -468,7 +468,7 @@ onUnmounted(destroyCharts)
         <div class="overflow-x-auto">
           <table class="w-full text-sm">
             <thead>
-              <tr class="border-b border-slate-700/50">
+              <tr class="d-bord-bot">
                 <th class="adm-th">ID</th>
                 <th class="adm-th">Игрок</th>
                 <th class="adm-th">Товары</th>
@@ -478,36 +478,36 @@ onUnmounted(destroyCharts)
                 <th class="adm-th">Дата</th>
               </tr>
             </thead>
-            <tbody class="divide-y divide-slate-700/20">
-              <tr v-for="pay in payments" :key="pay.id" class="hover:bg-slate-800/30 transition">
-                <td class="adm-td text-slate-500 font-mono text-xs">#{{ pay.id }}</td>
+            <tbody class="d-divide">
+              <tr v-for="pay in payments" :key="pay.id" class="d-row">
+                <td class="adm-td d-dim font-mono text-xs">#{{ pay.id }}</td>
                 <td class="adm-td">
                   <div class="flex items-center gap-2">
                     <div class="adm-avatar" style="width: 1.75rem; height: 1.75rem; font-size: 0.7rem">
                       {{ (pay.customer || '?')[0].toUpperCase() }}
                     </div>
                     <div>
-                      <div class="font-semibold text-slate-100">{{ pay.customer }}</div>
-                      <div v-if="pay.email" class="text-xs text-slate-600 truncate max-w-[120px]">{{ pay.email }}</div>
+                      <div class="font-semibold d-strong">{{ pay.customer }}</div>
+                      <div v-if="pay.email" class="text-xs d-faint truncate max-w-[120px]">{{ pay.email }}</div>
                     </div>
                   </div>
                 </td>
                 <td class="adm-td max-w-[180px]">
-                  <p class="truncate text-xs text-slate-400">{{ (pay.products || []).map(p => p.name).join(', ') || '—' }}</p>
+                  <p class="truncate text-xs d-mut">{{ (pay.products || []).map(p => p.name).join(', ') || '—' }}</p>
                 </td>
                 <td class="adm-td text-right">
                   <span class="font-black adm-num" style="color: var(--adm-acc-text)">{{ fmt(pay.cost) }} ₽</span>
                 </td>
                 <td class="adm-td">
                   <span v-if="pay.payment_type" class="rounded-full border px-2 py-0.5 text-xs font-semibold" :class="pmClass(pay.payment_type)">{{ pmLabel(pay.payment_type) }}</span>
-                  <span v-else class="text-slate-600">—</span>
+                  <span v-else class="d-faint">—</span>
                 </td>
                 <td class="adm-td">
                   <span class="rounded-full border px-2 py-0.5 text-xs font-semibold" :class="statusClass(pay.status)">{{ statusLabel(pay.status) }}</span>
                 </td>
                 <td class="adm-td">
-                  <div class="text-xs text-slate-400">{{ fmtDate(pay.created_at) }}</div>
-                  <div class="text-xs text-slate-600">{{ timeAgo(pay.created_at) }}</div>
+                  <div class="text-xs d-mut">{{ fmtDate(pay.created_at) }}</div>
+                  <div class="text-xs d-faint">{{ timeAgo(pay.created_at) }}</div>
                 </td>
               </tr>
             </tbody>
@@ -515,17 +515,17 @@ onUnmounted(destroyCharts)
         </div>
 
         <!-- Pagination -->
-        <div v-if="paymentsMeta.last_page > 1" class="flex items-center justify-between border-t border-slate-700/40 px-4 py-3">
-          <span class="text-xs text-slate-500">Стр. {{ paymentsMeta.current_page }} из {{ paymentsMeta.last_page }}</span>
+        <div v-if="paymentsMeta.last_page > 1" class="flex items-center justify-between d-bord-top px-4 py-3">
+          <span class="text-xs d-dim">Стр. {{ paymentsMeta.current_page }} из {{ paymentsMeta.last_page }}</span>
           <div class="flex items-center gap-1">
-            <button class="adm-page-btn" :class="page === 1 ? 'opacity-30 cursor-default' : 'hover:bg-slate-700'" @click="goPage(page - 1)">
+            <button class="adm-page-btn" :class="page === 1 ? 'is-disabled' : ''" @click="goPage(page - 1)">
               <svg class="h-3.5 w-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M15.75 19.5L8.25 12l7.5-7.5"/></svg>
             </button>
             <template v-for="(p, i) in pages" :key="p">
-              <span v-if="i > 0 && pages[i-1] < p - 1" class="px-1 text-slate-600 text-xs">…</span>
+              <span v-if="i > 0 && pages[i-1] < p - 1" class="px-1 d-faint text-xs">…</span>
               <button class="adm-page-btn" :style="p === page ? { background: 'var(--adm-acc)', color: '#fff' } : {}" @click="goPage(p)">{{ p }}</button>
             </template>
-            <button class="adm-page-btn" :class="page === paymentsMeta.last_page ? 'opacity-30 cursor-default' : 'hover:bg-slate-700'" @click="goPage(page + 1)">
+            <button class="adm-page-btn" :class="page === paymentsMeta.last_page ? 'is-disabled' : ''" @click="goPage(page + 1)">
               <svg class="h-3.5 w-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M8.25 4.5l7.5 7.5-7.5 7.5"/></svg>
             </button>
           </div>
@@ -538,6 +538,29 @@ onUnmounted(destroyCharts)
 
 <style scoped>
 /* adm-label / adm-card / adm-kpi* приходят из глобального admin.css */
+
+/* Токен-хелперы вместо Tailwind slate-палитры (единый вид с админкой) */
+.d-strong { color: var(--adm-text); }
+.d-mut { color: var(--adm-mut); }
+.d-dim { color: var(--adm-dim); }
+.d-faint { color: var(--adm-faint); }
+.d-ph { background: var(--adm-card-2); }
+.d-alert {
+  border-radius: var(--adm-r-sm);
+  background: rgba(248, 113, 113, 0.08);
+  border: 1px solid rgba(248, 113, 113, 0.25);
+  padding: 0.7rem 1rem;
+  font-size: 0.83rem;
+  font-weight: 600;
+  color: #fca5a5;
+}
+.d-divide > * + * { border-top: 1px solid var(--adm-line); }
+.d-row { transition: background-color 0.12s; }
+.d-row:hover { background: rgba(148, 163, 184, 0.045); }
+.d-bord-top { border-top: 1px solid var(--adm-line); }
+.d-bord-bot { border-bottom: 1px solid var(--adm-line); }
+.d-chip { color: var(--adm-mut); background: rgba(148, 163, 184, 0.08); border-color: var(--adm-line-strong); }
+.is-disabled { opacity: 0.3; cursor: default; pointer-events: none; }
 .adm-th {
   padding: 0.6rem 1rem;
   text-align: left;

@@ -2,6 +2,7 @@
 import { onMounted, ref, computed } from 'vue'
 import { adminListFeedback, adminDeleteFeedback } from '../../services/adminApi'
 import { authState } from '../../stores/authStore'
+import { confirmDialog } from '../../composables/useConfirm'
 
 const token = () => authState.accessToken
 
@@ -24,7 +25,7 @@ async function load() {
 }
 
 async function remove(id) {
-  if (!confirm('Удалить это обращение?')) return
+  if (!(await confirmDialog({ title: 'Удалить обращение', message: 'Удалить это обращение?', confirmLabel: 'Удалить', danger: true }))) return
   deletingId.value = id
   try {
     await adminDeleteFeedback(token(), id)

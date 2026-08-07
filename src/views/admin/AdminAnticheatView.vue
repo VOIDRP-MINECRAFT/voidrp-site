@@ -24,11 +24,22 @@ const loading = ref(true)
 const error = ref('')
 const onlySuspicious = ref(false)
 
+// Pagination
+const PAGE_SIZE = 50
+const page = ref(1)
+const totalPages = computed(() => Math.max(1, Math.ceil(total.value / PAGE_SIZE)))
+const rangeFrom = computed(() => (total.value === 0 ? 0 : (page.value - 1) * PAGE_SIZE + 1))
+const rangeTo = computed(() => Math.min(page.value * PAGE_SIZE, total.value))
+
 async function load() {
   loading.value = true
   error.value = ''
   try {
-    const data = await anticheatListPlayers(token(), { limit: 200, only_suspicious: onlySuspicious.value })
+    const data = await anticheatListPlayers(token(), {
+      limit: PAGE_SIZE,
+      skip: (page.value - 1) * PAGE_SIZE,
+      only_suspicious: onlySuspicious.value,
+    })
     players.value = data?.items || []
     total.value = data?.total ?? players.value.length
   } catch (e) {
@@ -36,6 +47,18 @@ async function load() {
   } finally {
     loading.value = false
   }
+}
+
+function goToPage(p) {
+  const np = Math.min(Math.max(1, p), totalPages.value)
+  if (np === page.value) return
+  page.value = np
+  load()
+}
+
+function onSuspiciousChange() {
+  page.value = 1
+  load()
 }
 
 function goToPlayer(uuid) {
@@ -55,6 +78,14 @@ function riskLabel(p) {
   if (r === 'medium') return 'Средний'
   if (r === 'low') return 'Низкий'
   return 'Чисто'
+}
+
+function riskBadge(p) {
+  const r = riskLevel(p)
+  if (r === 'high') return 'adm-badge--err'
+  if (r === 'medium') return 'adm-badge--warn'
+  if (r === 'low') return ''
+  return 'adm-badge--ok'
 }
 
 function fmtDate(iso) {
@@ -142,129 +173,132 @@ onMounted(load)
     </div>
 
     <!-- ── Players ── -->
-    <div v-if="activeTab === 'players'">
+    <div v-if="activeTab === 'players'" class="ac-tab">
       <div class="ac-toolbar">
         <label class="adm-check">
-          <input v-model="onlySuspicious" type="checkbox" @change="load" />
+          <input v-model="onlySuspicious" type="checkbox" @change="onSuspiciousChange" />
           <span>Только с читами</span>
         </label>
         <button class="adm-btn" :disabled="loading" @click="load">
-          <svg v-if="!loading" xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg>
-          <span v-if="loading" class="ac-spinner" />
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg>
           Обновить
         </button>
       </div>
 
-      <div v-if="error" class="ac-error">{{ error }}</div>
+      <div v-if="error" class="ac-alert">{{ error }}</div>
 
-      <div v-if="!loading && players.length === 0 && !error" class="ac-empty">
-        <svg xmlns="http://www.w3.org/2000/svg" width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
-        <p>Нарушений не обнаружено</p>
+      <div v-if="loading" class="adm-skel" style="height: 260px" />
+
+      <div v-else-if="players.length === 0 && !error" class="adm-empty">
+        <div class="adm-empty__title">Нарушений не обнаружено</div>
+        <div class="adm-empty__sub">На сервере «{{ activeServerName }}» пока чисто — античит не зафиксировал нарушений</div>
       </div>
 
-      <div v-else class="ac-table-wrap">
-        <table class="ac-table">
-          <thead>
-            <tr>
-              <th>Игрок</th>
-              <th>Риск</th>
-              <th>Нарушений</th>
-              <th>HIGH / MED / LOW</th>
-              <th>Не проверено</th>
-              <th>Подозрит. моды</th>
-              <th>Последнее</th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr
-              v-for="p in players"
-              :key="p.player_uuid"
-              class="ac-row"
-              :class="'ac-row--' + riskLevel(p)"
-              @click="goToPlayer(p.player_uuid)"
-            >
-              <td class="ac-nick">{{ p.player_nick }}</td>
-              <td>
-                <span class="ac-badge" :class="'ac-badge--' + riskLevel(p)">{{ riskLabel(p) }}</span>
-              </td>
-              <td>{{ p.total_violations }}</td>
-              <td class="ac-counts">
-                <span class="ac-cnt ac-cnt--high">{{ p.high_count }}</span>
-                <span class="ac-cnt ac-cnt--med">{{ p.medium_count }}</span>
-                <span class="ac-cnt ac-cnt--low">{{ p.low_count }}</span>
-              </td>
-              <td>
-                <span v-if="p.unreviewed_count > 0" class="ac-unreviewed">{{ p.unreviewed_count }}</span>
-                <span v-else class="ac-ok">✓</span>
-              </td>
-              <td>
-                <span v-if="p.has_suspicious_mods" class="ac-mods-flag">
-                  ⚠ {{ p.suspicious_mod_names.slice(0, 2).join(', ') }}{{ p.suspicious_mod_names.length > 2 ? '…' : '' }}
-                </span>
-                <span v-else class="ac-ok">—</span>
-              </td>
-              <td class="ac-date">{{ fmtDate(p.last_violation_at) }}</td>
-            </tr>
-          </tbody>
-        </table>
-      </div>
+      <template v-else>
+        <div class="adm-table-wrap">
+          <div class="adm-table-scroll">
+            <table class="adm-table" style="white-space: nowrap">
+              <thead>
+                <tr>
+                  <th>Игрок</th>
+                  <th>Риск</th>
+                  <th>Нарушений</th>
+                  <th>HIGH / MED / LOW</th>
+                  <th>Не проверено</th>
+                  <th>Подозрит. моды</th>
+                  <th>Последнее</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr
+                  v-for="p in players"
+                  :key="p.player_uuid"
+                  class="is-clickable"
+                  :class="'risk--' + riskLevel(p)"
+                  @click="goToPlayer(p.player_uuid)"
+                >
+                  <td class="adm-mono" style="color: var(--adm-text); font-weight: 700">{{ p.player_nick }}</td>
+                  <td><span class="adm-badge" :class="riskBadge(p)">{{ riskLabel(p) }}</span></td>
+                  <td class="adm-num">{{ p.total_violations }}</td>
+                  <td>
+                    <span class="cnt cnt--high">{{ p.high_count }}</span>
+                    <span class="cnt cnt--med">{{ p.medium_count }}</span>
+                    <span class="cnt cnt--low">{{ p.low_count }}</span>
+                  </td>
+                  <td>
+                    <span v-if="p.unreviewed_count > 0" class="adm-badge adm-badge--warn">{{ p.unreviewed_count }}</span>
+                    <span v-else class="ac-dim">✓</span>
+                  </td>
+                  <td>
+                    <span v-if="p.has_suspicious_mods" class="ac-mods">
+                      ⚠ {{ p.suspicious_mod_names.slice(0, 2).join(', ') }}{{ p.suspicious_mod_names.length > 2 ? '…' : '' }}
+                    </span>
+                    <span v-else class="ac-dim">—</span>
+                  </td>
+                  <td class="ac-dim adm-mono" style="font-size: 0.76rem">{{ fmtDate(p.last_violation_at) }}</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
 
-      <div v-if="loading" class="ac-loading">
-        <span class="ac-spinner ac-spinner--lg" />
-        Загрузка...
-      </div>
-
-      <div v-if="!loading && players.length > 0" class="ac-footer">
-        Всего игроков: {{ total }}
-      </div>
+        <div class="adm-pager">
+          <span class="adm-pager__info">{{ rangeFrom }}–{{ rangeTo }} из {{ total.toLocaleString('ru') }}</span>
+          <div class="pager-btns">
+            <button class="adm-btn adm-btn--sm" :disabled="page <= 1" @click="goToPage(page - 1)">← Назад</button>
+            <span class="pager-cur adm-num">{{ page }} / {{ totalPages }}</span>
+            <button class="adm-btn adm-btn--sm" :disabled="page >= totalPages" @click="goToPage(page + 1)">Вперёд →</button>
+          </div>
+        </div>
+      </template>
     </div>
 
     <!-- ── Stats ── -->
-    <div v-if="activeTab === 'stats'" class="ac-section">
-      <div v-if="statsLoading" class="ac-loading"><span class="ac-spinner ac-spinner--lg" /> Загрузка...</div>
-      <div v-if="statsError" class="ac-error">{{ statsError }}</div>
+    <div v-if="activeTab === 'stats'" class="ac-tab">
+      <div v-if="statsLoading" class="adm-skel" style="height: 220px" />
+      <div v-else-if="statsError" class="ac-alert">{{ statsError }}</div>
 
-      <div v-if="stats && !statsLoading">
-        <div class="ac-stats-summary">
+      <div v-else-if="stats">
+        <div class="ac-kpis">
           <div class="adm-kpi"><div><div class="adm-kpi__val">{{ stats.total_violations }}</div><div class="adm-kpi__label">всего нарушений</div></div></div>
           <div class="adm-kpi"><div><div class="adm-kpi__val">{{ stats.unique_players }}</div><div class="adm-kpi__label">уникальных игроков</div></div></div>
         </div>
 
-        <div class="ac-table-wrap" style="margin-top:1rem">
-          <table class="ac-table">
-            <thead>
-              <tr>
-                <th>Проверка</th>
-                <th>Кол-во</th>
-                <th>Мин. знач.</th>
-                <th>Среднее знач.</th>
-                <th>Макс. знач.</th>
-                <th>Средний порог</th>
-                <th>Превышение</th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr v-for="s in stats.by_check" :key="s.check_type" class="ac-row">
-                <td class="ac-nick">{{ s.check_type }}</td>
-                <td>{{ s.count }}</td>
-                <td>{{ s.min_actual }}</td>
-                <td>
-                  <span class="ac-stat-avg">{{ s.avg_actual }}</span>
-                </td>
-                <td>{{ s.max_actual }}</td>
-                <td class="ac-date">{{ s.avg_expected_max }}</td>
-                <td>
-                  <span v-if="s.avg_expected_max > 0" class="ac-exceed"
-                    :class="s.avg_actual / s.avg_expected_max > 2 ? 'ac-exceed--high' : 'ac-exceed--med'">
-                    ×{{ (s.avg_actual / s.avg_expected_max).toFixed(2) }}
-                  </span>
-                  <span v-else class="ac-ok">—</span>
-                </td>
-              </tr>
-            </tbody>
-          </table>
+        <div class="adm-table-wrap" style="margin-top: 1rem">
+          <div class="adm-table-scroll">
+            <table class="adm-table" style="white-space: nowrap">
+              <thead>
+                <tr>
+                  <th>Проверка</th>
+                  <th>Кол-во</th>
+                  <th>Мин. знач.</th>
+                  <th>Среднее знач.</th>
+                  <th>Макс. знач.</th>
+                  <th>Средний порог</th>
+                  <th>Превышение</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr v-for="s in stats.by_check" :key="s.check_type">
+                  <td class="adm-mono" style="color: var(--adm-text); font-weight: 700">{{ s.check_type }}</td>
+                  <td class="adm-num">{{ s.count }}</td>
+                  <td class="adm-num">{{ s.min_actual }}</td>
+                  <td class="adm-num" style="color: var(--adm-text); font-weight: 700">{{ s.avg_actual }}</td>
+                  <td class="adm-num">{{ s.max_actual }}</td>
+                  <td class="adm-num ac-dim">{{ s.avg_expected_max }}</td>
+                  <td>
+                    <span v-if="s.avg_expected_max > 0" class="adm-badge"
+                      :class="s.avg_actual / s.avg_expected_max > 2 ? 'adm-badge--err' : 'adm-badge--warn'">
+                      ×{{ (s.avg_actual / s.avg_expected_max).toFixed(2) }}
+                    </span>
+                    <span v-else class="ac-dim">—</span>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
         </div>
-        <p class="ac-stats-hint">
+        <p class="ac-hint">
           «Среднее знач.» — среднее фактическое значение среди всех зафиксированных нарушений.
           «Превышение» — во сколько раз среднее превышает порог. Используй для калибровки порогов.
         </p>
@@ -272,12 +306,12 @@ onMounted(load)
     </div>
 
     <!-- ── Config ── -->
-    <div v-if="activeTab === 'config'" class="ac-section">
-      <div v-if="configLoading" class="ac-loading"><span class="ac-spinner ac-spinner--lg" /> Загрузка...</div>
-      <div v-if="configError" class="ac-error">{{ configError }}</div>
+    <div v-if="activeTab === 'config'" class="ac-tab">
+      <div v-if="configLoading" class="adm-skel" style="height: 220px" />
+      <div v-else-if="configError" class="ac-alert">{{ configError }}</div>
 
-      <div v-if="configs.length && !configLoading">
-        <p class="ac-config-hint">
+      <div v-else-if="configs.length">
+        <p class="ac-hint" style="margin-bottom: 1.25rem">
           Пороги применяются на сервере автоматически каждые 5 минут без перезагрузки мода.
           Локальный TOML-конфиг используется как запасной вариант при недоступности API.
           Настройки общие для всех серверов. Ползунок ограничен рекомендуемым диапазоном —
@@ -285,10 +319,10 @@ onMounted(load)
         </p>
 
         <div class="ac-config-grid">
-          <div v-for="c in configs" :key="c.key" class="ac-config-card">
+          <div v-for="c in configs" :key="c.key" class="adm-card adm-card--pad ac-config-card">
             <div class="ac-config-header">
               <span class="ac-config-label">{{ c.label }}</span>
-              <span class="ac-config-key">{{ c.key }}</span>
+              <span class="ac-config-key adm-mono">{{ c.key }}</span>
             </div>
             <p class="ac-config-desc">{{ c.description }}</p>
             <div class="ac-config-row">
@@ -305,20 +339,17 @@ onMounted(load)
                 type="number"
                 :min="c.min_value"
                 :step="c.step"
-                class="ac-num-input"
+                class="adm-input ac-num-input"
               />
             </div>
             <div class="ac-config-range">ползунок: {{ c.min_value }} — {{ c.max_value }} · в поле можно ввести и больше</div>
-            <div v-if="c.updated_by" class="ac-config-meta">
-              Изменено: {{ c.updated_by }}
-            </div>
+            <div v-if="c.updated_by" class="ac-config-range">Изменено: {{ c.updated_by }}</div>
           </div>
         </div>
 
         <div class="ac-config-actions">
           <button class="adm-btn adm-btn--acc" :disabled="configSaving" @click="saveConfig">
-            <span v-if="configSaving" class="ac-spinner" />
-            {{ configSaving ? 'Сохранение...' : 'Сохранить' }}
+            {{ configSaving ? 'Сохранение…' : 'Сохранить' }}
           </button>
           <span v-if="configSaved" class="ac-saved-ok">✓ Сохранено. Мод обновится в течение 5 минут.</span>
         </div>
@@ -328,336 +359,70 @@ onMounted(load)
 </template>
 
 <style scoped>
-*, *::before, *::after { box-sizing: border-box; }
+.ac-tab { display: flex; flex-direction: column; gap: 0; }
+.ac-toolbar { display: flex; align-items: center; gap: 0.75rem; margin-bottom: 1rem; flex-wrap: wrap; }
 
-/* Toolbar */
-.ac-toolbar {
-  display: flex;
-  align-items: center;
-  gap: 0.75rem;
-  margin-bottom: 1rem;
-  flex-wrap: wrap;
-}
-
-
-.ac-error {
-  padding: 0.75rem 1rem;
-  background: rgba(239,68,68,0.1);
-  border: 1px solid rgba(239,68,68,0.2);
-  border-radius: 8px;
-  color: #f87171;
-  font-size: 0.85rem;
+/* Небольшой баннер ошибки */
+.ac-alert {
+  padding: 0.7rem 1rem;
+  background: rgba(248, 113, 113, 0.08);
+  border: 1px solid rgba(248, 113, 113, 0.25);
+  border-radius: var(--adm-r-sm);
+  color: #fca5a5;
+  font-size: 0.83rem;
+  font-weight: 600;
   margin-bottom: 1rem;
 }
 
-.ac-empty {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 0.75rem;
-  padding: 3rem;
-  color: var(--adm-faint);
-}
+/* Риск-акцент слева у строки таблицы */
+.risk--high td:first-child { box-shadow: inset 3px 0 0 var(--adm-err); }
+.risk--medium td:first-child { box-shadow: inset 3px 0 0 var(--adm-warn); }
+.risk--low td:first-child { box-shadow: inset 3px 0 0 var(--adm-dim); }
 
-.ac-table-wrap {
-  overflow-x: auto;
-  border-radius: 12px;
-  border: 1px solid var(--adm-line);
-}
-
-.ac-table {
-  width: 100%;
-  border-collapse: collapse;
-  font-size: 0.845rem;
-}
-
-.ac-table thead th {
-  padding: 0.65rem 0.9rem;
-  text-align: left;
-  font-size: 0.72rem;
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
-  color: var(--adm-faint);
-  background: rgba(255,255,255,0.02);
-  border-bottom: 1px solid var(--adm-line);
-  white-space: nowrap;
-}
-
-.ac-row {
-  cursor: pointer;
-  transition: background 0.12s;
-  border-bottom: 1px solid rgba(148,163,184,0.05);
-}
-
-.ac-row:last-child { border-bottom: none; }
-.ac-row:hover { background: rgba(148,163,184,0.05); }
-.ac-row--high { border-left: 3px solid rgba(239,68,68,0.5); }
-.ac-row--medium { border-left: 3px solid rgba(234,179,8,0.5); }
-.ac-row--low { border-left: 3px solid rgba(100,116,139,0.4); }
-.ac-row--none { border-left: 3px solid transparent; }
-
-.ac-table td {
-  padding: 0.7rem 0.9rem;
-  color: var(--adm-mut);
-  vertical-align: middle;
-}
-
-.ac-nick {
-  font-weight: 700;
-  color: var(--adm-text) !important;
-}
-
-.ac-badge {
+/* Компактные счётчики HIGH/MED/LOW */
+.cnt {
   display: inline-block;
-  padding: 0.2rem 0.5rem;
-  border-radius: 6px;
-  font-size: 0.72rem;
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.04em;
-}
-
-.ac-badge--high { background: rgba(239,68,68,0.15); color: #f87171; border: 1px solid rgba(239,68,68,0.25); }
-.ac-badge--medium { background: rgba(234,179,8,0.12); color: #facc15; border: 1px solid rgba(234,179,8,0.2); }
-.ac-badge--low { background: rgba(100,116,139,0.12); color: var(--adm-mut); border: 1px solid rgba(100,116,139,0.2); }
-.ac-badge--none { background: rgba(34,197,94,0.1); color: #4ade80; border: 1px solid rgba(34,197,94,0.2); }
-
-.ac-counts { display: flex; gap: 0.35rem; align-items: center; }
-
-.ac-cnt {
-  display: inline-block;
-  min-width: 1.4rem;
+  min-width: 1.5rem;
   text-align: center;
   padding: 0.1rem 0.35rem;
-  border-radius: 4px;
-  font-size: 0.78rem;
-  font-weight: 700;
-}
-
-.ac-cnt--high { background: rgba(239,68,68,0.12); color: #f87171; }
-.ac-cnt--med { background: rgba(234,179,8,0.1); color: #facc15; }
-.ac-cnt--low { background: rgba(100,116,139,0.1); color: var(--adm-mut); }
-
-.ac-unreviewed {
-  display: inline-block;
-  padding: 0.15rem 0.45rem;
-  border-radius: 6px;
-  background: rgba(234,179,8,0.12);
-  color: #facc15;
-  font-size: 0.78rem;
-  font-weight: 700;
-}
-
-.ac-ok { color: var(--adm-faint); font-size: 0.82rem; }
-
-.ac-mods-flag {
-  color: #f97316;
-  font-size: 0.8rem;
-  font-weight: 600;
-}
-
-.ac-date { font-size: 0.78rem; color: var(--adm-dim) !important; white-space: nowrap; }
-
-.ac-loading {
-  display: flex;
-  align-items: center;
-  gap: 0.6rem;
-  padding: 2rem;
-  color: var(--adm-dim);
-  font-size: 0.85rem;
-}
-
-.ac-footer {
-  padding: 0.75rem 0.25rem;
-  font-size: 0.78rem;
-  color: var(--adm-faint);
-  text-align: right;
-}
-
-.ac-spinner {
-  display: inline-block;
-  width: 14px;
-  height: 14px;
-  border: 2px solid rgba(167,139,250,0.3);
-  border-top-color: var(--adm-acc-text);
-  border-radius: 50%;
-  animation: spin 0.7s linear infinite;
-  flex-shrink: 0;
-}
-
-.ac-spinner--lg { width: 20px; height: 20px; }
-
-@keyframes spin { to { transform: rotate(360deg); } }
-
-/* Section wrapper */
-.ac-section { padding-top: 0.25rem; }
-
-/* Stats */
-.ac-stats-summary {
-  display: flex;
-  gap: 1rem;
-  margin-bottom: 1rem;
-  flex-wrap: wrap;
-}
-
-.ac-stat-card {
-  padding: 1rem 1.5rem;
-  border-radius: 10px;
-  background: rgba(148,163,184,0.04);
-  border: 1px solid var(--adm-line);
-  min-width: 140px;
-}
-
-.ac-stat-val {
-  font-size: 1.75rem;
-  font-weight: 800;
-  color: var(--adm-acc-text);
-}
-
-.ac-stat-lbl {
-  font-size: 0.75rem;
-  color: var(--adm-dim);
-  margin-top: 0.2rem;
-}
-
-.ac-stat-avg {
-  font-weight: 700;
-  color: var(--adm-text);
-}
-
-.ac-exceed {
-  display: inline-block;
-  padding: 0.15rem 0.4rem;
   border-radius: 5px;
-  font-size: 0.78rem;
+  font-family: var(--adm-mono);
+  font-size: 0.76rem;
   font-weight: 700;
+  margin-right: 0.2rem;
 }
+.cnt--high { background: rgba(248, 113, 113, 0.12); color: #fca5a5; }
+.cnt--med { background: rgba(251, 191, 36, 0.12); color: #fcd34d; }
+.cnt--low { background: rgba(148, 163, 184, 0.1); color: var(--adm-mut); }
 
-.ac-exceed--high { background: rgba(239,68,68,0.15); color: #f87171; }
-.ac-exceed--med { background: rgba(234,179,8,0.1); color: #facc15; }
+.ac-dim { color: var(--adm-faint); font-size: 0.82rem; }
+.ac-mods { color: #fb923c; font-size: 0.8rem; font-weight: 600; }
+.ac-hint { margin-top: 0.75rem; font-size: 0.76rem; color: var(--adm-dim); line-height: 1.5; }
 
-.ac-stats-hint {
-  margin-top: 0.75rem;
-  font-size: 0.78rem;
-  color: var(--adm-faint);
-  line-height: 1.5;
-}
+/* Пагинация */
+.pager-btns { display: flex; align-items: center; gap: 0.6rem; }
+.pager-cur { font-size: 0.78rem; font-weight: 700; color: var(--adm-mut); min-width: 3.5rem; text-align: center; }
 
-/* Config */
-.ac-config-hint {
-  font-size: 0.82rem;
-  color: var(--adm-dim);
-  margin-bottom: 1.25rem;
-  line-height: 1.5;
-}
+/* Статистика */
+.ac-kpis { display: flex; gap: 0.85rem; flex-wrap: wrap; }
+.ac-kpis .adm-kpi { flex: 1; min-width: 180px; }
 
+/* Настройки */
 .ac-config-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
-  gap: 1rem;
+  gap: 0.85rem;
   margin-bottom: 1.5rem;
 }
-
-.ac-config-card {
-  background: rgba(148,163,184,0.04);
-  border: 1px solid var(--adm-line);
-  border-radius: 10px;
-  padding: 1rem 1.1rem;
-}
-
-.ac-config-header {
-  display: flex;
-  align-items: baseline;
-  justify-content: space-between;
-  gap: 0.5rem;
-  margin-bottom: 0.3rem;
-}
-
-.ac-config-label {
-  font-weight: 700;
-  font-size: 0.88rem;
-  color: var(--adm-text);
-}
-
-.ac-config-key {
-  font-size: 0.7rem;
-  color: var(--adm-faint);
-  font-family: monospace;
-}
-
-.ac-config-desc {
-  font-size: 0.78rem;
-  color: var(--adm-dim);
-  margin: 0 0 0.75rem;
-  line-height: 1.4;
-}
-
-.ac-config-row {
-  display: flex;
-  align-items: center;
-  gap: 0.75rem;
-}
-
-.ac-slider {
-  flex: 1;
-  accent-color: var(--adm-acc);
-  cursor: pointer;
-}
-
-.ac-num-input {
-  width: 72px;
-  padding: 0.3rem 0.45rem;
-  background: var(--adm-line);
-  border: 1px solid rgba(255,255,255,0.1);
-  border-radius: 6px;
-  color: var(--adm-text);
-  font-size: 0.85rem;
-  text-align: right;
-}
-
-.ac-num-input:focus { outline: none; border-color: rgba(124,58,237,0.5); }
-
-.ac-config-range {
-  font-size: 0.7rem;
-  color: var(--adm-faint);
-  margin-top: 0.3rem;
-}
-
-.ac-config-meta {
-  font-size: 0.7rem;
-  color: var(--adm-faint);
-  margin-top: 0.2rem;
-}
-
-.ac-config-actions {
-  display: flex;
-  align-items: center;
-  gap: 1rem;
-  flex-wrap: wrap;
-}
-
-.ac-btn-save {
-  display: flex;
-  align-items: center;
-  gap: 0.4rem;
-  padding: 0.55rem 1.4rem;
-  border-radius: 8px;
-  background: rgba(124,58,237,0.2);
-  border: 1px solid rgba(124,58,237,0.35);
-  color: var(--adm-acc-text);
-  font-size: 0.85rem;
-  font-weight: 700;
-  cursor: pointer;
-  transition: background 0.15s;
-}
-
-.ac-btn-save:hover:not(:disabled) { background: rgba(124,58,237,0.3); }
-.ac-btn-save:disabled { opacity: 0.5; cursor: not-allowed; }
-
-.ac-saved-ok {
-  font-size: 0.82rem;
-  color: #4ade80;
-  font-weight: 600;
-}
+.ac-config-card { display: flex; flex-direction: column; gap: 0.35rem; }
+.ac-config-header { display: flex; align-items: baseline; justify-content: space-between; gap: 0.5rem; }
+.ac-config-label { font-weight: 800; font-size: 0.86rem; color: var(--adm-text); }
+.ac-config-key { font-size: 0.68rem; color: var(--adm-faint); }
+.ac-config-desc { font-size: 0.77rem; color: var(--adm-dim); margin: 0 0 0.5rem; line-height: 1.45; }
+.ac-config-row { display: flex; align-items: center; gap: 0.75rem; }
+.ac-slider { flex: 1; accent-color: var(--adm-acc); cursor: pointer; }
+.ac-num-input { width: 84px; text-align: right; padding: 0.4rem 0.5rem; }
+.ac-config-range { font-size: 0.68rem; color: var(--adm-faint); }
+.ac-config-actions { display: flex; align-items: center; gap: 1rem; flex-wrap: wrap; }
+.ac-saved-ok { font-size: 0.82rem; color: #6ee7b7; font-weight: 700; }
 </style>

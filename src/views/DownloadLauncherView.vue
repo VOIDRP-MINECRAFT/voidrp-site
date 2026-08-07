@@ -1,28 +1,77 @@
 <script setup>
-import { computed } from 'vue'
+import { computed, onMounted } from 'vue'
+import { useRoute } from 'vue-router'
 import { useI18n } from 'vue-i18n'
 import { siteConfig } from '../config.site'
 import { usePageMeta } from '../composables/usePageMeta.js'
-
-usePageMeta({
-  title: 'Скачать лаунчер',
-  description: 'Скачай официальный лаунчер VoidRP — автоматическая установка сборки модов, авторизация и запуск Minecraft одной кнопкой.',
-  url: 'https://void-rp.ru/download-launcher',
-  breadcrumbs: [
-    { name: 'Главная', url: '/' },
-    { name: 'Скачать лаунчер' },
-  ],
-})
 import { useAuthStore } from '../stores/authStore'
 
 const { t } = useI18n()
+
+usePageMeta({
+  title: t('meta.downloadTitle'),
+  description: t('meta.downloadDesc'),
+  url: 'https://void-rp.ru/download-launcher',
+  breadcrumbs: [
+    { name: t('nav.home'), url: '/' },
+    { name: t('meta.downloadTitle') },
+  ],
+})
+
+const route = useRoute()
 const auth = useAuthStore()
 const isAuthenticated = computed(() => auth.isAuthenticated.value)
+
+const justRegistered = computed(() => route.query.justRegistered === '1')
+const registeredEmail = computed(() =>
+  typeof route.query.email === 'string' ? route.query.email : '',
+)
+
+function triggerDownload() {
+  const link = document.createElement('a')
+  link.href = siteConfig.launcherPortableUrl
+  link.rel = 'noreferrer'
+  link.download = ''
+  document.body.appendChild(link)
+  link.click()
+  link.remove()
+}
+
+onMounted(() => {
+  // Автоматически начинаем скачивание сразу после регистрации.
+  if (justRegistered.value) {
+    window.setTimeout(triggerDownload, 800)
+  }
+})
 </script>
 
 <template>
   <section class="py-12 md:py-18">
     <div class="container-shell space-y-6">
+      <div v-if="justRegistered" class="surface-card border-emerald-400/25 p-6 md:p-8">
+        <div class="section-kicker">{{ t('downloadLauncher.justRegisteredKicker') }}</div>
+        <h2 class="text-2xl font-black tracking-tight text-slate-50 md:text-3xl">
+          {{ t('downloadLauncher.justRegisteredTitle') }}
+        </h2>
+        <p class="mt-3 text-sm leading-7 text-slate-300 md:text-base">
+          {{ t('downloadLauncher.justRegisteredDesc') }}
+        </p>
+        <div class="alert alert-info mt-5">
+          {{ t('downloadLauncher.emailOptionalNote') }}
+        </div>
+        <div class="mt-5 flex flex-col gap-3 sm:flex-row sm:flex-wrap">
+          <button type="button" class="btn btn-primary" @click="triggerDownload">
+            {{ t('downloadLauncher.downloadAgain') }}
+          </button>
+          <RouterLink
+            :to="{ path: '/verify-email', query: { email: registeredEmail, sent: '1' } }"
+            class="btn btn-outline"
+          >
+            {{ t('downloadLauncher.verifyEmailLater') }}
+          </RouterLink>
+        </div>
+      </div>
+
       <div class="grid gap-6 lg:grid-cols-[1.04fr_0.96fr]">
         <div class="surface-card p-6 md:p-8 lg:p-10">
           <div class="section-kicker">{{ t('downloadLauncher.kicker') }}</div>

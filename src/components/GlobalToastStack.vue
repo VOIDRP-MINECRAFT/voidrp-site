@@ -1,7 +1,9 @@
 <script setup>
 import { computed } from 'vue'
+import { useI18n } from 'vue-i18n'
 import { removeToast, toastState } from '../services/toast'
 
+const { t } = useI18n()
 const toasts = computed(() => toastState.items)
 
 function dismiss(id) {
@@ -38,7 +40,7 @@ function dismiss(id) {
           <button
             type="button"
             class="toast-card__close"
-            aria-label="Закрыть уведомление"
+            :aria-label="t('app.toastClose')"
             @click="dismiss(toast.id)"
           >
             ×

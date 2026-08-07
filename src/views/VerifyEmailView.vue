@@ -81,6 +81,10 @@ watch(resendMessage, (value) => { if (value) toastInfo(value, t('verifyEmail.sen
             {{ t('verifyEmail.subtitle') }}
           </p>
 
+          <div v-if="!isAlreadyVerified" class="alert alert-info mt-6">
+            {{ t('verifyEmail.optionalNote') }}
+          </div>
+
           <div v-if="sentFromRegister && hasEmail" class="alert alert-info mt-6">
             {{ t('verifyEmail.sentToEmail', { email: form.email }) }}
           </div>

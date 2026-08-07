@@ -3,19 +3,19 @@ import { onMounted, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { getProgressionLeaderboard } from '../services/progressionApi'
 import { usePageMeta } from '../composables/usePageMeta.js'
-
-usePageMeta({
-  title: 'Рейтинг прогрессии',
-  description: 'Топ игроков VoidRP по прогрессии — кто дальше всех продвинулся в освоении сборки модов.',
-  url: 'https://void-rp.ru/leaderboard',
-  breadcrumbs: [
-    { name: 'Главная', url: '/' },
-    { name: 'Рейтинг прогрессии' },
-  ],
-})
 import { toastError } from '../services/toast'
 
 const { t } = useI18n()
+
+usePageMeta({
+  title: t('meta.leaderboardTitle'),
+  description: t('meta.leaderboardDesc'),
+  url: 'https://void-rp.ru/leaderboard',
+  breadcrumbs: [
+    { name: t('nav.home'), url: '/' },
+    { name: t('meta.leaderboardTitle') },
+  ],
+})
 const loading = ref(true)
 const leaderboard = ref(null)
 const activeTier = ref(null)

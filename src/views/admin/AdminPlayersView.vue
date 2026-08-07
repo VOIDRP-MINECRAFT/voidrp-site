@@ -1,8 +1,9 @@
 <script setup>
-import { onMounted, ref } from 'vue'
+import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { adminListPlayers, adminPatchLegacy } from '../../services/adminApi'
 import { adminGetBattlePassPlayerByNick, adminGrantBattlePassPremium, adminRevokeBattlePassPremiumByNick } from '../../services/battlepassAdminApi'
 import { authState } from '../../stores/authStore'
+import { confirmDialog } from '../../composables/useConfirm'
 
 const token = () => authState.accessToken
 
@@ -12,6 +13,13 @@ const loading = ref(true)
 const search = ref('')
 const filterLegacy = ref('')
 const filterActive = ref('')
+
+// Pagination
+const PAGE_SIZE = 50
+const page = ref(1)
+const totalPages = computed(() => Math.max(1, Math.ceil(total.value / PAGE_SIZE)))
+const rangeFrom = computed(() => (total.value === 0 ? 0 : (page.value - 1) * PAGE_SIZE + 1))
+const rangeTo = computed(() => Math.min(page.value * PAGE_SIZE, total.value))
 
 const modal = ref(null)
 const actionLoading = ref(false)
@@ -30,7 +38,7 @@ const bpManualUuid = ref('')
 async function load() {
   loading.value = true
   try {
-    const params = { limit: 100 }
+    const params = { limit: PAGE_SIZE, offset: (page.value - 1) * PAGE_SIZE }
     if (search.value) params.q = search.value
     if (filterLegacy.value !== '') params.legacy_auth_enabled = filterLegacy.value
     if (filterActive.value !== '') params.user_active = filterActive.value
@@ -43,6 +51,21 @@ async function load() {
     loading.value = false
   }
 }
+
+function goToPage(p) {
+  const np = Math.min(Math.max(1, p), totalPages.value)
+  if (np === page.value) return
+  page.value = np
+  load()
+}
+
+// Debounced reload on search / filter change — reset to the first page.
+let searchTimer = null
+watch([search, filterLegacy, filterActive], () => {
+  clearTimeout(searchTimer)
+  searchTimer = setTimeout(() => { page.value = 1; load() }, 350)
+})
+onBeforeUnmount(() => clearTimeout(searchTimer))
 
 function openModal(item) {
   modal.value = item
@@ -93,7 +116,7 @@ async function grantBp() {
 }
 
 async function revokeBp() {
-  if (!confirm('Отозвать Battle Pass Premium у игрока?')) return
+  if (!(await confirmDialog({ title: 'Отозвать Premium', message: 'Отозвать Battle Pass Premium у этого игрока?', confirmLabel: 'Отозвать', danger: true }))) return
   bpLoading.value = true
   bpMsg.value = ''
   bpErr.value = ''
@@ -234,6 +257,16 @@ onMounted(load)
     <div v-else class="adm-empty">
       <div class="adm-empty__title">Ничего не найдено</div>
       <div class="adm-empty__sub">Попробуй изменить поисковый запрос или фильтры</div>
+    </div>
+
+    <!-- Pagination -->
+    <div v-if="!loading && total > 0" class="adm-pager">
+      <span class="adm-pager__info">{{ rangeFrom }}–{{ rangeTo }} из {{ total.toLocaleString('ru') }}</span>
+      <div class="pager-btns">
+        <button class="adm-btn adm-btn--sm" :disabled="page <= 1" @click="goToPage(page - 1)">← Назад</button>
+        <span class="pager-cur adm-num">{{ page }} / {{ totalPages }}</span>
+        <button class="adm-btn adm-btn--sm" :disabled="page >= totalPages" @click="goToPage(page + 1)">Вперёд →</button>
+      </div>
     </div>
 
     <!-- Modal -->
@@ -380,6 +413,10 @@ onMounted(load)
 .filters { display: flex; flex-wrap: wrap; gap: 0.5rem; }
 .filters__search { flex: 1; min-width: 180px; }
 .filters__sel { width: auto; flex-shrink: 0; }
+
+/* Пагинация */
+.pager-btns { display: flex; align-items: center; gap: 0.6rem; }
+.pager-cur { font-size: 0.78rem; font-weight: 700; color: var(--adm-mut); min-width: 3.5rem; text-align: center; }
 
 /* Таблица: подсветка ролей ячеек */
 .row--blocked { opacity: 0.5; }

@@ -6,6 +6,9 @@ import { siteConfig } from '../config.site.js'
 import { useReveal } from '../composables/useReveal.js'
 import { usePageMeta } from '../composables/usePageMeta.js'
 import { getServerStats, getNationRankings } from '../services/nationStatsApi.js'
+import { getKillfeed } from '../services/killfeedApi.js'
+import { getPlayersTop } from '../services/playerStatsApi.js'
+import { getDonateProducts, getTopDonors } from '../services/donateApi.js'
 import { apiRequest } from '../services/apiBase.js'
 import { serverState, activeServer, fetchServers, setActiveServer } from '../stores/serverStore'
 
@@ -15,8 +18,8 @@ const { t } = useI18n()
 
 useReveal()
 usePageMeta({
-  title: 'VoidRP (Войд РП) — Майнкрафт Roleplay сервер',
-  description: 'Войд РП — майнкрафт ролевой сервер с живой экономикой, государствами, альянсами и сотнями модов. VoidRP: единый аккаунт, удобный лаунчер — void-rp.ru.',
+  title: t('meta.homeTitle'),
+  description: t('meta.homeDesc'),
 })
 
 // ── Multi-server ───────────────────────────────────────────────────────────
@@ -37,6 +40,15 @@ const totalOnline = computed(() => {
   }
   return any ? sum : null
 })
+
+// Show the live CCU counter only once it's high enough to be social proof.
+// Below the threshold a small number reads as "dead server", so we surface
+// cumulative community stats (registered players / nations) instead.
+const ONLINE_THRESHOLD = 20
+const showLiveOnline = computed(() => totalOnline.value !== null && totalOnline.value >= ONLINE_THRESHOLD)
+
+// Lightbox: currently enlarged gallery screenshot (url) or null.
+const activeShot = ref(null)
 
 const serverAddress = computed(() => {
   const s = activeServer.value
@@ -107,7 +119,9 @@ async function refetchScoped() {
   // Старый контент остаётся на месте до прихода новых данных — иначе блоки
   // ниже дважды прыгают (скелетон → данные). Скелетоны только при первом
   // рендере страницы.
-  const [stats, rankings] = await Promise.allSettled([getServerStats(), getNationRankings()])
+  const [stats, rankings, kf, tp] = await Promise.allSettled([
+    getServerStats(), getNationRankings(), getKillfeed(), getPlayersTop(),
+  ])
   if (stats.status === 'fulfilled') {
     statsData.value = stats.value
     if (statsAnimated) {
@@ -118,6 +132,9 @@ async function refetchScoped() {
   topNations.value =
     rankings.status === 'fulfilled' ? (rankings.value.items || []).slice(0, 3) : []
   nationsLoading.value = false
+  applyPulse(kf, tp)
+  loadShop()
+  loadDonors()
   await nextTick()
   bindSpotlight()
 }
@@ -192,6 +209,134 @@ const screenshots = ref([])
 // ── Top nations ────────────────────────────────────────────────────────────
 const topNations = ref([])
 const nationsLoading = ref(true)
+
+// ── Server pulse: live killfeed + top players (both server-scoped) ──────────
+const killfeed = ref([])
+const pulseLoading = ref(true)
+
+// Top-players leaderboard with switchable categories. We surface a curated
+// subset (that actually has entries) as tabs, so on any server type the visitor
+// can flip between wealth, combat, streaks, playtime, etc.
+const CAT_ORDER = ['balance', 'pvp_kills', 'best_kill_streak', 'playtime', 'mob_kills', 'completed_quests']
+// A category only shows when its underlying feature is enabled for the server
+// in admin (e.g. no wealth board on an anarchy server with economy off).
+const CAT_FEATURE = {
+  balance: 'economy',
+  completed_quests: 'quests',
+  pvp_kills: 'killfeed',       // combat boards only where PvP is tracked/showcased
+  best_kill_streak: 'killfeed',
+}
+const topCats = ref([])
+const activeCatKey = ref(null)
+const activeCat = computed(() =>
+  topCats.value.find((c) => c.key === activeCatKey.value) || topCats.value[0] || null,
+)
+// Card visibility respects the server's admin feature flags.
+const showKillfeed = computed(() => feat('killfeed') && killfeed.value.length > 0)
+const showTopPlayers = computed(() => feat('leaderboards') && topCats.value.length > 0)
+
+// When the top-players card is the only one in the section, it goes full-width
+// with a podium layout; when paired with the killfeed it stays a compact list.
+const soloTop = computed(() => showTopPlayers.value && !showKillfeed.value)
+const topEntries = computed(() =>
+  (activeCat.value?.entries || []).slice(0, soloTop.value ? 8 : 5),
+)
+// Podium order: 2nd, 1st, 3rd — the winner sits in the middle, raised.
+const podium = computed(() => {
+  const e = topEntries.value
+  return [e[1], e[0], e[2]].filter(Boolean)
+})
+const podiumRest = computed(() => topEntries.value.slice(3))
+
+function timeAgo(iso) {
+  if (!iso) return ''
+  const then = new Date(iso).getTime()
+  const s = Math.max(0, Math.round((Date.now() - then) / 1000))
+  if (s < 60) return t('pulse.justNow')
+  const m = Math.floor(s / 60)
+  if (m < 60) return t('pulse.minAgo', { n: m })
+  const h = Math.floor(m / 60)
+  if (h < 24) return t('pulse.hAgo', { n: h })
+  return t('pulse.dAgo', { n: Math.floor(h / 24) })
+}
+
+function fmtWeapon(w) {
+  if (!w) return ''
+  return w.split(':').pop().replace(/_/g, ' ')
+}
+
+// ── FAQ accordion ───────────────────────────────────────────────────────────
+const FAQ_COUNT = 6
+const faqOpen = ref(0)
+function toggleFaq(i) { faqOpen.value = faqOpen.value === i ? -1 : i }
+
+// ── Shop showcase (top donate products) ─────────────────────────────────────
+const shopProducts = ref([])
+async function loadShop() {
+  try {
+    const list = await getDonateProducts()
+    shopProducts.value = (Array.isArray(list) ? list : [])
+      .filter((p) => !p.is_hidden)
+      .sort((a, b) => (a.sort_index ?? 0) - (b.sort_index ?? 0))
+      .slice(0, 4)
+  } catch {
+    shopProducts.value = []
+  }
+}
+function discountPct(p) {
+  const oldP = Number(p.old_price)
+  const cur = Number(p.price)
+  if (!oldP || oldP <= cur) return 0
+  return Math.round((1 - cur / oldP) * 100)
+}
+// EasyDonate descriptions are HTML with decorative bullets — strip to plain text.
+function cleanDesc(html) {
+  if (!html) return ''
+  const text = String(html)
+    .replace(/<[^>]*>/g, ' ')
+    .replace(/&[a-z]+;/gi, ' ')
+    .replace(/[♦▎►◆■●▸•✦]/g, '')
+    .replace(/\s+/g, ' ')
+    .trim()
+  return text.length > 96 ? text.slice(0, 96).trim() + '…' : text
+}
+
+// ── Top donors wall (PII-free) ──────────────────────────────────────────────
+const topDonors = ref([])
+async function loadDonors() {
+  try {
+    const list = await getTopDonors()
+    topDonors.value = Array.isArray(list) ? list : []
+  } catch {
+    topDonors.value = []
+  }
+}
+
+function fmtStatValue(entry, cat) {
+  const v = Math.round(entry.value)
+  return cat?.unit ? `${v.toLocaleString('ru')} ${cat.unit}` : v.toLocaleString('ru')
+}
+
+function applyPulse(kfRes, tpRes) {
+  killfeed.value = kfRes.status === 'fulfilled' ? (kfRes.value.events || []).slice(0, 8) : []
+  if (tpRes.status === 'fulfilled') {
+    const byKey = new Map((tpRes.value.categories || []).map((c) => [c.key, c]))
+    // Keep the curated order, only categories that (a) have players and (b) whose
+    // feature is enabled for this server in admin (no wealth board on anarchy, etc.).
+    topCats.value = CAT_ORDER
+      .filter((k) => !CAT_FEATURE[k] || feat(CAT_FEATURE[k]))
+      .map((k) => byKey.get(k))
+      .filter((c) => c && c.entries && c.entries.length)
+    // Keep the current tab if it still exists after a server switch, else reset.
+    if (!topCats.value.some((c) => c.key === activeCatKey.value)) {
+      activeCatKey.value = topCats.value[0]?.key || null
+    }
+  } else {
+    topCats.value = []
+    activeCatKey.value = null
+  }
+  pulseLoading.value = false
+}
 
 // ── WOW FX: звёзды/метеоры, параллакс, аура курсора, tilt, магнит ──────────
 // Все эффекты отключаются при prefers-reduced-motion и на тач-устройствах;
@@ -506,16 +651,21 @@ onMounted(async () => {
   const slugAtStart = serverState.activeSlug
 
   // Fetch all data in parallel
-  const [stats, rankings, shots] = await Promise.allSettled([
+  const [stats, rankings, shots, , kf, tp] = await Promise.allSettled([
     getServerStats(),
     getNationRankings(),
     getLandingScreenshots(),
     fetchServers(),
+    getKillfeed(),
+    getPlayersTop(),
   ])
 
   if (shots.status === 'fulfilled') {
     screenshots.value = shots.value || []
   }
+  applyPulse(kf, tp)
+  loadShop()
+  loadDonors()
 
   if (stats.status === 'fulfilled') {
     statsData.value = stats.value
@@ -678,7 +828,8 @@ function nationAccent(nation) {
         <span class="hero__sep">·</span>
         <span class="hero__online">
           <span class="hero__online-dot"></span>
-          <template v-if="totalOnline !== null">{{ totalOnline }} {{ servers.length > 1 ? t('hero.onlineTotal') : t('hero.online') }}</template>
+          <template v-if="showLiveOnline">{{ totalOnline }} {{ servers.length > 1 ? t('hero.onlineTotal') : t('hero.online') }}</template>
+          <template v-else-if="statsData && statsData.total_players">{{ statsData.total_players }} {{ t('hero.playersShort') }}<template v-if="statsData.total_nations"> · {{ statsData.total_nations }} {{ t('hero.nationsShort') }}</template></template>
           <template v-else>{{ t('hero.serverOnline') }}</template>
         </span>
         <span class="hero__sep">·</span>
@@ -778,16 +929,46 @@ function nationAccent(nation) {
     </div>
   </section>
 
-  <!-- ═══════════════════════ SCREENSHOTS ═══════════════════════ -->
-  <section v-if="screenshots.length" class="screenshots-section" aria-hidden="true">
-    <div class="marquee-wrap">
-      <div class="marquee-track">
-        <div v-for="(s, i) in [...screenshots, ...screenshots]" :key="i" class="marquee-item">
-          <img :src="s.url" class="marquee-img" loading="lazy" decoding="async" />
+  <!-- ═══════════════════════ GALLERY ═══════════════════════ -->
+  <section v-if="screenshots.length" class="gallery-section">
+    <div class="container-shell">
+      <div class="section-header" data-reveal>
+        <div class="kicker-wrap">
+          <span class="kicker-line"></span>
+          <p class="section-kicker">{{ t('gallery.kicker') }}</p>
+          <span class="kicker-line"></span>
         </div>
+        <h2 class="section-h2">{{ t('gallery.title') }}</h2>
+        <p class="worlds-sub">{{ t('gallery.sub') }}</p>
+      </div>
+
+      <div class="gallery-grid" data-reveal>
+        <button
+          v-for="(s, i) in screenshots.slice(0, 7)"
+          :key="i"
+          type="button"
+          class="gallery-cell"
+          :class="`gallery-cell--${i}`"
+          @click="activeShot = s.url"
+        >
+          <img :src="s.url" alt="" class="gallery-img" loading="lazy" decoding="async" />
+          <span class="gallery-zoom" aria-hidden="true">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" width="20" height="20"><circle cx="11" cy="11" r="7"/><path stroke-linecap="round" d="M21 21l-4.3-4.3M11 8v6M8 11h6"/></svg>
+          </span>
+        </button>
       </div>
     </div>
   </section>
+
+  <!-- Lightbox for gallery -->
+  <Transition name="lb-fade">
+    <div v-if="activeShot" class="lightbox" @click="activeShot = null">
+      <img :src="activeShot" alt="" class="lightbox-img" @click.stop />
+      <button class="lightbox-close" type="button" @click="activeShot = null" aria-label="Close">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="22" height="22"><path stroke-linecap="round" d="M6 6l12 12M18 6L6 18"/></svg>
+      </button>
+    </div>
+  </Transition>
 
   <!-- ═══════════════════════ STEPS ═══════════════════════ -->
   <section class="steps-section">
@@ -827,6 +1008,11 @@ function nationAccent(nation) {
   <section class="stats-section">
     <div class="container-shell">
       <div class="stats-bar" data-reveal>
+        <div v-if="showLiveOnline" class="stat-item stat-item--live">
+          <span class="stat-num stat-num--live"><span class="stat-live-dot" aria-hidden="true"></span>{{ totalOnline }}</span>
+          <span class="stat-label">{{ t('stats.online') }}</span>
+        </div>
+        <div v-if="showLiveOnline" class="stat-divider" aria-hidden="true"></div>
         <div class="stat-item">
           <span class="stat-num">{{ servers.length || '—' }}</span>
           <span class="stat-label">{{ t('stats.servers') }}</span>
@@ -949,6 +1135,99 @@ function nationAccent(nation) {
     </div>
   </section>
 
+  <!-- ═══════════════════════ SERVER PULSE (killfeed + top players) ═══════════════════════ -->
+  <section
+    v-if="!pulseLoading && (showKillfeed || showTopPlayers)"
+    class="pulse-section"
+  >
+    <div class="container-shell">
+      <div class="section-header" data-reveal>
+        <div class="kicker-wrap">
+          <span class="kicker-line"></span>
+          <p class="section-kicker">{{ t('pulse.kicker') }}</p>
+          <span class="kicker-line"></span>
+        </div>
+        <h2 class="section-h2">{{ t('pulse.title') }}</h2>
+        <p v-if="activeServer && servers.length > 1" class="section-server-note">
+          {{ t('topNations.onServer', { name: activeServer.name }) }}
+        </p>
+      </div>
+
+      <div class="pulse-grid" :class="soloTop ? 'pulse-grid--solo' : (!(showKillfeed && showTopPlayers) ? 'pulse-grid--single' : '')">
+        <!-- Live killfeed -->
+        <div v-if="showKillfeed" class="pulse-card" data-reveal>
+          <div class="pulse-card__head">
+            <span class="pulse-card__title">
+              <span class="pulse-live"><span class="pulse-live__dot"></span>LIVE</span>
+              {{ t('pulse.killfeed') }}
+            </span>
+            <RouterLink to="/killfeed" class="pulse-card__link">{{ t('pulse.all') }}</RouterLink>
+          </div>
+          <ul class="kf-list">
+            <li v-for="(e, i) in killfeed" :key="i" class="kf-row">
+              <svg class="kf-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14.5 17.5 3 6V3h3l11.5 11.5"/><path d="m13 19 6-6"/><path d="m16 16 4 4"/><path d="m19 21 2-2"/></svg>
+              <span class="kf-killer">{{ e.killer_nick }}</span>
+              <span class="kf-verb">{{ t('pulse.killed') }}</span>
+              <span class="kf-victim">{{ e.victim_nick }}</span>
+              <span v-if="e.weapon" class="kf-weapon">· {{ fmtWeapon(e.weapon) }}</span>
+              <span class="kf-time">{{ timeAgo(e.created_at) }}</span>
+            </li>
+          </ul>
+        </div>
+
+        <!-- Top players -->
+        <div v-if="showTopPlayers" class="pulse-card" :class="{ 'pulse-card--wide': soloTop }" data-reveal>
+          <div class="pulse-card__head">
+            <span class="pulse-card__title">{{ t('pulse.topPlayers') }}</span>
+            <RouterLink to="/players/top" class="pulse-card__link">{{ t('pulse.all') }}</RouterLink>
+          </div>
+          <div class="tp-tabs" :class="{ 'tp-tabs--center': soloTop }">
+            <button
+              v-for="c in topCats"
+              :key="c.key"
+              class="tp-tab"
+              :class="{ 'tp-tab--active': c.key === activeCat?.key }"
+              @click="activeCatKey = c.key"
+            >{{ c.label }}</button>
+          </div>
+
+          <!-- Podium (solo, full width) -->
+          <template v-if="soloTop && topEntries.length >= 3">
+            <div class="tp-podium">
+              <div
+                v-for="p in podium"
+                :key="p.rank"
+                class="tp-pod"
+                :class="`tp-pod--${p.rank}`"
+              >
+                <span class="tp-pod__medal">{{ p.rank === 1 ? '🥇' : p.rank === 2 ? '🥈' : '🥉' }}</span>
+                <span class="tp-pod__nick">{{ p.minecraft_nickname }}</span>
+                <span class="tp-pod__value">{{ fmtStatValue(p, activeCat) }}</span>
+                <span class="tp-pod__base">{{ p.rank }}</span>
+              </div>
+            </div>
+            <ul v-if="podiumRest.length" class="tp-list tp-list--rest">
+              <li v-for="p in podiumRest" :key="p.rank" class="tp-row">
+                <span class="tp-rank">{{ p.rank }}</span>
+                <span class="tp-nick">{{ p.minecraft_nickname }}</span>
+                <span class="tp-value">{{ fmtStatValue(p, activeCat) }}</span>
+              </li>
+            </ul>
+          </template>
+
+          <!-- Compact list (paired with killfeed) -->
+          <ul v-else class="tp-list">
+            <li v-for="p in topEntries" :key="p.rank" class="tp-row" :class="`tp-row--${p.rank}`">
+              <span class="tp-rank">{{ p.rank }}</span>
+              <span class="tp-nick">{{ p.minecraft_nickname }}</span>
+              <span class="tp-value">{{ fmtStatValue(p, activeCat) }}</span>
+            </li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </section>
+
   <!-- ═══════════════════════ FEATURES ═══════════════════════ -->
   <section class="features-section">
     <div class="container-shell">
@@ -1064,6 +1343,114 @@ function nationAccent(nation) {
         </div>
         <div class="bp-card__right" aria-hidden="true">
           <div class="bp-icon">⭐</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ═══════════════════════ SHOP SHOWCASE ═══════════════════════ -->
+  <section v-if="feat('shop') && shopProducts.length" class="shop-section">
+    <div class="container-shell">
+      <div class="section-header" data-reveal>
+        <div class="kicker-wrap">
+          <span class="kicker-line"></span>
+          <p class="section-kicker">{{ t('shopTeaser.kicker') }}</p>
+          <span class="kicker-line"></span>
+        </div>
+        <h2 class="section-h2">{{ t('shopTeaser.title') }}</h2>
+        <p class="section-sub">{{ t('shopTeaser.sub') }}</p>
+      </div>
+
+      <!-- Trust strip -->
+      <div class="shop-perks" data-reveal>
+        <span class="shop-perk"><span class="shop-perk__ic">⚡</span>{{ t('shopTeaser.perk1') }}</span>
+        <span class="shop-perk"><span class="shop-perk__ic">🔒</span>{{ t('shopTeaser.perk2') }}</span>
+        <span class="shop-perk"><span class="shop-perk__ic">💜</span>{{ t('shopTeaser.perk3') }}</span>
+      </div>
+
+      <div class="shop-grid" data-reveal>
+        <RouterLink v-for="p in shopProducts" :key="p.id" to="/shop" class="shop-card">
+          <div class="shop-card__media">
+            <img v-if="p.image" :src="p.image" :alt="p.name" class="shop-card__img" loading="lazy" decoding="async" />
+            <div v-else class="shop-card__img shop-card__img--ph">★</div>
+            <span v-if="discountPct(p) > 0" class="shop-card__disc">−{{ discountPct(p) }}%</span>
+          </div>
+          <div class="shop-card__body">
+            <p class="shop-card__name">{{ p.name }}</p>
+            <p v-if="cleanDesc(p.description)" class="shop-card__desc">{{ cleanDesc(p.description) }}</p>
+            <div class="shop-card__foot">
+              <div class="shop-card__price">
+                <span class="shop-card__cur">{{ Number(p.price).toLocaleString('ru') }} ₽</span>
+                <span v-if="discountPct(p) > 0" class="shop-card__old">{{ Number(p.old_price).toLocaleString('ru') }} ₽</span>
+              </div>
+              <span class="shop-card__buy">{{ t('shopTeaser.buy') }}
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg>
+              </span>
+            </div>
+          </div>
+        </RouterLink>
+      </div>
+
+      <div class="shop-footer">
+        <RouterLink to="/shop" class="shop-all-link">{{ t('shopTeaser.all') }}</RouterLink>
+      </div>
+    </div>
+  </section>
+
+  <!-- ═══════════════════════ TOP DONORS ═══════════════════════ -->
+  <section v-if="feat('shop') && topDonors.length" class="donors-section">
+    <div class="container-shell">
+      <div class="section-header" data-reveal>
+        <div class="kicker-wrap">
+          <span class="kicker-line"></span>
+          <p class="section-kicker">{{ t('donors.kicker') }}</p>
+          <span class="kicker-line"></span>
+        </div>
+        <h2 class="section-h2">{{ t('donors.title') }}</h2>
+        <p class="section-sub">{{ t('donors.sub') }}</p>
+      </div>
+
+      <div class="donors-wall" data-reveal>
+        <div
+          v-for="(d, i) in topDonors"
+          :key="d.nickname"
+          class="donor-chip"
+          :class="`donor-chip--${i + 1}`"
+        >
+          <span class="donor-rank">{{ i + 1 }}</span>
+          <span class="donor-nick">{{ d.nickname }}</span>
+          <span class="donor-total">{{ d.total.toLocaleString('ru') }} ₽</span>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ═══════════════════════ FAQ ═══════════════════════ -->
+  <section class="faq-section">
+    <div class="container-shell container-shell--narrow">
+      <div class="section-header" data-reveal>
+        <div class="kicker-wrap">
+          <span class="kicker-line"></span>
+          <p class="section-kicker">{{ t('faq.kicker') }}</p>
+          <span class="kicker-line"></span>
+        </div>
+        <h2 class="section-h2">{{ t('faq.title') }}</h2>
+      </div>
+
+      <div class="faq-list" data-reveal>
+        <div
+          v-for="i in FAQ_COUNT"
+          :key="i"
+          class="faq-item"
+          :class="{ 'faq-item--open': faqOpen === i }"
+        >
+          <button class="faq-q" :aria-expanded="faqOpen === i" @click="toggleFaq(i)">
+            <span>{{ t(`faq.q${i}`) }}</span>
+            <svg class="faq-chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="6 9 12 15 18 9"/></svg>
+          </button>
+          <div class="faq-a-wrap">
+            <p class="faq-a">{{ t(`faq.a${i}`) }}</p>
+          </div>
         </div>
       </div>
     </div>
@@ -1616,34 +2003,87 @@ function nationAccent(nation) {
 /* ════════════════════════════════════
    SCREENSHOT MARQUEE
 ════════════════════════════════════ */
-.screenshots-section {
+/* ── Gallery ─────────────────────────────────────────────────────────── */
+.gallery-section { padding: 1rem 0 5rem; }
+
+.gallery-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  grid-auto-rows: 150px;
+  gap: .75rem;
+  margin-top: 2.25rem;
+}
+
+.gallery-cell {
+  position: relative;
   overflow: hidden;
-  padding: 0 0 5rem;
-  mask-image: linear-gradient(to right, transparent 0%, black 8%, black 92%, transparent 100%);
-}
-
-@keyframes marquee {
-  from { transform: translateX(0); }
-  to   { transform: translateX(-50%); }
-}
-
-.marquee-wrap { overflow: hidden; }
-
-.marquee-track {
-  display: flex; gap: .85rem;
-  width: max-content;
-  animation: marquee 40s linear infinite;
-}
-.marquee-wrap:hover .marquee-track { animation-play-state: paused; }
-
-.marquee-item { flex-shrink: 0; }
-.marquee-img {
-  height: 200px; width: auto;
-  border-radius: 14px;
-  object-fit: cover;
+  border-radius: 16px;
   border: 1px solid rgba(255,255,255,.07);
+  background: rgba(255,255,255,.03);
+  cursor: pointer;
+  padding: 0;
   display: block;
 }
+
+/* Mosaic: first tile is a 2×2 hero, the rest fill around it. */
+.gallery-cell--0 { grid-column: span 2; grid-row: span 2; }
+
+.gallery-img {
+  width: 100%; height: 100%;
+  object-fit: cover;
+  display: block;
+  transition: transform .5s cubic-bezier(.2,.8,.2,1);
+}
+.gallery-cell:hover .gallery-img { transform: scale(1.07); }
+
+.gallery-zoom {
+  position: absolute;
+  inset: 0;
+  display: flex; align-items: center; justify-content: center;
+  color: #fff;
+  background: linear-gradient(180deg, rgba(15,10,30,.05), rgba(15,10,30,.55));
+  opacity: 0;
+  transition: opacity .3s ease;
+}
+.gallery-cell:hover .gallery-zoom,
+.gallery-cell:focus-visible .gallery-zoom { opacity: 1; }
+
+@media (max-width: 720px) {
+  .gallery-grid { grid-template-columns: repeat(2, 1fr); grid-auto-rows: 120px; }
+  .gallery-cell--0 { grid-column: span 2; grid-row: span 2; }
+}
+
+/* ── Lightbox ────────────────────────────────────────────────────────── */
+.lightbox {
+  position: fixed; inset: 0; z-index: 200;
+  display: flex; align-items: center; justify-content: center;
+  padding: 2rem;
+  background: rgba(8,5,18,.88);
+  backdrop-filter: blur(6px);
+  cursor: zoom-out;
+}
+.lightbox-img {
+  max-width: min(1100px, 92vw);
+  max-height: 88vh;
+  border-radius: 14px;
+  box-shadow: 0 30px 80px rgba(0,0,0,.6);
+  cursor: default;
+}
+.lightbox-close {
+  position: absolute; top: 1.25rem; right: 1.25rem;
+  width: 42px; height: 42px;
+  display: flex; align-items: center; justify-content: center;
+  border-radius: 50%;
+  color: #fff;
+  background: rgba(255,255,255,.12);
+  border: 1px solid rgba(255,255,255,.2);
+  cursor: pointer;
+  transition: background .2s ease;
+}
+.lightbox-close:hover { background: rgba(255,255,255,.24); }
+
+.lb-fade-enter-active, .lb-fade-leave-active { transition: opacity .25s ease; }
+.lb-fade-enter-from, .lb-fade-leave-to { opacity: 0; }
 
 /* ════════════════════════════════════
    GAMEPLAY
@@ -1765,6 +2205,18 @@ function nationAccent(nation) {
   from { background-position: 0% 50%; }
   to   { background-position: 100% 50%; }
 }
+
+/* Live "online now" stat — green, pulsing, distinct from the registered total */
+.stat-num--live {
+  background: none; -webkit-background-clip: initial; background-clip: initial;
+  color: #4ade80; animation: none;
+  display: inline-flex; align-items: center; gap: .5rem;
+}
+.stat-live-dot {
+  width: .6rem; height: .6rem; border-radius: 999px; background: #4ade80;
+  box-shadow: 0 0 0 0 rgba(74,222,128,.5); animation: pulse-dot 2s ease-in-out infinite;
+}
+.stat-item--live .stat-label { color: #86efac; }
 
 .stat-label {
   font-size: .72rem; font-weight: 600; letter-spacing: .1em;
@@ -2540,4 +2992,226 @@ function nationAccent(nation) {
   .features-section { padding: 0 0 4rem; }
   .section-h2 { font-size: 1.55rem; }
 }
+
+/* ════════════════════════════════════
+   SERVER PULSE (killfeed + top players)
+════════════════════════════════════ */
+.pulse-section { padding: 0 0 5rem; }
+.pulse-grid {
+  display: grid; grid-template-columns: 1.35fr 1fr; gap: 1.1rem;
+  margin-top: 2.2rem;
+}
+@media (max-width: 860px) { .pulse-grid { grid-template-columns: 1fr; } }
+.pulse-grid--single { grid-template-columns: minmax(0, 620px); justify-content: center; }
+.pulse-grid--solo { grid-template-columns: 1fr; }
+.pulse-card--wide { padding: 1.25rem 1.5rem 1.5rem; }
+
+.pulse-card {
+  background: rgba(255,255,255,.025);
+  border: 1px solid rgba(255,255,255,.07);
+  border-radius: 18px;
+  padding: 1.1rem 1.25rem 1.25rem;
+  backdrop-filter: blur(6px);
+}
+.pulse-card__head {
+  display: flex; align-items: center; justify-content: space-between; gap: .75rem;
+  margin-bottom: .85rem; padding-bottom: .75rem;
+  border-bottom: 1px solid rgba(255,255,255,.06);
+}
+.pulse-card__title { font-size: .9rem; font-weight: 800; color: #e8ecf4; display: inline-flex; align-items: center; gap: .5rem; }
+.pulse-card__cat { color: #64748b; font-weight: 600; font-size: .82rem; }
+.pulse-card__link { font-size: .74rem; font-weight: 700; color: var(--srv-pale, #a78bfa); text-decoration: none; white-space: nowrap; }
+.pulse-card__link:hover { text-decoration: underline; }
+
+.pulse-live { display: inline-flex; align-items: center; gap: .32rem; font-size: .64rem; font-weight: 900; letter-spacing: .08em; color: #f87171; }
+.pulse-live__dot { width: 6px; height: 6px; border-radius: 999px; background: #f87171; animation: pulse-dot 1.4s ease-in-out infinite; }
+
+/* Killfeed */
+.kf-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: .1rem; }
+.kf-row {
+  display: flex; align-items: center; gap: .4rem; flex-wrap: wrap;
+  padding: .45rem .3rem; border-radius: 8px; font-size: .82rem;
+  transition: background-color .12s;
+}
+.kf-row:hover { background: rgba(255,255,255,.03); }
+.kf-icon { width: 14px; height: 14px; color: #f87171; flex-shrink: 0; }
+.kf-killer { font-weight: 700; color: #e8ecf4; }
+.kf-verb { color: #64748b; font-size: .76rem; }
+.kf-victim { font-weight: 700; color: #fca5a5; }
+.kf-weapon { color: #64748b; font-size: .76rem; }
+.kf-time { margin-left: auto; color: #475569; font-size: .72rem; white-space: nowrap; }
+
+/* Top players */
+.tp-tabs { display: flex; flex-wrap: wrap; gap: .3rem; margin-bottom: .7rem; }
+.tp-tabs--center { justify-content: center; }
+
+/* Podium (solo, full-width) */
+.tp-podium {
+  display: grid; grid-template-columns: 1fr 1fr 1fr; align-items: end;
+  gap: .8rem; max-width: 560px; margin: 1.4rem auto .4rem;
+}
+.tp-pod {
+  position: relative; display: flex; flex-direction: column; align-items: center; gap: .25rem;
+  padding: .9rem .5rem 1rem; border-radius: 14px 14px 0 0;
+  border: 1px solid rgba(255,255,255,.08); border-bottom: none;
+  background: rgba(255,255,255,.03);
+}
+.tp-pod--1 { padding-top: 1.5rem; background: linear-gradient(180deg, rgba(251,191,36,.14), rgba(255,255,255,.02)); border-color: rgba(251,191,36,.28); }
+.tp-pod--2 { background: linear-gradient(180deg, rgba(203,213,225,.12), rgba(255,255,255,.02)); }
+.tp-pod--3 { background: linear-gradient(180deg, rgba(251,146,60,.12), rgba(255,255,255,.02)); }
+.tp-pod__medal { font-size: 1.5rem; line-height: 1; }
+.tp-pod--1 .tp-pod__medal { font-size: 1.9rem; }
+.tp-pod__nick { font-weight: 800; color: #e8ecf4; font-size: .86rem; text-align: center; max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.tp-pod__value { font-size: .8rem; font-weight: 800; color: var(--srv-pale, #c5a9f5); }
+.tp-pod__base {
+  margin-top: .4rem; width: 100%; text-align: center;
+  font-size: .8rem; font-weight: 900; color: rgba(255,255,255,.35);
+  border-top: 1px dashed rgba(255,255,255,.1); padding-top: .35rem;
+}
+/* Places 4+ span the full card width in two balanced columns */
+.tp-list--rest {
+  max-width: none; margin: .5rem 0 0;
+  display: grid; grid-template-columns: 1fr 1fr; gap: 0 1.5rem;
+  border-top: 1px solid rgba(255,255,255,.06); padding-top: .5rem;
+}
+.tp-list--rest .tp-row { padding: .5rem .5rem; border-radius: 8px; }
+@media (max-width: 620px) { .tp-list--rest { grid-template-columns: 1fr; gap: 0; } }
+
+
+.tp-tab {
+  padding: .28rem .6rem; border-radius: 999px;
+  border: 1px solid rgba(255,255,255,.08); background: rgba(255,255,255,.02);
+  color: #94a0b8; font-size: .72rem; font-weight: 700; cursor: pointer;
+  transition: color .13s, background-color .13s, border-color .13s;
+}
+.tp-tab:hover { color: #e8ecf4; }
+.tp-tab--active { background: var(--srv-soft, #a578f0); border-color: transparent; color: #140a24; }
+.tp-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: .15rem; }
+.tp-row {
+  display: flex; align-items: center; gap: .7rem;
+  padding: .5rem .3rem; border-radius: 8px;
+  transition: background-color .12s;
+}
+.tp-row:hover { background: rgba(255,255,255,.03); }
+.tp-rank {
+  width: 1.6rem; height: 1.6rem; flex-shrink: 0;
+  display: flex; align-items: center; justify-content: center;
+  border-radius: 7px; font-size: .78rem; font-weight: 900;
+  background: rgba(148,163,184,.1); color: #94a0b8;
+}
+.tp-row--1 .tp-rank { background: rgba(251,191,36,.16); color: #fcd34d; }
+.tp-row--2 .tp-rank { background: rgba(203,213,225,.16); color: #e2e8f0; }
+.tp-row--3 .tp-rank { background: rgba(251,146,60,.16); color: #fdba74; }
+.tp-nick { flex: 1; min-width: 0; font-weight: 700; color: #e8ecf4; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.tp-value { font-size: .82rem; font-weight: 800; color: var(--srv-pale, #a78bfa); white-space: nowrap; }
+
+/* ════════════════════════════════════
+   SHOP SHOWCASE
+════════════════════════════════════ */
+.shop-section { padding: 0 0 5rem; }
+.section-sub { margin: .5rem 0 0; font-size: .9rem; color: #94a0b8; }
+
+/* Trust strip */
+.shop-perks { display: flex; flex-wrap: wrap; justify-content: center; gap: .5rem 1.5rem; margin-top: 1.5rem; }
+.shop-perk { display: inline-flex; align-items: center; gap: .4rem; font-size: .8rem; font-weight: 600; color: #94a0b8; }
+.shop-perk__ic { font-size: .95rem; }
+
+.shop-grid {
+  display: flex; flex-wrap: wrap; justify-content: center;
+  gap: 1.1rem; margin-top: 2rem;
+}
+.shop-card {
+  flex: 1 1 280px; max-width: 340px;
+  display: flex; flex-direction: column; text-decoration: none;
+  border: 1px solid rgba(255,255,255,.07); border-radius: 16px; overflow: hidden;
+  background: rgba(255,255,255,.02);
+  transition: transform .16s ease, border-color .16s, box-shadow .16s;
+}
+.shop-card:hover { transform: translateY(-4px); border-color: var(--srv-line, rgba(167,139,250,.35)); box-shadow: 0 16px 44px rgba(0,0,0,.45); }
+.shop-card__media { position: relative; aspect-ratio: 16/9; background: rgba(0,0,0,.25); overflow: hidden; }
+.shop-card__img { width: 100%; height: 100%; object-fit: cover; display: block; transition: transform .3s; }
+.shop-card:hover .shop-card__img { transform: scale(1.05); }
+.shop-card__img--ph { display: flex; align-items: center; justify-content: center; font-size: 2rem; color: var(--srv-pale, #a78bfa); }
+.shop-card__disc {
+  position: absolute; top: .6rem; right: .6rem;
+  padding: .18rem .55rem; border-radius: 999px;
+  background: #22c55e; color: #04140a; font-size: .72rem; font-weight: 900;
+}
+.shop-card__body { padding: 1rem 1.1rem 1.1rem; display: flex; flex-direction: column; gap: .45rem; flex: 1; }
+.shop-card__name { margin: 0; font-size: .95rem; font-weight: 800; color: #e8ecf4; line-height: 1.3; }
+.shop-card__desc { margin: 0; font-size: .78rem; line-height: 1.45; color: #94a0b8; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+.shop-card__foot { display: flex; align-items: center; justify-content: space-between; gap: .6rem; margin-top: auto; padding-top: .7rem; }
+.shop-card__price { display: flex; align-items: baseline; gap: .45rem; }
+.shop-card__cur { font-size: 1.1rem; font-weight: 900; color: #fff; }
+.shop-card__old { font-size: .78rem; color: #64748b; text-decoration: line-through; }
+.shop-card__buy {
+  display: inline-flex; align-items: center; gap: .3rem;
+  padding: .38rem .7rem; border-radius: 999px;
+  background: var(--srv-soft, #a578f0); color: #140a24;
+  font-size: .76rem; font-weight: 800; white-space: nowrap;
+  transition: filter .15s;
+}
+.shop-card__buy svg { width: 13px; height: 13px; }
+.shop-card:hover .shop-card__buy { filter: brightness(1.1); }
+.shop-footer { margin-top: 1.6rem; text-align: center; }
+.shop-all-link {
+  display: inline-flex; align-items: center; gap: .4rem;
+  padding: .6rem 1.4rem; border-radius: 999px;
+  border: 1px solid var(--srv-line, rgba(167,139,250,.3));
+  color: var(--srv-pale, #a78bfa); font-size: .85rem; font-weight: 700; text-decoration: none;
+  transition: background-color .15s, color .15s;
+}
+.shop-all-link:hover { background: rgba(var(--srv-rgb, 167,139,250), .16); color: var(--srv-pale, #c5a9f5); border-color: var(--srv-soft, #a578f0); }
+
+/* ════════════════════════════════════
+   TOP DONORS WALL
+════════════════════════════════════ */
+.donors-section { padding: 0 0 5rem; }
+.donors-wall { margin-top: 2rem; display: flex; flex-wrap: wrap; gap: .6rem; justify-content: center; }
+.donor-chip {
+  display: inline-flex; align-items: center; gap: .5rem;
+  padding: .5rem .85rem .5rem .5rem; border-radius: 999px;
+  border: 1px solid rgba(255,255,255,.08); background: rgba(255,255,255,.025);
+  transition: transform .15s, border-color .15s;
+}
+.donor-chip:hover { transform: translateY(-2px); border-color: var(--srv-line, rgba(167,139,250,.35)); }
+.donor-rank {
+  width: 1.5rem; height: 1.5rem; flex-shrink: 0;
+  display: flex; align-items: center; justify-content: center;
+  border-radius: 999px; font-size: .74rem; font-weight: 900;
+  background: rgba(148,163,184,.14); color: #94a0b8;
+}
+.donor-chip--1 .donor-rank { background: rgba(251,191,36,.2); color: #fcd34d; }
+.donor-chip--2 .donor-rank { background: rgba(203,213,225,.2); color: #e2e8f0; }
+.donor-chip--3 .donor-rank { background: rgba(251,146,60,.2); color: #fdba74; }
+.donor-nick { font-weight: 700; color: #e8ecf4; font-size: .88rem; }
+.donor-total { font-size: .78rem; font-weight: 800; color: var(--srv-pale, #a78bfa); }
+.donor-chip--1 { border-color: rgba(251,191,36,.3); background: rgba(251,191,36,.06); }
+
+/* ════════════════════════════════════
+   FAQ
+════════════════════════════════════ */
+.faq-section { padding: 0 0 5rem; }
+.container-shell--narrow { max-width: 760px; }
+.faq-list { margin-top: 2.2rem; display: flex; flex-direction: column; gap: .6rem; }
+.faq-item {
+  border: 1px solid rgba(255,255,255,.07);
+  border-radius: 14px;
+  background: rgba(255,255,255,.02);
+  overflow: hidden;
+  transition: border-color .18s, background-color .18s;
+}
+.faq-item--open { border-color: var(--srv-line, rgba(167,139,250,.3)); background: rgba(255,255,255,.035); }
+.faq-q {
+  width: 100%; display: flex; align-items: center; justify-content: space-between; gap: 1rem;
+  padding: 1.05rem 1.25rem; background: none; border: none; cursor: pointer;
+  font-size: .95rem; font-weight: 700; color: #e8ecf4; text-align: left;
+}
+.faq-q:hover { color: #fff; }
+.faq-chev { width: 18px; height: 18px; color: #64748b; flex-shrink: 0; transition: transform .22s ease, color .18s; }
+.faq-item--open .faq-chev { transform: rotate(180deg); color: var(--srv-pale, #a78bfa); }
+.faq-a-wrap { display: grid; grid-template-rows: 0fr; transition: grid-template-rows .24s ease; }
+.faq-item--open .faq-a-wrap { grid-template-rows: 1fr; }
+.faq-a { overflow: hidden; margin: 0; padding: 0 1.25rem; font-size: .88rem; line-height: 1.6; color: #94a0b8; }
+.faq-item--open .faq-a { padding-bottom: 1.15rem; }
 </style>

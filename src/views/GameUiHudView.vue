@@ -1,9 +1,11 @@
 <script setup>
 import { ref, computed, onMounted, onUnmounted } from 'vue'
+import { useI18n } from 'vue-i18n'
 import { getHudSnapshot, setWebguiToken } from '../services/gameUiApi.js'
 import { API_BASE_URL } from '../services/apiBase'
 import { useWebGuiToken, useWebGuiClient, runCommand } from '../composables/useWebGui.js'
 
+const { t } = useI18n()
 const token = useWebGuiToken()
 setWebguiToken(token)
 
@@ -53,9 +55,9 @@ const pos = computed(() => {
 })
 const dimension = computed(() => {
   const d = client.value?.dimension || ''
-  if (d.includes('the_nether')) return { icon: '🔥', name: 'Незер' }
-  if (d.includes('the_end')) return { icon: '🌌', name: 'Энд' }
-  if (d.includes('overworld')) return { icon: '🌳', name: 'Овермир' }
+  if (d.includes('the_nether')) return { icon: '🔥', name: t('gameUiHud.dimNether') }
+  if (d.includes('the_end')) return { icon: '🌌', name: t('gameUiHud.dimEnd') }
+  if (d.includes('overworld')) return { icon: '🌳', name: t('gameUiHud.dimOverworld') }
   return { icon: '🧭', name: '' }
 })
 const pingClass = computed(() => {
@@ -72,7 +74,7 @@ function formatBalance(v) {
 }
 
 function roleLabel(r) {
-  return { leader: 'Глава', officer: 'Офицер', member: 'Участник' }[r] || ''
+  return { leader: t('gameUiHud.roleLeader'), officer: t('gameUiHud.roleOfficer'), member: t('gameUiHud.roleMember') }[r] || ''
 }
 
 function openMarket() { runCommand('/shop') }
@@ -98,7 +100,7 @@ function openQuests() { runCommand('/dailyquest') }
           <span class="hud-nation" v-if="data && data.nation_name">
             🏛️ {{ data.nation_name }}<span class="hud-role" v-if="roleLabel(data.nation_role)"> · {{ roleLabel(data.nation_role) }}</span>
           </span>
-          <span class="hud-nation hud-nation--none" v-else-if="data">Без государства</span>
+          <span class="hud-nation hud-nation--none" v-else-if="data">{{ t('gameUiHud.noNation') }}</span>
         </div>
         <div class="hud-id-side">
           <span class="hud-ping" v-if="ping != null" :class="pingClass">
@@ -112,10 +114,10 @@ function openQuests() { runCommand('/dailyquest') }
 
       <!-- Stats -->
       <div class="hud-rows">
-        <button class="hud-row hud-row--btn" @click="openMarket" title="Открыть рынок">
+        <button class="hud-row hud-row--btn" @click="openMarket" :title="t('gameUiHud.openMarket')">
           <span class="hud-ic">💰</span>
           <span class="hud-money">{{ data ? formatBalance(data.balance) : '…' }}</span>
-          <span class="hud-unit">мон.</span>
+          <span class="hud-unit">{{ t('gameUiHud.monUnit') }}</span>
         </button>
 
         <div class="hud-row" v-if="pos">
@@ -135,13 +137,13 @@ function openQuests() { runCommand('/dailyquest') }
           v-if="data.pending_deliveries > 0"
           class="hud-badge hud-badge--alert"
           @click="openMarket"
-          title="Незабранные доставки на рынке"
+          :title="t('gameUiHud.pendingDeliveries')"
         >📦 {{ data.pending_deliveries }}</button>
         <button
           v-if="data.completed_quests > 0"
           class="hud-badge"
           @click="openQuests"
-          title="Выполнено квестов"
+          :title="t('gameUiHud.questsDone')"
         >📜 {{ data.completed_quests }}</button>
       </div>
     </div>

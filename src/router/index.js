@@ -5,131 +5,78 @@ import 'nprogress/nprogress.css'
 
 NProgress.configure({ showSpinner: false, speed: 350, minimum: 0.08 })
 
-import HomeView from '../views/HomeView.vue'
-import LinksView from '../views/LinksView.vue'
-import LoginView from '../views/LoginView.vue'
-import RegisterView from '../views/RegisterView.vue'
-import ForgotPasswordView from '../views/ForgotPasswordView.vue'
-import ResetPasswordView from '../views/ResetPasswordView.vue'
-import VerifyEmailView from '../views/VerifyEmailView.vue'
-import DownloadLauncherView from '../views/DownloadLauncherView.vue'
-import ProfileView from '../views/ProfileView.vue'
-import PublicProfileView from '../views/PublicProfileView.vue'
-import EditPublicProfileView from '../views/EditPublicProfileView.vue'
-import ReferralCenterView from '../views/ReferralCenterView.vue'
-import SocialHubView from '../views/SocialHubView.vue'
-import NationsListView from '../views/NationsListView.vue'
-import NationPublicView from '../views/NationPublicView.vue'
-import NationStudioView from '../views/NationStudioView.vue'
-import NationRankingsView from '../views/NationRankingsView.vue'
-import AlliancesListView from '../views/AlliancesListView.vue'
-import AlliancePublicView from '../views/AlliancePublicView.vue'
-import AdminLegacyView from '../views/AdminLegacyView.vue'
-import AdminMarketView from '../views/AdminMarketView.vue'
-import AdminLayout from '../views/admin/AdminLayout.vue'
-import AdminDashboardView from '../views/admin/AdminDashboardView.vue'
-import AdminPlayersView from '../views/admin/AdminPlayersView.vue'
-import AdminMarketPanelView from '../views/admin/AdminMarketPanelView.vue'
-import AdminServerView from '../views/admin/AdminServerView.vue'
-import AdminNationsView from '../views/admin/AdminNationsView.vue'
-import AdminModSuggestionsView from '../views/admin/AdminModSuggestionsView.vue'
-import AdminMetrikaView from '../views/admin/AdminMetrikaView.vue'
-import AdminBattlePassView from '../views/admin/AdminBattlePassView.vue'
-import AdminDonateView from '../views/admin/AdminDonateView.vue'
-import AdminAnticheatView from '../views/admin/AdminAnticheatView.vue'
-import AdminAnticheatPlayerView from '../views/admin/AdminAnticheatPlayerView.vue'
-import AdminLandingView from '../views/admin/AdminLandingView.vue'
-import AdminFeedbackView from '../views/admin/AdminFeedbackView.vue'
-import AdminCrashReportsView from '../views/admin/AdminCrashReportsView.vue'
-import ServerGuideView from '../views/ServerGuideView.vue'
-import ModsView from '../views/ModsView.vue'
-import MarketView from '../views/MarketView.vue'
-import MarketItemView from '../views/MarketItemView.vue'
-import PlayerMarketMyOrdersView from '../views/PlayerMarketMyOrdersView.vue'
-import PrivacyPolicyView from '../views/PrivacyPolicyView.vue'
-import OfferAgreementView from '../views/OfferAgreementView.vue'
-import LeaderboardView from '../views/LeaderboardView.vue'
-import PlayersTopView from '../views/PlayersTopView.vue'
-import BountyBoardView from '../views/BountyBoardView.vue'
-import KillfeedView from '../views/KillfeedView.vue'
-import ShopView from '../views/ShopView.vue'
-import BattlePassView from '../views/BattlePassView.vue'
-import GameUiMarketView from '../views/GameUiMarketView.vue'
-import GameUiMenuView from '../views/GameUiMenuView.vue'
-import GameUiHudView from '../views/GameUiHudView.vue'
-import GameUiNationMarketView from '../views/GameUiNationMarketView.vue'
-import GameUiTreasuryView from '../views/GameUiTreasuryView.vue'
-import GameUiBattlePassView from '../views/GameUiBattlePassView.vue'
-import GameUiAllianceView from '../views/GameUiAllianceView.vue'
-import GameUiQuestsView from '../views/GameUiQuestsView.vue'
-import ServersView from '../views/ServersView.vue'
-
+// Все вьюхи грузятся лениво (code-splitting): в стартовый бандл попадает только
+// оболочка приложения, а страница-роут подтягивается отдельным чанком по мере
+// перехода. Это резко уменьшает размер первичной загрузки (админка, рынок, гайд
+// и т.д. больше не тянутся при заходе на главную).
 const routes = [
-  { path: '/', name: 'home', component: HomeView, meta: { title: 'Главная' } },
-  { path: '/servers', name: 'servers', component: ServersView, meta: { title: 'Серверы' } },
-  { path: '/shop', name: 'shop', component: ShopView, meta: { title: 'Магазин', requiresAuth: true, feature: 'shop' } },
+  { path: '/', name: 'home', component: () => import('../views/HomeView.vue'), meta: { title: 'Главная' } },
+  { path: '/servers', name: 'servers', component: () => import('../views/ServersView.vue'), meta: { title: 'Серверы' } },
+  { path: '/shop', name: 'shop', component: () => import('../views/ShopView.vue'), meta: { title: 'Магазин', requiresAuth: true, feature: 'shop' } },
   { path: '/guide', redirect: '/server-guide' },
-  { path: '/server-guide', name: 'server-guide', component: ServerGuideView, meta: { title: 'Гайд сервера' } },
-  { path: '/mods', name: 'mods', component: ModsView, meta: { title: 'Моды сборки' } },
-  { path: '/game-ui/menu', name: 'game-ui-menu', component: GameUiMenuView, meta: { title: 'Меню', hidePublicShell: true } },
-  { path: '/game-ui/market', name: 'game-ui-market', component: GameUiMarketView, meta: { title: 'Рынок игроков', hidePublicShell: true } },
-  { path: '/game-ui/hud', name: 'game-ui-hud', component: GameUiHudView, meta: { title: 'HUD', hidePublicShell: true } },
-  { path: '/game-ui/nmarket', name: 'game-ui-nmarket', component: GameUiNationMarketView, meta: { title: 'Рынок государств', hidePublicShell: true } },
-  { path: '/game-ui/treasury', name: 'game-ui-treasury', component: GameUiTreasuryView, meta: { title: 'Казна', hidePublicShell: true } },
-  { path: '/game-ui/battlepass', name: 'game-ui-battlepass', component: GameUiBattlePassView, meta: { title: 'Battle Pass', hidePublicShell: true } },
-  { path: '/game-ui/alliance', name: 'game-ui-alliance', component: GameUiAllianceView, meta: { title: 'Альянс', hidePublicShell: true } },
-  { path: '/game-ui/quests', name: 'game-ui-quests', component: GameUiQuestsView, meta: { title: 'Квесты', hidePublicShell: true } },
-  { path: '/market', name: 'market', component: MarketView, meta: { title: 'Рынок игроков', feature: 'economy' } },
-  { path: '/market/me/orders', name: 'market-my-orders', component: PlayerMarketMyOrdersView, meta: { title: 'Мои ордера', requiresAuth: true, feature: 'economy' } },
-  { path: '/market/:material', name: 'market-item', component: MarketItemView, meta: { title: 'Товар', feature: 'economy' } },
-  { path: '/links', name: 'links', component: LinksView, meta: { title: 'Ссылки' } },
-  { path: '/privacy', name: 'privacy-policy', component: PrivacyPolicyView, meta: { title: 'Политика конфиденциальности' } },
-  { path: '/offer', name: 'offer-agreement', component: OfferAgreementView, meta: { title: 'Договор оферты' } },
-  { path: '/login', name: 'login', component: LoginView, meta: { title: 'Вход', guestOnly: true } },
-  { path: '/register', name: 'register', component: RegisterView, meta: { title: 'Регистрация', guestOnly: true } },
-  { path: '/forgot-password', name: 'forgot-password', component: ForgotPasswordView, meta: { title: 'Восстановление пароля', guestOnly: true } },
-  { path: '/reset-password', name: 'reset-password', component: ResetPasswordView, meta: { title: 'Смена пароля', guestOnly: true } },
-  { path: '/verify-email', name: 'verify-email', component: VerifyEmailView, meta: { title: 'Подтверждение почты' } },
-  { path: '/download-launcher', name: 'download-launcher', component: DownloadLauncherView, meta: { title: 'Скачать лаунчер' } },
-  { path: '/profile', name: 'profile', component: ProfileView, meta: { title: 'Профиль', requiresAuth: true } },
-  { path: '/profile/public', name: 'edit-public-profile', component: EditPublicProfileView, meta: { title: 'Публичный профиль', requiresAuth: true } },
-  { path: '/profile/referrals', name: 'referrals', component: ReferralCenterView, meta: { title: 'Реферальный центр', requiresAuth: true } },
-  { path: '/profile/social', name: 'social', component: SocialHubView, meta: { title: 'Социальный центр', requiresAuth: true } },
-  { path: '/u/:slug', name: 'public-profile', component: PublicProfileView, meta: { title: 'Профиль игрока' } },
-  { path: '/nations', name: 'nations', component: NationsListView, meta: { title: 'Государства', feature: 'nations' } },
-  { path: '/nation/:slug', name: 'nation-public', component: NationPublicView, meta: { title: 'Государство', feature: 'nations' } },
-  { path: '/nation/studio', name: 'nation-studio', component: NationStudioView, meta: { title: 'Студия государства', requiresAuth: true, feature: 'nations' } },
-  { path: '/nations/rankings', name: 'nation-rankings', component: NationRankingsView, meta: { title: 'Рейтинг государств', feature: 'nations' } },
-  { path: '/alliances', name: 'alliances', component: AlliancesListView, meta: { title: 'Альянсы', feature: 'alliances' } },
-  { path: '/alliances/:slug', name: 'alliance-public', component: AlliancePublicView, meta: { title: 'Альянс', feature: 'alliances' } },
-  { path: '/leaderboard', name: 'leaderboard', component: LeaderboardView, meta: { title: 'Рейтинг прогрессии', feature: 'progression' } },
-  { path: '/players/top', name: 'players-top', component: PlayersTopView, meta: { title: 'Топ игроков', feature: 'leaderboards' } },
-  { path: '/bounties', name: 'bounties', component: BountyBoardView, meta: { title: 'Награды за головы', feature: 'bounties' } },
-  { path: '/killfeed', name: 'killfeed', component: KillfeedView, meta: { title: 'Пульс Abyss', feature: 'killfeed' } },
-  { path: '/battlepass', name: 'battlepass', component: BattlePassView, meta: { title: 'Боевой пропуск', feature: 'battlepass' } },
-  { path: '/internal-admin', name: 'admin-legacy', component: AdminLegacyView, meta: { title: 'Legacy Admin', hidePublicShell: true } },
-  { path: '/internal-admin/market', name: 'admin-market', component: AdminMarketView, meta: { title: 'Market Admin', hidePublicShell: true } },
+  { path: '/server-guide', name: 'server-guide', component: () => import('../views/ServerGuideView.vue'), meta: { title: 'Гайд сервера' } },
+  { path: '/mods', name: 'mods', component: () => import('../views/ModsView.vue'), meta: { title: 'Моды сборки' } },
+  { path: '/game-ui/menu', name: 'game-ui-menu', component: () => import('../views/GameUiMenuView.vue'), meta: { title: 'Меню', hidePublicShell: true } },
+  { path: '/game-ui/market', name: 'game-ui-market', component: () => import('../views/GameUiMarketView.vue'), meta: { title: 'Рынок игроков', hidePublicShell: true } },
+  { path: '/game-ui/hud', name: 'game-ui-hud', component: () => import('../views/GameUiHudView.vue'), meta: { title: 'HUD', hidePublicShell: true } },
+  { path: '/game-ui/nmarket', name: 'game-ui-nmarket', component: () => import('../views/GameUiNationMarketView.vue'), meta: { title: 'Рынок государств', hidePublicShell: true } },
+  { path: '/game-ui/treasury', name: 'game-ui-treasury', component: () => import('../views/GameUiTreasuryView.vue'), meta: { title: 'Казна', hidePublicShell: true } },
+  { path: '/game-ui/battlepass', name: 'game-ui-battlepass', component: () => import('../views/GameUiBattlePassView.vue'), meta: { title: 'Battle Pass', hidePublicShell: true } },
+  { path: '/game-ui/alliance', name: 'game-ui-alliance', component: () => import('../views/GameUiAllianceView.vue'), meta: { title: 'Альянс', hidePublicShell: true } },
+  { path: '/game-ui/quests', name: 'game-ui-quests', component: () => import('../views/GameUiQuestsView.vue'), meta: { title: 'Квесты', hidePublicShell: true } },
+  { path: '/market', name: 'market', component: () => import('../views/MarketView.vue'), meta: { title: 'Рынок игроков', feature: 'economy' } },
+  { path: '/market/me/orders', name: 'market-my-orders', component: () => import('../views/PlayerMarketMyOrdersView.vue'), meta: { title: 'Мои ордера', requiresAuth: true, feature: 'economy' } },
+  { path: '/market/:material', name: 'market-item', component: () => import('../views/MarketItemView.vue'), meta: { title: 'Товар', feature: 'economy' } },
+  { path: '/links', name: 'links', component: () => import('../views/LinksView.vue'), meta: { title: 'Ссылки' } },
+  { path: '/privacy', name: 'privacy-policy', component: () => import('../views/PrivacyPolicyView.vue'), meta: { title: 'Политика конфиденциальности' } },
+  { path: '/offer', name: 'offer-agreement', component: () => import('../views/OfferAgreementView.vue'), meta: { title: 'Договор оферты' } },
+  { path: '/login', name: 'login', component: () => import('../views/LoginView.vue'), meta: { title: 'Вход', guestOnly: true } },
+  { path: '/register', name: 'register', component: () => import('../views/RegisterView.vue'), meta: { title: 'Регистрация', guestOnly: true } },
+  { path: '/forgot-password', name: 'forgot-password', component: () => import('../views/ForgotPasswordView.vue'), meta: { title: 'Восстановление пароля', guestOnly: true } },
+  { path: '/reset-password', name: 'reset-password', component: () => import('../views/ResetPasswordView.vue'), meta: { title: 'Смена пароля', guestOnly: true } },
+  { path: '/verify-email', name: 'verify-email', component: () => import('../views/VerifyEmailView.vue'), meta: { title: 'Подтверждение почты' } },
+  { path: '/download-launcher', name: 'download-launcher', component: () => import('../views/DownloadLauncherView.vue'), meta: { title: 'Скачать лаунчер' } },
+  { path: '/profile', name: 'profile', component: () => import('../views/ProfileView.vue'), meta: { title: 'Профиль', requiresAuth: true } },
+  { path: '/profile/public', name: 'edit-public-profile', component: () => import('../views/EditPublicProfileView.vue'), meta: { title: 'Публичный профиль', requiresAuth: true } },
+  { path: '/profile/referrals', name: 'referrals', component: () => import('../views/ReferralCenterView.vue'), meta: { title: 'Реферальный центр', requiresAuth: true } },
+  { path: '/profile/social', name: 'social', component: () => import('../views/SocialHubView.vue'), meta: { title: 'Социальный центр', requiresAuth: true } },
+  { path: '/u/:slug', name: 'public-profile', component: () => import('../views/PublicProfileView.vue'), meta: { title: 'Профиль игрока' } },
+  { path: '/nations', name: 'nations', component: () => import('../views/NationsListView.vue'), meta: { title: 'Государства', feature: 'nations' } },
+  { path: '/nation/:slug', name: 'nation-public', component: () => import('../views/NationPublicView.vue'), meta: { title: 'Государство', feature: 'nations' } },
+  { path: '/nation/studio', name: 'nation-studio', component: () => import('../views/NationStudioView.vue'), meta: { title: 'Студия государства', requiresAuth: true, feature: 'nations' } },
+  { path: '/nations/rankings', name: 'nation-rankings', component: () => import('../views/NationRankingsView.vue'), meta: { title: 'Рейтинг государств', feature: 'nations' } },
+  { path: '/alliances', name: 'alliances', component: () => import('../views/AlliancesListView.vue'), meta: { title: 'Альянсы', feature: 'alliances' } },
+  { path: '/alliances/:slug', name: 'alliance-public', component: () => import('../views/AlliancePublicView.vue'), meta: { title: 'Альянс', feature: 'alliances' } },
+  { path: '/leaderboard', name: 'leaderboard', component: () => import('../views/LeaderboardView.vue'), meta: { title: 'Рейтинг прогрессии', feature: 'progression' } },
+  { path: '/players/top', name: 'players-top', component: () => import('../views/PlayersTopView.vue'), meta: { title: 'Топ игроков', feature: 'leaderboards' } },
+  { path: '/bounties', name: 'bounties', component: () => import('../views/BountyBoardView.vue'), meta: { title: 'Награды за головы', feature: 'bounties' } },
+  { path: '/killfeed', name: 'killfeed', component: () => import('../views/KillfeedView.vue'), meta: { title: 'Пульс Abyss', feature: 'killfeed' } },
+  { path: '/battlepass', name: 'battlepass', component: () => import('../views/BattlePassView.vue'), meta: { title: 'Боевой пропуск', feature: 'battlepass' } },
+  { path: '/internal-admin', name: 'admin-legacy', component: () => import('../views/AdminLegacyView.vue'), meta: { title: 'Legacy Admin', hidePublicShell: true } },
+  { path: '/internal-admin/market', name: 'admin-market', component: () => import('../views/AdminMarketView.vue'), meta: { title: 'Market Admin', hidePublicShell: true } },
   {
     path: '/admin',
-    component: AdminLayout,
+    component: () => import('../views/admin/AdminLayout.vue'),
     meta: { requiresAuth: true, requiresAdmin: true, hidePublicShell: true },
     children: [
-      { path: '', name: 'admin-dashboard', component: AdminDashboardView, meta: { title: 'Панель управления', requiresAuth: true, requiresAdmin: true, hidePublicShell: true } },
-      { path: 'players', name: 'admin-players', component: AdminPlayersView, meta: { title: 'Игроки', requiresAuth: true, requiresAdmin: true, hidePublicShell: true } },
-      { path: 'market', name: 'admin-market-panel', component: AdminMarketPanelView, meta: { title: 'Рынок', requiresAuth: true, requiresAdmin: true, hidePublicShell: true, serverScoped: true } },
-      { path: 'server', name: 'admin-server', component: AdminServerView, meta: { title: 'Серверы', requiresAuth: true, requiresAdmin: true, hidePublicShell: true } },
-      { path: 'nations', name: 'admin-nations', component: AdminNationsView, meta: { title: 'Государства', requiresAuth: true, requiresAdmin: true, hidePublicShell: true, serverScoped: true } },
-      { path: 'mod-suggestions', name: 'admin-mod-suggestions', component: AdminModSuggestionsView, meta: { title: 'Предложения модов', requiresAuth: true, requiresAdmin: true, hidePublicShell: true } },
-      { path: 'metrika', name: 'admin-metrika', component: AdminMetrikaView, meta: { title: 'Метрика', requiresAuth: true, requiresAdmin: true, hidePublicShell: true } },
-      { path: 'battlepass', name: 'admin-battlepass', component: AdminBattlePassView, meta: { title: 'Battle Pass', requiresAuth: true, requiresAdmin: true, hidePublicShell: true, serverScoped: true } },
-      { path: 'donate', name: 'admin-donate', component: AdminDonateView, meta: { title: 'Донаты', requiresAuth: true, requiresAdmin: true, hidePublicShell: true } },
-      { path: 'anticheat', name: 'admin-anticheat', component: AdminAnticheatView, meta: { title: 'Античит', requiresAuth: true, requiresAdmin: true, hidePublicShell: true, serverScoped: true } },
-      { path: 'anticheat/:uuid', name: 'admin-anticheat-player', component: AdminAnticheatPlayerView, meta: { title: 'Игрок — Античит', requiresAuth: true, requiresAdmin: true, hidePublicShell: true, serverScoped: true } },
-      { path: 'landing', name: 'admin-landing', component: AdminLandingView, meta: { title: 'Главная страница', requiresAuth: true, requiresAdmin: true, hidePublicShell: true } },
-      { path: 'feedback', name: 'admin-feedback', component: AdminFeedbackView, meta: { title: 'Обращения', requiresAuth: true, requiresAdmin: true, hidePublicShell: true } },
-      { path: 'launcher-crashes', name: 'admin-launcher-crashes', component: AdminCrashReportsView, meta: { title: 'Краши лаунчера', requiresAuth: true, requiresAdmin: true, hidePublicShell: true } },
+      { path: '', name: 'admin-dashboard', component: () => import('../views/admin/AdminDashboardView.vue'), meta: { title: 'Панель управления', requiresAuth: true, requiresAdmin: true, hidePublicShell: true } },
+      { path: 'players', name: 'admin-players', component: () => import('../views/admin/AdminPlayersView.vue'), meta: { title: 'Игроки', requiresAuth: true, requiresAdmin: true, hidePublicShell: true } },
+      { path: 'market', name: 'admin-market-panel', component: () => import('../views/admin/AdminMarketPanelView.vue'), meta: { title: 'Рынок', requiresAuth: true, requiresAdmin: true, hidePublicShell: true, serverScoped: true } },
+      { path: 'server', name: 'admin-server', component: () => import('../views/admin/AdminServerView.vue'), meta: { title: 'Серверы', requiresAuth: true, requiresAdmin: true, hidePublicShell: true } },
+      { path: 'monitoring', name: 'admin-monitoring', component: () => import('../views/admin/AdminServerOpsView.vue'), meta: { title: 'Мониторинг', requiresAuth: true, requiresAdmin: true, hidePublicShell: true, serverScoped: true } },
+      { path: 'nations', name: 'admin-nations', component: () => import('../views/admin/AdminNationsView.vue'), meta: { title: 'Государства', requiresAuth: true, requiresAdmin: true, hidePublicShell: true, serverScoped: true } },
+      { path: 'mod-suggestions', name: 'admin-mod-suggestions', component: () => import('../views/admin/AdminModSuggestionsView.vue'), meta: { title: 'Предложения модов', requiresAuth: true, requiresAdmin: true, hidePublicShell: true } },
+      { path: 'metrika', name: 'admin-metrika', component: () => import('../views/admin/AdminMetrikaView.vue'), meta: { title: 'Метрика', requiresAuth: true, requiresAdmin: true, hidePublicShell: true } },
+      { path: 'battlepass', name: 'admin-battlepass', component: () => import('../views/admin/AdminBattlePassView.vue'), meta: { title: 'Battle Pass', requiresAuth: true, requiresAdmin: true, hidePublicShell: true, serverScoped: true } },
+      { path: 'donate', name: 'admin-donate', component: () => import('../views/admin/AdminDonateView.vue'), meta: { title: 'Донаты', requiresAuth: true, requiresAdmin: true, hidePublicShell: true } },
+      { path: 'anticheat', name: 'admin-anticheat', component: () => import('../views/admin/AdminAnticheatView.vue'), meta: { title: 'Античит', requiresAuth: true, requiresAdmin: true, hidePublicShell: true, serverScoped: true } },
+      { path: 'anticheat/:uuid', name: 'admin-anticheat-player', component: () => import('../views/admin/AdminAnticheatPlayerView.vue'), meta: { title: 'Игрок — Античит', requiresAuth: true, requiresAdmin: true, hidePublicShell: true, serverScoped: true } },
+      { path: 'landing', name: 'admin-landing', component: () => import('../views/admin/AdminLandingView.vue'), meta: { title: 'Главная страница', requiresAuth: true, requiresAdmin: true, hidePublicShell: true } },
+      { path: 'feedback', name: 'admin-feedback', component: () => import('../views/admin/AdminFeedbackView.vue'), meta: { title: 'Обращения', requiresAuth: true, requiresAdmin: true, hidePublicShell: true } },
+      { path: 'launcher-crashes', name: 'admin-launcher-crashes', component: () => import('../views/admin/AdminCrashReportsView.vue'), meta: { title: 'Краши лаунчера', requiresAuth: true, requiresAdmin: true, hidePublicShell: true } },
     ],
   },
+  { path: '/:pathMatch(.*)*', name: 'not-found', component: () => import('../views/NotFoundView.vue'), meta: { title: 'Страница не найдена' } },
 ]
 
 const router = createRouter({
@@ -163,6 +110,26 @@ router.beforeEach(async (to) => {
 })
 
 router.afterEach(() => {
+  NProgress.done()
+})
+
+// После деплоя старые чанки удаляются, и у пользователя со старой открытой
+// вкладкой ленивый import() падает ("Failed to fetch dynamically imported
+// module"). В этом случае делаем разовую жёсткую перезагрузку на нужный путь,
+// чтобы подтянуть новый билд.
+router.onError((error, to) => {
+  const msg = String(error?.message || '')
+  const isChunkError =
+    /dynamically imported module|Importing a module script failed|Failed to fetch/i.test(msg)
+  if (isChunkError && to?.fullPath) {
+    const reloadKey = 'voidrp_chunk_reload_at'
+    const last = Number(sessionStorage.getItem(reloadKey) || '0')
+    // защита от цикла: не чаще одного релоада в 10 секунд
+    if (Date.now() - last > 10000) {
+      sessionStorage.setItem(reloadKey, String(Date.now()))
+      window.location.assign(to.fullPath)
+    }
+  }
   NProgress.done()
 })
 

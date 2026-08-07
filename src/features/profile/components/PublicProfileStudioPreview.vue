@@ -1,5 +1,8 @@
 <script setup>
 import { computed } from 'vue'
+import { useI18n } from 'vue-i18n'
+
+const { t } = useI18n()
 
 const props = defineProps({
   profile: {
@@ -32,10 +35,10 @@ function hexToRgba(hex, alpha) {
   return `rgba(${r}, ${g}, ${b}, ${alpha})`
 }
 
-const displayName = computed(() => props.form.display_name || props.profile?.display_name || props.profile?.player_account?.minecraft_nickname || 'Твоё имя')
+const displayName = computed(() => props.form.display_name || props.profile?.display_name || props.profile?.player_account?.minecraft_nickname || t('studioPreview.nameFallback'))
 const slugText = computed(() => props.form.slug || props.profile?.slug || 'your-profile')
-const statusText = computed(() => props.form.status_text || props.profile?.status_text || 'Короткий статус ещё не заполнен')
-const bioText = computed(() => props.form.bio || props.profile?.bio || 'Здесь будет описание профиля.')
+const statusText = computed(() => props.form.status_text || props.profile?.status_text || t('studioPreview.statusFallback'))
+const bioText = computed(() => props.form.bio || props.profile?.bio || t('studioPreview.bioFallback'))
 
 const accent = computed(() => props.form.accent_color || props.profile?.accent_color || '#8b5cf6')
 const avatarUrl = computed(() => props.profile?.assets?.avatar_url || props.profile?.assets?.avatar_preview_url || '')
@@ -130,7 +133,7 @@ const cardStyle = computed(() => ({
               @{{ slugText }}
             </span>
             <span class="rounded-full border px-3 py-1.5 text-xs font-bold uppercase tracking-[0.22em]" :style="accentBadgeStyle">
-              Акцент
+              {{ t('studioPreview.accent') }}
             </span>
           </div>
         </div>
@@ -146,7 +149,7 @@ const cardStyle = computed(() => ({
               <div class="min-w-0 flex-1 pt-1">
                 <div class="flex items-center gap-3">
                   <span class="h-2.5 w-2.5 rounded-full" :style="accentDotStyle"></span>
-                  <span class="text-xs font-bold uppercase tracking-[0.22em] text-slate-400">Цвет страницы</span>
+                  <span class="text-xs font-bold uppercase tracking-[0.22em] text-slate-400">{{ t('studioPreview.pageColor') }}</span>
                 </div>
 
                 <h3 class="mt-3 break-words text-2xl font-black tracking-tight text-white drop-shadow-[0_2px_10px_rgba(0,0,0,0.5)] md:text-[1.95rem]">
@@ -163,14 +166,14 @@ const cardStyle = computed(() => ({
 
             <div class="mt-4 grid gap-3">
               <div class="rounded-[20px] border p-4 backdrop-blur" :style="cardStyle">
-                <p class="text-xs font-bold uppercase tracking-[0.22em] text-slate-500">О себе</p>
+                <p class="text-xs font-bold uppercase tracking-[0.22em] text-slate-500">{{ t('studioPreview.about') }}</p>
                 <p class="mt-2 text-sm leading-6 text-slate-300">
                   {{ bioText }}
                 </p>
               </div>
 
               <div class="rounded-[20px] border p-4 backdrop-blur" :style="cardStyle">
-                <p class="text-xs font-bold uppercase tracking-[0.22em] text-slate-500">Ссылка</p>
+                <p class="text-xs font-bold uppercase tracking-[0.22em] text-slate-500">{{ t('studioPreview.link') }}</p>
                 <p class="mt-2 break-all text-sm leading-6 text-slate-300">
                   {{ publicProfileUrl || `/u/${slugText}` }}
                 </p>

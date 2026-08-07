@@ -3,6 +3,7 @@ import { ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { siteConfig } from '../config.site'
 import { setLocale, getLocale } from '../i18n'
+import { openCookieSettings } from '../services/cookieConsent'
 
 const { t } = useI18n()
 const currentLang = ref(getLocale())
@@ -43,6 +44,10 @@ function switchLang(lang) {
         <RouterLink to="/privacy" class="footer-policy-link">{{ t('footer.privacy') }}</RouterLink>
         <span class="footer-sep">·</span>
         <RouterLink to="/offer" class="footer-policy-link">{{ t('footer.offer') }}</RouterLink>
+        <span class="footer-sep">·</span>
+        <button type="button" class="footer-policy-link footer-policy-btn" @click="openCookieSettings">
+          {{ t('footer.cookieSettings') }}
+        </button>
         <span class="footer-sep footer-sep--grow" />
         <div class="lang-switcher">
           <button
@@ -88,6 +93,13 @@ function switchLang(lang) {
   transition: color 0.15s;
 }
 .footer-policy-link:hover { color: #94a3b8; }
+.footer-policy-btn {
+  background: none;
+  border: none;
+  padding: 0;
+  font: inherit;
+  cursor: pointer;
+}
 
 .lang-switcher {
   display: flex;

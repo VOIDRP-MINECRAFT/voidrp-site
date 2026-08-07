@@ -43,17 +43,17 @@ function formatDate(d) {
 
 function txTypeLabel(type) {
   const map = {
-    player_donate: 'Пожертвование',
-    player_withdraw: 'Вывод',
-    alliance_transfer: 'Перевод альянсу',
-    market_fee: 'Комиссия рынка',
-    event_reward: 'Событие',
+    player_donate: t('gameUiTreasury.txPlayerDonate'),
+    player_withdraw: t('gameUiTreasury.txPlayerWithdraw'),
+    alliance_transfer: t('gameUiTreasury.txAllianceTransfer'),
+    market_fee: t('gameUiTreasury.txMarketFee'),
+    event_reward: t('gameUiTreasury.txEventReward'),
   }
   return map[type] || type
 }
 
 function roleLabel(r) {
-  return { leader: 'Глава', officer: 'Офицер', member: 'Участник' }[r] || r
+  return { leader: t('gameUiTreasury.roleLeader'), officer: t('gameUiTreasury.roleOfficer'), member: t('gameUiTreasury.roleMember') }[r] || r
 }
 
 async function sendDonate() {

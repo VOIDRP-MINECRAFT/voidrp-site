@@ -199,12 +199,12 @@ async function loadNation() {
     const n = nation.value
     usePageMeta({
       title: n.title,
-      description: n.short_description || `Государство ${n.title} на сервере VoidRP.`,
+      description: n.short_description || t('meta.nationDynamicDesc', { title: n.title }),
       url: `https://void-rp.ru/nation/${n.slug}`,
       ...(n.assets?.icon_url ? { image: n.assets.icon_url } : {}),
       breadcrumbs: [
-        { name: 'Главная', url: '/' },
-        { name: 'Государства', url: '/nations' },
+        { name: t('nav.home'), url: '/' },
+        { name: t('nav.nations'), url: '/nations' },
         { name: n.title },
       ],
     })
