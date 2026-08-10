@@ -72,6 +72,7 @@ async function load() {
 
 function startCreate() {
   Object.assign(form, structuredClone(BLANK))
+  runtimeNote.value = ''
   editing.value = 'new'
 }
 
@@ -132,16 +133,27 @@ function buildPayload() {
 // Prefill blank modpack/monitoring fields from the slug+version convention.
 // Only fills empty fields so it never clobbers something already typed.
 const autofilling = ref(false)
+const runtimeNote = ref('')
 async function autofillPaths() {
   if (!form.slug) { toastError('Сначала укажите slug'); return }
   autofilling.value = true
   try {
     const s = await suggestServerPaths(token(), {
-      slug: form.slug, neoforge_version: form.neoforge_version, mc_version: form.mc_version,
+      slug: form.slug, neoforge_version: form.neoforge_version,
+      mc_version: form.mc_version, loader: form.loader, java_version: form.java_version,
     })
+    // These two are meta flags about runtime, not form fields.
+    const { runtime_source, runtime_needs_build, ...fields } = s
     let filled = 0
-    for (const [k, v] of Object.entries(s)) {
+    for (const [k, v] of Object.entries(fields)) {
       if (v !== '' && v != null && (form[k] === '' || form[k] == null)) { form[k] = v; filled++ }
+    }
+    if (runtime_needs_build) {
+      runtimeNote.value = `⚠️ Новое ядро: своего рантайма ещё нет. При сохранении создастся скрипт «${fields.manifest_build_script}». Наполни папку runtime-seed реальными Java+клиент и собери манифест.`
+    } else if (runtime_source) {
+      runtimeNote.value = `✓ Рантайм унаследован от сервера «${runtime_source}» (то же ядро) — отдельно собирать не нужно.`
+    } else {
+      runtimeNote.value = ''
     }
     toastSuccess(filled ? `Заполнено полей: ${filled}. Папки создадутся при сохранении.` : 'Все поля уже заполнены')
   } catch (e) {
@@ -328,6 +340,7 @@ onMounted(load)
           </button>
           <span class="autofill-hint">Заполнит пустые поля (пак/манифест, папки, юнит, RCON-порт) по конвенции <code>v&lt;ядро&gt;-&lt;slug&gt;</code>. Папки создадутся на диске при сохранении.</span>
         </div>
+        <div v-if="editing === 'new' && runtimeNote" class="runtime-note">{{ runtimeNote }}</div>
         <div class="grid">
           <label class="fld"><span>Pack root (на сервере)</span><input v-model="form.pack_root" placeholder="/home/…/pack/voidrp" /></label>
           <label class="fld"><span>Pack base URL</span><input v-model="form.pack_base_url" placeholder="https://void-rp.ru/launcher/pack/voidrp" /></label>
@@ -470,6 +483,7 @@ onMounted(load)
 .autofill-row { display: flex; align-items: center; gap: 0.7rem; flex-wrap: wrap; margin-bottom: 0.85rem; }
 .autofill-hint { font-size: 0.72rem; color: var(--adm-dim); max-width: 560px; }
 .autofill-hint code { font-size: 0.7rem; padding: 0.05rem 0.3rem; border-radius: 4px; background: rgba(148,163,184,0.14); }
+.runtime-note { margin: -0.2rem 0 0.85rem; padding: 0.55rem 0.8rem; border-radius: var(--adm-r-sm); font-size: 0.76rem; line-height: 1.4; background: rgba(148,163,184,0.1); border: 1px solid var(--adm-line); }
 .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 0.85rem; }
 .fld { display: flex; flex-direction: column; gap: 0.3rem; }
 .fld--wide { grid-column: 1 / -1; }
