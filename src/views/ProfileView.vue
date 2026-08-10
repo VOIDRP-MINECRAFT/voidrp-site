@@ -8,6 +8,7 @@ import { getMyNation } from '../services/nationsApi'
 import { getMyPublicProfile } from '../services/profileApi'
 import { getPlayerProgression } from '../services/progressionApi'
 import { getBattlePassProfileByNick } from '../services/battlepassApi'
+import { getTelegramStatus, unlinkTelegram } from '../services/telegramApi'
 import { toastError, toastSuccess } from '../services/toast'
 import { reloadMe, useAuthStore } from '../stores/authStore'
 import { serverFeatureEnabled } from '../stores/serverStore'
@@ -21,6 +22,8 @@ const publicProfile = ref(null)
 const myNation = ref(null)
 const progression = ref(null)
 const bpProfile = ref(null)
+const telegram = ref(null)
+const tgUnlinking = ref(false)
 
 const TIERS = [
   { key: 'create_age',   icon: '⚙️' },
@@ -128,6 +131,9 @@ async function loadData() {
     myNation.value = nationPayload || null
     progression.value = progressionPayload || null
     bpProfile.value = bpPayload || null
+    if (auth.accessToken) {
+      telegram.value = await getTelegramStatus(auth.accessToken).catch(() => null)
+    }
   } catch (e) {
     toastError(e.message || t('profile.loadError'))
   } finally {
@@ -145,6 +151,19 @@ async function sendVerificationAgain() {
     toastError(e?.message || t('profile.verificationError'))
   } finally {
     sendingVerification.value = false
+  }
+}
+
+async function unlinkTg() {
+  if (!auth.accessToken) return
+  tgUnlinking.value = true
+  try {
+    telegram.value = await unlinkTelegram(auth.accessToken)
+    toastSuccess(t('profile.tgUnlinked'))
+  } catch (e) {
+    toastError(e?.message || t('profile.tgUnlinkError'))
+  } finally {
+    tgUnlinking.value = false
   }
 }
 
@@ -338,6 +357,20 @@ onMounted(loadData)
                 <span class="text-xs font-semibold text-slate-100">
                   {{ auth.state.playerAccount?.minecraft_nickname || t('profile.noNickname') }}
                 </span>
+              </div>
+              <div class="flex items-center justify-between gap-2 rounded-xl bg-slate-800/40 px-3 py-2.5">
+                <span class="text-xs text-slate-400">Telegram</span>
+                <span v-if="telegram?.linked" class="flex items-center gap-2">
+                  <span class="text-xs font-semibold text-emerald-300">
+                    {{ telegram.telegram_username ? '@' + telegram.telegram_username : t('profile.tgLinked') }}
+                  </span>
+                  <button
+                    class="rounded-lg border border-rose-400/30 px-2 py-0.5 text-[11px] font-semibold text-rose-300 transition hover:bg-rose-500/10 disabled:opacity-50"
+                    :disabled="tgUnlinking"
+                    @click="unlinkTg"
+                  >{{ t('profile.tgUnlink') }}</button>
+                </span>
+                <span v-else class="text-xs font-semibold text-slate-500">{{ t('profile.tgNotLinked') }}</span>
               </div>
             </div>
           </section>

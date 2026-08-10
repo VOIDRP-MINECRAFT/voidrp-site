@@ -42,6 +42,7 @@ const routes = [
   { path: '/profile/public', name: 'edit-public-profile', component: () => import('../views/EditPublicProfileView.vue'), meta: { title: 'Публичный профиль', requiresAuth: true } },
   { path: '/profile/referrals', name: 'referrals', component: () => import('../views/ReferralCenterView.vue'), meta: { title: 'Реферальный центр', requiresAuth: true } },
   { path: '/profile/social', name: 'social', component: () => import('../views/SocialHubView.vue'), meta: { title: 'Социальный центр', requiresAuth: true } },
+  { path: '/link-telegram', name: 'link-telegram', component: () => import('../views/LinkTelegramView.vue'), meta: { title: 'Привязка Telegram', requiresAuth: true } },
   { path: '/u/:slug', name: 'public-profile', component: () => import('../views/PublicProfileView.vue'), meta: { title: 'Профиль игрока' } },
   { path: '/nations', name: 'nations', component: () => import('../views/NationsListView.vue'), meta: { title: 'Государства', feature: 'nations' } },
   { path: '/nation/:slug', name: 'nation-public', component: () => import('../views/NationPublicView.vue'), meta: { title: 'Государство', feature: 'nations' } },
