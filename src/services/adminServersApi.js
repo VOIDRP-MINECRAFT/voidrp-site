@@ -12,6 +12,15 @@ export function getServer(token, serverId) {
   return apiRequest(`/admin/servers/${serverId}`, ah(token))
 }
 
+// Derived modpack + monitoring defaults for a new server (slug + core version).
+// Used by the create form to prefill blank path/monitoring fields.
+export function suggestServerPaths(token, { slug, neoforge_version, mc_version }) {
+  const qs = new URLSearchParams({ slug })
+  if (neoforge_version) qs.set('neoforge_version', neoforge_version)
+  if (mc_version) qs.set('mc_version', mc_version)
+  return apiRequest(`/admin/servers/suggest-paths?${qs.toString()}`, ah(token))
+}
+
 export function createServer(token, payload) {
   return apiRequest('/admin/servers', {
     ...ah(token, { 'Content-Type': 'application/json' }),

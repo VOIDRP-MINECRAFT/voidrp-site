@@ -35,6 +35,15 @@ export function moderatePlayer(token, action, player) {
   })
 }
 
+// Start / restart / stop the server's systemd unit (permission: monitoring.restart).
+export function serverPowerAction(token, action) {
+  return apiRequest('/admin/server-ops/power', {
+    ...ah(token, { 'Content-Type': 'application/json' }),
+    method: 'POST',
+    body: JSON.stringify({ action }),
+  })
+}
+
 export function getServerLogs(token, { source = 'server', lines = 250 } = {}) {
   const qs = new URLSearchParams({ source, lines: String(lines) })
   return apiRequest(`/admin/server-ops/logs?${qs.toString()}`, ah(token))

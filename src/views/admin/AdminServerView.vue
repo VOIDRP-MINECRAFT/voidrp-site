@@ -10,6 +10,7 @@ import {
   deleteServer,
   regenerateSecret,
   uploadServerImage,
+  suggestServerPaths,
 } from '../../services/adminServersApi'
 
 const token = () => authState.accessToken
@@ -30,7 +31,7 @@ const BLANK = {
   host: '', port: 25565, mc_version: '1.21.1', loader: 'neoforge',
   java_version: 21, neoforge_version: '',
   pack_root: '', pack_base_url: '', manifest_url: '',
-  runtime_seed_url: '', runtime_manifest_url: '',
+  runtime_seed_url: '', runtime_manifest_url: '', manifest_build_script: '',
   pack_version: '1.0.0', min_launcher_version: '0.1.0',
   status_host: '', status_port: null, max_players: 100,
   whitelist_mode: 'public', maintenance: false,
@@ -106,7 +107,7 @@ function buildPayload() {
   // Normalize empty strings to null for nullable fields
   for (const k of ['description', 'icon_url', 'banner_url', 'neoforge_version',
     'pack_root', 'pack_base_url', 'manifest_url', 'runtime_seed_url', 'runtime_manifest_url',
-    'status_host', 'map_url', 'accent_color',
+    'manifest_build_script', 'status_host', 'map_url', 'accent_color',
     'systemd_unit', 'data_dir', 'log_path', 'rcon_host', 'rcon_password']) {
     if (p[k] === '') p[k] = null
   }
@@ -126,6 +127,28 @@ function buildPayload() {
   }
   p.news_channels = nc
   return p
+}
+
+// Prefill blank modpack/monitoring fields from the slug+version convention.
+// Only fills empty fields so it never clobbers something already typed.
+const autofilling = ref(false)
+async function autofillPaths() {
+  if (!form.slug) { toastError('Сначала укажите slug'); return }
+  autofilling.value = true
+  try {
+    const s = await suggestServerPaths(token(), {
+      slug: form.slug, neoforge_version: form.neoforge_version, mc_version: form.mc_version,
+    })
+    let filled = 0
+    for (const [k, v] of Object.entries(s)) {
+      if (v !== '' && v != null && (form[k] === '' || form[k] == null)) { form[k] = v; filled++ }
+    }
+    toastSuccess(filled ? `Заполнено полей: ${filled}. Папки создадутся при сохранении.` : 'Все поля уже заполнены')
+  } catch (e) {
+    toastError(e?.message || 'Не удалось получить пути')
+  } finally {
+    autofilling.value = false
+  }
 }
 
 async function save() {
@@ -299,12 +322,19 @@ onMounted(load)
 
         <!-- Модпак -->
         <div class="sec">Модпак</div>
+        <div v-if="editing === 'new'" class="autofill-row">
+          <button type="button" class="adm-btn adm-btn--sm adm-btn--acc" :disabled="!form.slug || autofilling" @click="autofillPaths">
+            {{ autofilling ? 'Заполняю…' : '✨ Автозаполнить пути и мониторинг из slug' }}
+          </button>
+          <span class="autofill-hint">Заполнит пустые поля (пак/манифест, папки, юнит, RCON-порт) по конвенции <code>v&lt;ядро&gt;-&lt;slug&gt;</code>. Папки создадутся на диске при сохранении.</span>
+        </div>
         <div class="grid">
           <label class="fld"><span>Pack root (на сервере)</span><input v-model="form.pack_root" placeholder="/home/…/pack/voidrp" /></label>
           <label class="fld"><span>Pack base URL</span><input v-model="form.pack_base_url" placeholder="https://void-rp.ru/launcher/pack/voidrp" /></label>
           <label class="fld"><span>Manifest URL</span><input v-model="form.manifest_url" placeholder="https://…/manifests/voidrp.json" /></label>
           <label class="fld"><span>Runtime seed URL</span><input v-model="form.runtime_seed_url" placeholder="https://…/launcher/runtime/runtime-seed.json" /></label>
           <label class="fld"><span>Runtime manifest URL</span><input v-model="form.runtime_manifest_url" placeholder="https://…/launcher/runtime/runtime-windows.json (или base URL)" /></label>
+          <label class="fld"><span>Скрипт пересборки манифеста</span><input v-model="form.manifest_build_script" placeholder="пусто = стандартный генератор; напр. scripts/generate_abyss_manifests.sh" /></label>
           <label class="fld"><span>Версия пака</span><input v-model="form.pack_version" placeholder="1.0.0" /></label>
           <label class="fld"><span>Мин. версия лаунчера</span><input v-model="form.min_launcher_version" placeholder="0.1.0" /></label>
         </div>
@@ -437,6 +467,9 @@ onMounted(load)
   border-left: 3px solid var(--adm-acc);
   transition: border-color 0.4s;
 }
+.autofill-row { display: flex; align-items: center; gap: 0.7rem; flex-wrap: wrap; margin-bottom: 0.85rem; }
+.autofill-hint { font-size: 0.72rem; color: var(--adm-dim); max-width: 560px; }
+.autofill-hint code { font-size: 0.7rem; padding: 0.05rem 0.3rem; border-radius: 4px; background: rgba(148,163,184,0.14); }
 .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 0.85rem; }
 .fld { display: flex; flex-direction: column; gap: 0.3rem; }
 .fld--wide { grid-column: 1 / -1; }

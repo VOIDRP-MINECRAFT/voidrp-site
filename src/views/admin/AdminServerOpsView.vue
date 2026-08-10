@@ -5,6 +5,7 @@ import {
   getServerLive,
   runRconCommand,
   moderatePlayer,
+  serverPowerAction,
   getServerLogs,
 } from '../../services/adminServerOpsApi.js'
 import { authState, hasPermission } from '../../stores/authStore'
@@ -14,6 +15,7 @@ import { confirmDialog } from '../../composables/useConfirm'
 
 const token = () => authState.accessToken
 const canRcon = hasPermission('monitoring.rcon')
+const canPower = hasPermission('monitoring.restart')
 const canViewPlayers = hasPermission('players.online.view')
 const canModerate = hasPermission('players.online.moderate')
 const serverName = computed(() => activeServer.value?.name || 'сервер')
@@ -73,6 +75,46 @@ const proc = computed(() => metrics.value?.process || null)
 const disk = computed(() => metrics.value?.disk || null)
 const unitState = computed(() => metrics.value?.unit_state || null)
 const notConfigured = computed(() => !firstLoad.value && metrics.value && !metrics.value.unit)
+
+// ── Power control (start / restart / stop the systemd unit) ─────────────────
+// Buttons enable per current state: start only when the unit is down, restart /
+// stop only when it's up. Any in-flight action disables all three.
+const powerBusy = ref(false)
+const canStart = computed(() => !!unitState.value && unitState.value !== 'active')
+const canRestartUnit = computed(() => unitState.value === 'active')
+const canStopUnit = computed(() => unitState.value === 'active')
+
+async function powerAction(action) {
+  const meta = {
+    start: { verb: 'Запустить', confirm: false, danger: false },
+    restart: { verb: 'Перезапустить', confirm: true, danger: true },
+    stop: { verb: 'Остановить', confirm: true, danger: true },
+  }[action]
+  if (!meta || powerBusy.value) return
+  if (meta.confirm) {
+    const ok = await confirmDialog({
+      title: `${meta.verb} сервер`,
+      message: action === 'stop'
+        ? `Остановить сервер «${serverName.value}»? Все игроки будут отключены, автозапуск службы не сработает.`
+        : `Перезапустить сервер «${serverName.value}»? Все игроки будут отключены на время перезапуска.`,
+      confirmLabel: meta.verb,
+      danger: meta.danger,
+    })
+    if (!ok) return
+  }
+  powerBusy.value = true
+  try {
+    await serverPowerAction(token(), action)
+    toastSuccess(`${meta.verb}: команда отправлена`)
+    // The job is queued (--no-block); poll a couple of times to catch the flip.
+    setTimeout(loadMetrics, 1500)
+    setTimeout(loadMetrics, 5000)
+  } catch (e) {
+    toastError(e?.message || 'Не удалось выполнить действие')
+  } finally {
+    powerBusy.value = false
+  }
+}
 
 // Process CPU is per-core (can exceed 100%). Normalize to a share of all cores.
 const procCpuOfHost = computed(() => {
@@ -330,6 +372,11 @@ onBeforeUnmount(() => {
           <span class="adm-dot" :class="unitState === 'active' ? 'adm-dot--ok' : 'adm-dot--err'" />
           {{ unitState === 'active' ? 'служба активна' : unitState }}
         </span>
+        <div v-if="canPower && unitState" class="ops-power">
+          <button class="adm-btn adm-btn--ok" :disabled="powerBusy || !canStart" @click="powerAction('start')" title="Запустить службу сервера">Запустить</button>
+          <button class="adm-btn" :disabled="powerBusy || !canRestartUnit" @click="powerAction('restart')" title="Перезапустить службу сервера">Перезапустить</button>
+          <button class="adm-btn adm-btn--danger" :disabled="powerBusy || !canStopUnit" @click="powerAction('stop')" title="Остановить службу сервера">Остановить</button>
+        </div>
         <button class="adm-btn" :class="autoRefresh ? 'adm-btn--ok' : ''" @click="toggleAuto" :title="autoRefresh ? 'Поставить авто-обновление на паузу' : 'Возобновить авто-обновление'">
           <span class="adm-dot" :class="autoRefresh ? 'adm-dot--ok' : 'adm-dot--warn'" />
           {{ autoRefresh ? 'Авто-обновление' : 'На паузе' }}
@@ -496,6 +543,9 @@ onBeforeUnmount(() => {
 </template>
 
 <style scoped>
+.ops-power { display: flex; gap: 0.35rem; padding-right: 0.5rem; margin-right: 0.25rem; border-right: 1px solid var(--adm-line); }
+@media (max-width: 640px) { .ops-power { border-right: none; padding-right: 0; } }
+
 .ops-updated { font-size: 0.68rem; color: var(--adm-dim); font-weight: 600; white-space: nowrap; }
 @media (max-width: 560px) { .ops-updated { display: none; } }
 
