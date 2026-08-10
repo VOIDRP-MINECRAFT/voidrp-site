@@ -3,7 +3,8 @@ import { computed, onMounted, ref, watch } from 'vue'
 import { marked } from 'marked'
 import { authState, hasPermission } from '../../stores/authStore'
 import { confirmDialog } from '../../composables/useConfirm'
-import { toastSuccess, toastError, toastInfo } from '../../services/toast'
+import { toastSuccess, toastError } from '../../services/toast'
+import { pushAdminAlert } from '../../composables/useAdminNotifications'
 import {
   adminListNewsServers,
   adminListNews,
@@ -139,13 +140,26 @@ async function save() {
       is_published: form.value.is_published,
     }
     if (editing.value === 'new') {
-      await adminCreateNews(token(), selectedServerId.value, {
+      const requested = form.value.post_telegram || form.value.post_discord
+      const created = await adminCreateNews(token(), selectedServerId.value, {
         ...payload,
         category: category.value,
         post_telegram: form.value.post_telegram,
         post_discord: form.value.post_discord,
       })
-      toastSuccess('Новость создана' + (form.value.post_telegram || form.value.post_discord ? ' и отправлена' : ''))
+      const b = created?.broadcast
+      if (requested && b && (b.telegram_ok === false || b.discord_ok === false)) {
+        toastSuccess('Новость создана')
+        pushAdminAlert({
+          id: `news-broadcast-${created.id}`,
+          level: 'error',
+          title: 'Новость создана, но не отправлена',
+          message: `${b.detail || 'Не удалось доставить в один из каналов.'} — «${created.title}»`,
+          link: '/admin/server',
+        })
+      } else {
+        toastSuccess('Новость создана' + (requested ? ' и отправлена' : ''))
+      }
     } else {
       await adminUpdateNews(token(), selectedServerId.value, editing.value, payload)
       toastSuccess('Новость сохранена')
@@ -178,17 +192,29 @@ async function removePost(post) {
 
 async function broadcast(post, channel) {
   const payload = { post_telegram: channel === 'tg', post_discord: channel === 'dc' }
+  const chName = channel === 'tg' ? 'Telegram' : 'Discord'
   try {
     const res = await adminBroadcastNews(token(), selectedServerId.value, post.id, payload)
-    if (res.detail) toastInfo(res.detail)
-    if ((channel === 'tg' && res.telegram_ok) || (channel === 'dc' && res.discord_ok)) {
-      toastSuccess(channel === 'tg' ? 'Отправлено в Telegram' : 'Отправлено в Discord')
-    } else if (!res.detail) {
-      toastError('Отправка не удалась')
+    const ok = (channel === 'tg' && res.telegram_ok) || (channel === 'dc' && res.discord_ok)
+    if (ok) {
+      toastSuccess('Отправлено в ' + chName)
+    } else {
+      pushAdminAlert({
+        id: `news-broadcast-${post.id}-${channel}`,
+        level: 'error',
+        title: `Не отправлено в ${chName}`,
+        message: `${res.detail || 'Отправка не удалась.'} — «${post.title}»`,
+        link: '/admin/server',
+      })
     }
     await loadPosts()
   } catch (e) {
-    toastError(e?.message || 'Ошибка отправки')
+    pushAdminAlert({
+      id: `news-broadcast-${post.id}-${channel}`,
+      level: 'error',
+      title: `Ошибка отправки в ${chName}`,
+      message: `${e?.message || 'Не удалось отправить.'} — «${post.title}»`,
+    })
   }
 }
 

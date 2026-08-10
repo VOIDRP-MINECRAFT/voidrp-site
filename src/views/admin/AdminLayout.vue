@@ -3,6 +3,7 @@ import { computed, onBeforeUnmount, onMounted, ref } from 'vue'
 import { useRoute, RouterLink } from 'vue-router'
 import { authState, hasPermission, logoutCurrentSession, useAuthStore } from '../../stores/authStore'
 import { serverState, activeServer, fetchServers, setActiveServer } from '../../stores/serverStore'
+import { useAdminNotifications } from '../../composables/useAdminNotifications'
 import ConfirmDialog from '../../components/admin/ConfirmDialog.vue'
 
 const auth = useAuthStore()
@@ -11,14 +12,19 @@ const sidebarOpen = ref(false)
 const serverMenuOpen = ref(false)
 const serverMenuRef = ref(null)
 
+// ── Уведомления сверху (пермишн-скоупятся на бэке) ─────────────
+const { notifications, start: startNotifs, stop: stopNotifs, dismiss: dismissNotif } = useAdminNotifications()
+
 // Активный сервер скоупит per-server разделы (рынок, нации, БП, античит)
 // через X-Server-Slug; смена ремаунтит их страницы (RouterView :key ниже).
 onMounted(() => {
   fetchServers()
+  startNotifs()
   document.addEventListener('click', onDocClick)
   document.addEventListener('keydown', onDocKey)
 })
 onBeforeUnmount(() => {
+  stopNotifs()
   document.removeEventListener('click', onDocClick)
   document.removeEventListener('keydown', onDocKey)
 })
@@ -153,6 +159,14 @@ function isActive(item) {
   return route.path === item.to || route.path.startsWith(item.to + '/')
 }
 
+const noteIcons = {
+  error: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>',
+  warning: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>',
+  info: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>',
+  success: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>',
+}
+function noteIcon(level) { return noteIcons[level] || noteIcons.info }
+
 async function handleLogout() {
   sidebarOpen.value = false
   await logoutCurrentSession()
@@ -267,6 +281,27 @@ async function handleLogout() {
           </div>
         </div>
       </header>
+
+      <!-- ── Уведомления (пермишн-скоуп на бэке; видит только тот, кому положено) ── -->
+      <TransitionGroup v-if="notifications.length" name="adm-note" tag="div" class="adm-notes">
+        <div
+          v-for="n in notifications"
+          :key="n.id"
+          class="adm-note"
+          :class="'adm-note--' + n.level"
+          role="status"
+        >
+          <span class="adm-note__icon" v-html="noteIcon(n.level)" />
+          <div class="adm-note__body">
+            <span class="adm-note__title">{{ n.title }}</span>
+            <span class="adm-note__msg">{{ n.message }}</span>
+          </div>
+          <RouterLink v-if="n.link" :to="n.link" class="adm-note__action">Открыть</RouterLink>
+          <button class="adm-note__close" title="Скрыть" @click="dismissNotif(n)">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+          </button>
+        </div>
+      </TransitionGroup>
 
       <div class="adm-content">
         <RouterView :key="routeScopeKey" />
@@ -585,6 +620,78 @@ async function handleLogout() {
   transition: color 0.13s, background-color 0.13s;
 }
 .adm-user__logout:hover { color: var(--adm-err); background: rgba(248,113,113,0.09); }
+
+/* ── Уведомления сверху ──────────────────────────────────────── */
+.adm-notes {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  padding: 0.85rem 1.4rem 0;
+}
+@media (max-width: 640px) { .adm-notes { padding: 0.7rem 0.85rem 0; } }
+
+.adm-note {
+  display: flex;
+  align-items: center;
+  gap: 0.7rem;
+  padding: 0.6rem 0.75rem;
+  border-radius: 12px;
+  border: 1px solid var(--adm-line-strong);
+  background: var(--adm-card-2);
+  box-shadow: 0 10px 30px rgba(0,0,0,0.28);
+}
+/* Цветной левый акцент кодирует уровень */
+.adm-note { position: relative; overflow: hidden; }
+.adm-note::before {
+  content: '';
+  position: absolute;
+  left: 0; top: 0; bottom: 0;
+  width: 3px;
+}
+.adm-note--error::before { background: var(--adm-err, #f87171); }
+.adm-note--warning::before { background: #fbbf24; }
+.adm-note--info::before { background: var(--adm-acc); }
+.adm-note--success::before { background: var(--adm-ok, #34d399); }
+
+.adm-note__icon { display: flex; flex-shrink: 0; }
+.adm-note__icon :deep(svg) { width: 18px; height: 18px; }
+.adm-note--error .adm-note__icon { color: var(--adm-err, #f87171); }
+.adm-note--warning .adm-note__icon { color: #fbbf24; }
+.adm-note--info .adm-note__icon { color: var(--adm-acc-text); }
+.adm-note--success .adm-note__icon { color: var(--adm-ok, #34d399); }
+
+.adm-note__body { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 0.06rem; }
+.adm-note__title { font-size: 0.82rem; font-weight: 800; color: var(--adm-text); }
+.adm-note__msg { font-size: 0.76rem; color: var(--adm-mut); line-height: 1.4; }
+
+.adm-note__action {
+  flex-shrink: 0;
+  padding: 0.32rem 0.7rem;
+  border-radius: 8px;
+  font-size: 0.73rem;
+  font-weight: 800;
+  color: var(--adm-acc-text);
+  background: var(--adm-acc-soft);
+  border: 1px solid var(--adm-acc-line);
+  text-decoration: none;
+  transition: filter 0.13s;
+}
+.adm-note__action:hover { filter: brightness(1.2); }
+.adm-note__close {
+  flex-shrink: 0;
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: var(--adm-faint);
+  display: flex;
+  padding: 0.28rem;
+  border-radius: 7px;
+  transition: color 0.13s, background-color 0.13s;
+}
+.adm-note__close:hover { color: var(--adm-text); background: rgba(148,163,184,0.1); }
+
+.adm-note-enter-active, .adm-note-leave-active { transition: opacity 0.2s ease, transform 0.2s ease; }
+.adm-note-enter-from, .adm-note-leave-to { opacity: 0; transform: translateY(-6px); }
 
 /* ── Content ─────────────────────────────────────────────────── */
 .adm-content { flex: 1; overflow-x: hidden; }
