@@ -1,7 +1,7 @@
 <script setup>
 import { computed, onBeforeUnmount, onMounted, ref } from 'vue'
 import { useRoute, RouterLink } from 'vue-router'
-import { logoutCurrentSession, useAuthStore } from '../../stores/authStore'
+import { authState, hasPermission, logoutCurrentSession, useAuthStore } from '../../stores/authStore'
 import { serverState, activeServer, fetchServers, setActiveServer } from '../../stores/serverStore'
 import ConfirmDialog from '../../components/admin/ConfirmDialog.vue'
 
@@ -87,49 +87,66 @@ const routeScopeKey = computed(() =>
   route.meta?.serverScoped ? `srv-${serverState.activeSlug || 'none'}` : 'global',
 )
 
-const navGroups = computed(() => [
-  {
-    label: 'Обзор',
-    items: [
-      { to: '/admin', label: 'Дашборд', exact: true, icon: icons.dashboard },
-      { to: '/admin/metrika', label: 'Метрика', icon: icons.metrika },
-    ],
-  },
-  {
-    // Разделы этой группы показывают данные ВЫБРАННОГО сервера
-    label: activeServer.value?.name || 'Сервер',
-    scoped: true,
-    items: [
-      { to: '/admin/monitoring', label: 'Мониторинг', icon: icons.monitoring },
-      { to: '/admin/market', label: 'Рынок', icon: icons.market },
-      { to: '/admin/nations', label: 'Государства', icon: icons.nations },
-      { to: '/admin/battlepass', label: 'Battle Pass', icon: icons.battlepass },
-      { to: '/admin/anticheat', label: 'Античит', icon: icons.anticheat },
-    ],
-  },
-  {
-    label: 'Платформа',
-    items: [
-      { to: '/admin/players', label: 'Игроки', icon: icons.players },
-      { to: '/admin/donate', label: 'Донаты', icon: icons.donate },
-      { to: '/admin/server', label: 'Серверы', icon: icons.servers },
-    ],
-  },
-  {
-    label: 'Обратная связь',
-    items: [
-      { to: '/admin/mod-suggestions', label: 'Предложения модов', icon: icons.suggestions },
-      { to: '/admin/feedback', label: 'Обращения', icon: icons.feedback },
-      { to: '/admin/launcher-crashes', label: 'Краши лаунчера', icon: icons.crashes },
-    ],
-  },
-  {
-    label: 'Сайт',
-    items: [
-      { to: '/admin/landing', label: 'Главная страница', icon: icons.landing },
-    ],
-  },
-])
+const isAdmin = computed(() => !!authState.user?.is_admin)
+
+// nav item visible if: adminOnly→full admin; else no perm→any staff; else holds perm.
+function canSee(item) {
+  if (item.adminOnly) return isAdmin.value
+  if (Array.isArray(item.anyPerm)) return item.anyPerm.some((p) => hasPermission(p))
+  if (!item.perm) return true
+  return hasPermission(item.perm)
+}
+
+const navGroups = computed(() => {
+  const groups = [
+    {
+      label: 'Обзор',
+      items: [
+        { to: '/admin', label: 'Дашборд', exact: true, icon: icons.dashboard },
+        { to: '/admin/metrika', label: 'Метрика', icon: icons.metrika, perm: 'metrika.view' },
+      ],
+    },
+    {
+      // Разделы этой группы показывают данные ВЫБРАННОГО сервера
+      label: activeServer.value?.name || 'Сервер',
+      scoped: true,
+      items: [
+        { to: '/admin/monitoring', label: 'Мониторинг', icon: icons.monitoring, perm: 'monitoring.view' },
+        { to: '/admin/market', label: 'Рынок', icon: icons.market, perm: 'market.view' },
+        { to: '/admin/nations', label: 'Государства', icon: icons.nations, perm: 'nations.view' },
+        { to: '/admin/battlepass', label: 'Battle Pass', icon: icons.battlepass, perm: 'battlepass.view' },
+        { to: '/admin/anticheat', label: 'Античит', icon: icons.anticheat, perm: 'anticheat.view' },
+      ],
+    },
+    {
+      label: 'Платформа',
+      items: [
+        { to: '/admin/players', label: 'Игроки', icon: icons.players, perm: 'players.view' },
+        { to: '/admin/donate', label: 'Донаты', icon: icons.donate, perm: 'donate.view' },
+        { to: '/admin/server', label: 'Серверы', icon: icons.servers, perm: 'servers.manage' },
+        { to: '/admin/moderators', label: 'Модерация', icon: icons.players, adminOnly: true },
+      ],
+    },
+    {
+      label: 'Обратная связь',
+      items: [
+        { to: '/admin/mod-suggestions', label: 'Предложения модов', icon: icons.suggestions, perm: 'mod_suggestions.view' },
+        { to: '/admin/feedback', label: 'Обращения', icon: icons.feedback, perm: 'feedback.view' },
+        { to: '/admin/launcher-crashes', label: 'Краши лаунчера', icon: icons.crashes, perm: 'crashes.view' },
+      ],
+    },
+    {
+      label: 'Сайт',
+      items: [
+        { to: '/admin/landing', label: 'Главная страница', icon: icons.landing, perm: 'landing.manage' },
+        { to: '/admin/news', label: 'Новости', icon: icons.suggestions, anyPerm: ['news.updates.view', 'news.media.view'] },
+      ],
+    },
+  ]
+  return groups
+    .map((g) => ({ ...g, items: g.items.filter(canSee) }))
+    .filter((g) => g.items.length > 0)
+})
 
 function isActive(item) {
   if (item.exact) return route.path === item.to

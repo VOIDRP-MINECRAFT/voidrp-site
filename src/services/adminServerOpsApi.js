@@ -26,6 +26,15 @@ export function runRconCommand(token, command) {
   })
 }
 
+// Kick/ban/op an online player (permission: players.online.moderate).
+export function moderatePlayer(token, action, player) {
+  return apiRequest('/admin/server-ops/moderate', {
+    ...ah(token, { 'Content-Type': 'application/json' }),
+    method: 'POST',
+    body: JSON.stringify({ action, player }),
+  })
+}
+
 export function getServerLogs(token, { source = 'server', lines = 250 } = {}) {
   const qs = new URLSearchParams({ source, lines: String(lines) })
   return apiRequest(`/admin/server-ops/logs?${qs.toString()}`, ah(token))

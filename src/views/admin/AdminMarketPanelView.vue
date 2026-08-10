@@ -11,10 +11,11 @@ import {
   adminRecalculateMarket,
   adminPatchMarketItem,
 } from '../../services/adminApi'
-import { authState } from '../../stores/authStore'
+import { authState, hasPermission } from '../../stores/authStore'
 import { confirmDialog } from '../../composables/useConfirm'
 
 const token = () => authState.accessToken
+const canManage = hasPermission('market.manage')
 
 const summary = ref(null)
 const items = ref([])
@@ -138,7 +139,7 @@ onMounted(() => { loadSummary(); loadItems() })
         <h1 class="adm-title">Рынок</h1>
         <p class="adm-sub">Товары и цены выбранного сервера</p>
       </div>
-      <button class="adm-btn adm-btn--acc" :disabled="recalcLoading" @click="recalculate">
+      <button v-if="canManage" class="adm-btn adm-btn--acc" :disabled="recalcLoading" @click="recalculate">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg>
         {{ recalcLoading ? 'Пересчёт...' : 'Пересчитать рынок' }}
       </button>
@@ -249,7 +250,7 @@ onMounted(() => { loadSummary(); loadItems() })
               </td>
 
               <td>
-                <div class="row-actions">
+                <div v-if="canManage" class="row-actions">
                   <button
                     v-if="!item.enabled"
                     class="adm-btn adm-btn--ok adm-btn--sm"

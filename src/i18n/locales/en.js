@@ -20,6 +20,7 @@ export default {
   },
   nav: {
     home: 'Home',
+    news: 'News',
     guide: 'Guide',
     guideModpack: 'Modpack Guide',
     guideModpackDesc: 'Age progression & commands',
@@ -103,6 +104,19 @@ export default {
     kicker: 'Gallery',
     title: 'The project, frame by frame',
     sub: 'Screenshots from our servers: cities, bases, battles and player builds.',
+  },
+  news: {
+    kicker: 'News',
+    title: 'Server news',
+    subtitle: 'Updates, events and announcements for {server}.',
+    readMore: 'Read',
+    tabUpdates: 'Updates',
+    tabMedia: 'News',
+    backToList: 'All news',
+    by: 'By',
+    empty: 'No news yet — check back later.',
+    notFound: 'News post not found or unpublished.',
+    loadError: 'Failed to load news.',
   },
   cookie: {
     title: 'We use cookies',

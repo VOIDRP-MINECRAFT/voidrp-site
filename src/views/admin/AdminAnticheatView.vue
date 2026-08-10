@@ -7,11 +7,12 @@ import {
   anticheatUpdateConfig,
   anticheatGetStats,
 } from '../../services/adminAnticheatApi.js'
-import { authState } from '../../stores/authStore'
+import { authState, hasPermission } from '../../stores/authStore'
 import { activeServer } from '../../stores/serverStore'
 
 const router = useRouter()
 const token = () => authState.accessToken
+const canManage = hasPermission('anticheat.manage')
 const activeServerName = computed(() => activeServer.value?.name || 'сервер')
 
 // ── Tabs ──────────────────────────────────────────────────────────────────────
@@ -348,7 +349,7 @@ onMounted(load)
         </div>
 
         <div class="ac-config-actions">
-          <button class="adm-btn adm-btn--acc" :disabled="configSaving" @click="saveConfig">
+          <button v-if="canManage" class="adm-btn adm-btn--acc" :disabled="configSaving" @click="saveConfig">
             {{ configSaving ? 'Сохранение…' : 'Сохранить' }}
           </button>
           <span v-if="configSaved" class="ac-saved-ok">✓ Сохранено. Мод обновится в течение 5 минут.</span>

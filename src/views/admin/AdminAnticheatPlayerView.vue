@@ -2,11 +2,12 @@
 import { onMounted, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { anticheatGetPlayer, anticheatPlayerAction, anticheatSetModVerdict, anticheatDeleteModVerdict } from '../../services/adminAnticheatApi.js'
-import { authState } from '../../stores/authStore'
+import { authState, hasPermission } from '../../stores/authStore'
 
 const route = useRoute()
 const router = useRouter()
 const token = () => authState.accessToken
+const canManage = hasPermission('anticheat.manage')
 
 const playerUuid = route.params.uuid
 
@@ -137,8 +138,8 @@ function fmtDate(iso) {
         </div>
       </div>
 
-      <!-- Actions -->
-      <div class="acp-actions-card">
+      <!-- Actions (require anticheat.manage) -->
+      <div v-if="canManage" class="acp-actions-card">
         <div class="acp-actions-title">Действия</div>
         <div class="acp-actions-row">
           <input v-model="actionReason" class="adm-input acp-reason-input" placeholder="Причина (необязательно)" />
@@ -240,7 +241,7 @@ function fmtDate(iso) {
                     class="acp-susp-row"
                   >
                     <span class="acp-mod acp-mod--bad">{{ m }}</span>
-                    <div class="acp-verdict-btns">
+                    <div v-if="canManage" class="acp-verdict-btns">
                       <button
                         class="acp-vbtn acp-vbtn--cheat"
                         :disabled="verdictLoading[m + 'CHEAT']"

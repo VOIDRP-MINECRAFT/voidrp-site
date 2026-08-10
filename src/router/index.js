@@ -1,5 +1,5 @@
 import { createRouter, createWebHistory } from 'vue-router'
-import { authState, bootstrapAuth, getIsAuthenticated } from '../stores/authStore'
+import { authState, bootstrapAuth, getIsAuthenticated, hasPermission } from '../stores/authStore'
 import NProgress from 'nprogress'
 import 'nprogress/nprogress.css'
 
@@ -27,6 +27,8 @@ const routes = [
   { path: '/market', name: 'market', component: () => import('../views/MarketView.vue'), meta: { title: 'Рынок игроков', feature: 'economy' } },
   { path: '/market/me/orders', name: 'market-my-orders', component: () => import('../views/PlayerMarketMyOrdersView.vue'), meta: { title: 'Мои ордера', requiresAuth: true, feature: 'economy' } },
   { path: '/market/:material', name: 'market-item', component: () => import('../views/MarketItemView.vue'), meta: { title: 'Товар', feature: 'economy' } },
+  { path: '/news', name: 'news', component: () => import('../views/NewsView.vue'), meta: { title: 'Новости', feature: 'news' } },
+  { path: '/news/:slug', name: 'news-item', component: () => import('../views/NewsItemView.vue'), meta: { title: 'Новость', feature: 'news' } },
   { path: '/links', name: 'links', component: () => import('../views/LinksView.vue'), meta: { title: 'Ссылки' } },
   { path: '/privacy', name: 'privacy-policy', component: () => import('../views/PrivacyPolicyView.vue'), meta: { title: 'Политика конфиденциальности' } },
   { path: '/offer', name: 'offer-agreement', component: () => import('../views/OfferAgreementView.vue'), meta: { title: 'Договор оферты' } },
@@ -60,20 +62,22 @@ const routes = [
     meta: { requiresAuth: true, requiresAdmin: true, hidePublicShell: true },
     children: [
       { path: '', name: 'admin-dashboard', component: () => import('../views/admin/AdminDashboardView.vue'), meta: { title: 'Панель управления', requiresAuth: true, requiresAdmin: true, hidePublicShell: true } },
-      { path: 'players', name: 'admin-players', component: () => import('../views/admin/AdminPlayersView.vue'), meta: { title: 'Игроки', requiresAuth: true, requiresAdmin: true, hidePublicShell: true } },
-      { path: 'market', name: 'admin-market-panel', component: () => import('../views/admin/AdminMarketPanelView.vue'), meta: { title: 'Рынок', requiresAuth: true, requiresAdmin: true, hidePublicShell: true, serverScoped: true } },
-      { path: 'server', name: 'admin-server', component: () => import('../views/admin/AdminServerView.vue'), meta: { title: 'Серверы', requiresAuth: true, requiresAdmin: true, hidePublicShell: true } },
-      { path: 'monitoring', name: 'admin-monitoring', component: () => import('../views/admin/AdminServerOpsView.vue'), meta: { title: 'Мониторинг', requiresAuth: true, requiresAdmin: true, hidePublicShell: true, serverScoped: true } },
-      { path: 'nations', name: 'admin-nations', component: () => import('../views/admin/AdminNationsView.vue'), meta: { title: 'Государства', requiresAuth: true, requiresAdmin: true, hidePublicShell: true, serverScoped: true } },
-      { path: 'mod-suggestions', name: 'admin-mod-suggestions', component: () => import('../views/admin/AdminModSuggestionsView.vue'), meta: { title: 'Предложения модов', requiresAuth: true, requiresAdmin: true, hidePublicShell: true } },
-      { path: 'metrika', name: 'admin-metrika', component: () => import('../views/admin/AdminMetrikaView.vue'), meta: { title: 'Метрика', requiresAuth: true, requiresAdmin: true, hidePublicShell: true } },
-      { path: 'battlepass', name: 'admin-battlepass', component: () => import('../views/admin/AdminBattlePassView.vue'), meta: { title: 'Battle Pass', requiresAuth: true, requiresAdmin: true, hidePublicShell: true, serverScoped: true } },
-      { path: 'donate', name: 'admin-donate', component: () => import('../views/admin/AdminDonateView.vue'), meta: { title: 'Донаты', requiresAuth: true, requiresAdmin: true, hidePublicShell: true } },
-      { path: 'anticheat', name: 'admin-anticheat', component: () => import('../views/admin/AdminAnticheatView.vue'), meta: { title: 'Античит', requiresAuth: true, requiresAdmin: true, hidePublicShell: true, serverScoped: true } },
-      { path: 'anticheat/:uuid', name: 'admin-anticheat-player', component: () => import('../views/admin/AdminAnticheatPlayerView.vue'), meta: { title: 'Игрок — Античит', requiresAuth: true, requiresAdmin: true, hidePublicShell: true, serverScoped: true } },
-      { path: 'landing', name: 'admin-landing', component: () => import('../views/admin/AdminLandingView.vue'), meta: { title: 'Главная страница', requiresAuth: true, requiresAdmin: true, hidePublicShell: true } },
-      { path: 'feedback', name: 'admin-feedback', component: () => import('../views/admin/AdminFeedbackView.vue'), meta: { title: 'Обращения', requiresAuth: true, requiresAdmin: true, hidePublicShell: true } },
-      { path: 'launcher-crashes', name: 'admin-launcher-crashes', component: () => import('../views/admin/AdminCrashReportsView.vue'), meta: { title: 'Краши лаунчера', requiresAuth: true, requiresAdmin: true, hidePublicShell: true } },
+      { path: 'players', name: 'admin-players', component: () => import('../views/admin/AdminPlayersView.vue'), meta: { title: 'Игроки', requiresAuth: true, requiresAdmin: true, hidePublicShell: true, permission: 'players.view' } },
+      { path: 'market', name: 'admin-market-panel', component: () => import('../views/admin/AdminMarketPanelView.vue'), meta: { title: 'Рынок', requiresAuth: true, requiresAdmin: true, hidePublicShell: true, permission: 'market.view', serverScoped: true } },
+      { path: 'server', name: 'admin-server', component: () => import('../views/admin/AdminServerView.vue'), meta: { title: 'Серверы', requiresAuth: true, requiresAdmin: true, hidePublicShell: true, permission: 'servers.manage' } },
+      { path: 'monitoring', name: 'admin-monitoring', component: () => import('../views/admin/AdminServerOpsView.vue'), meta: { title: 'Мониторинг', requiresAuth: true, requiresAdmin: true, hidePublicShell: true, permission: 'monitoring.view', serverScoped: true } },
+      { path: 'nations', name: 'admin-nations', component: () => import('../views/admin/AdminNationsView.vue'), meta: { title: 'Государства', requiresAuth: true, requiresAdmin: true, hidePublicShell: true, permission: 'nations.view', serverScoped: true } },
+      { path: 'mod-suggestions', name: 'admin-mod-suggestions', component: () => import('../views/admin/AdminModSuggestionsView.vue'), meta: { title: 'Предложения модов', requiresAuth: true, requiresAdmin: true, hidePublicShell: true, permission: 'mod_suggestions.view' } },
+      { path: 'metrika', name: 'admin-metrika', component: () => import('../views/admin/AdminMetrikaView.vue'), meta: { title: 'Метрика', requiresAuth: true, requiresAdmin: true, hidePublicShell: true, permission: 'metrika.view' } },
+      { path: 'battlepass', name: 'admin-battlepass', component: () => import('../views/admin/AdminBattlePassView.vue'), meta: { title: 'Battle Pass', requiresAuth: true, requiresAdmin: true, hidePublicShell: true, permission: 'battlepass.view', serverScoped: true } },
+      { path: 'donate', name: 'admin-donate', component: () => import('../views/admin/AdminDonateView.vue'), meta: { title: 'Донаты', requiresAuth: true, requiresAdmin: true, hidePublicShell: true, permission: 'donate.view' } },
+      { path: 'anticheat', name: 'admin-anticheat', component: () => import('../views/admin/AdminAnticheatView.vue'), meta: { title: 'Античит', requiresAuth: true, requiresAdmin: true, hidePublicShell: true, permission: 'anticheat.view', serverScoped: true } },
+      { path: 'anticheat/:uuid', name: 'admin-anticheat-player', component: () => import('../views/admin/AdminAnticheatPlayerView.vue'), meta: { title: 'Игрок — Античит', requiresAuth: true, requiresAdmin: true, hidePublicShell: true, permission: 'anticheat.view', serverScoped: true } },
+      { path: 'landing', name: 'admin-landing', component: () => import('../views/admin/AdminLandingView.vue'), meta: { title: 'Главная страница', requiresAuth: true, requiresAdmin: true, hidePublicShell: true, permission: 'landing.manage' } },
+      { path: 'news', name: 'admin-news', component: () => import('../views/admin/AdminNewsView.vue'), meta: { title: 'Новости', requiresAuth: true, requiresAdmin: true, hidePublicShell: true, anyPermission: ['news.updates.view', 'news.media.view'] } },
+      { path: 'feedback', name: 'admin-feedback', component: () => import('../views/admin/AdminFeedbackView.vue'), meta: { title: 'Обращения', requiresAuth: true, requiresAdmin: true, hidePublicShell: true, permission: 'feedback.view' } },
+      { path: 'launcher-crashes', name: 'admin-launcher-crashes', component: () => import('../views/admin/AdminCrashReportsView.vue'), meta: { title: 'Краши лаунчера', requiresAuth: true, requiresAdmin: true, hidePublicShell: true, permission: 'crashes.view' } },
+      { path: 'moderators', name: 'admin-moderators', component: () => import('../views/admin/AdminModeratorsView.vue'), meta: { title: 'Модерация', requiresAuth: true, requiresAdmin: true, hidePublicShell: true, adminOnly: true } },
     ],
   },
   { path: '/:pathMatch(.*)*', name: 'not-found', component: () => import('../views/NotFoundView.vue'), meta: { title: 'Страница не найдена' } },
@@ -95,9 +99,23 @@ router.beforeEach(async (to) => {
     NProgress.done()
     return { path: '/login', query: { redirect: to.fullPath } }
   }
-  if (to.meta?.requiresAdmin && !authState.user?.is_admin) {
+  // Admin panel is open to staff (full admin OR moderator); requiresAdmin now
+  // means "staff". Per-route meta.permission and meta.adminOnly refine access.
+  if (to.meta?.requiresAdmin && !(authState.user?.is_admin || authState.user?.is_moderator)) {
     NProgress.done()
     return { path: '/' }
+  }
+  if (to.meta?.adminOnly && !authState.user?.is_admin) {
+    NProgress.done()
+    return { path: '/admin' }
+  }
+  if (to.meta?.permission && !hasPermission(to.meta.permission)) {
+    NProgress.done()
+    return { path: '/admin' }
+  }
+  if (Array.isArray(to.meta?.anyPermission) && !to.meta.anyPermission.some((p) => hasPermission(p))) {
+    NProgress.done()
+    return { path: '/admin' }
   }
   if (to.meta?.guestOnly && isAuthenticated) {
     NProgress.done()

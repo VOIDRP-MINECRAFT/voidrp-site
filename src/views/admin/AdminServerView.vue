@@ -37,9 +37,10 @@ const BLANK = {
   map_url: '',
   accent_color: '',
   easydonate_server_id: null,
+  news_channels: { update: { telegram: [], discord: [] }, media: { telegram: [], discord: [] } },
   systemd_unit: '', data_dir: '', log_path: '',
   rcon_host: '', rcon_port: null, rcon_password: '',
-  features: { nations: true, economy: true, shop: true, alliances: true, battlepass: true, quests: true, leaderboards: true, progression: true, map: true, bounties: true, killfeed: true },
+  features: { nations: true, economy: true, shop: true, alliances: true, battlepass: true, quests: true, leaderboards: true, progression: true, map: true, bounties: true, killfeed: true, news: true },
 }
 
 const FEATURE_LABELS = {
@@ -54,6 +55,7 @@ const FEATURE_LABELS = {
   map: 'Карта',
   bounties: 'Награды за головы',
   killfeed: 'Пульс (killfeed)',
+  news: 'Новости',
 }
 
 async function load() {
@@ -76,12 +78,28 @@ function startEdit(server) {
   Object.assign(form, structuredClone(BLANK), server)
   // Merge features so keys the server row doesn't have yet default to enabled.
   form.features = { ...structuredClone(BLANK).features, ...(server.features || {}) }
+  // Normalize per-category news channels so both categories always have arrays.
+  form.news_channels = { ...structuredClone(BLANK).news_channels, ...(server.news_channels || {}) }
+  ensureCat('update'); ensureCat('media')
   editing.value = server
 }
 
 function cancel() {
   editing.value = null
 }
+
+function ensureCat(cat) {
+  if (!form.news_channels) form.news_channels = {}
+  const c = form.news_channels[cat] || {}
+  if (!Array.isArray(c.telegram)) c.telegram = []
+  if (!Array.isArray(c.discord)) c.discord = []
+  form.news_channels[cat] = c
+  return c
+}
+function addTg(cat) { ensureCat(cat).telegram.push({ chat_id: '', thread_id: null }) }
+function removeTg(cat, i) { ensureCat(cat).telegram.splice(i, 1) }
+function addDc(cat) { ensureCat(cat).discord.push('') }
+function removeDc(cat, i) { ensureCat(cat).discord.splice(i, 1) }
 
 function buildPayload() {
   const p = { ...form }
@@ -95,6 +113,18 @@ function buildPayload() {
   if (p.status_port === '' || p.status_port === undefined) p.status_port = null
   if (p.rcon_port === '' || p.rcon_port === undefined || Number.isNaN(p.rcon_port)) p.rcon_port = null
   if (p.easydonate_server_id === '' || p.easydonate_server_id === undefined || Number.isNaN(p.easydonate_server_id)) p.easydonate_server_id = null
+  // News channels: per-category — drop empty rows and normalize thread_id.
+  const nc = {}
+  for (const cat of ['update', 'media']) {
+    const c = (p.news_channels && p.news_channels[cat]) || {}
+    nc[cat] = {
+      telegram: (c.telegram || [])
+        .filter((t) => t && String(t.chat_id || '').trim() !== '')
+        .map((t) => ({ chat_id: String(t.chat_id).trim(), thread_id: (t.thread_id === '' || t.thread_id === null || t.thread_id === undefined || Number.isNaN(t.thread_id)) ? null : Number(t.thread_id) })),
+      discord: (c.discord || []).map((w) => String(w || '').trim()).filter((w) => w !== ''),
+    }
+  }
+  p.news_channels = nc
   return p
 }
 
@@ -304,6 +334,27 @@ onMounted(load)
             <input v-model="form.map_url" placeholder="https://map.void-rp.ru" /></label>
           <label class="fld"><span>EasyDonate server ID (магазин доната)</span>
             <input v-model.number="form.easydonate_server_id" type="number" placeholder="напр. 12345" /></label>
+          <div
+            v-for="c in [{ key: 'update', label: 'Обновления' }, { key: 'media', label: 'Новости' }]"
+            :key="c.key"
+            class="fld fld--wide chan-cat"
+          >
+            <div class="chan-cat__head">Каналы новостей · {{ c.label }}</div>
+            <span>Telegram — chat_id (+ topic id, если топики по серверам)</span>
+            <div v-for="(t, i) in ensureCat(c.key).telegram" :key="'tg' + c.key + i" class="chan-row">
+              <input v-model="t.chat_id" class="chan-row__main" placeholder="@voidrp_news или -1003264066790" />
+              <input v-model.number="t.thread_id" type="number" class="chan-row__thread" placeholder="topic id (пусто = общий)" />
+              <button type="button" class="chan-row__del" title="Удалить" @click="removeTg(c.key, i)">✕</button>
+            </div>
+            <button type="button" class="chan-add" @click="addTg(c.key)">+ Добавить Telegram</button>
+
+            <span style="margin-top:.7rem">Discord webhook URL</span>
+            <div v-for="(w, i) in ensureCat(c.key).discord" :key="'dc' + c.key + i" class="chan-row">
+              <input v-model="form.news_channels[c.key].discord[i]" class="chan-row__main" placeholder="https://discord.com/api/webhooks/…" />
+              <button type="button" class="chan-row__del" title="Удалить" @click="removeDc(c.key, i)">✕</button>
+            </div>
+            <button type="button" class="chan-add" @click="addDc(c.key)">+ Добавить Discord</button>
+          </div>
           <label class="fld"><span>Акцентный цвет темы (тонирует сайт/лаунчер)</span>
             <span class="accent-row">
               <input
@@ -401,6 +452,30 @@ onMounted(load)
   box-shadow: 0 0 0 3px rgba(var(--adm-acc-rgb), 0.12);
 }
 .fld input:disabled { opacity: 0.55; }
+/* Repeatable news channel rows */
+.chan-cat {
+  border: 1px solid rgba(var(--adm-acc-rgb), 0.14);
+  border-radius: 12px;
+  padding: 0.85rem 0.9rem;
+  background: rgba(var(--adm-acc-rgb), 0.04);
+}
+.chan-cat__head { font-weight: 700; margin-bottom: 0.55rem; color: var(--adm-text); }
+.chan-row { display: flex; gap: 0.4rem; align-items: center; margin-bottom: 0.4rem; }
+.chan-row__main { flex: 1; min-width: 0; }
+.chan-row__thread { width: 160px; flex-shrink: 0; }
+.chan-row__del {
+  flex-shrink: 0; width: 32px; height: 32px; border-radius: var(--adm-r-sm);
+  border: 1px solid var(--adm-line-strong); background: rgba(239, 68, 68, 0.08);
+  color: #f87171; cursor: pointer; font-size: 0.8rem;
+}
+.chan-row__del:hover { background: rgba(239, 68, 68, 0.18); }
+.chan-add {
+  align-self: flex-start; margin-top: 0.15rem; padding: 0.35rem 0.7rem;
+  border-radius: var(--adm-r-sm); border: 1px dashed var(--adm-acc-line);
+  background: rgba(var(--adm-acc-rgb), 0.08); color: var(--adm-acc-text);
+  font-size: 0.78rem; font-weight: 700; cursor: pointer;
+}
+.chan-add:hover { background: rgba(var(--adm-acc-rgb), 0.16); }
 .accent-row { display: flex; align-items: center; gap: 0.5rem; }
 .accent-row input:not(.accent-pick) { flex: 1; min-width: 0; }
 .accent-pick { width: 2.4rem; height: 2.4rem; flex-shrink: 0; padding: 0.2rem !important; cursor: pointer; border-radius: 8px; }

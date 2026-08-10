@@ -2,10 +2,13 @@
 import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { adminListPlayers, adminPatchLegacy } from '../../services/adminApi'
 import { adminGetBattlePassPlayerByNick, adminGrantBattlePassPremium, adminRevokeBattlePassPremiumByNick } from '../../services/battlepassAdminApi'
-import { authState } from '../../stores/authStore'
+import { authState, hasPermission } from '../../stores/authStore'
 import { confirmDialog } from '../../composables/useConfirm'
 
 const token = () => authState.accessToken
+const canManagePlayers = hasPermission('players.manage')
+const canViewBp = hasPermission('battlepass.view')
+const canManageBp = hasPermission('battlepass.manage')
 
 const items = ref([])
 const total = ref(0)
@@ -77,7 +80,8 @@ function openModal(item) {
   bpDays.value = 30
   bpNote.value = ''
   bpManualUuid.value = ''
-  void loadBpInfo(item.player_account.minecraft_nickname)
+  // Only touch the Battle Pass endpoints if the caller can view BP (avoids 403).
+  if (canViewBp) void loadBpInfo(item.player_account.minecraft_nickname)
 }
 
 async function loadBpInfo(nickname) {
@@ -310,7 +314,8 @@ onMounted(load)
           </div>
         </div>
 
-        <!-- Actions -->
+        <!-- Actions (require players.manage) -->
+        <template v-if="canManagePlayers">
         <div class="adm-label">Аккаунт</div>
         <div class="action-row">
           <button
@@ -352,8 +357,11 @@ onMounted(load)
 
         <div v-if="actionMsg" class="notice notice--ok">{{ actionMsg }}</div>
         <div v-if="actionErr" class="notice notice--err">{{ actionErr }}</div>
+        </template>
+        <div v-else class="adm-mut" style="font-size:.85rem;margin:.4rem 0">Только просмотр — нет прав на управление игроками.</div>
 
-        <!-- Battle Pass Premium -->
+        <!-- Battle Pass Premium (require battlepass.view) -->
+        <template v-if="canViewBp">
         <div class="adm-label" style="margin-top: 1.1rem">Battle Pass Premium</div>
 
         <div v-if="bpLoading && !bpInfo" class="adm-skel" style="height: 32px; margin-bottom: 0.75rem" />
@@ -373,6 +381,8 @@ onMounted(load)
             <span class="bp-level-hint adm-num">Ур. {{ bpInfo.level }} · {{ bpInfo.xp }} XP</span>
           </div>
 
+          <!-- Grant/revoke require battlepass.manage -->
+          <template v-if="canManageBp">
           <!-- UUID not found — manual input -->
           <div v-if="bpInfo && !bpInfo.minecraft_uuid" class="bp-uuid-row">
             <span class="bp-uuid-hint">UUID не найден в БД. Введите вручную:</span>
@@ -399,9 +409,11 @@ onMounted(load)
             </button>
             <button class="adm-btn adm-btn--danger adm-btn--sm" :disabled="bpLoading" @click="revokeBp">Отозвать</button>
           </div>
+          </template>
 
           <div v-if="bpMsg" class="notice notice--ok">{{ bpMsg }}</div>
           <div v-if="bpErr" class="notice notice--err">{{ bpErr }}</div>
+        </template>
         </template>
       </div>
     </div>

@@ -1,7 +1,7 @@
 <script setup>
 import { onMounted, ref, computed } from 'vue'
 import { adminListCrashes, adminDeleteCrash } from '../../services/adminCrashesApi'
-import { authState } from '../../stores/authStore'
+import { authState, hasPermission } from '../../stores/authStore'
 import { confirmDialog } from '../../composables/useConfirm'
 
 const token = () => authState.accessToken
@@ -9,6 +9,7 @@ const token = () => authState.accessToken
 const items = ref([])
 const loading = ref(true)
 const deletingId = ref(null)
+const canManage = hasPermission('crashes.manage')
 const search = ref('')
 const expandedId = ref(null)
 
@@ -96,7 +97,7 @@ onMounted(load)
             >
               {{ expandedId === item.id ? 'Свернуть' : 'Лог' }}
             </button>
-            <button class="adm-btn adm-btn--danger adm-btn--sm" :disabled="deletingId === item.id" @click="remove(item.id)">
+            <button v-if="canManage" class="adm-btn adm-btn--danger adm-btn--sm" :disabled="deletingId === item.id" @click="remove(item.id)">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg>
               Удалить
             </button>

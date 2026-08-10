@@ -989,7 +989,7 @@ footer,
   }
 }
 
-@media (min-width: 1120px) {
+@media (min-width: 1180px) {
   .site-navbar__desktop-nav,
   .site-navbar__actions--desktop {
     display: flex;
@@ -1031,11 +1031,15 @@ footer,
 }
 
 /* Tightest desktop range: external links (Map/Discord live in the footer and
-   hero too) give way so the feature tabs and auth cluster always fit. */
-@media (min-width: 1120px) and (max-width: 1199px) {
+   hero too) give way so the feature tabs and auth cluster always fit. Extended
+   up to 1319px so the row never overflows once every feature tab (incl. News)
+   is enabled. */
+@media (min-width: 1120px) and (max-width: 1319px) {
   .site-navbar__ext-link { display: none; }
-  .site-navbar__link { padding-left: 0.4rem; padding-right: 0.4rem; }
+  .site-navbar__link { padding-left: 0.3rem; padding-right: 0.3rem; }
+  .site-navbar__link-icon { display: none; }
   .site-navbar__server-name { max-width: 3.5rem; }
+  .site-navbar__avatar-name { max-width: 4.5rem; }
 }
 
 @media (max-width: 767px) {

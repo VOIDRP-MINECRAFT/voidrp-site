@@ -82,6 +82,21 @@ export function getIsAuthenticated() {
   return Boolean(authState.accessToken && authState.user)
 }
 
+// Staff access: full admin or moderator.
+export function isStaff() {
+  return Boolean(authState.user?.is_admin || authState.user?.is_moderator)
+}
+
+// Permission check for admin-panel gating. Full admins bypass; moderators must
+// hold the key. Mirrors the backend require_permission logic. UI-only — the API
+// enforces the same checks server-side.
+export function hasPermission(key) {
+  const u = authState.user
+  if (!u) return false
+  if (u.is_admin) return true
+  return Array.isArray(u.permissions) && u.permissions.includes(key)
+}
+
 export async function refreshCurrentSessionSilently() {
   if (!authState.refreshToken) {
     return false

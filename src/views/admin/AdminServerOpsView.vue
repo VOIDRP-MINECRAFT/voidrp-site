@@ -4,14 +4,18 @@ import {
   getServerMetrics,
   getServerLive,
   runRconCommand,
+  moderatePlayer,
   getServerLogs,
 } from '../../services/adminServerOpsApi.js'
-import { authState } from '../../stores/authStore'
+import { authState, hasPermission } from '../../stores/authStore'
 import { activeServer } from '../../stores/serverStore'
 import { toastError, toastSuccess } from '../../services/toast'
 import { confirmDialog } from '../../composables/useConfirm'
 
 const token = () => authState.accessToken
+const canRcon = hasPermission('monitoring.rcon')
+const canViewPlayers = hasPermission('players.online.view')
+const canModerate = hasPermission('players.online.moderate')
 const serverName = computed(() => activeServer.value?.name || 'сервер')
 
 // ── State ───────────────────────────────────────────────────────────────────
@@ -212,11 +216,16 @@ async function moderate(action, name) {
     })
     if (!ok) return
   }
-  const r = await execRcon(`${action} ${name}`)
-  if (r.error) { toastError(r.out); return }
-  toastSuccess(`${verbs[action]}: ${name}`)
-  pushConsole(`${action} ${name}`, r.out, false)
-  if (action !== 'op') setTimeout(loadLive, 800)
+  // Dedicated moderation endpoint (permission players.online.moderate) — not the
+  // general RCON console, so a moderator can kick/ban/op without full RCON.
+  try {
+    const res = await moderatePlayer(token(), action, name)
+    toastSuccess(`${verbs[action]}: ${name}`)
+    if (canRcon) pushConsole(`${action} ${name}`, res.output, false)
+    if (action !== 'op') setTimeout(loadLive, 800)
+  } catch (e) {
+    toastError(e?.message || 'Не удалось выполнить действие')
+  }
 }
 
 // ── Log viewer ──────────────────────────────────────────────────────────────
@@ -418,7 +427,7 @@ onBeforeUnmount(() => {
     <!-- ── Консоль + игроки ─────────────────────────────────────── -->
     <div class="ops-cols">
       <!-- RCON console -->
-      <div class="adm-card ops-console">
+      <div v-if="canRcon" class="adm-card ops-console">
         <div class="adm-card__head">
           <h3 class="adm-card__title">RCON-консоль</h3>
           <div class="ops-quick">
@@ -443,7 +452,7 @@ onBeforeUnmount(() => {
       </div>
 
       <!-- Players -->
-      <div class="adm-card ops-players">
+      <div v-if="canViewPlayers" class="adm-card ops-players">
         <div class="adm-card__head">
           <h3 class="adm-card__title">Игроки онлайн</h3>
           <span class="adm-badge">{{ players.length }}</span>
@@ -453,7 +462,7 @@ onBeforeUnmount(() => {
           <div v-for="p in players" :key="p" class="ops-player">
             <span class="adm-avatar ops-player__ava">{{ p.charAt(0).toUpperCase() }}</span>
             <span class="ops-player__name adm-mono">{{ p }}</span>
-            <div class="ops-player__acts">
+            <div v-if="canModerate" class="ops-player__acts">
               <button class="adm-btn adm-btn--sm" title="Кик" @click="moderate('kick', p)">Кик</button>
               <button class="adm-btn adm-btn--sm adm-btn--danger" title="Бан" @click="moderate('ban', p)">Бан</button>
               <button class="adm-btn adm-btn--sm adm-btn--ok" title="Выдать OP" @click="moderate('op', p)">OP</button>
