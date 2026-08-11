@@ -243,7 +243,7 @@ function startGalleryRotation() {
     const i = galleryFlipPtr % cells.length
     galleryFlipPtr = (galleryFlipPtr + 1) % cells.length
     advanceGalleryCell(i, cells.length)
-  }, 3200)
+  }, 4000)
 }
 
 function advanceGalleryCell(i, count) {
@@ -1009,9 +1009,13 @@ function nationAccent(nation) {
           :class="`gallery-cell--${i}`"
           @click="activeShot = currentShotUrl(cell)"
         >
-          <div class="gallery-flip" :class="{ 'is-flipped': cell.showBack }">
-            <img :src="cell.front" alt="" class="gallery-img gallery-face" loading="lazy" decoding="async" />
-            <img :src="cell.back" alt="" class="gallery-img gallery-face gallery-face--back" loading="lazy" decoding="async" />
+          <div class="gallery-stack">
+            <div class="gallery-layer" :class="{ 'is-active': !cell.showBack }">
+              <img :src="cell.front" alt="" class="gallery-layer__img" loading="lazy" decoding="async" />
+            </div>
+            <div class="gallery-layer" :class="{ 'is-active': cell.showBack }">
+              <img :src="cell.back" alt="" class="gallery-layer__img" loading="lazy" decoding="async" />
+            </div>
           </div>
           <span class="gallery-zoom" aria-hidden="true">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" width="20" height="20"><circle cx="11" cy="11" r="7"/><path stroke-linecap="round" d="M21 21l-4.3-4.3M11 8v6M8 11h6"/></svg>
@@ -2089,28 +2093,43 @@ function nationAccent(nation) {
 /* Mosaic: first tile is a 2×2 hero, the rest fill around it. */
 .gallery-cell--0 { grid-column: span 2; grid-row: span 2; }
 
-/* 3D flip wrapper: cells periodically rotate to the next photo. Hover-zoom lives
-   on this wrapper (not the imgs) so it never overwrites the back face's rotateY. */
-.gallery-flip {
+/* Crossfade wall: two stacked layers per cell. The active one fades in while a
+   slow Ken-Burns zoom keeps it alive; on swap the layers cross-dissolve. Feels
+   like a living lookbook rather than a mechanical flip. */
+.gallery-stack {
   position: absolute; inset: 0;
-  transform-style: preserve-3d;
-  transition: transform .8s cubic-bezier(.4,.05,.2,1);
+  transition: transform .6s cubic-bezier(.2,.8,.2,1);
 }
-.gallery-flip.is-flipped { transform: rotateY(180deg); }
-.gallery-cell:hover .gallery-flip { transform: scale(1.07); }
-.gallery-cell:hover .gallery-flip.is-flipped { transform: rotateY(180deg) scale(1.07); }
+.gallery-cell:hover .gallery-stack { transform: scale(1.04); }
 
-.gallery-img {
+.gallery-layer {
+  position: absolute; inset: 0;
+  opacity: 0;
+  transition: opacity 1.1s ease;
+  will-change: opacity;
+}
+.gallery-layer.is-active { opacity: 1; }
+
+.gallery-layer__img {
   width: 100%; height: 100%;
   object-fit: cover;
   display: block;
+  transform: scale(1.02);
 }
-.gallery-face {
-  position: absolute; inset: 0;
-  backface-visibility: hidden;
-  -webkit-backface-visibility: hidden;
+/* Re-triggered each time a layer becomes active (element re-enters the active
+   state), so every revealed photo drifts in with a slow settle-zoom. */
+.gallery-layer.is-active .gallery-layer__img {
+  animation: gallery-kenburns 11s ease-out both;
 }
-.gallery-face--back { transform: rotateY(180deg); }
+@keyframes gallery-kenburns {
+  from { transform: scale(1.16); }
+  to   { transform: scale(1.02); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .gallery-layer { transition: none; }
+  .gallery-layer.is-active .gallery-layer__img { animation: none; }
+}
 
 .gallery-zoom {
   position: absolute;
