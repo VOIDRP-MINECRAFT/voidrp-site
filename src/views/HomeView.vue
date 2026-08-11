@@ -206,6 +206,62 @@ function triggerCountUp() {
 // ── Screenshots ────────────────────────────────────────────────────────────
 const screenshots = ref([])
 
+// Gallery: a fixed mosaic of up to 7 cells. When more screenshots were uploaded
+// than cells, each cell periodically flips (3D) to the next photo so the whole
+// set gets shown over time. Cell i cycles i, i+count, i+2·count… (mod N) — the
+// per-cell offset is distinct so two cells never show the same photo at once.
+const GALLERY_CELLS = 7
+const galleryCells = ref([]) // [{ front, back, showBack, seq }]
+let galleryTimer = null
+let galleryFlipPtr = 0
+
+function currentShotUrl(cell) {
+  return cell.showBack ? cell.back : cell.front
+}
+
+function buildGalleryCells() {
+  stopGalleryRotation()
+  const shots = screenshots.value
+  const n = shots.length
+  const count = Math.min(GALLERY_CELLS, n)
+  galleryCells.value = Array.from({ length: count }, (_, i) => ({
+    front: shots[i].url,
+    back: shots[i].url,
+    showBack: false,
+    seq: 1, // index of the next photo this cell will reveal
+  }))
+  const reduce = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches
+  if (n > count && !reduce) startGalleryRotation()
+}
+
+function startGalleryRotation() {
+  galleryFlipPtr = 0
+  // Flip one cell at a time, round-robin, so the wall feels alive but not busy.
+  galleryTimer = setInterval(() => {
+    const cells = galleryCells.value
+    if (!cells.length) return
+    const i = galleryFlipPtr % cells.length
+    galleryFlipPtr = (galleryFlipPtr + 1) % cells.length
+    advanceGalleryCell(i, cells.length)
+  }, 3200)
+}
+
+function advanceGalleryCell(i, count) {
+  const shots = screenshots.value
+  const n = shots.length
+  const cell = galleryCells.value[i]
+  const nextUrl = shots[(i + cell.seq * count) % n].url
+  cell.seq += 1
+  // Paint the next image onto the hidden face, then flip to reveal it.
+  if (cell.showBack) cell.front = nextUrl
+  else cell.back = nextUrl
+  cell.showBack = !cell.showBack
+}
+
+function stopGalleryRotation() {
+  if (galleryTimer) { clearInterval(galleryTimer); galleryTimer = null }
+}
+
 // ── Top nations ────────────────────────────────────────────────────────────
 const topNations = ref([])
 const nationsLoading = ref(true)
@@ -662,6 +718,7 @@ onMounted(async () => {
 
   if (shots.status === 'fulfilled') {
     screenshots.value = shots.value || []
+    buildGalleryCells()
   }
   applyPulse(kf, tp)
   loadShop()
@@ -706,6 +763,7 @@ onUnmounted(() => {
   fxCleanups.forEach((fn) => fn())
   fxCleanups = []
   statsObserver?.disconnect()
+  stopGalleryRotation()
 })
 
 function nationAccent(nation) {
@@ -944,14 +1002,17 @@ function nationAccent(nation) {
 
       <div class="gallery-grid" data-reveal>
         <button
-          v-for="(s, i) in screenshots.slice(0, 7)"
+          v-for="(cell, i) in galleryCells"
           :key="i"
           type="button"
           class="gallery-cell"
           :class="`gallery-cell--${i}`"
-          @click="activeShot = s.url"
+          @click="activeShot = currentShotUrl(cell)"
         >
-          <img :src="s.url" alt="" class="gallery-img" loading="lazy" decoding="async" />
+          <div class="gallery-flip" :class="{ 'is-flipped': cell.showBack }">
+            <img :src="cell.front" alt="" class="gallery-img gallery-face" loading="lazy" decoding="async" />
+            <img :src="cell.back" alt="" class="gallery-img gallery-face gallery-face--back" loading="lazy" decoding="async" />
+          </div>
           <span class="gallery-zoom" aria-hidden="true">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" width="20" height="20"><circle cx="11" cy="11" r="7"/><path stroke-linecap="round" d="M21 21l-4.3-4.3M11 8v6M8 11h6"/></svg>
           </span>
@@ -2028,13 +2089,28 @@ function nationAccent(nation) {
 /* Mosaic: first tile is a 2×2 hero, the rest fill around it. */
 .gallery-cell--0 { grid-column: span 2; grid-row: span 2; }
 
+/* 3D flip wrapper: cells periodically rotate to the next photo. Hover-zoom lives
+   on this wrapper (not the imgs) so it never overwrites the back face's rotateY. */
+.gallery-flip {
+  position: absolute; inset: 0;
+  transform-style: preserve-3d;
+  transition: transform .8s cubic-bezier(.4,.05,.2,1);
+}
+.gallery-flip.is-flipped { transform: rotateY(180deg); }
+.gallery-cell:hover .gallery-flip { transform: scale(1.07); }
+.gallery-cell:hover .gallery-flip.is-flipped { transform: rotateY(180deg) scale(1.07); }
+
 .gallery-img {
   width: 100%; height: 100%;
   object-fit: cover;
   display: block;
-  transition: transform .5s cubic-bezier(.2,.8,.2,1);
 }
-.gallery-cell:hover .gallery-img { transform: scale(1.07); }
+.gallery-face {
+  position: absolute; inset: 0;
+  backface-visibility: hidden;
+  -webkit-backface-visibility: hidden;
+}
+.gallery-face--back { transform: rotateY(180deg); }
 
 .gallery-zoom {
   position: absolute;
