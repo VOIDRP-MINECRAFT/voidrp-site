@@ -1,11 +1,14 @@
 <script setup>
-import { onMounted, ref, computed } from 'vue'
+import { onMounted, ref, computed, watch } from 'vue'
+import { useRoute, useRouter } from 'vue-router'
 import { adminListCrashes, adminDeleteCrash, adminDeleteCrashes } from '../../services/adminCrashesApi'
 import { authState, hasPermission } from '../../stores/authStore'
 import { confirmDialog } from '../../composables/useConfirm'
 import { toastError, toastSuccess } from '../../services/toast'
 
 const token = () => authState.accessToken
+const route = useRoute()
+const router = useRouter()
 
 const items = ref([])
 const loading = ref(true)
@@ -13,12 +16,15 @@ const deletingId = ref(null)
 const canManage = hasPermission('crashes.manage')
 const search = ref('')
 const expandedId = ref(null)
+// Optional server-side filter by launcher version (e.g. arriving from the
+// «Лаунчер» tab's crash-by-version widget: /admin/launcher-crashes?version=…).
+const versionFilter = ref(route.query.version ? String(route.query.version) : '')
 
 async function load() {
   loading.value = true
   selected.value = []
   try {
-    const data = await adminListCrashes(token())
+    const data = await adminListCrashes(token(), { version: versionFilter.value || '' })
     items.value = data?.items || []
   } catch {
     items.value = []
@@ -26,6 +32,17 @@ async function load() {
     loading.value = false
   }
 }
+
+function clearVersion() {
+  versionFilter.value = ''
+  router.replace({ query: { ...route.query, version: undefined } })
+  load()
+}
+
+watch(() => route.query.version, (v) => {
+  const next = v ? String(v) : ''
+  if (next !== versionFilter.value) { versionFilter.value = next; load() }
+})
 
 async function remove(id) {
   if (!(await confirmDialog({ title: 'Удалить краш-репорт', message: 'Удалить этот краш-репорт?', confirmLabel: 'Удалить', danger: true }))) return
@@ -152,7 +169,13 @@ onMounted(load)
       </button>
     </div>
 
-    <input v-model="search" class="adm-input" style="max-width: 320px" placeholder="Ник игрока..." />
+    <div style="display:flex;flex-wrap:wrap;align-items:center;gap:0.6rem">
+      <input v-model="search" class="adm-input" style="max-width: 320px" placeholder="Ник игрока..." />
+      <span v-if="versionFilter" class="adm-badge adm-badge--acc" style="display:inline-flex;align-items:center;gap:0.4rem">
+        Версия: <span class="adm-mono">{{ versionFilter }}</span>
+        <button class="ver-x" title="Сбросить фильтр версии" @click="clearVersion">✕</button>
+      </span>
+    </div>
 
     <div v-if="canManage && filtered.length" class="bulk-bar">
       <label class="adm-check">
@@ -238,6 +261,8 @@ onMounted(load)
 
 <style scoped>
 .cards { display: flex; flex-direction: column; gap: 0.65rem; }
+.ver-x { border: none; background: transparent; color: inherit; cursor: pointer; font-size: 0.85rem; line-height: 1; opacity: 0.75; padding: 0; }
+.ver-x:hover { opacity: 1; }
 
 .bulk-bar { display: flex; align-items: center; gap: 1rem; margin: 0.85rem 0 0.15rem; flex-wrap: wrap; }
 .adm-check-box { width: 16px; height: 16px; cursor: pointer; accent-color: var(--adm-acc); vertical-align: middle; }

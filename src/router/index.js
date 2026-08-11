@@ -79,6 +79,7 @@ const routes = [
       { path: 'news', name: 'admin-news', component: () => import('../views/admin/AdminNewsView.vue'), meta: { title: 'Новости', requiresAuth: true, requiresAdmin: true, hidePublicShell: true, anyPermission: ['news.updates.view', 'news.media.view'] } },
       { path: 'feedback', name: 'admin-feedback', component: () => import('../views/admin/AdminFeedbackView.vue'), meta: { title: 'Обращения', requiresAuth: true, requiresAdmin: true, hidePublicShell: true, permission: 'feedback.view' } },
       { path: 'launcher-crashes', name: 'admin-launcher-crashes', component: () => import('../views/admin/AdminCrashReportsView.vue'), meta: { title: 'Краши лаунчера', requiresAuth: true, requiresAdmin: true, hidePublicShell: true, permission: 'crashes.view' } },
+      { path: 'launcher', name: 'admin-launcher', component: () => import('../views/admin/AdminLauncherView.vue'), meta: { title: 'Лаунчер', requiresAuth: true, requiresAdmin: true, hidePublicShell: true, permission: 'launcher.view' } },
       { path: 'moderators', name: 'admin-moderators', component: () => import('../views/admin/AdminModeratorsView.vue'), meta: { title: 'Модерация', requiresAuth: true, requiresAdmin: true, hidePublicShell: true, adminOnly: true } },
     ],
   },
