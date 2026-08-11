@@ -13,3 +13,11 @@ export async function adminListCrashes(token, { player = '', limit = 50, offset 
 export async function adminDeleteCrash(token, id) {
   return apiRequest(`/admin/launcher-crashes/${encodeURIComponent(id)}`, { method: 'DELETE', ...ah(token) })
 }
+
+export async function adminDeleteCrashes(token, ids) {
+  return apiRequest('/admin/launcher-crashes/delete', {
+    method: 'POST',
+    body: JSON.stringify({ ids }),
+    ...ah(token),
+  })
+}

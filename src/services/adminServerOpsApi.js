@@ -48,3 +48,9 @@ export function getServerLogs(token, { source = 'server', lines = 250 } = {}) {
   const qs = new URLSearchParams({ source, lines: String(lines) })
   return apiRequest(`/admin/server-ops/logs?${qs.toString()}`, ah(token))
 }
+
+// Recent watchdog/HUNG_TICK stalls parsed out of the server log (summary lines).
+export function getServerHangs(token, { limit = 50 } = {}) {
+  const qs = new URLSearchParams({ limit: String(limit) })
+  return apiRequest(`/admin/server-ops/hangs?${qs.toString()}`, ah(token))
+}

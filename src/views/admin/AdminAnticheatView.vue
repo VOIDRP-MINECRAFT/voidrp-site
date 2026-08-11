@@ -6,9 +6,12 @@ import {
   anticheatGetConfig,
   anticheatUpdateConfig,
   anticheatGetStats,
+  anticheatDeletePlayers,
 } from '../../services/adminAnticheatApi.js'
 import { authState, hasPermission } from '../../stores/authStore'
 import { activeServer } from '../../stores/serverStore'
+import { confirmDialog } from '../../composables/useConfirm'
+import { toastError, toastSuccess } from '../../services/toast'
 
 const router = useRouter()
 const token = () => authState.accessToken
@@ -35,6 +38,7 @@ const rangeTo = computed(() => Math.min(page.value * PAGE_SIZE, total.value))
 async function load() {
   loading.value = true
   error.value = ''
+  selected.value = []  // reset selection whenever the visible rows change
   try {
     const data = await anticheatListPlayers(token(), {
       limit: PAGE_SIZE,
@@ -47,6 +51,51 @@ async function load() {
     error.value = e.message || 'Ошибка загрузки'
   } finally {
     loading.value = false
+  }
+}
+
+// ── Selection & bulk delete ─────────────────────────────────────────────────
+const selected = ref([])  // player_uuids ticked in the current view
+const deleting = ref(false)
+
+function isSelected(uuid) { return selected.value.includes(uuid) }
+function toggleOne(uuid) {
+  const i = selected.value.indexOf(uuid)
+  if (i >= 0) selected.value.splice(i, 1)
+  else selected.value.push(uuid)
+}
+const allSelected = computed(
+  () => players.value.length > 0 && players.value.every(p => selected.value.includes(p.player_uuid)),
+)
+const someSelected = computed(() => selected.value.length > 0 && !allSelected.value)
+function toggleAll() {
+  selected.value = allSelected.value ? [] : players.value.map(p => p.player_uuid)
+}
+
+async function deleteSelected() {
+  if (!selected.value.length || deleting.value) return
+  const n = selected.value.length
+  const word = n === 1 ? 'игрока' : 'игроков'
+  const ok = await confirmDialog({
+    title: 'Удалить записи античита',
+    message: `Удалить все записи (нарушения, снапшоты модов, отчёты инъекций) для ${n} ${word} на сервере «${activeServerName.value}»? Действие необратимо.`,
+    confirmLabel: 'Удалить',
+    danger: true,
+  })
+  if (!ok) return
+  deleting.value = true
+  try {
+    const res = await anticheatDeletePlayers(token(), selected.value)
+    toastSuccess(`Удалено записей: ${res.violations} нарушений, ${res.snapshots} снапшотов, ${res.injection_reports} инъекций`)
+    selected.value = []
+    // If we cleared the last rows on a non-first page, step back so we don't
+    // land on an empty page.
+    if (players.value.length === res.players && page.value > 1) page.value -= 1
+    await load()
+  } catch (e) {
+    toastError(e.message || 'Не удалось удалить')
+  } finally {
+    deleting.value = false
   }
 }
 
@@ -184,6 +233,14 @@ onMounted(load)
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg>
           Обновить
         </button>
+        <button
+          v-if="canManage && selected.length"
+          class="adm-btn adm-btn--danger"
+          :disabled="deleting"
+          @click="deleteSelected"
+        >
+          {{ deleting ? 'Удаление…' : `Удалить выбранных (${selected.length})` }}
+        </button>
       </div>
 
       <div v-if="error" class="ac-alert">{{ error }}</div>
@@ -201,6 +258,16 @@ onMounted(load)
             <table class="adm-table" style="white-space: nowrap">
               <thead>
                 <tr>
+                  <th v-if="canManage" class="ac-check-col">
+                    <input
+                      type="checkbox"
+                      class="adm-check-box"
+                      :checked="allSelected"
+                      :indeterminate="someSelected"
+                      title="Выбрать всё"
+                      @change="toggleAll"
+                    />
+                  </th>
                   <th>Игрок</th>
                   <th>Риск</th>
                   <th>Нарушений</th>
@@ -215,9 +282,17 @@ onMounted(load)
                   v-for="p in players"
                   :key="p.player_uuid"
                   class="is-clickable"
-                  :class="'risk--' + riskLevel(p)"
+                  :class="['risk--' + riskLevel(p), { 'is-selected': isSelected(p.player_uuid) }]"
                   @click="goToPlayer(p.player_uuid)"
                 >
+                  <td v-if="canManage" class="ac-check-col" @click.stop>
+                    <input
+                      type="checkbox"
+                      class="adm-check-box"
+                      :checked="isSelected(p.player_uuid)"
+                      @change="toggleOne(p.player_uuid)"
+                    />
+                  </td>
                   <td class="adm-mono" style="color: var(--adm-text); font-weight: 700">{{ p.player_nick }}</td>
                   <td><span class="adm-badge" :class="riskBadge(p)">{{ riskLabel(p) }}</span></td>
                   <td class="adm-num">{{ p.total_violations }}</td>
@@ -379,6 +454,11 @@ onMounted(load)
 .risk--high td:first-child { box-shadow: inset 3px 0 0 var(--adm-err); }
 .risk--medium td:first-child { box-shadow: inset 3px 0 0 var(--adm-warn); }
 .risk--low td:first-child { box-shadow: inset 3px 0 0 var(--adm-dim); }
+
+/* Колонка чекбоксов выбора */
+.ac-check-col { width: 1%; text-align: center; padding-left: 0.6rem; padding-right: 0.6rem; }
+.adm-check-box { width: 16px; height: 16px; cursor: pointer; accent-color: var(--adm-acc); vertical-align: middle; }
+tr.is-selected { background: var(--adm-acc-soft, rgba(99, 102, 241, 0.08)); }
 
 /* Компактные счётчики HIGH/MED/LOW */
 .cnt {

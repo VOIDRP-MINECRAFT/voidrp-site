@@ -15,6 +15,15 @@ export async function anticheatListPlayers(token, params = {}) {
   return apiRequest(`/admin/anticheat/players${qs ? '?' + qs : ''}`, { method: 'GET', ...ah(token) })
 }
 
+// Permanently delete all anticheat records for the given players (current server).
+export async function anticheatDeletePlayers(token, playerUuids) {
+  return apiRequest('/admin/anticheat/players/delete', {
+    method: 'POST',
+    body: JSON.stringify({ player_uuids: playerUuids }),
+    ...ah(token),
+  })
+}
+
 export async function anticheatGetPlayer(token, playerUuid) {
   return apiRequest(`/admin/anticheat/player/${encodeURIComponent(playerUuid)}`, { method: 'GET', ...ah(token) })
 }

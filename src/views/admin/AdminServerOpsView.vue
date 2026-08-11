@@ -1,5 +1,5 @@
 <script setup>
-import { computed, onBeforeUnmount, onMounted, nextTick, ref } from 'vue'
+import { computed, h, onBeforeUnmount, onMounted, nextTick, ref } from 'vue'
 import {
   getServerMetrics,
   getServerLive,
@@ -7,6 +7,7 @@ import {
   moderatePlayer,
   serverPowerAction,
   getServerLogs,
+  getServerHangs,
 } from '../../services/adminServerOpsApi.js'
 import { authState, hasPermission } from '../../stores/authStore'
 import { activeServer } from '../../stores/serverStore'
@@ -14,6 +15,63 @@ import { toastError, toastSuccess } from '../../services/toast'
 import { confirmDialog } from '../../composables/useConfirm'
 
 const token = () => authState.accessToken
+
+// ── Inline sparkline (functional component) ─────────────────────────────────
+// Renders a compact filled trend line from a numeric series. Auto-scales unless
+// an explicit min/max is given (util % use 0..100 so the band is stable).
+const Spark = (props) => {
+  const vals = (props.values || []).filter((v) => v != null && !Number.isNaN(v))
+  const W = 100
+  const H = 26
+  if (vals.length < 2) {
+    return h('svg', { class: 'ops-spark', viewBox: `0 0 ${W} ${H}`, preserveAspectRatio: 'none' })
+  }
+  const min = props.min ?? Math.min(...vals)
+  const max = props.max ?? Math.max(...vals)
+  const span = max - min || 1
+  const step = W / (vals.length - 1)
+  const pts = vals
+    .map((v, i) => {
+      const x = i * step
+      const y = H - ((Math.min(Math.max(v, min), max) - min) / span) * H
+      return `${x.toFixed(1)},${y.toFixed(1)}`
+    })
+    .join(' ')
+  // Colours are set inline (not via scoped CSS classes): elements built in a
+  // render function don't receive the parent's scoped data-v attribute, so the
+  // scoped `.ops-spark__*` selectors wouldn't match — the SVG default fill=black
+  // would show through as a solid black chart.
+  const color = { 'is-ok': 'var(--adm-ok)', 'is-warn': 'var(--adm-warn)', 'is-crit': 'var(--adm-err)' }[props.klass]
+    || 'var(--adm-acc)'
+  return h(
+    'svg',
+    { class: 'ops-spark', viewBox: `0 0 ${W} ${H}`, preserveAspectRatio: 'none' },
+    [
+      h('polygon', { points: `0,${H} ${pts} ${W},${H}`, style: { fill: color, opacity: '0.12', stroke: 'none' } }),
+      h('polyline', {
+        points: pts,
+        style: { fill: 'none', stroke: color, strokeWidth: '1.5', vectorEffect: 'non-scaling-stroke' },
+      }),
+    ],
+  )
+}
+// Declare props so bindings land in `props` (not fall through to attrs) for this
+// plain-function functional component.
+Spark.props = ['values', 'min', 'max', 'klass']
+
+// ── Rolling history (client-side ring buffer, no backend/DB) ────────────────
+const HIST = 60
+const cpuHist = ref([])
+const ramHist = ref([])
+const procHist = ref([])
+const tpsHist = ref([])
+const heapHist = ref([])
+function pushHist(buf, v) {
+  if (v == null || Number.isNaN(v)) return
+  buf.value.push(v)
+  if (buf.value.length > HIST) buf.value.splice(0, buf.value.length - HIST)
+}
+
 const canRcon = hasPermission('monitoring.rcon')
 const canPower = hasPermission('monitoring.restart')
 const canViewPlayers = hasPermission('players.online.view')
@@ -40,6 +98,7 @@ const updatedAgo = computed(() => {
 let metricsTimer = null
 let liveTimer = null
 let tickTimer = null
+let hangsTimer = null
 
 // ── Formatters ──────────────────────────────────────────────────────────────
 function fmtBytes(n) {
@@ -73,6 +132,7 @@ function utilClass(v) {
 const host = computed(() => metrics.value?.host || null)
 const proc = computed(() => metrics.value?.process || null)
 const disk = computed(() => metrics.value?.disk || null)
+const jvm = computed(() => metrics.value?.jvm || null)
 const unitState = computed(() => metrics.value?.unit_state || null)
 const notConfigured = computed(() => !firstLoad.value && metrics.value && !metrics.value.unit)
 
@@ -130,6 +190,16 @@ function tpsClass(v) {
   return 'is-crit'
 }
 
+// Per-dimension TPS (NeoForge), worst first — pinpoints which world is lagging.
+// Strip the redundant `minecraft:` namespace for compactness in the UI.
+const tpsDims = computed(() => {
+  const d = tps.value?.dimensions
+  if (!d?.length) return []
+  return [...d]
+    .sort((a, b) => a.tps - b.tps)
+    .map((x) => ({ ...x, label: (x.dim || '').replace(/^minecraft:/, '') }))
+})
+
 // ── Loaders (in-flight guards prevent poll pile-up on a slow server) ─────────
 let metricsBusy = false
 let liveBusy = false
@@ -141,6 +211,10 @@ async function loadMetrics() {
     metrics.value = await getServerMetrics(token())
     metricsErr.value = ''
     lastUpdated.value = Date.now()
+    pushHist(cpuHist, metrics.value?.host?.cpu_percent)
+    pushHist(ramHist, metrics.value?.host?.mem_percent)
+    pushHist(procHist, procCpuOfHost.value)
+    pushHist(heapHist, metrics.value?.jvm?.heap_percent)
   } catch (e) {
     metricsErr.value = e.message || 'Ошибка загрузки метрик'
   } finally {
@@ -153,6 +227,7 @@ async function loadLive() {
   liveBusy = true
   try {
     live.value = await getServerLive(token())
+    pushHist(tpsHist, live.value?.tps?.tps)
   } catch {
     /* live is best-effort */
   } finally {
@@ -317,17 +392,45 @@ function switchLogSource(s) {
   loadLogs()
 }
 
+// ── Recent hangs (watchdog / HUNG_TICK summary lines) ───────────────────────
+const hangs = ref([])
+const hangsAvailable = ref(true)
+let hangsBusy = false
+async function loadHangs() {
+  if (hangsBusy) return
+  hangsBusy = true
+  try {
+    const res = await getServerHangs(token(), { limit: 50 })
+    // Newest first for display; backend returns oldest→newest.
+    hangs.value = (res.hangs || []).slice().reverse()
+    hangsAvailable.value = res.available !== false
+  } catch {
+    /* best-effort */
+  } finally {
+    hangsBusy = false
+  }
+}
+// Severity band by stalled tick duration (seconds). Watchdog fires past ~60s.
+function hangClass(sec) {
+  if (sec == null) return ''
+  if (sec >= 60) return 'is-crit'
+  if (sec >= 15) return 'is-warn'
+  return ''
+}
+
 // ── Lifecycle ───────────────────────────────────────────────────────────────
 function startTimers() {
   stopTimers()
   metricsTimer = setInterval(loadMetrics, 4000)
   liveTimer = setInterval(loadLive, 6000)
   logTimer = setInterval(() => { if (logAuto.value) loadLogs() }, 5000)
+  hangsTimer = setInterval(loadHangs, 20000)
   tickTimer = setInterval(() => { nowTick.value = Date.now() }, 1000)
 }
 function stopTimers() {
-  clearInterval(metricsTimer); clearInterval(liveTimer); clearInterval(logTimer); clearInterval(tickTimer)
-  metricsTimer = liveTimer = logTimer = tickTimer = null
+  clearInterval(metricsTimer); clearInterval(liveTimer); clearInterval(logTimer)
+  clearInterval(hangsTimer); clearInterval(tickTimer)
+  metricsTimer = liveTimer = logTimer = hangsTimer = tickTimer = null
 }
 function toggleAuto() {
   autoRefresh.value = !autoRefresh.value
@@ -343,6 +446,7 @@ function onVisibility() {
   } else if (autoRefresh.value) {
     refreshAll()
     if (logAuto.value) loadLogs()
+    loadHangs()
     startTimers()
   }
 }
@@ -350,6 +454,7 @@ function onVisibility() {
 onMounted(async () => {
   await refreshAll()
   await loadLogs()
+  loadHangs()
   if (autoRefresh.value) startTimers()
   document.addEventListener('visibilitychange', onVisibility)
 })
@@ -402,6 +507,7 @@ onBeforeUnmount(() => {
           <span class="ops-metric__val adm-num" :class="utilClass(host?.cpu_percent)">{{ pct(host?.cpu_percent) }}</span>
         </div>
         <div class="ops-bar"><span class="ops-bar__fill" :class="utilClass(host?.cpu_percent)" :style="{ width: `${host?.cpu_percent || 0}%` }" /></div>
+        <Spark :values="cpuHist" :min="0" :max="100" :klass="utilClass(host?.cpu_percent)" />
         <div class="ops-metric__meta adm-mono">
           {{ host?.cpu_count || '—' }} ядер · load {{ host?.load_avg?.map(x => x.toFixed(1)).join(' / ') || '—' }}
         </div>
@@ -414,6 +520,7 @@ onBeforeUnmount(() => {
           <span class="ops-metric__val adm-num" :class="utilClass(host?.mem_percent)">{{ pct(host?.mem_percent) }}</span>
         </div>
         <div class="ops-bar"><span class="ops-bar__fill" :class="utilClass(host?.mem_percent)" :style="{ width: `${host?.mem_percent || 0}%` }" /></div>
+        <Spark :values="ramHist" :min="0" :max="100" :klass="utilClass(host?.mem_percent)" />
         <div class="ops-metric__meta adm-mono">{{ fmtBytes(host?.mem_used) }} / {{ fmtBytes(host?.mem_total) }}</div>
       </div>
 
@@ -437,9 +544,24 @@ onBeforeUnmount(() => {
           <span class="ops-metric__val adm-num" :class="utilClass(procCpuOfHost)">{{ pct(procCpuOfHost) }}</span>
         </div>
         <div class="ops-bar"><span class="ops-bar__fill" :class="utilClass(procCpuOfHost)" :style="{ width: `${procCpuOfHost || 0}%` }" /></div>
+        <Spark :values="procHist" :min="0" :max="100" :klass="utilClass(procCpuOfHost)" />
         <div class="ops-metric__meta adm-mono">
           <template v-if="proc">RAM {{ fmtBytes(proc.mem_rss) }} · {{ proc.threads }} потоков · pid {{ proc.pid }}</template>
           <template v-else>процесс не найден</template>
+        </div>
+      </div>
+
+      <!-- JVM heap / GC -->
+      <div v-if="jvm" class="adm-card adm-card--pad ops-metric">
+        <div class="ops-metric__top">
+          <span class="ops-metric__label">JVM Heap</span>
+          <span class="ops-metric__val adm-num" :class="utilClass(jvm.heap_percent)">{{ pct(jvm.heap_percent) }}</span>
+        </div>
+        <div class="ops-bar"><span class="ops-bar__fill" :class="utilClass(jvm.heap_percent)" :style="{ width: `${jvm.heap_percent || 0}%` }" /></div>
+        <Spark :values="heapHist" :min="0" :max="100" :klass="utilClass(jvm.heap_percent)" />
+        <div class="ops-metric__meta adm-mono">
+          {{ fmtBytes(jvm.heap_used) }} / {{ fmtBytes(jvm.heap_max) }}
+          <template v-if="jvm.meta_used"> · Meta {{ fmtBytes(jvm.meta_used) }}</template>
         </div>
       </div>
 
@@ -449,11 +571,18 @@ onBeforeUnmount(() => {
           <span class="ops-metric__label">TPS</span>
           <span class="ops-metric__val adm-num" :class="tpsClass(tps?.tps)">{{ tps?.tps != null ? tps.tps.toFixed(1) : '—' }}</span>
         </div>
+        <Spark :values="tpsHist" :min="0" :max="20" :klass="tpsClass(tps?.tps)" />
         <div v-if="tps?.windows" class="ops-tps-windows adm-mono">
           <span v-for="(v, k) in tps.windows" :key="k"><b>{{ k }}</b> {{ v }}</span>
         </div>
         <div v-else class="ops-metric__meta adm-mono">
           {{ tps?.mspt != null ? `${tps.mspt} мс/такт` : (live?.rcon_configured ? 'нет данных' : 'RCON не настроен') }}
+        </div>
+        <div v-if="tpsDims.length" class="ops-tps-dims adm-mono">
+          <div v-for="d in tpsDims" :key="d.dim" class="ops-tps-dim" :class="tpsClass(d.tps)">
+            <span class="ops-tps-dim__name">{{ d.label }}</span>
+            <span class="ops-tps-dim__val">{{ d.tps.toFixed(1) }}<template v-if="d.mspt != null"> · {{ d.mspt }}мс</template></span>
+          </div>
         </div>
       </div>
 
@@ -519,6 +648,26 @@ onBeforeUnmount(() => {
       </div>
     </div>
 
+    <!-- ── Недавние зависания (Watchdog / HUNG_TICK) ─────────────── -->
+    <div class="adm-card ops-hangs">
+      <div class="adm-card__head">
+        <h3 class="adm-card__title">Недавние зависания</h3>
+        <div class="ops-hangs__head-r">
+          <span class="adm-badge" :class="hangs.length ? 'adm-badge--err' : 'adm-badge--ok'">{{ hangs.length }}</span>
+          <button class="adm-btn adm-btn--sm" @click="loadHangs">Обновить</button>
+        </div>
+      </div>
+      <div class="ops-hangs__body">
+        <div v-if="!hangsAvailable" class="ops-console__empty">Лог недоступен</div>
+        <div v-else-if="!hangs.length" class="ops-console__empty">Зависаний в логе не найдено — сервер стабилен</div>
+        <div v-for="(hg, i) in hangs" :key="i" class="ops-hang" :class="hangClass(hg.seconds)">
+          <span class="ops-hang__time adm-mono">{{ hg.time || '—' }}</span>
+          <span v-if="hg.seconds != null" class="ops-hang__dur adm-mono">{{ hg.seconds.toFixed(1) }}с</span>
+          <span class="ops-hang__text adm-mono">{{ hg.text }}</span>
+        </div>
+      </div>
+    </div>
+
     <!-- ── Логи ──────────────────────────────────────────────────── -->
     <div class="adm-card ops-logs">
       <div class="adm-card__head ops-logs__head">
@@ -574,6 +723,28 @@ onBeforeUnmount(() => {
 
 .ops-tps-windows { display: flex; flex-wrap: wrap; gap: 0.6rem; font-size: 0.68rem; color: var(--adm-mut); }
 .ops-tps-windows b { color: var(--adm-dim); font-weight: 700; margin-right: 0.15rem; }
+
+/* ── Sparkline (line/area colours are set inline in the render fn) ─── */
+.ops-spark { width: 100%; height: 26px; display: block; overflow: visible; }
+
+/* ── Per-dimension TPS ────────────────────────────────────────────── */
+.ops-tps-dims { display: flex; flex-direction: column; gap: 0.15rem; margin-top: 0.15rem; padding-top: 0.4rem; border-top: 1px solid var(--adm-line); }
+.ops-tps-dim { display: flex; justify-content: space-between; gap: 0.5rem; font-size: 0.66rem; color: var(--adm-mut); }
+.ops-tps-dim__name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.ops-tps-dim__val { font-weight: 700; white-space: nowrap; }
+.ops-tps-dim.is-warn .ops-tps-dim__val { color: var(--adm-warn); }
+.ops-tps-dim.is-crit .ops-tps-dim__val { color: var(--adm-err); }
+
+/* ── Недавние зависания ───────────────────────────────────────────── */
+.ops-hangs__head-r { display: flex; align-items: center; gap: 0.5rem; }
+.ops-hangs__body { max-height: 280px; overflow-y: auto; padding: 0.4rem 0.5rem; }
+.ops-hang { display: flex; align-items: baseline; gap: 0.6rem; padding: 0.3rem 0.5rem; border-radius: var(--adm-r-sm); border-left: 2px solid transparent; font-size: 0.72rem; }
+.ops-hang:hover { background: rgba(148, 163, 184, 0.05); }
+.ops-hang.is-warn { border-left-color: var(--adm-warn); }
+.ops-hang.is-crit { border-left-color: var(--adm-err); }
+.ops-hang__time { color: var(--adm-dim); font-weight: 700; white-space: nowrap; }
+.ops-hang__dur { color: var(--adm-err); font-weight: 700; white-space: nowrap; }
+.ops-hang__text { color: var(--adm-mut); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; flex: 1; min-width: 0; }
 
 /* ── Колонки консоль/игроки ──────────────────────────────────────── */
 .ops-cols { display: grid; grid-template-columns: 1.7fr 1fr; gap: 0.85rem; }
