@@ -1,6 +1,8 @@
 <script setup>
 import { computed, onMounted, ref } from 'vue'
 import { useRoute } from 'vue-router'
+import '../assets/gameui.css'
+import { closeGui } from '../composables/useWebGui.js'
 import {
   setVoxelCtx,
   listGames,
@@ -26,7 +28,7 @@ const isNew = computed(() => selectedId.value === 'new')
 function note(msg, isErr = false) {
   flash.value = msg
   flashErr.value = isErr
-  setTimeout(() => { if (flash.value === msg) flash.value = '' }, 4000)
+  setTimeout(() => { if (flash.value === msg) flash.value = '' }, 4200)
 }
 
 function defaultDefinition() {
@@ -105,14 +107,23 @@ async function activate(g) {
   catch (e) { note('Не удалось активировать: ' + (e?.message || e), true) }
 }
 
-// Зона из мира: подсказка по командам (углы отмечаются в игре, зона пишется в backend,
-// мод подхватывает на sync). Показываем инструкцию с подставленным game_id.
 function pickZone() {
   const gid = isNew.value ? null : (selected.value?.game_id)
   if (!gid) { note('Сначала выбери/сохрани игру', true); return }
   const zoneName = window.prompt('Имя зоны (напр. spawn_pad):', 'spawn_pad')
   if (!zoneName) return
-  note(`Закрой это окно, встань в углы и: /engine zone pos1 → /engine zone pos2 → /engine zone set ${gid} ${zoneName}`)
+  note(`Закрой окно и в игре: /engine zone pos1 → pos2 → /engine zone set ${gid} ${zoneName}`)
+}
+
+function reportText(g) {
+  if (!g.last_report_status) return 'нет отчёта'
+  if (g.last_report_status === 'ok') return 'загружено v' + g.last_reported_version
+  return 'ошибка загрузки'
+}
+function reportClass(g) {
+  if (g.last_report_status === 'ok') return 'gui-badge-success'
+  if (g.last_report_status === 'error') return 'gui-badge-error'
+  return 'gui-badge-neutral'
 }
 
 onMounted(() => {
@@ -122,60 +133,80 @@ onMounted(() => {
 </script>
 
 <template>
-  <div class="vx">
-    <header class="vx__head">
-      <h1>VOXEL ENGINE <span class="vx__srv">{{ route.query.server || '' }}</span></h1>
-      <button class="vx__btn vx__btn--acc" @click="startNew">＋ Новая игра</button>
-      <div v-if="flash" class="vx__flash" :class="{ 'vx__flash--err': flashErr }">{{ flash }}</div>
-    </header>
+  <div class="gui-root">
+    <div class="gui-header">
+      <div class="gui-title"><span class="gui-title-icon">🧊</span> Voxel Engine
+        <span v-if="route.query.server" class="vx-srv">{{ route.query.server }}</span>
+      </div>
+      <button class="gui-close" @click="closeGui">✕</button>
+    </div>
 
-    <div class="vx__grid">
-      <aside class="vx__list">
-        <div v-if="loading" class="vx__empty">Загрузка…</div>
-        <div v-else-if="!games.length" class="vx__empty">Игр нет. Создай первую.</div>
-        <ul v-else>
-          <li v-for="g in games" :key="g.id" class="vx__item" :class="{ 'is-active': g.id === selectedId }" @click="selectGame(g)">
-            <div class="vx__item-top">
-              <span class="vx__item-name">{{ g.name }}</span>
-              <span v-if="g.is_active" class="vx__badge vx__badge--ok">активна</span>
+    <transition name="gui-toast">
+      <div v-if="flash" class="gui-toast" :class="flashErr ? 'gui-toast-err' : 'gui-toast-ok'">{{ flash }}</div>
+    </transition>
+
+    <div class="gui-body vx-body">
+      <!-- Список игр -->
+      <aside class="gui-card vx-list">
+        <div class="vx-list-head">
+          <span class="gui-section-title">Игры</span>
+          <button class="gui-btn gui-btn-primary gui-btn-sm" @click="startNew">＋ Новая</button>
+        </div>
+        <div v-if="loading" class="gui-state"><span class="gui-state-text">Загрузка…</span></div>
+        <div v-else-if="!games.length" class="gui-state">
+          <span class="gui-state-icon">🎮</span>
+          <span class="gui-state-text">Игр пока нет</span>
+          <span class="gui-state-sub">Создай первую справа</span>
+        </div>
+        <div v-else class="gui-list">
+          <button v-for="g in games" :key="g.id" class="vx-item" :class="{ 'is-active': g.id === selectedId }" @click="selectGame(g)">
+            <div class="vx-item-top">
+              <span class="vx-item-name">{{ g.name }}</span>
+              <span v-if="g.is_active" class="gui-badge gui-badge-success">активна</span>
             </div>
-            <div class="vx__item-meta"><span class="vx__mono">{{ g.game_id }}</span> · v{{ g.version }}</div>
-            <div class="vx__item-report" :class="{
-              'is-ok': g.last_report_status === 'ok', 'is-err': g.last_report_status === 'error' }">
-              {{ g.last_report_status ? (g.last_report_status === 'ok' ? 'загружено v' + g.last_reported_version : 'ошибка загрузки') : 'нет отчёта' }}
-            </div>
-          </li>
-        </ul>
+            <div class="vx-item-meta"><code>{{ g.game_id }}</code> · v{{ g.version }}</div>
+            <span class="gui-badge" :class="reportClass(g)">{{ reportText(g) }}</span>
+          </button>
+        </div>
       </aside>
 
-      <section class="vx__editor">
-        <div v-if="!selected && !isNew" class="vx__empty">Выбери игру или создай новую.</div>
+      <!-- Редактор -->
+      <section class="gui-card vx-editor">
+        <div v-if="!selected && !isNew" class="gui-state">
+          <span class="gui-state-icon">✏️</span>
+          <span class="gui-state-text">Выбери игру или создай новую</span>
+        </div>
         <template v-else>
-          <div class="vx__row">
-            <label>game_id<input v-model="form.game_id" class="vx__inp vx__mono" :disabled="!isNew" placeholder="arena_demo" /></label>
-            <label>Название<input v-model="form.name" class="vx__inp" placeholder="Демо-арена" /></label>
+          <div class="vx-fields">
+            <label class="vx-field">
+              <span>game_id</span>
+              <input v-model="form.game_id" class="gui-input mono" :disabled="!isNew" placeholder="arena_demo" />
+            </label>
+            <label class="vx-field">
+              <span>Название</span>
+              <input v-model="form.name" class="gui-input" placeholder="Демо-арена" />
+            </label>
           </div>
-          <label class="vx__check"><input type="checkbox" v-model="form.enabled" /> enabled (мод тянет игру)</label>
+          <label class="vx-check"><input type="checkbox" v-model="form.enabled" /> enabled (мод тянет игру)</label>
 
-          <div v-if="selected" class="vx__report-line" :class="{
-            'is-ok': selected.last_report_status === 'ok', 'is-err': selected.last_report_status === 'error' }">
-            версия v{{ selected.version }} ·
-            {{ selected.last_report_status ? (selected.last_report_status === 'ok' ? 'мод загрузил v' + selected.last_reported_version : 'ошибка: ' + (selected.last_report_message || '')) : 'мод ещё не отчитался' }}
+          <div v-if="selected" class="vx-report">
+            <span class="gui-badge" :class="reportClass(selected)">{{ reportText(selected) }}</span>
+            <span class="vx-report-note">версия на сервере v{{ selected.version }}<template v-if="selected.last_report_status === 'error' && selected.last_report_message"> · {{ selected.last_report_message }}</template></span>
           </div>
 
-          <div class="vx__jsonhead">
-            <span>definition (JSON)</span>
-            <div>
-              <button class="vx__btn vx__btn--sm" @click="pickZone">Зона из мира</button>
-              <button class="vx__btn vx__btn--sm" @click="formatJson">Форматировать</button>
+          <div class="vx-jsonhead">
+            <span class="gui-section-title">definition (JSON)</span>
+            <div class="vx-jsonbtns">
+              <button class="gui-btn gui-btn-ghost gui-btn-xs" @click="pickZone">Зона из мира</button>
+              <button class="gui-btn gui-btn-ghost gui-btn-xs" @click="formatJson">Форматировать</button>
             </div>
           </div>
-          <textarea v-model="form.definitionText" class="vx__json vx__mono" spellcheck="false"></textarea>
-          <div v-if="jsonError" class="vx__err">{{ jsonError }}</div>
+          <textarea v-model="form.definitionText" class="gui-input mono vx-json" spellcheck="false"></textarea>
+          <div v-if="jsonError" class="vx-err">{{ jsonError }}</div>
 
-          <div class="vx__actions">
-            <button class="vx__btn vx__btn--acc" :disabled="saving" @click="save">{{ saving ? 'Сохранение…' : (isNew ? 'Создать' : 'Сохранить') }}</button>
-            <button v-if="selected && !selected.is_active" class="vx__btn" @click="activate(selected)">Сделать активной</button>
+          <div class="vx-actions">
+            <button class="gui-btn gui-btn-primary" :disabled="saving" @click="save">{{ saving ? 'Сохранение…' : (isNew ? 'Создать' : 'Сохранить') }}</button>
+            <button v-if="selected && !selected.is_active" class="gui-btn gui-btn-success" @click="activate(selected)">Сделать активной</button>
           </div>
         </template>
       </section>
@@ -184,46 +215,29 @@ onMounted(() => {
 </template>
 
 <style scoped>
-.vx { position: fixed; inset: 0; background: rgba(15, 17, 26, 0.92); color: #eceef5; font-family: Inter, system-ui, sans-serif; padding: 20px clamp(16px, 4vw, 48px); overflow-y: auto; }
-.vx__mono { font-family: 'JetBrains Mono', ui-monospace, monospace; }
-.vx__head { display: flex; align-items: center; gap: 16px; margin-bottom: 18px; flex-wrap: wrap; }
-.vx__head h1 { font-family: Rubik, sans-serif; font-weight: 800; font-size: 22px; letter-spacing: .02em; margin: 0; }
-.vx__srv { color: #3fd0c0; font-family: 'JetBrains Mono', monospace; font-size: 13px; margin-left: 8px; }
-.vx__flash { margin-left: auto; font-size: 13px; color: #3fd0c0; }
-.vx__flash--err { color: #e56a5a; }
-.vx__grid { display: grid; grid-template-columns: 300px 1fr; gap: 16px; align-items: start; }
-@media (max-width: 820px) { .vx__grid { grid-template-columns: 1fr; } }
-.vx__list ul { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 8px; }
-.vx__list { max-height: 82vh; overflow-y: auto; }
-.vx__item { padding: 10px 12px; border: 1px solid rgba(255,255,255,.1); border-radius: 10px; cursor: pointer; }
-.vx__item.is-active { border-color: #3fd0c0; background: rgba(63,208,192,.08); }
-.vx__item-top { display: flex; align-items: center; gap: 8px; }
-.vx__item-name { font-weight: 600; }
-.vx__item-meta { font-size: 12px; color: #a6adc0; margin: 3px 0; }
-.vx__item-report { font-size: 12px; color: #6e7590; }
-.vx__item-report.is-ok { color: #3fd0c0; }
-.vx__item-report.is-err { color: #e56a5a; }
-.vx__badge { font-size: 11px; padding: 1px 7px; border-radius: 6px; background: rgba(255,255,255,.08); }
-.vx__badge--ok { background: rgba(63,208,192,.18); color: #3fd0c0; }
-.vx__editor { border: 1px solid rgba(255,255,255,.1); border-radius: 12px; padding: 16px; background: rgba(25,29,43,.6); }
-.vx__row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
-@media (max-width: 520px) { .vx__row { grid-template-columns: 1fr; } }
-.vx__row label, .vx__check { display: flex; flex-direction: column; gap: 5px; font-size: 12px; color: #a6adc0; }
-.vx__check { flex-direction: row; align-items: center; gap: 8px; margin: 12px 0; }
-.vx__inp { background: #0f111a; border: 1px solid rgba(255,255,255,.12); border-radius: 8px; color: #eceef5; padding: 8px 10px; font-size: 14px; }
-.vx__inp:disabled { opacity: .6; }
-.vx__report-line { font-size: 12.5px; color: #a6adc0; margin: 4px 0 10px; }
-.vx__report-line.is-ok { color: #3fd0c0; }
-.vx__report-line.is-err { color: #e56a5a; }
-.vx__jsonhead { display: flex; align-items: center; justify-content: space-between; margin: 6px 0; font-size: 12px; color: #a6adc0; }
-.vx__jsonhead > div { display: flex; gap: 8px; }
-.vx__json { width: 100%; min-height: 42vh; resize: vertical; background: #0c0e15; border: 1px solid rgba(255,255,255,.12); border-radius: 8px; color: #eceef5; padding: 12px; font-size: 13px; line-height: 1.5; }
-.vx__err { color: #e56a5a; font-size: 12.5px; margin-top: 6px; }
-.vx__actions { display: flex; gap: 10px; margin-top: 14px; flex-wrap: wrap; }
-.vx__btn { background: rgba(255,255,255,.06); border: 1px solid rgba(255,255,255,.15); color: #eceef5; border-radius: 8px; padding: 9px 16px; font-size: 14px; cursor: pointer; }
-.vx__btn:hover { background: rgba(255,255,255,.1); }
-.vx__btn--sm { padding: 5px 10px; font-size: 12px; }
-.vx__btn--acc { background: #3fd0c0; color: #0f111a; border-color: #3fd0c0; font-weight: 600; }
-.vx__btn--acc:disabled { opacity: .6; }
-.vx__empty { color: #6e7590; padding: 20px; text-align: center; }
+.vx-srv { font-size: 0.7rem; font-weight: 700; color: var(--gui-accent); background: rgba(129,140,248,.12); border: 1px solid var(--gui-border); border-radius: 999px; padding: 2px 9px; margin-left: 10px; -webkit-text-fill-color: initial; }
+.vx-body { display: grid; grid-template-columns: 300px 1fr; gap: 14px; align-items: start; overflow: hidden; }
+@media (max-width: 820px) { .vx-body { grid-template-columns: 1fr; } }
+.vx-list { display: flex; flex-direction: column; gap: 12px; max-height: 82vh; overflow-y: auto; }
+.vx-list-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.vx-item { text-align: left; width: 100%; background: var(--gui-surface-2); border: 1px solid var(--gui-border); border-radius: 12px; padding: 11px 13px; cursor: pointer; transition: border-color .15s, background .15s; color: var(--gui-text); }
+.vx-item:hover { border-color: var(--gui-border-strong); background: var(--gui-surface-hover); }
+.vx-item.is-active { border-color: var(--gui-accent); background: rgba(129,140,248,.1); }
+.vx-item-top { display: flex; align-items: center; gap: 8px; margin-bottom: 3px; }
+.vx-item-name { font-weight: 700; }
+.vx-item-meta { font-size: 0.78rem; color: var(--gui-muted); margin-bottom: 7px; }
+.vx-item-meta code { font-family: ui-monospace, monospace; color: var(--gui-text-soft); }
+.vx-editor { display: flex; flex-direction: column; gap: 12px; }
+.vx-fields { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+@media (max-width: 520px) { .vx-fields { grid-template-columns: 1fr; } }
+.vx-field { display: flex; flex-direction: column; gap: 5px; font-size: 0.76rem; color: var(--gui-text-soft); }
+.vx-check { display: flex; align-items: center; gap: 8px; font-size: 0.82rem; color: var(--gui-text-soft); }
+.mono { font-family: ui-monospace, 'JetBrains Mono', monospace; }
+.vx-report { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.vx-report-note { font-size: 0.78rem; color: var(--gui-muted); }
+.vx-jsonhead { display: flex; align-items: center; justify-content: space-between; }
+.vx-jsonbtns { display: flex; gap: 8px; }
+.vx-json { width: 100%; min-height: 40vh; resize: vertical; line-height: 1.5; font-size: 0.82rem; }
+.vx-err { color: var(--gui-red); font-size: 0.8rem; }
+.vx-actions { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 4px; }
 </style>

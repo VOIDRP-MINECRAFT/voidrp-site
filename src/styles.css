@@ -94,6 +94,21 @@ select {
   background: var(--route-bg);
 }
 
+/* WebGUI HUD-оверлей: игровой браузер (MCEF) рендерит страницу поверх игры
+   прозрачным слоем. Гасим фон приложения (html/body/#app/.site-root), чтобы
+   был виден игровой мир. Класс webgui-hud game-ui HUD-вью вешает на <html>
+   на время монтирования. */
+html.webgui-hud,
+html.webgui-hud body,
+html.webgui-hud #app,
+html.webgui-hud .site-root {
+  background: transparent !important;
+}
+html.webgui-hud .site-root::before,
+html.webgui-hud .site-root::after {
+  display: none !important;
+}
+
 .site-root::before,
 .site-root::after {
   content: "";

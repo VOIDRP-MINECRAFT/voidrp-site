@@ -44,10 +44,13 @@ const onTitle = (e) => showTitle(parseDetail(e.detail))
 const onDialogue = (e) => showDialogue(parseDetail(e.detail))
 
 onMounted(() => {
+  // Прозрачный фон, чтобы HUD не перекрывал игру (см. правило .webgui-hud в styles.css).
+  document.documentElement.classList.add('webgui-hud')
   window.addEventListener('webgui:voxel:title', onTitle)
   window.addEventListener('webgui:voxel:dialogue', onDialogue)
 })
 onUnmounted(() => {
+  document.documentElement.classList.remove('webgui-hud')
   window.removeEventListener('webgui:voxel:title', onTitle)
   window.removeEventListener('webgui:voxel:dialogue', onDialogue)
   titleTimers.forEach(clearTimeout)
@@ -86,14 +89,14 @@ onUnmounted(() => {
 }
 .hud-title.is-on { opacity: 1; transform: scale(1); }
 .hud-title__text { font-size: clamp(34px, 6vw, 66px); font-weight: 900; color: #fff; letter-spacing: -.01em; }
-.hud-title__sub { font-size: clamp(16px, 2.4vw, 26px); font-weight: 600; color: #3fd0c0; margin-top: 8px; }
+.hud-title__sub { font-size: clamp(16px, 2.4vw, 26px); font-weight: 600; color: #818cf8; margin-top: 8px; }
 
 .hud-dialogue {
   position: absolute; left: 50%; transform: translateX(-50%); bottom: 8%;
-  width: min(760px, 86vw); background: rgba(15,17,26,.86); border: 1px solid rgba(63,208,192,.4);
+  width: min(760px, 86vw); background: rgba(15,17,26,.86); border: 1px solid rgba(129,140,248,.4);
   border-radius: 14px; padding: 18px 22px; box-shadow: 0 14px 40px rgba(0,0,0,.5);
 }
-.hud-dialogue__speaker { font-weight: 800; color: #3fd0c0; font-size: 17px; margin-bottom: 8px; }
+.hud-dialogue__speaker { font-weight: 800; color: #818cf8; font-size: 17px; margin-bottom: 8px; }
 .hud-dialogue__lines p { margin: 4px 0; color: #eceef5; font-family: Inter, sans-serif; font-size: 17px; line-height: 1.5; }
 
 .hud-fade-enter-active, .hud-fade-leave-active { transition: opacity .35s ease, transform .35s ease; }
