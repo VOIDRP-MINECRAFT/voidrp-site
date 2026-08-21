@@ -99,7 +99,10 @@ const routeScopeKey = computed(() =>
 const isAdmin = computed(() => !!authState.user?.is_admin)
 
 // nav item visible if: adminOnly→full admin; else no perm→any staff; else holds perm.
+// item.feature → opt-in per-server: shown only when the active server explicitly
+// has features[feature] === true (unlike serverFeatureEnabled which is opt-out).
 function canSee(item) {
+  if (item.feature && activeServer.value?.features?.[item.feature] !== true) return false
   if (item.adminOnly) return isAdmin.value
   if (Array.isArray(item.anyPerm)) return item.anyPerm.some((p) => hasPermission(p))
   if (!item.perm) return true
@@ -126,7 +129,7 @@ const navGroups = computed(() => {
         { to: '/admin/nations', label: 'Государства', icon: icons.nations, perm: 'nations.view' },
         { to: '/admin/battlepass', label: 'Battle Pass', icon: icons.battlepass, perm: 'battlepass.view' },
         { to: '/admin/anticheat', label: 'Античит', icon: icons.anticheat, perm: 'anticheat.view' },
-        { to: '/admin/voxel', label: 'Voxel Engine', icon: icons.voxel, perm: 'voxel.view' },
+        { to: '/admin/voxel', label: 'Voxel Engine', icon: icons.voxel, perm: 'voxel.view', feature: 'voxel' },
       ],
     },
     {
