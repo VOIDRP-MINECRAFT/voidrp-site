@@ -229,9 +229,9 @@ onUnmounted(destroyCharts)
 
     <!-- Loading -->
     <template v-if="loading">
-      <div class="skel skel--totals" />
-      <div class="skel skel--chart" />
-      <div class="skel skel--bottom" />
+      <div class="adm-skel skel--totals" />
+      <div class="adm-skel skel--chart" />
+      <div class="adm-skel skel--bottom" />
     </template>
 
     <template v-else-if="data">
@@ -348,7 +348,7 @@ onUnmounted(destroyCharts)
                 <td class="tbl__views">{{ page.pageviews.toLocaleString('ru') }}</td>
                 <td class="tbl__dur">{{ formatDuration(page.avg_duration) }}</td>
                 <td>
-                  <span class="bounce-badge" :class="page.bounce_rate > 60 ? 'bounce-badge--red' : page.bounce_rate > 35 ? 'bounce-badge--yellow' : 'bounce-badge--green'">
+                  <span class="adm-badge" :class="page.bounce_rate > 60 ? 'adm-badge--err' : page.bounce_rate > 35 ? 'adm-badge--warn' : 'adm-badge--ok'">
                     {{ page.bounce_rate }}%
                   </span>
                 </td>
@@ -372,13 +372,12 @@ onUnmounted(destroyCharts)
 
 /* Error */
 .mk-error {
-  background: rgba(239,68,68,0.08);
-  border: 1px solid rgba(239,68,68,0.2);
-  border-radius: 12px;
+  background: rgba(248, 113, 113, 0.07);
+  border: 1px solid rgba(248, 113, 113, 0.25);
+  border-radius: var(--adm-r);
   color: #fca5a5;
   padding: 1rem 1.2rem;
   font-size: 0.85rem;
-  margin-bottom: 1.5rem;
 }
 
 /* Totals */
@@ -386,13 +385,12 @@ onUnmounted(destroyCharts)
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
   gap: 0.75rem;
-  margin-bottom: 1.25rem;
 }
 
 .total-card {
   background: var(--adm-card);
   border: 1px solid var(--adm-line);
-  border-radius: 16px;
+  border-radius: var(--adm-r);
   padding: 1.2rem 1.2rem 1rem;
   position: relative;
   overflow: hidden;
@@ -409,8 +407,12 @@ onUnmounted(destroyCharts)
   margin-bottom: 0.5rem;
 }
 .total-card__value {
-  font-size: 1.9rem;
-  font-weight: 900;
+  /* Числа в панели набираются моноширинным — как .adm-kpi__val в admin.css */
+  font-family: var(--adm-mono);
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.02em;
+  font-size: 1.72rem;
+  font-weight: 700;
   color: var(--adm-text);
   line-height: 1;
 }
@@ -421,7 +423,7 @@ onUnmounted(destroyCharts)
   right: 1rem;
   width: 2.2rem;
   height: 2.2rem;
-  border-radius: 10px;
+  border-radius: var(--adm-r-sm);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -435,8 +437,7 @@ onUnmounted(destroyCharts)
 .panel {
   background: var(--adm-card);
   border: 1px solid var(--adm-line);
-  border-radius: 16px;
-  margin-bottom: 1.25rem;
+  border-radius: var(--adm-r);
   overflow: hidden;
 }
 
@@ -465,7 +466,6 @@ onUnmounted(destroyCharts)
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 1.25rem;
-  margin-bottom: 1.25rem;
 }
 @media (max-width: 780px) { .two-col { grid-template-columns: 1fr; } }
 
@@ -523,29 +523,10 @@ onUnmounted(destroyCharts)
 .tbl__views { font-weight: 800; color: var(--adm-mut) !important; }
 .tbl__dur { color: var(--adm-dim) !important; }
 
-.bounce-badge {
-  display: inline-block;
-  padding: 0.12rem 0.5rem;
-  border-radius: 999px;
-  font-size: 0.72rem;
-  font-weight: 800;
-}
-.bounce-badge--green { background: rgba(34,197,94,0.1); color: #86efac; }
-.bounce-badge--yellow { background: rgba(234,179,8,0.1); color: #fde047; }
-.bounce-badge--red { background: rgba(239,68,68,0.1); color: #fca5a5; }
-
-/* Skeleton */
-.skel {
-  border-radius: 16px;
-  background: linear-gradient(90deg, rgba(148,163,184,0.06) 40%, rgba(148,163,184,0.12) 50%, rgba(148,163,184,0.06) 60%);
-  background-size: 200% 100%;
-  animation: shimmer 1.4s infinite;
-  margin-bottom: 1.25rem;
-}
+/* Размеры скелетонов; сама анимация — из .adm-skel */
 .skel--totals { height: 96px; }
 .skel--chart { height: 340px; }
 .skel--bottom { height: 260px; }
-@keyframes shimmer { 0% { background-position: 200% 0; } 100% { background-position: -200% 0; } }
 
 .no-data { color: var(--adm-faint); font-size: 0.82rem; padding: 1rem 0; text-align: center; }
 .no-data--pad { padding: 1.5rem; }

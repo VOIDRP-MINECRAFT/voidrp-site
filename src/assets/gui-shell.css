@@ -1,0 +1,19 @@
+/* Full-screen root for in-game WebGUI (MCEF) pages.
+
+   The game browser only forwards clicks reliably when the page's root is a
+   full-viewport positioned layer (like the market terminal's own root). Normal
+   document flow inside the site shell renders fine but swallows clicks in MCEF,
+   so every game-ui page uses this shell as its root while keeping site-styled
+   content (container-shell / surface-card / daisyUI) inside. */
+.gui-shell {
+  position: fixed;
+  inset: 0;
+  z-index: 50;
+  overflow-y: auto;
+  overflow-x: hidden;
+  -webkit-overflow-scrolling: touch;
+  background:
+    radial-gradient(circle at 15% -10%, rgba(129, 140, 248, 0.14), transparent 40%),
+    radial-gradient(circle at 110% 8%, rgba(45, 212, 191, 0.10), transparent 34%),
+    linear-gradient(180deg, #070b14 0%, #0b1020 45%, #0d1326 100%);
+}

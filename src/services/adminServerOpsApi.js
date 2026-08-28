@@ -54,3 +54,9 @@ export function getServerHangs(token, { limit = 50 } = {}) {
   const qs = new URLSearchParams({ limit: String(limit) })
   return apiRequest(`/admin/server-ops/hangs?${qs.toString()}`, ah(token))
 }
+
+// In-game chat feed (player chat + join/leave/death) parsed out of the log.
+export function getServerChat(token, { limit = 200 } = {}) {
+  const qs = new URLSearchParams({ limit: String(limit) })
+  return apiRequest(`/admin/server-ops/chat?${qs.toString()}`, ah(token))
+}

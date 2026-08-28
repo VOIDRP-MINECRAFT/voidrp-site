@@ -1,5 +1,5 @@
 <script setup>
-import { computed, h, onBeforeUnmount, onMounted, nextTick, ref } from 'vue'
+import { computed, defineComponent, h, onBeforeUnmount, onMounted, nextTick, ref, watch } from 'vue'
 import {
   getServerMetrics,
   getServerLive,
@@ -8,6 +8,7 @@ import {
   serverPowerAction,
   getServerLogs,
   getServerHangs,
+  getServerChat,
 } from '../../services/adminServerOpsApi.js'
 import { authState, hasPermission } from '../../stores/authStore'
 import { activeServer } from '../../stores/serverStore'
@@ -16,48 +17,142 @@ import { confirmDialog } from '../../composables/useConfirm'
 
 const token = () => authState.accessToken
 
-// ── Inline sparkline (functional component) ─────────────────────────────────
-// Renders a compact filled trend line from a numeric series. Auto-scales unless
-// an explicit min/max is given (util % use 0..100 so the band is stable).
-const Spark = (props) => {
-  const vals = (props.values || []).filter((v) => v != null && !Number.isNaN(v))
-  const W = 100
-  const H = 26
-  if (vals.length < 2) {
-    return h('svg', { class: 'ops-spark', viewBox: `0 0 ${W} ${H}`, preserveAspectRatio: 'none' })
-  }
-  const min = props.min ?? Math.min(...vals)
-  const max = props.max ?? Math.max(...vals)
-  const span = max - min || 1
-  const step = W / (vals.length - 1)
-  const pts = vals
-    .map((v, i) => {
-      const x = i * step
-      const y = H - ((Math.min(Math.max(v, min), max) - min) / span) * H
-      return `${x.toFixed(1)},${y.toFixed(1)}`
+// ── Inline sparkline (interactive) ──────────────────────────────────────────
+// Compact filled trend line from a numeric series. Auto-scales unless an explicit
+// min/max is given (util % use 0..100 so the band is stable). Hovering shows a
+// crosshair + dot + value tooltip so you can read any point; the peak sample is
+// always marked with a dot so spikes are visible at a glance.
+const Spark = defineComponent({
+  props: {
+    values: { type: Array, default: () => [] },
+    min: { type: Number, default: null },
+    max: { type: Number, default: null },
+    klass: { type: String, default: '' },
+    // Value formatting in the tooltip: 'pct' → «57%», 'tps' → «19.8», 'raw' → int.
+    unit: { type: String, default: 'pct' },
+  },
+  setup(props) {
+    const W = 100
+    const H = 26
+    const hover = ref(-1) // hovered sample index, -1 = none
+
+    const data = computed(() => (props.values || []).filter((v) => v != null && !Number.isNaN(v)))
+    const bounds = computed(() => {
+      const vals = data.value
+      const min = props.min ?? (vals.length ? Math.min(...vals) : 0)
+      const max = props.max ?? (vals.length ? Math.max(...vals) : 1)
+      return { min, max, span: max - min || 1 }
     })
-    .join(' ')
-  // Colours are set inline (not via scoped CSS classes): elements built in a
-  // render function don't receive the parent's scoped data-v attribute, so the
-  // scoped `.ops-spark__*` selectors wouldn't match — the SVG default fill=black
-  // would show through as a solid black chart.
-  const color = { 'is-ok': 'var(--adm-ok)', 'is-warn': 'var(--adm-warn)', 'is-crit': 'var(--adm-err)' }[props.klass]
-    || 'var(--adm-acc)'
-  return h(
-    'svg',
-    { class: 'ops-spark', viewBox: `0 0 ${W} ${H}`, preserveAspectRatio: 'none' },
-    [
-      h('polygon', { points: `0,${H} ${pts} ${W},${H}`, style: { fill: color, opacity: '0.12', stroke: 'none' } }),
-      h('polyline', {
-        points: pts,
-        style: { fill: 'none', stroke: color, strokeWidth: '1.5', vectorEffect: 'non-scaling-stroke' },
-      }),
-    ],
-  )
-}
-// Declare props so bindings land in `props` (not fall through to attrs) for this
-// plain-function functional component.
-Spark.props = ['values', 'min', 'max', 'klass']
+    // Index of the peak (max) sample — always highlighted so spikes stand out.
+    const peakIdx = computed(() => {
+      const vals = data.value
+      let idx = -1
+      let best = -Infinity
+      vals.forEach((v, i) => { if (v > best) { best = v; idx = i } })
+      return idx
+    })
+
+    const xFrac = (i, n) => (n <= 1 ? 0 : i / (n - 1)) // 0..1 across width
+    const yFrac = (v) => {
+      const { min, max, span } = bounds.value
+      return (H - ((Math.min(Math.max(v, min), max) - min) / span) * H) / H // 0..1 top→bottom
+    }
+    function fmt(v) {
+      if (v == null) return '—'
+      if (props.unit === 'tps') return v.toFixed(1)
+      if (props.unit === 'raw') return String(Math.round(v))
+      return `${Math.round(v)}%`
+    }
+
+    function onMove(e) {
+      const vals = data.value
+      if (vals.length < 2) return
+      const rect = e.currentTarget.getBoundingClientRect()
+      const frac = (e.clientX - rect.left) / (rect.width || 1)
+      hover.value = Math.min(vals.length - 1, Math.max(0, Math.round(frac * (vals.length - 1))))
+    }
+    function onLeave() { hover.value = -1 }
+
+    // All styles are inline: elements built in a render function don't inherit
+    // the SFC's scoped data-v attribute, so scoped `.ops-spark*` selectors would
+    // never match them (only the component root does). Inline is the reliable path.
+    const WRAP_STYLE = { position: 'relative', width: '100%', height: `${H}px` }
+    const SVG_STYLE = { width: '100%', height: `${H}px`, display: 'block', overflow: 'visible', cursor: 'crosshair', touchAction: 'none' }
+
+    return () => {
+      const vals = data.value
+      const color = { 'is-ok': 'var(--adm-ok)', 'is-warn': 'var(--adm-warn)', 'is-crit': 'var(--adm-err)' }[props.klass]
+        || 'var(--adm-acc)'
+
+      if (vals.length < 2) {
+        return h('div', { style: WRAP_STYLE }, [
+          h('svg', { style: SVG_STYLE, viewBox: `0 0 ${W} ${H}`, preserveAspectRatio: 'none' }),
+        ])
+      }
+
+      const n = vals.length
+      const pts = vals.map((v, i) => `${(xFrac(i, n) * W).toFixed(1)},${(yFrac(v) * H).toFixed(1)}`).join(' ')
+      const hi = hover.value
+      const children = [
+        h('svg', {
+          style: SVG_STYLE,
+          viewBox: `0 0 ${W} ${H}`,
+          preserveAspectRatio: 'none',
+          onPointermove: onMove,
+          onPointerleave: onLeave,
+        }, [
+          h('polygon', { points: `0,${H} ${pts} ${W},${H}`, style: { fill: color, opacity: '0.12', stroke: 'none' } }),
+          h('polyline', {
+            points: pts,
+            style: { fill: 'none', stroke: color, strokeWidth: '1.5', vectorEffect: 'non-scaling-stroke' },
+          }),
+        ]),
+      ]
+
+      // Peak marker (round HTML dot — SVG circles distort under preserveAspectRatio="none").
+      if (peakIdx.value >= 0) {
+        children.push(h('span', {
+          style: {
+            position: 'absolute', pointerEvents: 'none', width: '5px', height: '5px',
+            borderRadius: '50%', transform: 'translate(-50%, -50%)',
+            boxShadow: '0 0 0 2px var(--adm-card)', background: color,
+            left: `${xFrac(peakIdx.value, n) * 100}%`, top: `${yFrac(vals[peakIdx.value]) * 100}%`,
+          },
+        }))
+      }
+
+      // Hover crosshair + dot + value tooltip.
+      if (hi >= 0) {
+        const leftPct = xFrac(hi, n) * 100
+        children.push(h('span', {
+          style: {
+            position: 'absolute', pointerEvents: 'none', top: '0', bottom: '0', width: '1px',
+            opacity: '0.55', transform: 'translateX(-50%)', background: color, left: `${leftPct}%`,
+          },
+        }))
+        children.push(h('span', {
+          style: {
+            position: 'absolute', pointerEvents: 'none', width: '7px', height: '7px', borderRadius: '50%',
+            background: 'var(--adm-card)', border: `1.5px solid ${color}`, transform: 'translate(-50%, -50%)',
+            left: `${leftPct}%`, top: `${yFrac(vals[hi]) * 100}%`,
+          },
+        }))
+        children.push(h('span', {
+          style: {
+            position: 'absolute', pointerEvents: 'none', bottom: 'calc(100% + 5px)',
+            transform: 'translateX(-50%)', left: `${Math.min(90, Math.max(10, leftPct))}%`,
+            padding: '0.12rem 0.4rem', borderRadius: '6px', background: 'var(--adm-card-2)',
+            border: '1px solid var(--adm-line-strong)', boxShadow: '0 6px 18px rgba(0,0,0,0.4)',
+            fontSize: '0.68rem', fontWeight: '800', lineHeight: '1', color: 'var(--adm-text)',
+            whiteSpace: 'nowrap', zIndex: '5',
+          },
+        }, fmt(vals[hi])))
+      }
+
+      return h('div', { style: WRAP_STYLE, onPointerleave: onLeave }, children)
+    }
+  },
+})
 
 // ── Rolling history (client-side ring buffer, no backend/DB) ────────────────
 const HIST = 60
@@ -198,6 +293,25 @@ const tpsDims = computed(() => {
   return [...d]
     .sort((a, b) => a.tps - b.tps)
     .map((x) => ({ ...x, label: (x.dim || '').replace(/^minecraft:/, '') }))
+})
+
+// ── Threshold alerts ────────────────────────────────────────────────────────
+// Fire a toast when TPS or host RAM crosses a danger line, but throttle each
+// alert to once per 2 min so a sustained problem doesn't spam the operator.
+const ALERT_COOLDOWN = 120000
+const lastAlert = { tps: 0, ram: 0 }
+function maybeAlert(key, cond, msg) {
+  if (!cond) return
+  const now = Date.now()
+  if (now - lastAlert[key] < ALERT_COOLDOWN) return
+  lastAlert[key] = now
+  toastError(msg)
+}
+watch(() => live.value?.tps?.tps, (v) => {
+  if (v != null) maybeAlert('tps', v < 12, `⚠️ TPS упал до ${v.toFixed(1)} на «${activeServer.value?.name || 'сервере'}»`)
+})
+watch(() => metrics.value?.host?.mem_percent, (v) => {
+  if (v != null) maybeAlert('ram', v > 92, `⚠️ RAM хоста ${Math.round(v)}% на «${activeServer.value?.name || 'сервере'}»`)
 })
 
 // ── Loaders (in-flight guards prevent poll pile-up on a slow server) ─────────
@@ -392,6 +506,39 @@ function switchLogSource(s) {
   loadLogs()
 }
 
+// ── In-game chat feed ───────────────────────────────────────────────────────
+const chatMsgs = ref([])
+const chatAvailable = ref(true)
+const chatAuto = ref(true)
+const chatFilter = ref('')
+const chatRef = ref(null)
+let chatTimer = null
+let chatBusy = false
+
+const filteredChat = computed(() => {
+  const f = chatFilter.value.trim().toLowerCase()
+  if (!f) return chatMsgs.value
+  return chatMsgs.value.filter((m) => m.text.toLowerCase().includes(f))
+})
+
+async function loadChat() {
+  if (chatBusy) return
+  chatBusy = true
+  try {
+    const res = await getServerChat(token(), { limit: 250 })
+    chatMsgs.value = res.messages || []
+    chatAvailable.value = res.available !== false
+    if (chatAuto.value) {
+      await nextTick()
+      if (chatRef.value) chatRef.value.scrollTop = chatRef.value.scrollHeight
+    }
+  } catch {
+    chatAvailable.value = false
+  } finally {
+    chatBusy = false
+  }
+}
+
 // ── Recent hangs (watchdog / HUNG_TICK summary lines) ───────────────────────
 const hangs = ref([])
 const hangsAvailable = ref(true)
@@ -424,13 +571,14 @@ function startTimers() {
   metricsTimer = setInterval(loadMetrics, 4000)
   liveTimer = setInterval(loadLive, 6000)
   logTimer = setInterval(() => { if (logAuto.value) loadLogs() }, 5000)
+  chatTimer = setInterval(() => { if (chatAuto.value) loadChat() }, 5000)
   hangsTimer = setInterval(loadHangs, 20000)
   tickTimer = setInterval(() => { nowTick.value = Date.now() }, 1000)
 }
 function stopTimers() {
   clearInterval(metricsTimer); clearInterval(liveTimer); clearInterval(logTimer)
-  clearInterval(hangsTimer); clearInterval(tickTimer)
-  metricsTimer = liveTimer = logTimer = hangsTimer = tickTimer = null
+  clearInterval(chatTimer); clearInterval(hangsTimer); clearInterval(tickTimer)
+  metricsTimer = liveTimer = logTimer = chatTimer = hangsTimer = tickTimer = null
 }
 function toggleAuto() {
   autoRefresh.value = !autoRefresh.value
@@ -446,6 +594,7 @@ function onVisibility() {
   } else if (autoRefresh.value) {
     refreshAll()
     if (logAuto.value) loadLogs()
+    if (chatAuto.value) loadChat()
     loadHangs()
     startTimers()
   }
@@ -454,6 +603,7 @@ function onVisibility() {
 onMounted(async () => {
   await refreshAll()
   await loadLogs()
+  loadChat()
   loadHangs()
   if (autoRefresh.value) startTimers()
   document.addEventListener('visibilitychange', onVisibility)
@@ -571,7 +721,7 @@ onBeforeUnmount(() => {
           <span class="ops-metric__label">TPS</span>
           <span class="ops-metric__val adm-num" :class="tpsClass(tps?.tps)">{{ tps?.tps != null ? tps.tps.toFixed(1) : '—' }}</span>
         </div>
-        <Spark :values="tpsHist" :min="0" :max="20" :klass="tpsClass(tps?.tps)" />
+        <Spark :values="tpsHist" :min="0" :max="20" :klass="tpsClass(tps?.tps)" unit="tps" />
         <div v-if="tps?.windows" class="ops-tps-windows adm-mono">
           <span v-for="(v, k) in tps.windows" :key="k"><b>{{ k }}</b> {{ v }}</span>
         </div>
@@ -637,7 +787,7 @@ onBeforeUnmount(() => {
           <div v-if="!players.length" class="ops-console__empty">Никого онлайн</div>
           <div v-for="p in players" :key="p" class="ops-player">
             <span class="adm-avatar ops-player__ava">{{ p.charAt(0).toUpperCase() }}</span>
-            <span class="ops-player__name adm-mono">{{ p }}</span>
+            <RouterLink class="ops-player__name adm-mono" :to="`/admin/players/${p}`" title="Открыть карточку игрока">{{ p }}</RouterLink>
             <div v-if="canModerate" class="ops-player__acts">
               <button class="adm-btn adm-btn--sm" title="Кик" @click="moderate('kick', p)">Кик</button>
               <button class="adm-btn adm-btn--sm adm-btn--danger" title="Бан" @click="moderate('ban', p)">Бан</button>
@@ -664,6 +814,26 @@ onBeforeUnmount(() => {
           <span class="ops-hang__time adm-mono">{{ hg.time || '—' }}</span>
           <span v-if="hg.seconds != null" class="ops-hang__dur adm-mono">{{ hg.seconds.toFixed(1) }}с</span>
           <span class="ops-hang__text adm-mono">{{ hg.text }}</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── Игровой чат ───────────────────────────────────────────── -->
+    <div class="adm-card ops-chat">
+      <div class="adm-card__head ops-chat__head">
+        <h3 class="adm-card__title">Игровой чат</h3>
+        <div class="ops-chat__tools">
+          <input v-model="chatFilter" class="adm-input adm-input--sm" placeholder="поиск по чату…" />
+          <label class="adm-check"><input v-model="chatAuto" type="checkbox" /> авто</label>
+          <button class="adm-btn adm-btn--sm" @click="loadChat">Обновить</button>
+        </div>
+      </div>
+      <div ref="chatRef" class="ops-chat__body">
+        <div v-if="!chatAvailable" class="ops-console__empty">Файл лога недоступен</div>
+        <div v-else-if="!filteredChat.length" class="ops-console__empty">Пока нет сообщений</div>
+        <div v-for="(m, i) in filteredChat" :key="i" class="ops-chat__line" :class="`is-${m.type}`">
+          <span class="ops-chat__time adm-mono">{{ m.time }}</span>
+          <span class="ops-chat__text">{{ m.text }}</span>
         </div>
       </div>
     </div>
@@ -724,8 +894,10 @@ onBeforeUnmount(() => {
 .ops-tps-windows { display: flex; flex-wrap: wrap; gap: 0.6rem; font-size: 0.68rem; color: var(--adm-mut); }
 .ops-tps-windows b { color: var(--adm-dim); font-weight: 700; margin-right: 0.15rem; }
 
-/* ── Sparkline (line/area colours are set inline in the render fn) ─── */
-.ops-spark { width: 100%; height: 26px; display: block; overflow: visible; }
+/* ── Sparkline ──────────────────────────────────────────────────────
+   The chart is built in a render function, so its elements don't inherit
+   this SFC's scoped data-v attribute — all sparkline styling (wrap, svg,
+   markers, tooltip) is set inline in the render fn, not here. */
 
 /* ── Per-dimension TPS ────────────────────────────────────────────── */
 .ops-tps-dims { display: flex; flex-direction: column; gap: 0.15rem; margin-top: 0.15rem; padding-top: 0.4rem; border-top: 1px solid var(--adm-line); }
@@ -803,4 +975,22 @@ onBeforeUnmount(() => {
 .ops-logs__line { white-space: pre-wrap; word-break: break-word; color: var(--adm-dim); }
 .ops-logs__line.lg-warn { color: var(--adm-warn); }
 .ops-logs__line.lg-error { color: var(--adm-err); }
+
+/* In-game chat feed */
+.ops-chat__head { display: flex; align-items: center; justify-content: space-between; gap: 0.75rem; flex-wrap: wrap; }
+.ops-chat__tools { display: flex; align-items: center; gap: 0.5rem; }
+.ops-chat__body {
+  max-height: 420px;
+  overflow: auto;
+  padding: 0.5rem 0.9rem;
+  background: #05070d;
+  font-size: 0.8rem;
+  line-height: 1.55;
+}
+.ops-chat__line { display: flex; gap: 0.6rem; align-items: baseline; padding: 0.12rem 0; }
+.ops-chat__time { color: var(--adm-faint); font-size: 0.66rem; flex-shrink: 0; opacity: 0.75; }
+.ops-chat__text { white-space: pre-wrap; word-break: break-word; color: var(--adm-text); min-width: 0; }
+.ops-chat__line.is-join .ops-chat__text { color: var(--adm-ok, #4ade80); font-style: italic; }
+.ops-chat__line.is-leave .ops-chat__text { color: var(--adm-faint); font-style: italic; }
+.ops-chat__line.is-system .ops-chat__text { color: var(--adm-dim); font-style: italic; }
 </style>

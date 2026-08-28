@@ -1,10 +1,13 @@
 <script setup>
 import { ref, computed, onMounted } from 'vue'
 import { useI18n } from 'vue-i18n'
-import '../assets/gameui.css'
+import '../assets/gui-premium.css'
 import { getMyAlliance, setWebguiToken } from '../services/gameUiApi.js'
-import { useWebGuiToken, runCommand, closeGui, useActionToast } from '../composables/useWebGui.js'
-import GameUiNav from '../components/GameUiNav.vue'
+import { useWebGuiToken, runCommand, useActionToast } from '../composables/useWebGui.js'
+import GameUiSidebar from '../components/GameUiSidebar.vue'
+import GameUiTopBar from '../components/GameUiTopBar.vue'
+import GuiIcon from '../components/GuiIcon.vue'
+import CountUp from '../components/CountUp.vue'
 
 const { t } = useI18n()
 const token = useWebGuiToken()
@@ -24,36 +27,24 @@ async function load() {
     error.value = null
     emptyMsg.value = null
   } catch (e) {
-    // 404 = player not in a nation / nation not in an alliance — a normal state,
-    // not an error. Show a calm empty view instead of a red error.
-    if (e.status === 404) {
-      emptyMsg.value = e.message
-      alliance.value = null
-      error.value = null
-    } else {
-      error.value = e.message
-    }
+    if (e.status === 404) { emptyMsg.value = e.message; alliance.value = null; error.value = null }
+    else error.value = e.message
   } finally {
     loading.value = false
   }
 }
-
 onMounted(load)
 
-const openCount = computed(() =>
-  alliance.value ? alliance.value.proposals.filter(p => p.status === 'open').length : 0,
-)
+const openCount = computed(() => alliance.value ? alliance.value.proposals.filter(p => p.status === 'open').length : 0)
 
 function money(v) {
   if (v == null || Number.isNaN(Number(v))) return '0'
   return Number(v).toLocaleString('ru-RU', { maximumFractionDigits: 0 })
 }
-
 function formatDate(d) {
   if (!d) return ''
   return new Date(d).toLocaleDateString('ru-RU', { day: '2-digit', month: '2-digit', year: '2-digit' })
 }
-
 async function vote(p, choice) {
   try {
     await runCommand(`/alliance vote ${p.id} ${choice}`)
@@ -63,164 +54,153 @@ async function vote(p, choice) {
     show(e.message || t('gameUiAlliance.voteFail'), false)
   }
 }
-
-function typeLabel(type) {
-  return { nato: t('gameUiAlliance.typeNato'), un: t('gameUiAlliance.typeUn'), economic: t('gameUiAlliance.typeEconomic') }[type] || type
-}
-function roleLabel(r) {
-  return { founder: t('gameUiAlliance.roleFounder'), leader: t('gameUiAlliance.roleLeader'), member: t('gameUiAlliance.roleMember') }[r] || r
-}
-function propTypeLabel(type) {
-  return { add_member: t('gameUiAlliance.propAdd'), remove_member: t('gameUiAlliance.propRemove'), set_policy: t('gameUiAlliance.propPolicy'), treasury_transfer: t('gameUiAlliance.propTransfer') }[type] || type
-}
-function statusBadge(s) {
-  return { open: 'gui-badge-warning', approved: 'gui-badge-success', rejected: 'gui-badge-error', executed: 'gui-badge-info', expired: 'gui-badge-neutral' }[s] || 'gui-badge-neutral'
-}
-function statusLabel(s) {
-  return { open: t('gameUiAlliance.statusOpen'), approved: t('gameUiAlliance.statusApproved'), rejected: t('gameUiAlliance.statusRejected'), executed: t('gameUiAlliance.statusExecuted'), expired: t('gameUiAlliance.statusExpired') }[s] || s
-}
+function typeLabel(type) { return { nato: t('gameUiAlliance.typeNato'), un: t('gameUiAlliance.typeUn'), economic: t('gameUiAlliance.typeEconomic') }[type] || type }
+function roleLabel(r) { return { founder: t('gameUiAlliance.roleFounder'), leader: t('gameUiAlliance.roleLeader'), member: t('gameUiAlliance.roleMember') }[r] || r }
+function propTypeLabel(type) { return { add_member: t('gameUiAlliance.propAdd'), remove_member: t('gameUiAlliance.propRemove'), set_policy: t('gameUiAlliance.propPolicy'), treasury_transfer: t('gameUiAlliance.propTransfer') }[type] || type }
+function statusPill(s) { return { open: 'gp-pill--gold', approved: 'gp-pill--green', rejected: 'gp-pill--red', executed: 'gp-pill--violet', expired: 'gp-pill--muted' }[s] || 'gp-pill--muted' }
+function statusLabel(s) { return { open: t('gameUiAlliance.statusOpen'), approved: t('gameUiAlliance.statusApproved'), rejected: t('gameUiAlliance.statusRejected'), executed: t('gameUiAlliance.statusExecuted'), expired: t('gameUiAlliance.statusExpired') }[s] || s }
 </script>
 
 <template>
-  <div class="gui-root">
-    <header class="gui-header">
-      <span class="gui-title"><span class="gui-title-icon">🤝</span>{{ t('gameUiAlliance.title') }}</span>
-      <button class="gui-close" @click="closeGui">✕</button>
-    </header>
+  <section class="gp-shell">
+    <GameUiSidebar current="alliance" />
+    <GameUiTopBar :title="t('gameUiNav.alliance')" />
 
-    <GameUiNav current="alliance" />
+    <div class="gp-wrap gp-wrap--wide gp-wrap--app">
+      <div v-if="!token" class="gp-center"><div class="gp-card gp-state"><span class="gp-state-ico"><GuiIcon name="lock" :size="30" /></span><span class="gp-state-text">{{ t('gameUiAlliance.tokenError') }}</span></div></div>
+      <div v-else-if="loading && !alliance" class="gp-center"><span class="gp-spinner"></span></div>
+      <div v-else-if="emptyMsg" class="gp-center"><div class="gp-card gp-state"><span class="gp-state-ico"><GuiIcon name="alliance" :size="30" /></span><span class="gp-state-text">{{ emptyMsg }}</span><span class="gp-sub gp-muted">{{ t('gameUiAlliance.emptyHint') }}</span></div></div>
+      <div v-else-if="error" class="gp-center"><div class="gp-card gp-state"><span class="gp-state-ico"><GuiIcon name="alert" :size="30" /></span><span class="gp-state-text">{{ error }}</span></div></div>
 
-    <div v-if="!token" class="gui-state"><span class="gui-state-icon">🔒</span><span class="gui-state-text">{{ t('gameUiAlliance.tokenError') }}</span></div>
-    <div v-else-if="loading" class="gui-state"><span class="gui-spinner" /><span class="gui-state-sub">{{ t('gameUiAlliance.loading') }}</span></div>
-    <div v-else-if="emptyMsg" class="gui-state">
-      <span class="gui-state-icon">🤝</span>
-      <span class="gui-state-text">{{ emptyMsg }}</span>
-      <span class="gui-state-sub">{{ t('gameUiAlliance.emptyHint') }}</span>
+      <template v-else-if="alliance">
+        <div class="adash gp-grow">
+          <!-- LEFT: emblem + stats -->
+          <div class="gp-panel emblem-panel">
+            <div class="emblem">
+              <div class="emblem-mark">{{ alliance.tag }}</div>
+              <div class="emblem-glow"></div>
+            </div>
+            <div class="emblem-title">{{ alliance.title }}</div>
+            <div class="emblem-sub"><GuiIcon name="crown" :size="13" />{{ typeLabel(alliance.alliance_type) }}</div>
+            <div class="emblem-motto">{{ t('gameUiAlliance.motto') }}</div>
+
+            <div class="astats">
+              <div class="astat"><span class="as-lbl"><GuiIcon name="users" :size="15" />{{ t('gameUiAlliance.membersCount') }}</span><span class="as-val gp-num">{{ alliance.members.length }}</span></div>
+              <div class="astat"><span class="as-lbl"><GuiIcon name="treasury" :size="15" />{{ t('gameUiAlliance.treasury') }}</span><span class="as-val gp-num gold"><CountUp :value="alliance.treasury_balance" :format="money" /></span></div>
+              <div class="astat"><span class="as-lbl"><GuiIcon name="quest" :size="15" />{{ t('gameUiAlliance.openProps') }}</span><span class="as-val gp-num">{{ openCount }}</span></div>
+            </div>
+          </div>
+
+          <!-- RIGHT: members / proposals -->
+          <div class="gp-panel">
+            <div class="gp-phead">
+              <span class="gp-phead-ic"><GuiIcon name="alliance" :size="16" /></span>
+              <span class="gp-phead-tt">{{ tab === 'members' ? t('gameUiAlliance.tabMembers') : t('gameUiAlliance.tabProposals') }}</span>
+              <span class="gp-phead-sp"></span>
+              <div class="gp-seg">
+                <button class="gp-seg-btn" :class="{ active: tab==='members' }" @click="tab='members'">{{ t('gameUiAlliance.tabMembers') }}</button>
+                <button class="gp-seg-btn" :class="{ active: tab==='proposals' }" @click="tab='proposals'">{{ t('gameUiAlliance.tabProposals') }}<span v-if="openCount" class="count">{{ openCount }}</span></button>
+              </div>
+            </div>
+
+            <!-- members table -->
+            <table v-if="tab === 'members'" class="gp-table">
+              <thead><tr><th>{{ t('gameUiAlliance.thNation') }}</th><th>{{ t('gameUiAlliance.thRole') }}</th><th></th></tr></thead>
+              <tbody>
+                <tr v-for="m in alliance.members" :key="m.nation_slug">
+                  <td>
+                    <div class="m-cell">
+                      <span class="m-tag">{{ m.nation_tag }}</span>
+                      <span class="m-name">{{ m.nation_title }}</span>
+                    </div>
+                  </td>
+                  <td><span class="m-role" :class="{ founder: m.role === 'founder' }"><GuiIcon v-if="m.role==='founder'" name="crown" :size="13" />{{ roleLabel(m.role) }}</span></td>
+                  <td style="text-align:right">
+                    <span v-if="m.nation_slug === alliance.player_nation_slug" class="gp-pill gp-pill--violet">{{ t('gameUiAlliance.you') }}</span>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+
+            <!-- proposals -->
+            <div v-else class="prop-list">
+              <div v-if="!alliance.proposals.length" class="gp-state" style="padding:28px"><span class="gp-state-ico"><GuiIcon name="clipboard" :size="30" /></span><span class="gp-state-text">{{ t('gameUiAlliance.noProposals') }}</span></div>
+              <div v-for="p in alliance.proposals" :key="p.id" class="prop">
+                <div class="prop-head">
+                  <span class="prop-title">{{ p.title }}</span>
+                  <span class="gp-pill" :class="statusPill(p.status)">{{ statusLabel(p.status) }}</span>
+                </div>
+                <div class="prop-meta gp-muted">{{ propTypeLabel(p.proposal_type) }} · {{ formatDate(p.created_at) }}</div>
+                <div v-if="p.description" class="prop-desc">{{ p.description }}</div>
+                <div class="votes gp-num">
+                  <span class="v-yes"><GuiIcon name="check" :size="13" />{{ p.yes_count }}</span>
+                  <span class="v-no"><GuiIcon name="x" :size="13" />{{ p.no_count }}</span>
+                  <span class="v-veto"><GuiIcon name="shield" :size="13" />{{ p.veto_count }}</span>
+                </div>
+                <div v-if="p.status === 'open'" class="prop-actions">
+                  <button class="gp-btn gp-btn--sm vote-yes" @click="vote(p, 'yes')">{{ t('gameUiAlliance.voteYes') }}</button>
+                  <button class="gp-btn gp-btn--sm vote-no" @click="vote(p, 'no')">{{ t('gameUiAlliance.voteNo') }}</button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </template>
     </div>
-    <div v-else-if="error" class="gui-state"><span class="gui-state-icon">⚠️</span><span class="gui-state-text">{{ error }}</span></div>
 
-    <div v-else-if="alliance" class="gui-body">
-      <!-- Alliance hero -->
-      <div class="al-hero">
-        <div class="al-tag">{{ alliance.tag }}</div>
-        <div class="al-info">
-          <div class="al-title">{{ alliance.title }}</div>
-          <div class="al-meta">{{ typeLabel(alliance.alliance_type) }} · {{ alliance.members.length }} {{ t('gameUiAlliance.nations') }}</div>
-          <div class="al-treasury">💰 {{ money(alliance.treasury_balance) }}</div>
-        </div>
-      </div>
-
-      <!-- Tabs -->
-      <div class="gui-tabs">
-        <button class="gui-tab" :class="{ active: tab === 'members' }" @click="tab = 'members'">{{ t('gameUiAlliance.tabMembers') }}</button>
-        <button class="gui-tab" :class="{ active: tab === 'proposals' }" @click="tab = 'proposals'">
-          {{ t('gameUiAlliance.tabProposals') }}
-          <span v-if="openCount" class="gui-tab-count">{{ openCount }}</span>
-        </button>
-      </div>
-
-      <!-- Members -->
-      <div v-if="tab === 'members'" class="al-members">
-        <div v-for="m in alliance.members" :key="m.nation_slug" class="gui-row al-member" :class="{ self: m.nation_slug === alliance.player_nation_slug }">
-          <div class="al-mtag">{{ m.nation_tag }}</div>
-          <div class="al-minfo">
-            <span class="al-mname">{{ m.nation_title }}</span>
-            <span class="al-mrole" :class="{ founder: m.role === 'founder' }">{{ roleLabel(m.role) }}</span>
-          </div>
-          <span v-if="m.nation_slug === alliance.player_nation_slug" class="al-you">{{ t('gameUiAlliance.you') }}</span>
-        </div>
-      </div>
-
-      <!-- Proposals -->
-      <div v-else class="al-proposals">
-        <div v-if="!alliance.proposals.length" class="al-empty">{{ t('gameUiAlliance.noProposals') }}</div>
-        <div v-for="p in alliance.proposals" :key="p.id" class="al-prop">
-          <div class="al-prop-head">
-            <span class="al-prop-title">{{ p.title }}</span>
-            <span class="gui-badge" :class="statusBadge(p.status)">{{ statusLabel(p.status) }}</span>
-          </div>
-          <div class="al-prop-meta">{{ propTypeLabel(p.proposal_type) }} · {{ formatDate(p.created_at) }}</div>
-          <div v-if="p.description" class="al-prop-desc">{{ p.description }}</div>
-          <div class="al-votes">
-            <span class="vote-stat yes">✅ {{ p.yes_count }}</span>
-            <span class="vote-stat no">❌ {{ p.no_count }}</span>
-            <span class="vote-stat veto">🚫 {{ p.veto_count }}</span>
-          </div>
-          <div v-if="p.status === 'open'" class="al-actions">
-            <button class="gui-btn gui-btn-success gui-btn-xs" @click="vote(p, 'yes')">{{ t('gameUiAlliance.voteYes') }}</button>
-            <button class="gui-btn gui-btn-danger gui-btn-xs" @click="vote(p, 'no')">{{ t('gameUiAlliance.voteNo') }}</button>
-          </div>
-        </div>
-      </div>
-    </div>
-
-    <transition name="gui-toast">
-      <div v-if="toast" class="gui-toast" :class="toast.ok ? 'gui-toast-ok' : 'gui-toast-err'">
-        <span>{{ toast.ok ? '✅' : '⚠️' }}</span><span>{{ toast.text }}</span>
+    <transition name="gp-toast">
+      <div v-if="toast" class="gp-toast" :class="toast.ok ? 'gp-toast--ok' : 'gp-toast--err'">
+        <GuiIcon :name="toast.ok ? 'check' : 'alert'" :size="16" /><span>{{ toast.text }}</span>
       </div>
     </transition>
-  </div>
+  </section>
 </template>
 
 <style scoped>
-.al-hero {
-  display: flex; align-items: center; gap: 14px;
-  padding: 15px;
-  border-radius: 16px;
-  background: linear-gradient(135deg, rgba(56, 189, 248, 0.12), rgba(99, 102, 241, 0.08));
-  border: 1px solid rgba(56, 189, 248, 0.25);
-}
-.al-tag {
-  width: 56px; height: 56px;
-  border-radius: 12px;
-  display: flex; align-items: center; justify-content: center;
-  font-size: 0.8rem; font-weight: 900;
-  color: #7dd3fc;
-  background: rgba(56, 189, 248, 0.14);
-  border: 1px solid rgba(56, 189, 248, 0.3);
-  flex-shrink: 0;
-}
-.al-info { flex: 1; min-width: 0; }
-.al-title { font-size: 1.05rem; font-weight: 800; }
-.al-meta { font-size: 0.76rem; color: #94a3b8; margin: 3px 0; }
-.al-treasury { font-size: 0.8rem; font-weight: 600; color: #fcd34d; }
+.adash { display: grid; grid-template-columns: 300px minmax(0,1fr); gap: 16px; align-items: start; }
+@media (max-width: 900px) { .adash { grid-template-columns: 1fr; } }
 
-.al-members, .al-proposals { display: flex; flex-direction: column; gap: 7px; }
-
-.al-member.self { border-color: rgba(129, 140, 248, 0.4); background: rgba(99, 102, 241, 0.08); }
-.al-mtag {
-  width: 36px; height: 36px;
-  border-radius: 8px;
-  display: flex; align-items: center; justify-content: center;
-  font-size: 0.62rem; font-weight: 800;
-  color: #818cf8;
-  background: rgba(129, 140, 248, 0.1);
-  border: 1px solid rgba(129, 140, 248, 0.2);
-  flex-shrink: 0;
+/* emblem */
+.emblem-panel { align-items: center; text-align: center; gap: 10px; }
+.emblem { position: relative; width: 96px; height: 96px; display: grid; place-items: center; margin: 4px 0; }
+.emblem-mark {
+  position: relative; z-index: 1; width: 82px; height: 82px; display: grid; place-items: center; border-radius: 22px;
+  font-size: 1.2rem; font-weight: 900; letter-spacing: 0.02em; color: #e6ddff;
+  background: linear-gradient(160deg, rgba(139,123,255,0.34), rgba(217,70,239,0.14));
+  border: 1px solid rgba(139,123,255,0.5); box-shadow: inset 0 1px 0 rgba(255,255,255,0.12);
 }
-.al-minfo { flex: 1; min-width: 0; }
-.al-mname { display: block; font-size: 0.86rem; font-weight: 600; }
-.al-mrole { font-size: 0.72rem; color: #6b7a9c; }
-.al-mrole.founder { color: #fcd34d; }
-.al-you { font-size: 0.64rem; font-weight: 800; letter-spacing: 0.05em; color: #818cf8; background: rgba(129, 140, 248, 0.16); padding: 3px 7px; border-radius: 6px; }
+.emblem-glow { position: absolute; inset: -8px; border-radius: 50%; background: radial-gradient(circle, rgba(139,123,255,0.5), transparent 65%); filter: blur(14px); }
+.emblem-title { font-size: 1.25rem; font-weight: 900; color: #f4f7ff; }
+.emblem-sub { display: inline-flex; align-items: center; gap: 6px; font-size: 0.74rem; font-weight: 700; color: var(--gp-violet-2); }
+.emblem-motto { font-size: 0.76rem; color: var(--gp-ink-soft); line-height: 1.5; font-style: italic; padding: 0 6px; }
 
-.al-empty { font-size: 0.85rem; color: #6b7a9c; text-align: center; padding: 24px; }
+.astats { width: 100%; display: flex; flex-direction: column; gap: 8px; margin-top: 6px; }
+.astat { display: flex; align-items: center; justify-content: space-between; padding: 10px 12px; border-radius: 11px; border: 1px solid var(--gp-line); background: rgba(255,255,255,0.02); }
+.as-lbl { display: flex; align-items: center; gap: 8px; font-size: 0.78rem; color: var(--gp-ink-soft); }
+.as-lbl svg { color: var(--gp-violet-2); }
+.as-val { font-size: 0.92rem; font-weight: 800; color: #eef2ff; }
+.as-val.gold { color: var(--gp-gold); }
 
-.al-prop {
-  display: flex; flex-direction: column; gap: 6px;
-  padding: 12px;
-  border-radius: 12px;
-  background: rgba(255, 255, 255, 0.025);
-  border: 1px solid rgba(148, 163, 184, 0.1);
-}
-.al-prop-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
-.al-prop-title { font-size: 0.9rem; font-weight: 700; }
-.al-prop-meta { font-size: 0.72rem; color: #6b7a9c; }
-.al-prop-desc { font-size: 0.8rem; color: #94a3b8; line-height: 1.45; }
-.al-votes { display: flex; gap: 12px; margin-top: 2px; }
-.vote-stat { font-size: 0.76rem; font-weight: 600; }
-.vote-stat.yes { color: #4ade80; }
-.vote-stat.no { color: #f87171; }
-.vote-stat.veto { color: #fb923c; }
-.al-actions { display: flex; gap: 7px; margin-top: 4px; }
+/* members */
+.m-cell { display: flex; align-items: center; gap: 10px; }
+.m-tag { width: 34px; height: 30px; flex-shrink: 0; display: grid; place-items: center; border-radius: 8px; font-size: 0.58rem; font-weight: 800; color: #c9beff; background: rgba(139,123,255,0.14); border: 1px solid rgba(139,123,255,0.26); }
+.m-name { font-size: 0.86rem; font-weight: 700; color: #e8edfb; }
+.m-role { display: inline-flex; align-items: center; gap: 5px; font-size: 0.8rem; color: var(--gp-ink-soft); }
+.m-role.founder { color: var(--gp-gold); font-weight: 700; }
+
+/* proposals */
+.prop-list { display: flex; flex-direction: column; gap: 9px; }
+.prop { display: flex; flex-direction: column; gap: 7px; padding: 13px; border-radius: 13px; border: 1px solid var(--gp-line); background: rgba(255,255,255,0.02); }
+.prop-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.prop-title { font-size: 0.9rem; font-weight: 800; color: #eef2ff; }
+.prop-meta { font-size: 0.7rem; }
+.prop-desc { font-size: 0.82rem; line-height: 1.5; color: var(--gp-ink-soft); }
+.votes { display: flex; gap: 14px; font-size: 0.8rem; font-weight: 700; margin-top: 2px; }
+.v-yes { display: inline-flex; align-items: center; gap: 4px; color: var(--gp-green); }
+.v-no { display: inline-flex; align-items: center; gap: 4px; color: var(--gp-red); }
+.v-veto { display: inline-flex; align-items: center; gap: 4px; color: #fb923c; }
+.prop-actions { display: flex; gap: 8px; margin-top: 4px; }
+.vote-yes { background: linear-gradient(135deg, #16a34a, #22c55e); color: #fff; }
+.vote-no { background: linear-gradient(135deg, #dc2626, #ef4444); color: #fff; }
+.vote-yes:hover, .vote-no:hover { filter: brightness(1.1); }
 </style>

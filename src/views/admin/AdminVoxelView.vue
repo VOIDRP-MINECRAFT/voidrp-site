@@ -277,7 +277,7 @@ onMounted(loadGames)
 @media (max-width: 900px) { .vx-grid { grid-template-columns: 1fr; } }
 .vx-list { max-height: 78vh; overflow-y: auto; }
 .vx-items { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 8px; }
-.vx-item { padding: 12px 14px; border: 1px solid var(--adm-line, rgba(255,255,255,.08)); border-radius: 10px; cursor: pointer; transition: .15s; }
+.vx-item { padding: 12px 14px; border: 1px solid var(--adm-line); border-radius: var(--adm-r-sm); cursor: pointer; transition: .15s; }
 .vx-item:hover { border-color: var(--adm-acc-line, rgba(63,208,192,.4)); }
 .vx-item--active { border-color: var(--adm-acc-text, #3fd0c0); background: var(--adm-acc-soft, rgba(63,208,192,.08)); }
 .vx-item__top { display: flex; align-items: center; gap: 8px; margin-bottom: 4px; }

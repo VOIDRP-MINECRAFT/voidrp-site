@@ -29,6 +29,15 @@ const editingName = computed(() => {
   return m ? m.site_login : ''
 })
 
+const selectedCount = computed(() => form.value.permissions.size)
+const totalCount = computed(() =>
+  catalog.value.reduce((n, g) => n + (g.permissions?.length || 0), 0),
+)
+
+function groupSelected(group) {
+  return (group.permissions || []).filter((p) => form.value.permissions.has(p.key)).length
+}
+
 async function load() {
   loading.value = true
   try {
@@ -69,6 +78,14 @@ function has(key) {
   return form.value.permissions.has(key)
 }
 
+function toggleGroup(group) {
+  const keys = (group.permissions || []).map((p) => p.key)
+  const s = new Set(form.value.permissions)
+  const allOn = keys.every((k) => s.has(k))
+  keys.forEach((k) => (allOn ? s.delete(k) : s.add(k)))
+  form.value = { ...form.value, permissions: s }
+}
+
 function applyPreset() {
   form.value = { ...form.value, permissions: new Set(preset.value) }
 }
@@ -101,7 +118,7 @@ async function revoke(m) {
   const ok = await confirmDialog({
     title: 'Снять модератора?',
     message: `«${m.site_login}» потеряет доступ к админ-панели.`,
-    confirmText: 'Снять',
+    confirmLabel: 'Снять',
     danger: true,
   })
   if (!ok) return
@@ -119,101 +136,180 @@ onMounted(load)
 
 <template>
   <div class="adm-page">
-    <div class="adm-head">
+    <div class="adm-page__head">
       <div>
         <h1 class="adm-title">Модерация</h1>
-        <p class="adm-mut">Назначай модераторов по нику и выбирай, что им доступно в админ-панели.</p>
+        <p class="adm-sub">Назначай модераторов по нику и выбирай, что им доступно в панели</p>
       </div>
-      <button class="adm-btn adm-btn--acc" :disabled="editing === 'new'" @click="startNew">+ Новый модератор</button>
+      <button class="adm-btn adm-btn--acc" :disabled="editing === 'new'" @click="startNew">
+        Новый модератор
+      </button>
     </div>
 
     <!-- Editor -->
-    <div v-if="editing" class="adm-card mod-editor">
-      <div class="mod-editor__top">
-        <div class="mod-editor__title">{{ editingName }}</div>
-        <div class="mod-editor__preset">
-          <button type="button" class="adm-btn adm-btn--sm" @click="applyPreset">Стандартный модератор</button>
+    <div v-if="editing" class="adm-card md-editor">
+      <div class="md-editor__bar">
+        <div class="md-editor__who">
+          <span class="adm-avatar">{{ (editingName || '?').charAt(0).toUpperCase() }}</span>
+          <div>
+            <div class="md-editor__name">{{ editingName }}</div>
+            <div class="md-editor__count">
+              выдано <b class="adm-num">{{ selectedCount }}</b> из <span class="adm-num">{{ totalCount }}</span>
+            </div>
+          </div>
+        </div>
+        <div class="md-editor__presets">
+          <button type="button" class="adm-btn adm-btn--sm" @click="applyPreset">Стандартный набор</button>
           <button type="button" class="adm-btn adm-btn--sm" @click="clearAll">Снять все</button>
         </div>
       </div>
 
-      <label v-if="editing === 'new'" class="adm-field mod-username">
-        <span>Ник пользователя (site login)</span>
+      <label v-if="editing === 'new'" class="adm-field md-username">
+        <span>Ник пользователя</span>
         <input v-model="form.username" class="adm-input" placeholder="например, mironoouv" autocomplete="off" />
       </label>
 
-      <div class="mod-groups">
-        <div v-for="g in catalog" :key="g.group" class="mod-group">
-          <div class="mod-group__title">{{ g.group }}</div>
+      <div class="md-groups">
+        <section v-for="g in catalog" :key="g.group" class="md-group">
+          <button type="button" class="md-group__head" @click="toggleGroup(g)">
+            <span class="adm-label md-group__title">{{ g.group }}</span>
+            <span class="md-group__count adm-num">{{ groupSelected(g) }}/{{ g.permissions.length }}</span>
+          </button>
           <label
             v-for="p in g.permissions"
             :key="p.key"
-            class="mod-perm"
-            :class="{ 'mod-perm--sensitive': p.sensitive, 'mod-perm--on': has(p.key) }"
+            class="md-perm"
+            :class="{ 'md-perm--on': has(p.key) }"
           >
             <input type="checkbox" :checked="has(p.key)" @change="toggle(p.key)" />
-            <span class="mod-perm__label">{{ p.label }}</span>
-            <span v-if="p.sensitive" class="mod-perm__badge">чувств.</span>
+            <span class="md-perm__label">{{ p.label }}</span>
+            <span v-if="p.sensitive" class="md-perm__tag" title="Чувствительное право">•</span>
           </label>
-        </div>
+        </section>
       </div>
 
-      <div class="mod-editor__bar">
+      <div class="md-editor__actions">
+        <button class="adm-btn" :disabled="saving" @click="cancel">Отмена</button>
         <button class="adm-btn adm-btn--acc" :disabled="saving" @click="save">
           {{ saving ? 'Сохраняем…' : (editing === 'new' ? 'Назначить' : 'Сохранить') }}
         </button>
-        <button class="adm-btn" :disabled="saving" @click="cancel">Отмена</button>
       </div>
     </div>
 
     <!-- List -->
-    <div class="adm-card">
-      <div v-if="loading" class="adm-mut" style="padding:1rem">Загрузка…</div>
-      <div v-else-if="!moderators.length" class="adm-empty">Модераторов пока нет.</div>
-      <table v-else class="mod-table">
-        <thead><tr><th>Модератор</th><th>Права</th><th></th></tr></thead>
-        <tbody>
-          <tr v-for="m in moderators" :key="m.id">
-            <td>
-              <div class="mod-row-login">{{ m.site_login }}</div>
-              <div class="mod-row-email">{{ m.email }}</div>
-            </td>
-            <td class="mod-row-perms">
-              <span class="mod-count">{{ m.permissions.length }} прав</span>
-            </td>
-            <td class="mod-actions">
-              <button class="adm-btn adm-btn--sm" @click="startEdit(m)">Изменить</button>
-              <button class="adm-btn adm-btn--sm adm-btn--danger" @click="revoke(m)">Снять</button>
-            </td>
-          </tr>
-        </tbody>
-      </table>
+    <div v-if="loading" class="md-skels">
+      <div v-for="n in 3" :key="n" class="adm-skel md-skel" />
+    </div>
+
+    <div v-else-if="!moderators.length" class="adm-empty">
+      <div class="adm-empty__title">Модераторов пока нет</div>
+      <div class="adm-empty__sub">Назначь первого — он получит доступ только к тем разделам, которые ты отметишь.</div>
+    </div>
+
+    <div v-else class="adm-table-wrap">
+      <div class="adm-table-scroll">
+        <table class="adm-table">
+          <thead>
+            <tr><th>Модератор</th><th>Права</th><th /></tr>
+          </thead>
+          <tbody>
+            <tr v-for="m in moderators" :key="m.id">
+              <td>
+                <div class="md-row__who">
+                  <span class="adm-avatar md-row__ava">{{ m.site_login.charAt(0).toUpperCase() }}</span>
+                  <div class="md-row__ident">
+                    <div class="md-row__login">{{ m.site_login }}</div>
+                    <div class="md-row__email adm-mono">{{ m.email }}</div>
+                  </div>
+                </div>
+              </td>
+              <td>
+                <span class="adm-badge" :class="m.permissions.length ? 'adm-badge--acc' : ''">
+                  <b class="adm-num">{{ m.permissions.length }}</b>&nbsp;из&nbsp;<span class="adm-num">{{ totalCount }}</span>
+                </span>
+              </td>
+              <td>
+                <div class="md-row__actions">
+                  <button class="adm-btn adm-btn--sm" @click="startEdit(m)">Изменить</button>
+                  <button class="adm-btn adm-btn--sm adm-btn--danger" @click="revoke(m)">Снять</button>
+                </div>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
     </div>
   </div>
 </template>
 
 <style scoped>
-.adm-head { display: flex; justify-content: space-between; align-items: flex-start; gap: 1rem; flex-wrap: wrap; margin-bottom: 1rem; }
-.mod-editor { margin-bottom: 1.25rem; padding: 1.1rem; }
-.mod-editor__top { display: flex; justify-content: space-between; align-items: center; gap: 1rem; margin-bottom: 1rem; flex-wrap: wrap; }
-.mod-editor__title { font-weight: 700; font-size: 1.05rem; color: var(--adm-text, #f4f2fb); }
-.mod-editor__preset { display: flex; gap: .5rem; }
-.mod-username { margin-bottom: 1rem; max-width: 360px; }
-.mod-groups { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 1rem 1.5rem; }
-.mod-group__title { font-size: .72rem; text-transform: uppercase; letter-spacing: .06em; color: #8b86a3; margin-bottom: .45rem; }
-.mod-perm { display: flex; align-items: center; gap: .5rem; padding: .32rem .4rem; border-radius: 8px; font-size: .88rem; color: #d6d2e6; cursor: pointer; }
-.mod-perm:hover { background: rgba(255,255,255,.04); }
-.mod-perm--on { color: #f4f2fb; }
-.mod-perm input { accent-color: #7c3aed; width: .95rem; height: .95rem; cursor: pointer; }
-.mod-perm__label { flex: 1; }
-.mod-perm__badge { font-size: .62rem; text-transform: uppercase; color: #f59e0b; background: rgba(245,158,11,.12); padding: .05rem .3rem; border-radius: 4px; }
-.mod-editor__bar { display: flex; gap: .6rem; margin-top: 1.25rem; }
+/* Цвета — только из токенов admin.css, чтобы страница перекрашивалась
+   вместе с панелью при смене активного сервера. */
 
-.mod-table { width: 100%; border-collapse: collapse; }
-.mod-table th { text-align: left; font-size: .75rem; color: #8b86a3; text-transform: uppercase; padding: .6rem .5rem; border-bottom: 1px solid rgba(255,255,255,.08); }
-.mod-table td { padding: .7rem .5rem; border-bottom: 1px solid rgba(255,255,255,.05); vertical-align: middle; }
-.mod-row-login { font-weight: 600; color: #f4f2fb; }
-.mod-row-email { font-size: .8rem; color: #8b86a3; }
-.mod-count { font-size: .82rem; color: #a5a1bb; }
-.mod-actions { display: flex; gap: .4rem; justify-content: flex-end; }
+.md-editor { padding: 1.1rem 1.2rem 1.2rem; }
+.md-editor__bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  flex-wrap: wrap;
+  padding-bottom: 0.9rem;
+  margin-bottom: 1.1rem;
+  border-bottom: 1px solid var(--adm-line);
+}
+.md-editor__who { display: flex; align-items: center; gap: 0.65rem; min-width: 0; }
+.md-editor__name { font-size: 0.95rem; font-weight: 800; color: var(--adm-text); line-height: 1.2; }
+.md-editor__count { font-size: 0.72rem; color: var(--adm-dim); margin-top: 0.1rem; }
+.md-editor__count b { color: var(--adm-acc-text); font-weight: 700; }
+.md-editor__presets { display: flex; gap: 0.45rem; }
+.md-username { max-width: 320px; margin-bottom: 1.1rem; }
+
+.md-groups { display: grid; grid-template-columns: repeat(auto-fill, minmax(272px, 1fr)); gap: 1rem 1.4rem; }
+.md-group { min-width: 0; }
+.md-group__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  width: 100%;
+  padding: 0 0 0.1rem;
+  background: none;
+  border: none;
+  cursor: pointer;
+  text-align: left;
+}
+/* .adm-label уже несёт акцентную засечку и микро-капитель — сбрасываем только отступ */
+.md-group__title { margin-bottom: 0; }
+.md-group__count { font-size: 0.66rem; color: var(--adm-faint); flex-shrink: 0; }
+.md-group__head:hover .md-group__count { color: var(--adm-mut); }
+
+.md-perm {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.34rem 0.45rem;
+  border-radius: 7px;
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--adm-mut);
+  cursor: pointer;
+  transition: background-color 0.12s, color 0.12s;
+}
+.md-perm:hover { background: rgba(148, 163, 184, 0.055); }
+.md-perm--on { color: var(--adm-text); }
+.md-perm input { accent-color: var(--adm-acc); width: 0.95rem; height: 0.95rem; cursor: pointer; flex-shrink: 0; }
+.md-perm__label { flex: 1; min-width: 0; line-height: 1.35; }
+.md-perm__tag { color: var(--adm-warn); font-size: 1rem; line-height: 1; flex-shrink: 0; cursor: help; }
+
+.md-editor__actions { display: flex; gap: 0.5rem; justify-content: flex-end; margin-top: 1.3rem; }
+
+.md-skels { display: flex; flex-direction: column; gap: 0.5rem; }
+.md-skel { height: 58px; }
+
+.md-row__who { display: flex; align-items: center; gap: 0.6rem; min-width: 0; }
+.md-row__ava { width: 1.75rem; height: 1.75rem; font-size: 0.72rem; }
+.md-row__ident { min-width: 0; }
+.md-row__login { font-weight: 700; color: var(--adm-text); }
+.md-row__email { font-size: 0.72rem; color: var(--adm-dim); margin-top: 0.05rem; }
+.md-row__actions { display: flex; gap: 0.35rem; justify-content: flex-end; }
 </style>

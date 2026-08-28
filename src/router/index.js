@@ -21,6 +21,7 @@ const routes = [
   { path: '/game-ui/hud', name: 'game-ui-hud', component: () => import('../views/GameUiHudView.vue'), meta: { title: 'HUD', hidePublicShell: true } },
   { path: '/game-ui/nmarket', name: 'game-ui-nmarket', component: () => import('../views/GameUiNationMarketView.vue'), meta: { title: 'Рынок государств', hidePublicShell: true } },
   { path: '/game-ui/treasury', name: 'game-ui-treasury', component: () => import('../views/GameUiTreasuryView.vue'), meta: { title: 'Казна', hidePublicShell: true } },
+  { path: '/game-ui/research', name: 'game-ui-research', component: () => import('../views/GameUiResearchView.vue'), meta: { title: 'Технологии', hidePublicShell: true } },
   { path: '/game-ui/battlepass', name: 'game-ui-battlepass', component: () => import('../views/GameUiBattlePassView.vue'), meta: { title: 'Battle Pass', hidePublicShell: true } },
   { path: '/game-ui/alliance', name: 'game-ui-alliance', component: () => import('../views/GameUiAllianceView.vue'), meta: { title: 'Альянс', hidePublicShell: true } },
   { path: '/game-ui/quests', name: 'game-ui-quests', component: () => import('../views/GameUiQuestsView.vue'), meta: { title: 'Квесты', hidePublicShell: true } },
@@ -66,6 +67,9 @@ const routes = [
     children: [
       { path: '', name: 'admin-dashboard', component: () => import('../views/admin/AdminDashboardView.vue'), meta: { title: 'Панель управления', requiresAuth: true, requiresAdmin: true, hidePublicShell: true } },
       { path: 'players', name: 'admin-players', component: () => import('../views/admin/AdminPlayersView.vue'), meta: { title: 'Игроки', requiresAuth: true, requiresAdmin: true, hidePublicShell: true, permission: 'players.view' } },
+      { path: 'players/:nickname', name: 'admin-player-detail', component: () => import('../views/admin/AdminPlayerDetailView.vue'), meta: { title: 'Игрок', requiresAuth: true, requiresAdmin: true, hidePublicShell: true, permission: 'players.view', serverScoped: true } },
+      { path: 'punishments', name: 'admin-punishments', component: () => import('../views/admin/AdminPunishmentsView.vue'), meta: { title: 'Наказания', requiresAuth: true, requiresAdmin: true, hidePublicShell: true, permission: 'punishments.view', serverScoped: true } },
+      { path: 'audit', name: 'admin-audit', component: () => import('../views/admin/AdminAuditView.vue'), meta: { title: 'Журнал действий', requiresAuth: true, requiresAdmin: true, hidePublicShell: true, permission: 'audit.view' } },
       { path: 'market', name: 'admin-market-panel', component: () => import('../views/admin/AdminMarketPanelView.vue'), meta: { title: 'Рынок', requiresAuth: true, requiresAdmin: true, hidePublicShell: true, permission: 'market.view', serverScoped: true } },
       { path: 'server', name: 'admin-server', component: () => import('../views/admin/AdminServerView.vue'), meta: { title: 'Серверы', requiresAuth: true, requiresAdmin: true, hidePublicShell: true, permission: 'servers.manage' } },
       { path: 'monitoring', name: 'admin-monitoring', component: () => import('../views/admin/AdminServerOpsView.vue'), meta: { title: 'Мониторинг', requiresAuth: true, requiresAdmin: true, hidePublicShell: true, permission: 'monitoring.view', serverScoped: true } },

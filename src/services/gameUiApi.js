@@ -59,6 +59,52 @@ export function getTreasurySummary() {
   return req('/game-ui/treasury/summary')
 }
 
+// ── Battle Pass reward track ──────────────────────────────────────────────────
+
+export function getBpTrack() {
+  return req('/game-ui/battlepass/track')
+}
+
+// ── Home / profile dashboard ──────────────────────────────────────────────────
+
+export function getHome() {
+  return req('/game-ui/home')
+}
+
+export function getTopBar() {
+  return req('/game-ui/home/topbar')
+}
+
+// ── Daily quests (web view) ───────────────────────────────────────────────────
+
+export function getMyQuests() {
+  return req('/game-ui/quests/mine')
+}
+
+// ── Server-side command (opens an in-game GUI) ────────────────────────────────
+// The client run_command bridge doesn't execute plugin commands on this hybrid
+// server, so we queue a whitelisted "command" web action; the plugin polls it and
+// runs it server-side for the player (~1s later).
+export function runGameCommand(command) {
+  return req('/game-ui/market/pending-action', {
+    method: 'POST',
+    body: JSON.stringify({ action_type: 'command', payload: { command } }),
+  })
+}
+
+// ── Nation research (tech tree) ───────────────────────────────────────────────
+
+export function getResearchOverview() {
+  return req('/game-ui/research/overview')
+}
+
+export function purchaseResearch(researchKey) {
+  return req('/game-ui/research/purchase', {
+    method: 'POST',
+    body: JSON.stringify({ research_key: researchKey }),
+  })
+}
+
 // ── Battle Pass ───────────────────────────────────────────────────────────────
 
 export function getBattlepassStatus() {

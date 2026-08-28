@@ -86,6 +86,14 @@ async function doAction(action) {
   }
 }
 
+// Точка-индикатор слева от нарушения (свои оттенки), и отдельно —
+// системный бейдж, чтобы серьёзность читалась как остальные статусы панели.
+function severityBadge(s) {
+  if (s === 'HIGH') return 'adm-badge--err'
+  if (s === 'MEDIUM') return 'adm-badge--warn'
+  return ''
+}
+
 function severityClass(s) {
   if (s === 'HIGH') return 'sev--high'
   if (s === 'MEDIUM') return 'sev--med'
@@ -181,7 +189,7 @@ function fmtDate(iso) {
               <div class="acp-viol-body">
                 <div class="acp-viol-top">
                   <span class="acp-check-type">{{ v.check_type }}</span>
-                  <span class="acp-sev-badge" :class="severityClass(v.severity)">{{ v.severity }}</span>
+                  <span class="adm-badge acp-sev-badge" :class="severityBadge(v.severity)">{{ v.severity }}</span>
                   <span v-if="v.reviewed" class="acp-reviewed-tag">✓ проверено</span>
                 </div>
                 <div v-if="v.details" class="acp-viol-details">{{ v.details }}</div>
@@ -351,7 +359,7 @@ function fmtDate(iso) {
   font-weight: 900;
   color: #fff;
   flex-shrink: 0;
-  box-shadow: 0 4px 20px rgba(124,58,237,0.35);
+  box-shadow: 0 4px 20px rgba(var(--adm-acc-rgb), 0.35);
 }
 
 .acp-nick {
@@ -372,7 +380,7 @@ function fmtDate(iso) {
   font-size: 0.78rem;
   font-weight: 700;
   padding: 0.15rem 0.5rem;
-  border-radius: 6px;
+  border-radius: var(--adm-r-sm);
   display: inline-block;
 }
 
@@ -392,7 +400,7 @@ function fmtDate(iso) {
 
 /* Actions card */
 .acp-actions-card {
-  background: rgba(255,255,255,0.025);
+  background: rgba(148, 163, 184, 0.03);
   border: 1px solid var(--adm-line);
   border-radius: 12px;
   padding: 1rem 1.25rem;
@@ -431,7 +439,7 @@ function fmtDate(iso) {
 @media (max-width: 900px) { .acp-grid { grid-template-columns: 1fr; } }
 
 .acp-section {
-  background: rgba(255,255,255,0.025);
+  background: rgba(148, 163, 184, 0.03);
   border: 1px solid var(--adm-line);
   border-radius: 12px;
   padding: 1rem 1.25rem;
@@ -453,7 +461,7 @@ function fmtDate(iso) {
   background: var(--adm-acc-soft);
   color: var(--adm-acc-text);
   padding: 0.1rem 0.4rem;
-  border-radius: 6px;
+  border-radius: var(--adm-r-sm);
   font-size: 0.72rem;
 }
 
@@ -468,7 +476,7 @@ function fmtDate(iso) {
   align-items: flex-start;
   padding: 0.65rem 0.75rem;
   border-radius: 8px;
-  background: rgba(255,255,255,0.02);
+  background: rgba(148, 163, 184, 0.025);
   border: 1px solid rgba(148,163,184,0.05);
   transition: opacity 0.15s;
 }
@@ -505,7 +513,7 @@ function fmtDate(iso) {
 .acp-sev-badge.sev--med { background: rgba(234,179,8,0.12); color: #facc15; }
 .acp-sev-badge.sev--low { background: rgba(100,116,139,0.12); color: var(--adm-mut); }
 
-.acp-reviewed-tag { font-size: 0.68rem; color: #22c55e; margin-left: auto; }
+.acp-reviewed-tag { font-size: 0.68rem; color: var(--adm-ok); margin-left: auto; }
 
 .acp-viol-details { font-size: 0.78rem; color: var(--adm-mut); margin-bottom: 0.2rem; }
 
@@ -529,7 +537,7 @@ function fmtDate(iso) {
 
 .acp-snap-tab {
   padding: 0.3rem 0.65rem;
-  border-radius: 6px;
+  border-radius: var(--adm-r-sm);
   background: rgba(148,163,184,0.04);
   border: 1px solid var(--adm-line);
   color: var(--adm-mut);
@@ -615,7 +623,7 @@ function fmtDate(iso) {
   margin-top: 1.25rem;
   border-color: rgba(251,191,36,0.15);
 }
-.acp-snap-tab--danger { border-color: rgba(251,191,36,0.3); color: #fbbf24; }
+.acp-snap-tab--danger { border-color: rgba(251, 191, 36, 0.3); color: var(--adm-warn); }
 .acp-inject-detail { font-size: 0.82rem; padding-top: 0.25rem; }
 .acp-inject-list { margin: 0.5rem 0; }
 .acp-inject-subtitle { font-size: 0.7rem; font-weight: 700; text-transform: uppercase; color: var(--adm-dim); margin-bottom: 0.3rem; letter-spacing: 0.05em; }

@@ -4,19 +4,27 @@ import { useRoute } from 'vue-router'
 import { useI18n } from 'vue-i18n'
 import {
   setWebguiToken, getItems, getOrderBook, getMySellOrders,
-  getMyBuyOrders, getMyTrades, getPickupReady, createPendingAction,
+  getMyBuyOrders, getMyTrades, getPickupReady, createPendingAction, getTopBar,
 } from '../services/gameUiMarketApi'
 import { useItemNames } from '../composables/useItemNames'
 import ItemIcon from '../components/ItemIcon.vue'
+import GameUiSidebar from '../components/GameUiSidebar.vue'
+import { closeGui } from '../composables/useWebGui.js'
 import { toastSuccess, toastError, toastInfo } from '../services/toast'
 
 const { t } = useI18n()
 const route = useRoute()
 const itemNames = useItemNames()
 const tokenValid = ref(true)
+const topbar = ref(null)
+async function loadTopbar() { try { topbar.value = await getTopBar() } catch { /* silent */ } }
+function fmtCoins(v) { return Number(v || 0).toLocaleString('ru-RU', { maximumFractionDigits: 0 }) }
 
 function initToken() {
-  const t = route.query.webgui_token || ''
+  // A URL with a duplicate ?webgui_token= makes Vue Router return an array;
+  // take the first so we never send a comma-joined "token,token" value.
+  const raw = route.query.webgui_token
+  const t = (Array.isArray(raw) ? raw[0] : raw) || ''
   if (!t) { tokenValid.value = false; return }
   setWebguiToken(t)
 }
@@ -348,6 +356,7 @@ onMounted(() => {
   initToken()
   if (tokenValid.value) {
     switchTab('market')
+    loadTopbar()
     poll = setInterval(silentPoll, 6000)
   }
 })
@@ -383,6 +392,13 @@ onUnmounted(() => { if (poll) clearInterval(poll) })
         <span class="vm-brand-name">VOID<span class="vm-brand-accent">RP</span></span>
         <span class="vm-brand-sub">{{ t('vmarket.brandSub') }}</span>
       </span>
+      <div v-if="topbar" class="vm-user">
+        <div class="vm-head" :style="{ backgroundImage: `url(${topbar.skin_url}), url(${topbar.skin_url})` }"></div>
+        <div class="vm-who">
+          <span class="vm-nick" :style="{ color: topbar.accent_color || '#e6edff' }">{{ topbar.nickname }}</span>
+          <span class="vm-lvl">LVL {{ topbar.level }}</span>
+        </div>
+      </div>
     </div>
 
     <nav class="vm-nav">
@@ -406,6 +422,7 @@ onUnmounted(() => { if (poll) clearInterval(poll) })
     </nav>
 
     <div class="vm-header-actions">
+      <div v-if="topbar" class="vm-coins"><span class="vm-coin-ic">⛃</span>{{ fmtCoins(topbar.balance) }}</div>
       <button class="vm-hand-btn" @click="handForm = { show: true, price: '', amount: 1, busy: false, res: null }">
         <svg width="15" height="15" viewBox="0 0 16 16" fill="none"><path d="M6 3a1 1 0 0 1 1-1h2a1 1 0 0 1 1 1v5h1a1 1 0 0 1 1 1v4a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V9a1 1 0 0 1 1-1h1V3z" stroke="currentColor" stroke-width="1.3"/></svg>
         <span>{{ t('vmarket.tabHandSell') }}</span>
@@ -413,6 +430,7 @@ onUnmounted(() => { if (poll) clearInterval(poll) })
       <button class="vm-icon-btn" :class="{ spin: loading }" @click="switchTab(tab)" :title="t('vmarket.refresh')">
         <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M13.5 8a5.5 5.5 0 1 1-1.6-3.9" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/><path d="M13.5 2.5V5.5H10.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
       </button>
+      <button class="vm-icon-btn" @click="closeGui" title="Закрыть">✕</button>
     </div>
   </header>
 
@@ -778,7 +796,10 @@ onUnmounted(() => { if (poll) clearInterval(poll) })
 
   </template>
 
+  <Teleport to="body"><GameUiSidebar current="market" /></Teleport>
+
   <!-- ═══════════════════ HAND SELL MODAL ═══════════════════════ -->
+  <Teleport to="body">
   <transition name="vm-modal">
     <div v-if="handForm.show" class="vm-modal-backdrop" @click.self="handForm.show = false">
       <div class="vm-modal">
@@ -818,6 +839,7 @@ onUnmounted(() => { if (poll) clearInterval(poll) })
       </div>
     </div>
   </transition>
+  </Teleport>
 </div>
 </template>
 
@@ -851,6 +873,7 @@ onUnmounted(() => { if (poll) clearInterval(poll) })
   color: var(--text);
   background: var(--bg-0);
   height: 100vh;
+  padding-left: 68px;        /* clear the fixed left icon rail */
   display: flex;
   flex-direction: column;
   overflow: hidden;
@@ -907,6 +930,27 @@ onUnmounted(() => { if (poll) clearInterval(poll) })
 .vm-brand-name { font-weight: 900; font-size: 15px; letter-spacing: 0.06em; color: #fff; }
 .vm-brand-accent { color: var(--accent-2); }
 .vm-brand-sub { font-size: 10.5px; color: var(--muted); letter-spacing: 0.04em; }
+
+/* integrated user (head + nick) */
+.vm-user { display: flex; align-items: center; gap: 9px; margin-left: 14px; padding-left: 14px; border-left: 1px solid var(--line-2); }
+.vm-head {
+  width: 36px; height: 36px; border-radius: 9px; flex-shrink: 0;
+  background-repeat: no-repeat, no-repeat; background-size: 288px auto, 288px auto;
+  background-position: -180px -36px, -36px -36px;
+  image-rendering: pixelated; border: 1px solid var(--accent); box-shadow: 0 0 0 1px rgba(0,0,0,0.4);
+}
+.vm-who { display: flex; flex-direction: column; line-height: 1.15; }
+.vm-nick { font-size: 13px; font-weight: 800; }
+.vm-lvl { font-size: 9.5px; font-weight: 700; letter-spacing: 0.08em; color: var(--dim); }
+
+/* coins pill */
+.vm-coins {
+  display: flex; align-items: center; gap: 6px;
+  padding: 7px 13px; border-radius: 10px;
+  font-family: 'JetBrains Mono', ui-monospace, monospace; font-weight: 800; font-size: 13px;
+  color: #fcd77a; background: rgba(251,191,36,0.12); border: 1px solid rgba(251,191,36,0.28);
+}
+.vm-coin-ic { color: var(--gold); font-size: 13px; }
 
 /* nav */
 .vm-nav {
@@ -1013,7 +1057,7 @@ onUnmounted(() => { if (poll) clearInterval(poll) })
 }
 .vm-list-head .ar { text-align: right; }
 
-.vm-list-scroll { flex: 1; overflow-y: auto; padding: 6px 8px; }
+.vm-list-scroll { flex: 1; overflow-y: auto; padding: 6px 8px 84px; }
 .vm-list-empty {
   display: flex; flex-direction: column; align-items: center; gap: 8px;
   padding: 50px 16px; color: var(--dim); font-size: 12.5px; text-align: center;
@@ -1042,7 +1086,7 @@ onUnmounted(() => { if (poll) clearInterval(poll) })
 .vm-list-price.buy  { color: var(--buy); }
 
 /* ── right detail panel ────────────────────────────────────── */
-.vm-detail { display: flex; flex-direction: column; overflow-y: auto; min-height: 0; }
+.vm-detail { display: flex; flex-direction: column; overflow-y: auto; min-height: 0; padding-bottom: 84px; }
 
 .vm-placeholder {
   flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center;
@@ -1242,7 +1286,7 @@ onUnmounted(() => { if (poll) clearInterval(poll) })
 }
 
 /* ═══ PAGE WRAPPER (orders / history / pickup) ═══════════════ */
-.vm-page { flex: 1; overflow-y: auto; padding: 22px; min-height: 0; }
+.vm-page { flex: 1; overflow-y: auto; padding: 22px 22px 84px; min-height: 0; }
 
 /* my orders */
 .vm-orders-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; max-width: 1100px; margin: 0 auto; }

@@ -93,9 +93,10 @@ onUnmounted(() => {
 
 .hud-dialogue {
   position: absolute; left: 50%; transform: translateX(-50%); bottom: 8%;
-  width: min(760px, 86vw); background: rgba(15,17,26,.86); border: 1px solid rgba(129,140,248,.4);
-  border-radius: 14px; padding: 18px 22px; box-shadow: 0 14px 40px rgba(0,0,0,.5);
+  width: min(760px, 86vw); background: rgba(9,13,24,.82); border: 1px solid rgba(129,140,248,.4);
+  border-left: 3px solid rgba(129,140,248,.95); border-radius: 12px; padding: 16px 20px;
 }
+.hud-dialogue * { text-shadow: 0 1px 2px rgba(0,0,0,.9); }
 .hud-dialogue__speaker { font-weight: 800; color: #818cf8; font-size: 17px; margin-bottom: 8px; }
 .hud-dialogue__lines p { margin: 4px 0; color: #eceef5; font-family: Inter, sans-serif; font-size: 17px; line-height: 1.5; }
 

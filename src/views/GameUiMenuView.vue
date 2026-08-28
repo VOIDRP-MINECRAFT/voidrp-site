@@ -1,234 +1,317 @@
 <script setup>
-import { computed } from 'vue'
+import { ref, computed, onMounted, onBeforeUnmount, useTemplateRef } from 'vue'
 import { useI18n } from 'vue-i18n'
-import '../assets/gameui.css'
-import { useWebGuiClient, runCommand, openGui, closeGui } from '../composables/useWebGui.js'
+import { useRoute, useRouter } from 'vue-router'
+import '../assets/gui-premium.css'
+import { getHome, setWebguiToken } from '../services/gameUiApi.js'
+import { useWebGuiToken, useWebGuiClient, closeGui } from '../composables/useWebGui.js'
+import GameUiSidebar from '../components/GameUiSidebar.vue'
+import GameUiTopBar from '../components/GameUiTopBar.vue'
+import GuiIcon from '../components/GuiIcon.vue'
+import CountUp from '../components/CountUp.vue'
 
 const { t } = useI18n()
+const route = useRoute()
+const router = useRouter()
+const token = useWebGuiToken()
+setWebguiToken(token)
 const client = useWebGuiClient()
 
-const username = computed(() => client.value?.username || '')
-const ping = computed(() => client.value?.server?.ping)
+const home = ref(null)
+const loading = ref(true)
+const error = ref(null)
+const canvasRef = useTemplateRef('skinCanvas')
+const skin3dOk = ref(false)
+let viewer = null
 
-/* Buttons fire in-game commands → the plugin re-opens the target GUI with a
-   FRESH signed token. This avoids the "session not confirmed" error you get
-   when navigating to a tokenless URL via open_gui. */
+const username = computed(() => home.value?.nickname || client.value?.username || '')
+const ping = computed(() => client.value?.server?.ping)
+const accent = computed(() => home.value?.nation?.accent_color || '#8b7bff')
+const bpPct = computed(() => {
+  const bp = home.value?.battlepass
+  if (!bp) return 0
+  const per = 10000
+  return Math.min(100, Math.round((bp.xp % per) / per * 100))
+})
+
 const tiles = [
-  { key: 'market',     icon: '🛒', cmd: '/shop',           accent: 'a' },
-  { key: 'nmarket',    icon: '🏷️', cmd: '/nmarket',         accent: 'b' },
-  { key: 'treasury',   icon: '🏦', cmd: '/nationtreasury',  accent: 'c' },
-  { key: 'alliance',   icon: '🤝', cmd: '/alliance',        accent: 'd' },
-  { key: 'battlepass', icon: '⭐', cmd: '/battlepass',      accent: 'e' },
-  { key: 'quests',     icon: '📜', cmd: '/dailyquest',      accent: 'f' },
+  { key: 'research',   icon: 'tech',       route: 'game-ui-research' },
+  { key: 'treasury',   icon: 'treasury',   route: 'game-ui-treasury' },
+  { key: 'quests',     icon: 'quest',      route: 'game-ui-quests' },
+  { key: 'alliance',   icon: 'alliance',   route: 'game-ui-alliance' },
+  { key: 'market',     icon: 'market',     route: 'game-ui-market' },
+  { key: 'battlepass', icon: 'battlepass', route: 'game-ui-battlepass' },
 ]
 
-function openTile(tile) {
-  runCommand(tile.cmd)
-  // GUI is replaced by the server packet; close defensively if it isn't.
+function goTile(tile) {
+  const raw = route.query.webgui_token
+  const webgui_token = Array.isArray(raw) ? raw[0] : raw
+  router.push({ name: tile.route, query: webgui_token ? { webgui_token } : {} })
 }
 
-function openSite() {
-  openGui('https://void-rp.ru')
+async function load() {
+  try {
+    home.value = await getHome()
+    error.value = null
+    mountSkin()
+  } catch (e) {
+    error.value = e.message
+  } finally {
+    loading.value = false
+  }
+}
+
+async function mountSkin() {
+  if (!home.value?.skin_url) return
+  await new Promise((r) => setTimeout(r, 50))
+  if (!canvasRef.value) return
+  try {
+    const { SkinViewer, IdleAnimation } = await import('skinview3d')
+    viewer = new SkinViewer({ canvas: canvasRef.value, width: 220, height: 320 })
+    await viewer.loadSkin(home.value.skin_url, { model: home.value.skin_slim ? 'slim' : 'default' })
+    viewer.animation = new IdleAnimation()
+    viewer.autoRotate = true
+    viewer.autoRotateSpeed = 0.6
+    viewer.controls.enableZoom = false
+    viewer.controls.enablePan = false
+    viewer.zoom = 0.9
+    viewer.fov = 40
+    skin3dOk.value = true
+  } catch (e) {
+    if (viewer) { try { viewer.dispose() } catch {} viewer = null }
+    skin3dOk.value = false
+  }
+}
+
+onMounted(load)
+onBeforeUnmount(() => { if (viewer) { try { viewer.dispose() } catch {} } })
+
+function art(id) { return `/item-icons/minecraft/${id}.png` }
+function money(v) { return Number(v || 0).toLocaleString('ru-RU', { maximumFractionDigits: 0 }) }
+function playtime(min) {
+  const m = Number(min || 0)
+  const h = Math.floor(m / 60)
+  if (h < 1) return `${m}${t('gameUiHome.mShort')}`
+  const d = Math.floor(h / 24)
+  if (d >= 1) return `${d}${t('gameUiHome.dShort')} ${h % 24}${t('gameUiHome.hShort')}`
+  return `${h}${t('gameUiHome.hShort')} ${m % 60}${t('gameUiHome.mShort')}`
+}
+const kd = computed(() => {
+  const s = home.value?.stats
+  if (!s) return '0.0'
+  return (s.pvp_kills / Math.max(1, s.deaths)).toFixed(2)
+})
+function roleLabel(r) {
+  return { leader: t('gameUiHome.roleLeader'), officer: t('gameUiHome.roleOfficer'), member: t('gameUiHome.roleMember') }[r] || r
+}
+function formatDate(d) {
+  if (!d) return '—'
+  return new Date(d).toLocaleDateString('ru-RU', { day: '2-digit', month: 'short', year: 'numeric' })
 }
 </script>
 
 <template>
-  <div class="menu-root">
-    <div class="menu-backdrop" @click="closeGui" />
+  <section class="gp-shell" :style="{ '--accent': accent }">
+    <GameUiSidebar current="home" />
+    <GameUiTopBar :title="t('gameUiNav.home')" />
 
-    <div class="menu-panel">
-      <button class="menu-close" @click="closeGui">✕</button>
-
-      <!-- Brand -->
-      <div class="menu-brand">
-        <div class="menu-logo">VOID<span>RP</span></div>
-        <div class="menu-sub">{{ t('gameUiMenu.title') }}</div>
-      </div>
-
-      <!-- Player chip -->
-      <div v-if="username" class="menu-player">
-        <img class="menu-avatar" :src="`https://mc-heads.net/avatar/${username}/40`" alt="" @error="$event.target.style.display='none'" />
-        <div class="menu-player-info">
-          <span class="menu-player-name">{{ username }}</span>
-          <span v-if="ping != null" class="menu-player-ping">
-            <span class="ping-dot" :class="{ good: ping < 80, mid: ping >= 80 && ping < 160, bad: ping >= 160 }" />
-            {{ ping }} ms
-          </span>
+    <div class="gp-wrap gp-wrap--wide gp-wrap--app">
+      <div v-if="loading" class="dash gp-grow">
+        <div class="gp-panel"><div class="gp-skel" style="width:100%;height:300px"></div><div class="gp-skel gp-skel-row" style="width:60%;height:22px;margin:14px auto 0"></div><div class="gp-skel gp-skel-row" style="width:40%;margin:10px auto 0"></div></div>
+        <div class="right">
+          <div class="gp-skel" style="height:190px;border-radius:20px"></div>
+          <div class="gp-grid gp-grid--4"><div v-for="i in 4" :key="i" class="gp-skel" style="height:78px"></div></div>
+          <div class="grid-2col"><div class="gp-skel" style="height:220px"></div><div class="gp-skel" style="height:220px"></div></div>
         </div>
       </div>
+      <div v-else-if="error" class="gp-center"><div class="gp-card gp-state"><span class="gp-state-ico"><GuiIcon name="alert" :size="30" /></span><span class="gp-state-text">{{ error }}</span></div></div>
 
-      <!-- Tiles -->
-      <div class="menu-grid">
-        <button
-          v-for="tile in tiles"
-          :key="tile.key"
-          class="menu-tile"
-          :data-accent="tile.accent"
-          @click="openTile(tile)"
-        >
-          <span class="tile-glow" />
-          <span class="tile-icon">{{ tile.icon }}</span>
-          <span class="tile-label">{{ t('gameUiMenu.' + tile.key) }}</span>
-        </button>
+      <div v-else-if="home" class="dash gp-grow">
+        <!-- LEFT: profile card -->
+        <div class="gp-panel profile">
+          <div class="skin-stage" :style="{ '--glow': accent }">
+            <canvas ref="skinCanvas" class="skin-canvas" :class="{ show: skin3dOk }"></canvas>
+            <img v-if="!skin3dOk" class="skin-fallback" :src="`https://mc-heads.net/body/${username}/front`" alt="" />
+            <span v-if="skin3dOk" class="skin-hint">↔ {{ t('gameUiHome.dragHint') }}</span>
+          </div>
+
+          <div class="id-row">
+            <span class="id-name" :style="{ color: accent }">{{ username }}</span>
+          </div>
+          <div class="id-tags">
+            <span v-if="home.nation?.custom_prefix" class="prefix" :style="{ color: accent }">{{ home.nation.custom_prefix }}</span>
+            <span v-if="home.nation" class="ntag" :style="{ color: accent, borderColor: accent + '55', background: accent + '1a' }">{{ home.nation.tag }}</span>
+          </div>
+          <div v-if="home.nation" class="nrole"><GuiIcon name="shield" :size="13" />{{ roleLabel(home.nation.role) }} · {{ home.nation.title }}</div>
+          <div v-else class="nrole gp-muted">{{ t('gameUiHome.noNation') }}</div>
+
+          <div v-if="home.battlepass" class="bp-mini">
+            <div class="bp-mini-head">
+              <span class="bp-mini-lv"><GuiIcon name="battlepass" :size="14" />{{ t('gameUiHome.level') || 'Уровень' }} {{ home.battlepass.level }}</span>
+              <span v-if="home.battlepass.has_premium" class="gp-pill gp-pill--gold"><GuiIcon name="crown" :size="13" />Premium</span>
+            </div>
+            <div class="gp-track" style="height:8px"><div class="gp-fill" :class="{ 'gp-fill--gold': home.battlepass.has_premium }" :style="{ width: bpPct + '%' }"></div></div>
+          </div>
+
+          <div class="id-meta">
+            <span v-if="ping != null" class="meta-item"><span class="dot" :class="ping < 80 ? 'good' : ping < 160 ? 'mid' : 'bad'"></span>{{ ping }} ms</span>
+            <span class="meta-item gp-muted">{{ t('gameUiHome.since') }} {{ formatDate(home.registered_at) }}</span>
+          </div>
+        </div>
+
+        <!-- RIGHT -->
+        <div class="right">
+          <!-- welcome hero -->
+          <div class="welcome">
+            <div class="welcome-bg"></div>
+            <div class="welcome-art" aria-hidden="true">
+              <img :src="art('enchanting_table')" class="wa wa0" alt="" @error="$event.target.remove()" />
+              <img :src="art('diamond_block')" class="wa wa1" alt="" @error="$event.target.remove()" />
+              <img :src="art('netherite_block')" class="wa wa2" alt="" @error="$event.target.remove()" />
+              <img :src="art('amethyst_shard')" class="wa wa3" alt="" @error="$event.target.remove()" />
+            </div>
+            <div class="welcome-in">
+              <div class="gp-eyebrow">VoidRP · {{ t('gameUiHome.welcomeKicker') }}</div>
+              <h1 class="welcome-tt">{{ t('gameUiHome.welcomeTitle') }} <span>VOID<b>RP</b></span></h1>
+              <p class="welcome-sub">{{ t('gameUiHome.welcomeSub') }}</p>
+              <button class="gp-btn gp-btn--primary welcome-cta" @click="closeGui">
+                <GuiIcon name="play" :size="16" />{{ t('gameUiHome.playBtn') }}
+              </button>
+            </div>
+          </div>
+
+          <!-- KPIs -->
+          <div class="gp-grid gp-grid--4 gp-stagger">
+            <div class="gp-kpi gp-kpi--gold">
+              <div class="gp-kpi-top"><GuiIcon name="wallet" :size="15" /><span class="gp-kpi-lbl">{{ t('gameUiHome.balance') }}</span></div>
+              <div class="gp-kpi-val"><CountUp :value="home.stats.balance" :format="money" /></div>
+            </div>
+            <div class="gp-kpi">
+              <div class="gp-kpi-top"><GuiIcon name="swords" :size="15" /><span class="gp-kpi-lbl">{{ t('gameUiHome.pvp') }}</span></div>
+              <div class="gp-kpi-val">{{ home.stats.pvp_kills }}</div>
+            </div>
+            <div class="gp-kpi">
+              <div class="gp-kpi-top"><GuiIcon name="skull" :size="15" /><span class="gp-kpi-lbl">{{ t('gameUiHome.deaths') }}</span></div>
+              <div class="gp-kpi-val">{{ home.stats.deaths }}</div>
+            </div>
+            <div class="gp-kpi">
+              <div class="gp-kpi-top"><GuiIcon name="clock" :size="15" /><span class="gp-kpi-lbl">{{ t('gameUiHome.playtime') }}</span></div>
+              <div class="gp-kpi-val">{{ playtime(home.stats.playtime_minutes) }}</div>
+            </div>
+          </div>
+
+          <!-- stat grid + quick tiles -->
+          <div class="grid-2col">
+            <div class="gp-panel">
+              <div class="gp-phead"><span class="gp-phead-ic"><GuiIcon name="activity" :size="16" /></span><span class="gp-phead-tt">{{ t('gameUiHome.stats') }}</span></div>
+              <div class="stat-grid gp-stagger">
+                <div class="scell"><GuiIcon name="target" :size="16" class="s-ic" /><span class="s-lbl">K/D</span><span class="s-val gp-num">{{ kd }}</span></div>
+                <div class="scell"><GuiIcon name="flame" :size="16" class="s-ic" /><span class="s-lbl">{{ t('gameUiHome.streak') }}</span><span class="s-val gp-num">{{ home.stats.best_kill_streak }}</span></div>
+                <div class="scell"><GuiIcon name="skull" :size="16" class="s-ic" /><span class="s-lbl">{{ t('gameUiHome.mobs') }}</span><span class="s-val gp-num">{{ home.stats.mob_kills }}</span></div>
+                <div class="scell"><GuiIcon name="quest" :size="16" class="s-ic" /><span class="s-lbl">{{ t('gameUiHome.quests') }}</span><span class="s-val gp-num">{{ home.stats.completed_quests }}</span></div>
+                <div class="scell"><GuiIcon name="pickaxe" :size="16" class="s-ic" /><span class="s-lbl">{{ t('gameUiHome.mined') }}</span><span class="s-val gp-num">{{ money(home.stats.blocks_broken) }}</span></div>
+                <div class="scell"><GuiIcon name="package" :size="16" class="s-ic" /><span class="s-lbl">{{ t('gameUiHome.placed') }}</span><span class="s-val gp-num">{{ money(home.stats.blocks_placed) }}</span></div>
+              </div>
+            </div>
+
+            <div class="gp-panel">
+              <div class="gp-phead"><span class="gp-phead-ic"><GuiIcon name="grid" :size="16" /></span><span class="gp-phead-tt">{{ t('gameUiHome.quickAccess') }}</span></div>
+              <div class="tiles gp-stagger">
+                <button v-for="tile in tiles" :key="tile.key" class="tile" @click="goTile(tile)">
+                  <GuiIcon :name="tile.icon" :size="20" />
+                  <span>{{ t('gameUiNav.' + tile.key) }}</span>
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
       </div>
-
-      <!-- Footer -->
-      <button class="menu-site" @click="openSite">
-        🌐 {{ t('gameUiMenu.site') }}
-      </button>
     </div>
-  </div>
+  </section>
 </template>
 
 <style scoped>
-.menu-root {
-  position: fixed;
-  inset: 0;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-family: 'Inter', system-ui, sans-serif;
-}
+.dash { display: grid; grid-template-columns: 320px 1fr; gap: 16px; align-items: start; }
+@media (max-width: 900px) { .dash { grid-template-columns: 1fr; } }
 
-.menu-backdrop {
-  position: absolute;
-  inset: 0;
+/* profile */
+.profile { align-items: center; gap: 12px; }
+.skin-stage {
+  position: relative; width: 100%; height: 300px; flex-shrink: 0;
+  border-radius: 14px; overflow: hidden;
   background:
-    radial-gradient(circle at 50% 30%, rgba(99, 102, 241, 0.14), transparent 55%),
-    rgba(4, 7, 14, 0.62);
-  backdrop-filter: blur(7px);
+    radial-gradient(150px 200px at 50% 42%, color-mix(in srgb, var(--glow) 26%, transparent), transparent 70%),
+    linear-gradient(180deg, rgba(255,255,255,0.03), rgba(0,0,0,0.35));
+  border: 1px solid var(--gp-line); display: grid; place-items: center;
 }
+.skin-canvas { display: block; cursor: grab; opacity: 0; transition: opacity 0.3s; }
+.skin-canvas.show { opacity: 1; }
+.skin-canvas:active { cursor: grabbing; }
+.skin-fallback { position: absolute; inset: 0; margin: auto; height: 86%; width: auto; image-rendering: pixelated; }
+.skin-hint { position: absolute; bottom: 8px; left: 50%; transform: translateX(-50%); font-size: 0.62rem; color: var(--gp-ink-dim); letter-spacing: 0.05em; }
 
-.menu-panel {
-  position: relative;
-  width: 400px;
-  max-width: 92vw;
-  padding: 26px 26px 22px;
-  border-radius: 22px;
-  background: linear-gradient(180deg, rgba(20, 27, 48, 0.92), rgba(12, 17, 33, 0.96));
-  border: 1px solid rgba(148, 163, 184, 0.16);
-  box-shadow: 0 30px 80px rgba(0, 0, 0, 0.6), inset 0 1px 0 rgba(255, 255, 255, 0.05);
-  animation: menu-pop 0.32s cubic-bezier(0.16, 1, 0.3, 1) both;
-}
-@keyframes menu-pop {
-  from { opacity: 0; transform: translateY(14px) scale(0.97); }
-  to   { opacity: 1; transform: translateY(0) scale(1); }
-}
+.id-row { display: flex; align-items: center; justify-content: center; }
+.id-name { font-size: 1.6rem; font-weight: 900; letter-spacing: -0.01em; text-shadow: 0 0 26px color-mix(in srgb, var(--accent) 50%, transparent); }
+.id-tags { display: flex; align-items: center; justify-content: center; gap: 8px; flex-wrap: wrap; }
+.prefix { font-size: 0.8rem; font-weight: 900; }
+.ntag { font-size: 0.7rem; font-weight: 900; padding: 2px 9px; border-radius: 7px; border: 1px solid; }
+.nrole { display: flex; align-items: center; gap: 6px; font-size: 0.82rem; color: var(--gp-ink-soft); }
 
-.menu-close {
-  position: absolute;
-  top: 16px; right: 16px;
-  width: 30px; height: 30px;
-  border-radius: 8px;
-  border: 1px solid rgba(148, 163, 184, 0.16);
-  background: rgba(255, 255, 255, 0.04);
-  color: #94a3b8;
-  font-size: 0.9rem;
-  cursor: pointer;
-  transition: all 0.15s;
-}
-.menu-close:hover { background: rgba(248, 113, 113, 0.16); color: #fca5a5; }
+.bp-mini { width: 100%; display: flex; flex-direction: column; gap: 7px; padding: 12px; border-radius: 12px; border: 1px solid var(--gp-line); background: rgba(0,0,0,0.2); }
+.bp-mini-head { display: flex; align-items: center; justify-content: space-between; }
+.bp-mini-lv { display: flex; align-items: center; gap: 6px; font-size: 0.8rem; font-weight: 800; color: #c9beff; }
 
-/* Brand */
-.menu-brand { text-align: center; margin-bottom: 18px; }
-.menu-logo {
-  font-size: 1.7rem;
-  font-weight: 900;
-  letter-spacing: 0.06em;
-  color: #e8eefc;
-  text-shadow: 0 0 24px rgba(129, 140, 248, 0.45);
-}
-.menu-logo span { color: #818cf8; }
-.menu-sub {
-  font-size: 0.72rem;
-  font-weight: 600;
-  text-transform: uppercase;
-  letter-spacing: 0.22em;
-  color: #6b7a9c;
-  margin-top: 2px;
-}
+.id-meta { display: flex; justify-content: center; gap: 16px; flex-wrap: wrap; margin-top: 2px; }
+.meta-item { display: flex; align-items: center; gap: 6px; font-size: 0.74rem; color: var(--gp-ink-soft); }
+.dot { width: 7px; height: 7px; border-radius: 50%; }
+.dot.good { background: var(--gp-green); box-shadow: 0 0 7px rgba(52,211,153,0.7); }
+.dot.mid { background: var(--gp-gold); box-shadow: 0 0 7px rgba(251,191,36,0.7); }
+.dot.bad { background: var(--gp-red); box-shadow: 0 0 7px rgba(251,113,133,0.7); }
 
-/* Player */
-.menu-player {
-  display: flex;
-  align-items: center;
-  gap: 11px;
-  padding: 9px 13px;
-  border-radius: 12px;
-  background: rgba(255, 255, 255, 0.035);
-  border: 1px solid rgba(148, 163, 184, 0.12);
-  margin-bottom: 18px;
+/* right */
+.right { display: flex; flex-direction: column; gap: 14px; min-width: 0; }
+.welcome { position: relative; overflow: hidden; border-radius: var(--gp-r-xl); border: 1px solid rgba(139,123,255,0.26); min-height: 190px; display: flex; box-shadow: var(--gp-sh-md); }
+.welcome-bg {
+  position: absolute; inset: 0; pointer-events: none;
+  background:
+    radial-gradient(560px 300px at 84% -10%, rgba(217,70,239,0.28), transparent 58%),
+    radial-gradient(460px 320px at 8% 130%, rgba(139,123,255,0.32), transparent 60%),
+    linear-gradient(120deg, rgba(34,24,64,0.94), rgba(12,12,26,0.86));
 }
-.menu-avatar { width: 34px; height: 34px; border-radius: 8px; image-rendering: pixelated; }
-.menu-player-info { display: flex; flex-direction: column; gap: 2px; }
-.menu-player-name { font-size: 0.92rem; font-weight: 700; color: #e8eefc; }
-.menu-player-ping { display: flex; align-items: center; gap: 5px; font-size: 0.72rem; color: #6b7a9c; }
-.ping-dot { width: 7px; height: 7px; border-radius: 50%; background: #64748b; }
-.ping-dot.good { background: #4ade80; box-shadow: 0 0 6px rgba(74, 222, 128, 0.7); }
-.ping-dot.mid  { background: #fbbf24; box-shadow: 0 0 6px rgba(251, 191, 36, 0.7); }
-.ping-dot.bad  { background: #f87171; box-shadow: 0 0 6px rgba(248, 113, 113, 0.7); }
+/* Minecraft block textures as decorative artwork (local assets, Type C) */
+.welcome-art { position: absolute; inset: 0; pointer-events: none; overflow: hidden; }
+.wa { position: absolute; image-rendering: pixelated; filter: drop-shadow(0 6px 12px rgba(0,0,0,0.5)); }
+.wa0 { width: 118px; height: 118px; right: 40px; top: 50%; transform: translateY(-50%) rotate(-8deg); opacity: 0.9; filter: drop-shadow(0 0 26px rgba(139,123,255,0.6)) drop-shadow(0 8px 14px rgba(0,0,0,0.55)); animation: wfloat 5s ease-in-out infinite; }
+.wa1 { width: 46px; height: 46px; right: 150px; top: 26px; opacity: 0.55; transform: rotate(10deg); animation: wfloat 6s ease-in-out 0.4s infinite; }
+.wa2 { width: 40px; height: 40px; right: 30px; bottom: 22px; opacity: 0.5; transform: rotate(-6deg); animation: wfloat 5.5s ease-in-out 0.8s infinite; }
+.wa3 { width: 34px; height: 34px; right: 200px; bottom: 30px; opacity: 0.45; animation: wfloat 6.5s ease-in-out 0.2s infinite; }
+@keyframes wfloat { 0%,100% { translate: 0 0; } 50% { translate: 0 -8px; } }
+.welcome-in { position: relative; z-index: 2; padding: 24px 26px; display: flex; flex-direction: column; gap: 6px; justify-content: center; max-width: 62%; }
+.welcome-tt { font-size: 1.8rem; font-weight: 900; line-height: 1.02; color: #f4f7ff; }
+.welcome-tt span { color: #c4b5fd; } .welcome-tt b { color: #a78bfa; }
+.welcome-sub { font-size: 0.82rem; color: var(--gp-ink-soft); line-height: 1.5; }
+.welcome-cta { margin-top: 12px; align-self: flex-start; }
 
-/* Grid */
-.menu-grid {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 11px;
-  margin-bottom: 14px;
+.grid-2col { display: grid; grid-template-columns: 1.2fr 1fr; gap: 14px; align-items: stretch; }
+@media (max-width: 760px) { .grid-2col { grid-template-columns: 1fr; } }
+.grid-2col > .gp-panel { height: 100%; }
+
+.stat-grid { display: grid; grid-template-columns: repeat(3, 1fr); grid-auto-rows: 1fr; gap: 10px; flex: 1 1 auto; }
+@media (max-width: 620px) { .stat-grid { grid-template-columns: repeat(2, 1fr); } }
+.scell { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px; padding: 14px 8px; border-radius: 12px; border: 1px solid var(--gp-line); background: rgba(255,255,255,0.02); }
+.s-ic { color: var(--gp-violet-2); }
+.s-lbl { font-size: 0.58rem; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; color: var(--gp-ink-dim); }
+.s-val { font-size: 1.05rem; font-weight: 800; color: #eef2ff; }
+
+.tiles { display: grid; grid-template-columns: repeat(3, 1fr); grid-auto-rows: 1fr; gap: 10px; flex: 1 1 auto; }
+.tile {
+  display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 7px;
+  padding: 14px 8px; border-radius: 13px; border: 1px solid var(--gp-line);
+  background: rgba(255,255,255,0.025); color: var(--gp-ink-soft);
+  font-family: inherit; font-size: 0.68rem; font-weight: 700; cursor: pointer;
+  transition: transform 0.12s, border-color 0.15s, background 0.15s, color 0.15s;
 }
-
-.menu-tile {
-  position: relative;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  gap: 9px;
-  padding: 18px 6px 15px;
-  border-radius: 14px;
-  border: 1px solid rgba(148, 163, 184, 0.12);
-  background: rgba(255, 255, 255, 0.03);
-  cursor: pointer;
-  overflow: hidden;
-  transition: transform 0.14s, border-color 0.2s, background 0.2s;
-}
-.menu-tile:hover { transform: translateY(-3px); border-color: rgba(129, 140, 248, 0.5); background: rgba(99, 102, 241, 0.1); }
-.menu-tile:active { transform: translateY(-1px) scale(0.97); }
-
-.tile-glow {
-  position: absolute;
-  top: -40%; left: 50%;
-  width: 120%; height: 90%;
-  transform: translateX(-50%);
-  background: radial-gradient(ellipse at center, var(--tile-c, rgba(129,140,248,0.5)), transparent 70%);
-  opacity: 0;
-  transition: opacity 0.25s;
-  pointer-events: none;
-}
-.menu-tile:hover .tile-glow { opacity: 0.55; }
-
-.menu-tile[data-accent="a"] { --tile-c: rgba(99, 102, 241, 0.55); }
-.menu-tile[data-accent="b"] { --tile-c: rgba(45, 212, 191, 0.55); }
-.menu-tile[data-accent="c"] { --tile-c: rgba(168, 85, 247, 0.55); }
-.menu-tile[data-accent="d"] { --tile-c: rgba(56, 189, 248, 0.55); }
-.menu-tile[data-accent="e"] { --tile-c: rgba(251, 191, 36, 0.55); }
-.menu-tile[data-accent="f"] { --tile-c: rgba(244, 114, 182, 0.55); }
-
-.tile-icon { font-size: 1.7rem; line-height: 1; filter: drop-shadow(0 2px 6px rgba(0,0,0,0.4)); }
-.tile-label { font-size: 0.76rem; font-weight: 600; color: #cbd5e1; text-align: center; }
-
-/* Site */
-.menu-site {
-  width: 100%;
-  padding: 11px;
-  border-radius: 12px;
-  border: 1px solid rgba(148, 163, 184, 0.12);
-  background: rgba(255, 255, 255, 0.025);
-  color: #94a3b8;
-  font-family: inherit;
-  font-size: 0.84rem;
-  font-weight: 600;
-  cursor: pointer;
-  transition: all 0.15s;
-}
-.menu-site:hover { background: rgba(255, 255, 255, 0.06); color: #e8eefc; }
+.tile:hover { transform: translateY(-2px); border-color: rgba(139,123,255,0.4); background: rgba(139,123,255,0.1); color: #d7cffb; }
+.tile:active { transform: scale(0.95); }
+.tile svg { color: var(--gp-violet-2); }
 </style>

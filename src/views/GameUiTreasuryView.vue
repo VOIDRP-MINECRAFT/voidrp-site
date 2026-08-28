@@ -1,10 +1,13 @@
 <script setup>
-import { ref, onMounted } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import { useI18n } from 'vue-i18n'
-import '../assets/gameui.css'
-import { getTreasurySummary, setWebguiToken } from '../services/gameUiApi.js'
-import { useWebGuiToken, runCommand, closeGui, useActionToast } from '../composables/useWebGui.js'
-import GameUiNav from '../components/GameUiNav.vue'
+import '../assets/gui-premium.css'
+import { getTreasurySummary, setWebguiToken, runGameCommand } from '../services/gameUiApi.js'
+import { useWebGuiToken, useActionToast } from '../composables/useWebGui.js'
+import GameUiSidebar from '../components/GameUiSidebar.vue'
+import GameUiTopBar from '../components/GameUiTopBar.vue'
+import GuiIcon from '../components/GuiIcon.vue'
+import CountUp from '../components/CountUp.vue'
 
 const { t } = useI18n()
 const token = useWebGuiToken()
@@ -28,30 +31,40 @@ async function load() {
     loading.value = false
   }
 }
-
 onMounted(load)
+
+const txIn = computed(() => (summary.value?.transactions?.items || []).filter(i => i.net_amount >= 0).reduce((s, i) => s + Number(i.net_amount), 0))
+const txOut = computed(() => (summary.value?.transactions?.items || []).filter(i => i.net_amount < 0).reduce((s, i) => s + Math.abs(Number(i.net_amount)), 0))
 
 function money(v) {
   if (v == null || Number.isNaN(Number(v))) return '0'
-  return Number(v).toLocaleString('ru-RU', { maximumFractionDigits: 2 })
+  return Number(v).toLocaleString('ru-RU', { maximumFractionDigits: 0 })
 }
-
 function formatDate(d) {
   if (!d) return ''
   return new Date(d).toLocaleDateString('ru-RU', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' })
 }
-
 function txTypeLabel(type) {
   const map = {
     player_donate: t('gameUiTreasury.txPlayerDonate'),
+    player_donation: t('gameUiTreasury.txPlayerDonate'),
     player_withdraw: t('gameUiTreasury.txPlayerWithdraw'),
     alliance_transfer: t('gameUiTreasury.txAllianceTransfer'),
     market_fee: t('gameUiTreasury.txMarketFee'),
     event_reward: t('gameUiTreasury.txEventReward'),
+    research: t('gameUiTreasury.txResearch'),
+    interest: t('gameUiTreasury.txInterest'),
+    season_reward: t('gameUiTreasury.txEventReward'),
   }
   return map[type] || type
 }
-
+function txIcon(type, pos) {
+  if (type === 'market_fee') return 'market'
+  if (type === 'research') return 'tech'
+  if (type === 'alliance_transfer') return 'alliance'
+  if (type === 'interest') return 'trendingUp'
+  return pos ? 'trendingUp' : 'wallet'
+}
 function roleLabel(r) {
   return { leader: t('gameUiTreasury.roleLeader'), officer: t('gameUiTreasury.roleOfficer'), member: t('gameUiTreasury.roleMember') }[r] || r
 }
@@ -61,10 +74,10 @@ async function sendDonate() {
   if (!amount || amount <= 0) return
   donateLoading.value = true
   try {
-    await runCommand(`/nationdonate ${amount}`)
+    await runGameCommand(`nationdonate ${amount}`)
     show(t('gameUiTreasury.donateQueued'), true)
     donateAmount.value = ''
-    setTimeout(load, 1500)
+    setTimeout(load, 2500)
   } catch (e) {
     show(e.message || t('gameUiTreasury.donateFail'), false)
   } finally {
@@ -74,116 +87,124 @@ async function sendDonate() {
 </script>
 
 <template>
-  <div class="gui-root">
-    <header class="gui-header">
-      <span class="gui-title"><span class="gui-title-icon">🏦</span>{{ t('gameUiTreasury.title') }}</span>
-      <button class="gui-close" @click="closeGui">✕</button>
-    </header>
+  <section class="gp-shell">
+    <GameUiSidebar current="treasury" />
+    <GameUiTopBar :title="t('gameUiNav.treasury')" />
 
-    <GameUiNav current="treasury" />
+    <div class="gp-wrap gp-wrap--wide gp-wrap--app">
+      <div v-if="!token" class="gp-center"><div class="gp-card gp-state"><span class="gp-state-ico"><GuiIcon name="lock" :size="30" /></span><span class="gp-state-text">{{ t('gameUiTreasury.tokenError') }}</span></div></div>
+      <div v-else-if="loading && !summary" class="gp-grow">
+        <div class="gp-grid gp-grid--4"><div v-for="i in 4" :key="i" class="gp-skel" style="height:96px"></div></div>
+        <div class="tdash" style="margin-top:14px"><div class="gp-skel" style="height:360px"></div><div class="gp-skel" style="height:360px"></div></div>
+      </div>
+      <div v-else-if="error" class="gp-center"><div class="gp-card gp-state"><span class="gp-state-ico"><GuiIcon name="alert" :size="30" /></span><span class="gp-state-text">{{ error }}</span></div></div>
 
-    <div v-if="!token" class="gui-state"><span class="gui-state-icon">🔒</span><span class="gui-state-text">{{ t('gameUiTreasury.tokenError') }}</span></div>
-    <div v-else-if="loading && !summary" class="gui-state"><span class="gui-spinner" /><span class="gui-state-sub">{{ t('gameUiTreasury.loading') }}</span></div>
-    <div v-else-if="error" class="gui-state"><span class="gui-state-icon">⚠️</span><span class="gui-state-text">{{ error }}</span></div>
-
-    <div v-else-if="summary" class="gui-body">
-      <!-- Balance hero -->
-      <div class="gui-card-hero balance">
-        <div class="balance-top">
-          <span class="balance-label">{{ t('gameUiTreasury.balance') }}</span>
-          <span class="role-chip">{{ roleLabel(summary.role) }}</span>
+      <template v-else-if="summary">
+        <!-- KPI row -->
+        <div class="gp-grid gp-grid--4 gp-stagger">
+          <div class="gp-kpi gp-kpi--gold big">
+            <div class="gp-kpi-top"><GuiIcon name="treasury" :size="16" /><span class="gp-kpi-lbl">{{ t('gameUiTreasury.balance') }}</span></div>
+            <div class="gp-kpi-val"><CountUp :value="summary.stats.treasury_balance" :format="money" /></div>
+            <div class="kpi-foot">{{ summary.nation_title }} · <span class="gp-pill gp-pill--violet">{{ roleLabel(summary.role) }}</span></div>
+          </div>
+          <div class="gp-kpi gp-kpi--green">
+            <div class="gp-kpi-top"><GuiIcon name="trendingUp" :size="15" /><span class="gp-kpi-lbl">{{ t('gameUiTreasury.recentIn') }}</span></div>
+            <div class="gp-kpi-val">+<CountUp :value="txIn" :format="money" /></div>
+          </div>
+          <div class="gp-kpi">
+            <div class="gp-kpi-top"><GuiIcon name="wallet" :size="15" /><span class="gp-kpi-lbl">{{ t('gameUiTreasury.recentOut') }}</span></div>
+            <div class="gp-kpi-val" style="color:#fda4af">−<CountUp :value="txOut" :format="money" /></div>
+          </div>
+          <div class="gp-kpi">
+            <div class="gp-kpi-top"><GuiIcon name="trophy" :size="15" /><span class="gp-kpi-lbl">{{ t('gameUiTreasury.prestige') }}</span></div>
+            <div class="gp-kpi-val"><CountUp :value="summary.stats.prestige_score" :format="money" /></div>
+          </div>
         </div>
-        <div class="balance-value">{{ money(summary.stats.treasury_balance) }}</div>
-        <div class="balance-nation">{{ summary.nation_title }}</div>
-      </div>
 
-      <!-- Stats -->
-      <div class="stats">
-        <div class="stat"><div class="stat-num">{{ summary.stats.territory_points }}</div><div class="stat-lbl">{{ t('gameUiTreasury.territory') }}</div></div>
-        <div class="stat"><div class="stat-num">{{ summary.stats.prestige_score }}</div><div class="stat-lbl">{{ t('gameUiTreasury.prestige') }}</div></div>
-        <div class="stat"><div class="stat-num">{{ summary.stats.pvp_kills }}</div><div class="stat-lbl">{{ t('gameUiTreasury.pvp') }}</div></div>
-      </div>
-
-      <!-- Donate -->
-      <div class="gui-card donate">
-        <div class="gui-section-title">{{ t('gameUiTreasury.donateTitle') }}</div>
-        <div class="donate-row">
-          <input v-model="donateAmount" type="number" min="1" class="gui-input" :placeholder="t('gameUiTreasury.donateAmount')" @keydown.enter="sendDonate" />
-          <button class="gui-btn gui-btn-primary gui-btn-sm" @click="sendDonate" :disabled="donateLoading || !donateAmount">
-            {{ donateLoading ? '…' : t('gameUiTreasury.donateBtn') }}
-          </button>
-        </div>
-      </div>
-
-      <!-- Transactions -->
-      <div class="tx">
-        <div class="gui-section-title">{{ t('gameUiTreasury.txHistory') }}</div>
-        <div v-if="!summary.transactions.items?.length" class="tx-empty">{{ t('gameUiTreasury.noTx') }}</div>
-        <div v-else class="tx-list">
-          <div v-for="item in summary.transactions.items" :key="item.id" class="tx-row">
-            <div class="tx-dot" :class="item.net_amount >= 0 ? 'pos' : 'neg'" />
-            <div class="tx-main">
-              <span class="tx-type">{{ txTypeLabel(item.transaction_type) }}</span>
-              <span class="tx-date">{{ formatDate(item.created_at) }}</span>
+        <div class="tdash gp-grow">
+          <!-- transactions -->
+          <div class="gp-panel tx-panel">
+            <div class="gp-phead">
+              <span class="gp-phead-ic"><GuiIcon name="activity" :size="16" /></span>
+              <span class="gp-phead-tt">{{ t('gameUiTreasury.txHistory') }}</span>
             </div>
-            <div class="tx-amount" :class="item.net_amount >= 0 ? 'pos' : 'neg'">
-              {{ item.net_amount >= 0 ? '+' : '' }}{{ money(item.net_amount) }}
+            <div v-if="!summary.transactions.items?.length" class="empty">{{ t('gameUiTreasury.noTx') }}</div>
+            <div v-else class="tx-list gp-scroll gp-stagger">
+              <div v-for="item in summary.transactions.items" :key="item.id" class="tx">
+                <div class="tx-ic" :class="item.net_amount >= 0 ? 'pos' : 'neg'"><GuiIcon :name="txIcon(item.transaction_type, item.net_amount >= 0)" :size="16" /></div>
+                <div class="tx-main">
+                  <span class="tx-type">{{ txTypeLabel(item.transaction_type) }}</span>
+                  <span class="tx-date">{{ formatDate(item.created_at) }}</span>
+                </div>
+                <div class="tx-amt gp-num" :class="item.net_amount >= 0 ? 'pos' : 'neg'">{{ item.net_amount >= 0 ? '+' : '−' }}{{ money(Math.abs(item.net_amount)) }}</div>
+              </div>
+            </div>
+          </div>
+
+          <!-- side: donate + nation stats -->
+          <div class="tside">
+            <div class="gp-panel">
+              <div class="gp-phead"><span class="gp-phead-ic"><GuiIcon name="plus" :size="16" /></span><span class="gp-phead-tt">{{ t('gameUiTreasury.donateTitle') }}</span></div>
+              <p class="donate-hint">{{ t('gameUiTreasury.donateHint') }}</p>
+              <div class="donate">
+                <input v-model="donateAmount" type="number" min="1" class="gp-input" :placeholder="t('gameUiTreasury.donateAmount')" @keydown.enter="sendDonate" />
+                <button class="gp-btn gp-btn--primary" :disabled="donateLoading || !donateAmount" @click="sendDonate">
+                  {{ donateLoading ? '…' : t('gameUiTreasury.donateBtn') }}
+                </button>
+              </div>
+            </div>
+
+            <div class="gp-panel">
+              <div class="gp-phead"><span class="gp-phead-ic"><GuiIcon name="shield" :size="16" /></span><span class="gp-phead-tt">{{ t('gameUiTreasury.nationStats') }}</span></div>
+              <div class="nstat-list">
+                <div class="nstat"><span class="ns-lbl"><GuiIcon name="map" :size="15" />{{ t('gameUiTreasury.territory') }}</span><span class="ns-val gp-num">{{ money(summary.stats.territory_points) }}</span></div>
+                <div class="nstat"><span class="ns-lbl"><GuiIcon name="trophy" :size="15" />{{ t('gameUiTreasury.prestige') }}</span><span class="ns-val gp-num">{{ money(summary.stats.prestige_score) }}</span></div>
+                <div class="nstat"><span class="ns-lbl"><GuiIcon name="swords" :size="15" />{{ t('gameUiTreasury.pvp') }}</span><span class="ns-val gp-num">{{ money(summary.stats.pvp_kills) }}</span></div>
+              </div>
             </div>
           </div>
         </div>
-      </div>
+      </template>
     </div>
 
-    <transition name="gui-toast">
-      <div v-if="toast" class="gui-toast" :class="toast.ok ? 'gui-toast-ok' : 'gui-toast-err'">
-        <span>{{ toast.ok ? '✅' : '⚠️' }}</span><span>{{ toast.text }}</span>
+    <transition name="gp-toast">
+      <div v-if="toast" class="gp-toast" :class="toast.ok ? 'gp-toast--ok' : 'gp-toast--err'">
+        <GuiIcon :name="toast.ok ? 'check' : 'alert'" :size="16" /><span>{{ toast.text }}</span>
       </div>
     </transition>
-  </div>
+  </section>
 </template>
 
 <style scoped>
-.balance { padding: 18px 20px; text-align: center; }
-.balance-top { display: flex; align-items: center; justify-content: space-between; }
-.balance-label { font-size: 0.72rem; font-weight: 700; color: #aab6d4; text-transform: uppercase; letter-spacing: 0.1em; }
-.role-chip { font-size: 0.66rem; font-weight: 700; color: #a78bfa; background: rgba(167, 139, 250, 0.14); border-radius: 999px; padding: 2px 9px; }
-.balance-value {
-  font-size: 2.1rem; font-weight: 900; margin: 8px 0 2px;
-  background: linear-gradient(90deg, #c4b5fd, #a78bfa);
-  -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent;
-}
-.balance-nation { font-size: 0.82rem; color: #6b7a9c; }
+.kpi-foot { margin-top: 5px; font-size: 0.72rem; color: var(--gp-ink-soft); display: flex; align-items: center; gap: 6px; }
+.gp-kpi.big .gp-kpi-val { font-size: 1.7rem; }
 
-.stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 9px; }
-.stat {
-  background: rgba(255, 255, 255, 0.035);
-  border: 1px solid rgba(148, 163, 184, 0.12);
-  border-radius: 12px;
-  padding: 12px 8px;
-  text-align: center;
-}
-.stat-num { font-size: 1.2rem; font-weight: 800; color: #e8eefc; }
-.stat-lbl { font-size: 0.66rem; color: #6b7a9c; margin-top: 3px; text-transform: uppercase; letter-spacing: 0.05em; }
+.tdash { display: grid; grid-template-columns: 1fr 340px; gap: 14px; align-items: start; }
+@media (max-width: 860px) { .tdash { grid-template-columns: 1fr; } }
+.tx-panel .tx-list { max-height: 360px; padding-right: 4px; }
+.tside { display: flex; flex-direction: column; gap: 14px; }
 
-.donate-row { display: flex; gap: 8px; }
+.empty { text-align: center; font-size: 0.84rem; color: var(--gp-ink-dim); padding: 24px; }
+.tx-list { display: flex; flex-direction: column; gap: 7px; }
+.tx { display: flex; align-items: center; gap: 12px; padding: 10px 12px; border-radius: 12px; border: 1px solid var(--gp-line); background: rgba(255, 255, 255, 0.02); transition: background 0.14s; }
+.tx:hover { background: rgba(255,255,255,0.04); }
+.tx-ic { width: 34px; height: 34px; flex-shrink: 0; display: grid; place-items: center; border-radius: 10px; }
+.tx-ic.pos { color: #6ee7b7; background: rgba(52,211,153,0.12); border: 1px solid rgba(52,211,153,0.24); }
+.tx-ic.neg { color: #fda4af; background: rgba(251,113,133,0.1); border: 1px solid rgba(251,113,133,0.22); }
+.tx-main { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 1px; }
+.tx-type { font-size: 0.85rem; font-weight: 600; color: #e2e8f8; }
+.tx-date { font-size: 0.68rem; color: var(--gp-ink-dim); }
+.tx-amt { font-size: 0.9rem; font-weight: 800; flex-shrink: 0; }
+.tx-amt.pos { color: var(--gp-green); }
+.tx-amt.neg { color: var(--gp-red); }
 
-.tx { display: flex; flex-direction: column; }
-.tx-empty { font-size: 0.82rem; color: #6b7a9c; text-align: center; padding: 14px; }
-.tx-list { display: flex; flex-direction: column; gap: 5px; }
-.tx-row {
-  display: flex; align-items: center; gap: 10px;
-  padding: 9px 11px;
-  border-radius: 10px;
-  background: rgba(255, 255, 255, 0.025);
-  border: 1px solid rgba(148, 163, 184, 0.08);
-}
-.tx-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
-.tx-dot.pos { background: #4ade80; box-shadow: 0 0 7px rgba(74, 222, 128, 0.6); }
-.tx-dot.neg { background: #f87171; box-shadow: 0 0 7px rgba(248, 113, 113, 0.6); }
-.tx-main { flex: 1; display: flex; flex-direction: column; gap: 1px; min-width: 0; }
-.tx-type { font-size: 0.82rem; color: #cbd5e1; }
-.tx-date { font-size: 0.7rem; color: #6b7a9c; }
-.tx-amount { font-size: 0.86rem; font-weight: 700; flex-shrink: 0; }
-.tx-amount.pos { color: #4ade80; }
-.tx-amount.neg { color: #f87171; }
+.donate-hint { font-size: 0.76rem; color: var(--gp-ink-soft); line-height: 1.5; }
+.donate { display: flex; gap: 9px; }
+.donate .gp-btn { flex-shrink: 0; }
+
+.nstat-list { display: flex; flex-direction: column; gap: 8px; }
+.nstat { display: flex; align-items: center; justify-content: space-between; padding: 10px 12px; border-radius: 11px; border: 1px solid var(--gp-line); background: rgba(255,255,255,0.02); }
+.ns-lbl { display: flex; align-items: center; gap: 8px; font-size: 0.8rem; color: var(--gp-ink-soft); }
+.ns-lbl svg { color: var(--gp-violet-2); }
+.ns-val { font-size: 0.9rem; font-weight: 800; color: #eef2ff; }
 </style>

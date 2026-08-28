@@ -11,9 +11,24 @@ const route = useRoute()
 const sidebarOpen = ref(false)
 const serverMenuOpen = ref(false)
 const serverMenuRef = ref(null)
+const notifOpen = ref(false)
+const notifRef = ref(null)
 
-// ── Уведомления сверху (пермишн-скоупятся на бэке) ─────────────
+// ── Уведомления в колокольчике (пермишн-скоупятся на бэке) ──────
 const { notifications, start: startNotifs, stop: stopNotifs, dismiss: dismissNotif } = useAdminNotifications()
+
+// Цвет бейджа = самый серьёзный уровень среди активных уведомлений.
+const topLevel = computed(() => {
+  const levels = notifications.value.map((n) => n.level)
+  if (levels.includes('error')) return 'error'
+  if (levels.includes('warning')) return 'warning'
+  if (levels.includes('success')) return 'success'
+  return 'info'
+})
+
+function dismissAll() {
+  ;[...notifications.value].forEach((n) => dismissNotif(n))
+}
 
 // Активный сервер скоупит per-server разделы (рынок, нации, БП, античит)
 // через X-Server-Slug; смена ремаунтит их страницы (RouterView :key ниже).
@@ -33,9 +48,15 @@ function onDocClick(e) {
   if (serverMenuOpen.value && serverMenuRef.value && !serverMenuRef.value.contains(e.target)) {
     serverMenuOpen.value = false
   }
+  if (notifOpen.value && notifRef.value && !notifRef.value.contains(e.target)) {
+    notifOpen.value = false
+  }
 }
 function onDocKey(e) {
-  if (e.key === 'Escape') serverMenuOpen.value = false
+  if (e.key === 'Escape') {
+    serverMenuOpen.value = false
+    notifOpen.value = false
+  }
 }
 
 const sortedServers = computed(() =>
@@ -129,6 +150,7 @@ const navGroups = computed(() => {
         { to: '/admin/nations', label: 'Государства', icon: icons.nations, perm: 'nations.view' },
         { to: '/admin/battlepass', label: 'Battle Pass', icon: icons.battlepass, perm: 'battlepass.view' },
         { to: '/admin/anticheat', label: 'Античит', icon: icons.anticheat, perm: 'anticheat.view' },
+        { to: '/admin/punishments', label: 'Наказания', icon: icons.anticheat, perm: 'punishments.view' },
         { to: '/admin/voxel', label: 'Voxel Engine', icon: icons.voxel, perm: 'voxel.view', feature: 'voxel' },
       ],
     },
@@ -140,6 +162,7 @@ const navGroups = computed(() => {
         { to: '/admin/server', label: 'Серверы', icon: icons.servers, perm: 'servers.manage' },
         { to: '/admin/launcher', label: 'Лаунчер', icon: icons.launcher, perm: 'launcher.view' },
         { to: '/admin/moderators', label: 'Модерация', icon: icons.players, adminOnly: true },
+        { to: '/admin/audit', label: 'Журнал действий', icon: icons.crashes, perm: 'audit.view' },
       ],
     },
     {
@@ -280,6 +303,59 @@ async function handleLogout() {
             </Transition>
           </div>
 
+          <!-- Колокольчик уведомлений: все отчёты из /admin/notifications + локальные алерты -->
+          <div ref="notifRef" class="adm-bell">
+            <button
+              class="adm-bell__btn"
+              :class="{ 'is-open': notifOpen }"
+              :aria-expanded="notifOpen"
+              aria-label="Уведомления"
+              title="Уведомления"
+              @click="notifOpen = !notifOpen"
+            >
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
+              <span
+                v-if="notifications.length"
+                class="adm-bell__badge"
+                :class="'adm-bell__badge--' + topLevel"
+              >{{ notifications.length > 99 ? '99+' : notifications.length }}</span>
+            </button>
+
+            <Transition name="adm-pop">
+              <div v-if="notifOpen" class="adm-bell__menu">
+                <div class="adm-bell__head">
+                  <span class="adm-bell__head-title">Уведомления</span>
+                  <button v-if="notifications.length" class="adm-bell__clear" @click="dismissAll">Скрыть все</button>
+                </div>
+
+                <div v-if="notifications.length" class="adm-bell__list">
+                  <div
+                    v-for="n in notifications"
+                    :key="n.id"
+                    class="adm-note"
+                    :class="'adm-note--' + n.level"
+                    role="status"
+                  >
+                    <span class="adm-note__icon" v-html="noteIcon(n.level)" />
+                    <div class="adm-note__body">
+                      <span class="adm-note__title">{{ n.title }}</span>
+                      <span class="adm-note__msg">{{ n.message }}</span>
+                      <RouterLink v-if="n.link" :to="n.link" class="adm-note__link" @click="notifOpen = false">Открыть →</RouterLink>
+                    </div>
+                    <button class="adm-note__close" title="Скрыть" @click="dismissNotif(n)">
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+                    </button>
+                  </div>
+                </div>
+
+                <div v-else class="adm-bell__empty">
+                  <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
+                  <span>Нет новых уведомлений</span>
+                </div>
+              </div>
+            </Transition>
+          </div>
+
           <!-- Пользователь -->
           <div class="adm-user">
             <div class="adm-avatar">{{ displayName.charAt(0).toUpperCase() }}</div>
@@ -290,27 +366,6 @@ async function handleLogout() {
           </div>
         </div>
       </header>
-
-      <!-- ── Уведомления (пермишн-скоуп на бэке; видит только тот, кому положено) ── -->
-      <TransitionGroup v-if="notifications.length" name="adm-note" tag="div" class="adm-notes">
-        <div
-          v-for="n in notifications"
-          :key="n.id"
-          class="adm-note"
-          :class="'adm-note--' + n.level"
-          role="status"
-        >
-          <span class="adm-note__icon" v-html="noteIcon(n.level)" />
-          <div class="adm-note__body">
-            <span class="adm-note__title">{{ n.title }}</span>
-            <span class="adm-note__msg">{{ n.message }}</span>
-          </div>
-          <RouterLink v-if="n.link" :to="n.link" class="adm-note__action">Открыть</RouterLink>
-          <button class="adm-note__close" title="Скрыть" @click="dismissNotif(n)">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
-          </button>
-        </div>
-      </TransitionGroup>
 
       <div class="adm-content">
         <RouterView :key="routeScopeKey" />
@@ -630,27 +685,119 @@ async function handleLogout() {
 }
 .adm-user__logout:hover { color: var(--adm-err); background: rgba(248,113,113,0.09); }
 
-/* ── Уведомления сверху ──────────────────────────────────────── */
-.adm-notes {
-  display: flex;
-  flex-direction: column;
-  gap: 0.5rem;
-  padding: 0.85rem 1.4rem 0;
-}
-@media (max-width: 640px) { .adm-notes { padding: 0.7rem 0.85rem 0; } }
-
-.adm-note {
+/* ── Колокольчик уведомлений ──────────────────────────────────── */
+.adm-bell { position: relative; }
+.adm-bell__btn {
+  position: relative;
   display: flex;
   align-items: center;
-  gap: 0.7rem;
-  padding: 0.6rem 0.75rem;
-  border-radius: 12px;
-  border: 1px solid var(--adm-line-strong);
+  justify-content: center;
+  width: 38px;
+  height: 38px;
+  border-radius: 11px;
+  border: 1px solid var(--adm-line);
+  background: rgba(148,163,184,0.04);
+  color: var(--adm-mut);
+  cursor: pointer;
+  transition: color 0.13s, background-color 0.13s, border-color 0.13s;
+}
+.adm-bell__btn:hover { color: var(--adm-text); background: rgba(148,163,184,0.1); }
+.adm-bell__btn.is-open { color: var(--adm-acc-text); border-color: var(--adm-acc-line); background: var(--adm-acc-soft); }
+.adm-bell__badge {
+  position: absolute;
+  top: -5px;
+  right: -5px;
+  min-width: 17px;
+  height: 17px;
+  padding: 0 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 9px;
+  font-size: 0.6rem;
+  font-weight: 900;
+  line-height: 1;
+  color: #fff;
+  border: 2px solid var(--adm-bg, #0b0f17);
+  background: var(--adm-acc);
+}
+.adm-bell__badge--error { background: var(--adm-err, #f87171); }
+.adm-bell__badge--warning { background: #fbbf24; color: #1a1206; }
+.adm-bell__badge--success { background: var(--adm-ok, #34d399); color: #06231a; }
+.adm-bell__badge--info { background: var(--adm-acc); }
+
+.adm-bell__menu {
+  position: absolute;
+  top: calc(100% + 8px);
+  right: 0;
+  z-index: 60;
+  width: 360px;
+  max-width: calc(100vw - 24px);
+  padding: 0.5rem;
   background: var(--adm-card-2);
-  box-shadow: 0 10px 30px rgba(0,0,0,0.28);
+  border: 1px solid var(--adm-line-strong);
+  border-radius: 14px;
+  box-shadow: 0 22px 60px rgba(0,0,0,0.55);
+}
+.adm-bell__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  padding: 0.3rem 0.55rem 0.5rem;
+}
+.adm-bell__head-title {
+  font-size: 0.6rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.13em;
+  color: var(--adm-dim);
+}
+.adm-bell__clear {
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-size: 0.68rem;
+  font-weight: 800;
+  color: var(--adm-acc-text);
+  padding: 0.15rem 0.3rem;
+  border-radius: 6px;
+  transition: filter 0.13s, background-color 0.13s;
+}
+.adm-bell__clear:hover { background: var(--adm-acc-soft); filter: brightness(1.15); }
+
+.adm-bell__list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+  max-height: min(60vh, 460px);
+  overflow-y: auto;
+  padding-right: 2px;
+}
+.adm-bell__empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 1.6rem 1rem 1.9rem;
+  color: var(--adm-dim);
+  font-size: 0.78rem;
+  font-weight: 700;
+}
+.adm-bell__empty svg { color: var(--adm-ok, #34d399); opacity: 0.75; }
+
+.adm-note {
+  position: relative;
+  overflow: hidden;
+  display: flex;
+  align-items: flex-start;
+  gap: 0.65rem;
+  padding: 0.6rem 0.7rem;
+  border-radius: 11px;
+  border: 1px solid var(--adm-line-strong);
+  background: var(--adm-card);
 }
 /* Цветной левый акцент кодирует уровень */
-.adm-note { position: relative; overflow: hidden; }
 .adm-note::before {
   content: '';
   position: absolute;
@@ -662,30 +809,26 @@ async function handleLogout() {
 .adm-note--info::before { background: var(--adm-acc); }
 .adm-note--success::before { background: var(--adm-ok, #34d399); }
 
-.adm-note__icon { display: flex; flex-shrink: 0; }
+.adm-note__icon { display: flex; flex-shrink: 0; margin-top: 1px; }
 .adm-note__icon :deep(svg) { width: 18px; height: 18px; }
 .adm-note--error .adm-note__icon { color: var(--adm-err, #f87171); }
 .adm-note--warning .adm-note__icon { color: #fbbf24; }
 .adm-note--info .adm-note__icon { color: var(--adm-acc-text); }
 .adm-note--success .adm-note__icon { color: var(--adm-ok, #34d399); }
 
-.adm-note__body { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 0.06rem; }
-.adm-note__title { font-size: 0.82rem; font-weight: 800; color: var(--adm-text); }
-.adm-note__msg { font-size: 0.76rem; color: var(--adm-mut); line-height: 1.4; }
-
-.adm-note__action {
-  flex-shrink: 0;
-  padding: 0.32rem 0.7rem;
-  border-radius: 8px;
+.adm-note__body { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 0.12rem; }
+.adm-note__title { font-size: 0.8rem; font-weight: 800; color: var(--adm-text); }
+.adm-note__msg { font-size: 0.75rem; color: var(--adm-mut); line-height: 1.4; }
+.adm-note__link {
+  align-self: flex-start;
+  margin-top: 0.2rem;
   font-size: 0.73rem;
   font-weight: 800;
   color: var(--adm-acc-text);
-  background: var(--adm-acc-soft);
-  border: 1px solid var(--adm-acc-line);
   text-decoration: none;
   transition: filter 0.13s;
 }
-.adm-note__action:hover { filter: brightness(1.2); }
+.adm-note__link:hover { filter: brightness(1.2); text-decoration: underline; }
 .adm-note__close {
   flex-shrink: 0;
   background: none;
@@ -693,14 +836,13 @@ async function handleLogout() {
   cursor: pointer;
   color: var(--adm-faint);
   display: flex;
-  padding: 0.28rem;
+  padding: 0.24rem;
   border-radius: 7px;
   transition: color 0.13s, background-color 0.13s;
 }
 .adm-note__close:hover { color: var(--adm-text); background: rgba(148,163,184,0.1); }
 
-.adm-note-enter-active, .adm-note-leave-active { transition: opacity 0.2s ease, transform 0.2s ease; }
-.adm-note-enter-from, .adm-note-leave-to { opacity: 0; transform: translateY(-6px); }
+@media (max-width: 640px) { .adm-bell__menu { position: fixed; left: 12px; right: 12px; width: auto; } }
 
 /* ── Content ─────────────────────────────────────────────────── */
 .adm-content { flex: 1; overflow-x: hidden; }

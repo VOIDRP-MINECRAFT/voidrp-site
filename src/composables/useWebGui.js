@@ -25,15 +25,27 @@ export function useWebGuiClient() {
  */
 export function postToGame(payload) {
   return new Promise((resolve, reject) => {
-    if (typeof window === 'undefined' || !window.cefQuery) {
+    if (typeof window === 'undefined') {
       reject(new Error('not in mod'))
       return
     }
-    window.cefQuery({
-      request: typeof payload === 'string' ? payload : JSON.stringify(payload),
-      onSuccess: resolve,
-      onFailure: (_code, msg) => reject(new Error(msg)),
-    })
+    // Use raw cefQuery directly — this is the path proven to actually DELIVER to
+    // the mod (its callback fires on success). window.webgui.postToGame resolves
+    // unconditionally even when nothing reached the game, so it's unreliable.
+    if (typeof window.cefQuery === 'function') {
+      window.cefQuery({
+        request: typeof payload === 'string' ? payload : JSON.stringify(payload),
+        persistent: false,
+        onSuccess: resolve,
+        onFailure: (_code, msg) => reject(new Error(msg)),
+      })
+      return
+    }
+    if (window.webgui && typeof window.webgui.postToGame === 'function') {
+      try { window.webgui.postToGame(payload); resolve() } catch (e) { reject(e) }
+      return
+    }
+    reject(new Error('not in mod'))
   })
 }
 

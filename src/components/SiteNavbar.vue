@@ -276,7 +276,11 @@ async function handleLogout() {
                 >
                   <span class="site-navbar__server-item-dot" :class="s.status?.online ? 'is-online' : 'is-offline'" />
                   <span class="site-navbar__dropdown-item-text">
-                    <span class="site-navbar__dropdown-item-label">{{ s.name }}</span>
+                    <span class="site-navbar__dropdown-item-label">
+                      {{ s.name }}
+                      <!-- Сервер в списке только у персонала — помечаем замком. -->
+                      <span v-if="s.staff_only" :title="t('servers.staffOnly')">🔒</span>
+                    </span>
                     <span class="site-navbar__dropdown-item-desc">
                       {{ s.status?.online ? `${s.status.players_online}/${s.status.players_max} · ${t('servers.online')}` : t('servers.offline') }}
                     </span>
@@ -382,7 +386,7 @@ async function handleLogout() {
                 @click="chooseServer(s.slug)"
               >
                 <span class="site-navbar__server-item-dot" :class="s.status?.online ? 'is-online' : 'is-offline'" />
-                <span class="site-navbar__mobile-server-name">{{ s.name }}</span>
+                <span class="site-navbar__mobile-server-name">{{ s.staff_only ? `🔒 ${s.name}` : s.name }}</span>
               </button>
             </div>
           </div>

@@ -1,5 +1,6 @@
-import { reactive, computed } from 'vue'
+import { reactive, computed, watch } from 'vue'
 import { getServers } from '../services/serversApi'
+import { authState } from './authStore'
 
 // Active-server selection for the multi-server system.
 // The chosen slug is mirrored into localStorage under ACTIVE_SLUG_KEY so the
@@ -18,6 +19,10 @@ function readCachedList() {
     return []
   }
 }
+
+// Token the current list was fetched with — the catalogue is session-dependent
+// (staff-only servers), so a change means the list has to be refetched.
+let lastFetchToken = null
 
 export const serverState = reactive({
   list: readCachedList(),
@@ -70,7 +75,10 @@ export async function fetchServers({ force = false } = {}) {
   serverState.loading = true
   serverState.error = null
   try {
-    const list = await getServers()
+    // Send the token when we have one: servers marked "только для админов"
+    // come back only for admins / holders of `servers.hidden.view`.
+    lastFetchToken = authState.accessToken || null
+    const list = await getServers(lastFetchToken)
     serverState.list = Array.isArray(list) ? list : []
     try {
       localStorage.setItem(LIST_CACHE_KEY, JSON.stringify(serverState.list))
@@ -97,3 +105,23 @@ export function bootstrapServers() {
   }
   return bootstrapPromise
 }
+
+// Sign-in / sign-out changes which servers the catalogue returns (staff-only
+// ones appear for admins and holders of `servers.hidden.view`), so refetch
+// whenever the session token changes. `pickDefaultSlug` then drops a selection
+// that is no longer in the list — e.g. a hidden server after logout.
+watch(
+  () => authState.accessToken,
+  (token) => {
+    const next = token || null
+    if (!serverState.loaded || next === lastFetchToken) return
+    // Hidden servers are the only session-dependent part of the catalogue, so
+    // a silent token refresh for a regular player changes nothing — skip it.
+    const staffNow = Boolean(authState.user?.is_admin || authState.user?.is_moderator)
+    if (!staffNow && !serverState.list.some((s) => s.staff_only)) {
+      lastFetchToken = next
+      return
+    }
+    fetchServers({ force: true })
+  },
+)

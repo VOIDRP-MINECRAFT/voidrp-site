@@ -1,25 +1,34 @@
 <script setup>
 import { useI18n } from 'vue-i18n'
-import { runCommand } from '../composables/useWebGui.js'
+import { useRoute, useRouter } from 'vue-router'
 
 const props = defineProps({
   current: { type: String, default: '' },
 })
 
 const { t } = useI18n()
+const route = useRoute()
+const router = useRouter()
 
 const items = [
-  { key: 'market',     icon: '🛒', cmd: '/shop' },
-  { key: 'nmarket',    icon: '🏷️', cmd: '/nmarket' },
-  { key: 'treasury',   icon: '🏦', cmd: '/nationtreasury' },
-  { key: 'alliance',   icon: '🤝', cmd: '/alliance' },
-  { key: 'battlepass', icon: '⭐', cmd: '/battlepass' },
-  { key: 'quests',     icon: '📜', cmd: '/dailyquest' },
+  { key: 'home',       icon: '🏠', route: 'game-ui-menu' },
+  { key: 'market',     icon: '🛒', route: 'game-ui-market' },
+  { key: 'nmarket',    icon: '🏷️', route: 'game-ui-nmarket' },
+  { key: 'treasury',   icon: '🏦', route: 'game-ui-treasury' },
+  { key: 'research',   icon: '🔬', route: 'game-ui-research' },
+  { key: 'alliance',   icon: '🤝', route: 'game-ui-alliance' },
+  { key: 'battlepass', icon: '⭐', route: 'game-ui-battlepass' },
+  { key: 'quests',     icon: '📜', route: 'game-ui-quests' },
 ]
 
+// Switch pages inside the SPA, preserving the webgui_token in the URL so the
+// target page authenticates. (The old approach fired an in-game command via the
+// mod bridge, which didn't reliably re-open the page.)
 function go(item) {
   if (item.key === props.current) return
-  runCommand(item.cmd)
+  const raw = route.query.webgui_token
+  const webgui_token = Array.isArray(raw) ? raw[0] : raw
+  router.push({ name: item.route, query: webgui_token ? { webgui_token } : {} })
 }
 </script>
 
@@ -53,9 +62,10 @@ function go(item) {
   gap: 3px;
   padding: 6px;
   border-radius: 20px;
-  background: rgba(15, 20, 36, 0.94);
-  border: 1px solid rgba(148, 163, 184, 0.16);
-  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.55), inset 0 1px 0 rgba(255, 255, 255, 0.05);
+  background: rgba(10, 12, 24, 0.9);
+  border: 1px solid rgba(150, 168, 220, 0.16);
+  box-shadow: 0 16px 40px -12px rgba(0, 0, 0, 0.8), inset 0 1px 0 rgba(255, 255, 255, 0.06);
+  backdrop-filter: blur(14px);
 }
 
 .gnav-tab {
@@ -78,8 +88,8 @@ function go(item) {
 .gnav-tab:active { transform: scale(0.9); }
 .gnav-tab.active {
   color: #fff;
-  background: linear-gradient(135deg, #6366f1, #8b5cf6);
-  box-shadow: 0 4px 14px rgba(99, 102, 241, 0.4);
+  background: linear-gradient(135deg, #7c6bff, #b45cf0);
+  box-shadow: 0 6px 18px -4px rgba(139, 123, 255, 0.6);
 }
 
 .gnav-ic {

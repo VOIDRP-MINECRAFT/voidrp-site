@@ -27,7 +27,7 @@ const bannerInput = ref(null)
 
 const BLANK = {
   slug: '', name: '', description: '', icon_url: '', banner_url: '',
-  sort_order: 0, is_visible: true, is_default: false,
+  sort_order: 0, is_visible: true, is_default: false, staff_only: false,
   host: '', port: 25565, mc_version: '1.21.1', loader: 'neoforge',
   java_version: 21, neoforge_version: '',
   pack_root: '', pack_base_url: '', manifest_url: '',
@@ -185,6 +185,26 @@ async function save() {
   }
 }
 
+// Быстрый переключатель прямо в списке: сервер видно всем ↔ только админам
+// и модераторам с правом `servers.hidden.view`.
+const togglingId = ref(null)
+async function toggleStaffOnly(server) {
+  const next = !server.staff_only
+  togglingId.value = server.id
+  try {
+    const updated = await updateServer(token(), server.id, { staff_only: next })
+    server.staff_only = updated.staff_only
+    if (editing.value && editing.value.id === server.id) form.staff_only = updated.staff_only
+    toastSuccess(next
+      ? `«${server.name}» теперь виден только админам и тем, у кого есть право`
+      : `«${server.name}» снова виден всем игрокам`)
+  } catch (e) {
+    toastError(e.message || 'Не удалось изменить видимость')
+  } finally {
+    togglingId.value = null
+  }
+}
+
 async function remove(server) {
   const ok = await confirmDialog({
     title: 'Удалить сервер',
@@ -265,11 +285,23 @@ onMounted(load)
               {{ s.name }}
               <span v-if="s.is_default" class="adm-badge adm-badge--acc">по умолчанию</span>
               <span v-if="!s.is_visible" class="adm-badge">скрыт</span>
+              <span v-if="s.staff_only" class="adm-badge adm-badge--warn">только админы</span>
               <span v-if="s.maintenance" class="adm-badge adm-badge--warn">тех.работы</span>
             </div>
             <div class="srv-card__meta">{{ s.slug }} · {{ s.host }}:{{ s.port }} · MC {{ s.mc_version }}/{{ s.loader }}</div>
           </div>
           <div class="srv-card__actions">
+            <button
+              class="adm-btn adm-btn--sm"
+              :class="{ 'adm-btn--acc': s.staff_only }"
+              :disabled="togglingId === s.id"
+              :title="s.staff_only
+                ? 'Сейчас сервер видят только админы и модераторы с правом «Скрытые серверы»'
+                : 'Скрыть сервер от игроков на сайте и в лаунчере'"
+              @click="toggleStaffOnly(s)"
+            >
+              {{ togglingId === s.id ? '…' : (s.staff_only ? '🔒 Только админы' : '🔓 Виден всем') }}
+            </button>
             <button class="adm-btn adm-btn--sm" @click="startEdit(s)">Изменить</button>
             <button class="adm-btn adm-btn--danger adm-btn--sm" @click="remove(s)">Удалить</button>
           </div>
@@ -300,8 +332,15 @@ onMounted(load)
           <div class="fld fld--row">
             <label class="chk"><input v-model="form.is_visible" type="checkbox" /> Виден на сайте/лаунчере</label>
             <label class="chk"><input v-model="form.is_default" type="checkbox" /> Сервер по умолчанию</label>
+            <label class="chk"><input v-model="form.staff_only" type="checkbox" /> Только для админов</label>
           </div>
         </div>
+        <p class="hint">
+          «Только для админов» — сервер пропадает из списка на сайте и в лаунчере у всех,
+          кроме админов и модераторов с правом «Скрытые серверы: видеть на сайте и в лаунчере»
+          (выдаётся в разделе «Модерация»). Это не то же самое, что снять «Виден на сайте/лаунчере» —
+          та галочка прячет сервер вообще ото всех.
+        </p>
 
         <div v-if="editing !== 'new'" class="grid">
           <div class="fld"><span>Иконка</span>

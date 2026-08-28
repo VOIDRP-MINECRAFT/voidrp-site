@@ -27,8 +27,14 @@ export async function adminListNewsServers(token) {
   })
 }
 
-export async function adminListNews(token, serverId, { limit = 50, offset = 0, category = 'update' } = {}) {
+export async function adminListNews(
+  token,
+  serverId,
+  { limit = 20, offset = 0, category = 'update', q = '', status = '' } = {},
+) {
   const params = new URLSearchParams({ server_id: serverId, category, limit: String(limit), offset: String(offset) })
+  if (q) params.set('q', q)
+  if (status) params.set('status', status)
   return await apiRequest(`/admin/news?${params.toString()}`, {
     method: 'GET',
     headers: buildAuthHeaders(token),
@@ -70,15 +76,21 @@ export async function adminDeleteNews(token, serverId, postId) {
   })
 }
 
-export async function adminUploadNewsCover(token, file) {
+// mode: 'cover'  — center-cropped to a 1600×600 banner (card + page hero)
+//       'inline' — keeps the aspect ratio, for screenshots inside the body
+export async function adminUploadNewsImage(token, file, mode = 'cover') {
   const formData = new FormData()
   formData.append('file', file)
-  return await apiRequest('/admin/news/upload-image', {
+  return await apiRequest(`/admin/news/upload-image?mode=${mode}`, {
     method: 'POST',
     headers: buildAuthHeaders(token),
     body: formData,
     serverScope: false,
   })
+}
+
+export function adminUploadNewsCover(token, file) {
+  return adminUploadNewsImage(token, file, 'cover')
 }
 
 export async function adminBroadcastNews(token, serverId, postId, payload) {

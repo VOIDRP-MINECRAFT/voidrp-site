@@ -1,25 +1,27 @@
 <script setup>
 import { ref, computed, onMounted } from 'vue'
 import { useI18n } from 'vue-i18n'
-import '../assets/gameui.css'
-import { getBattlepassStatus, setWebguiToken } from '../services/gameUiApi.js'
-import { useWebGuiToken, closeGui } from '../composables/useWebGui.js'
-import GameUiNav from '../components/GameUiNav.vue'
+import '../assets/gui-premium.css'
+import { getBpTrack, setWebguiToken, runGameCommand } from '../services/gameUiApi.js'
+import { useWebGuiToken, useActionToast } from '../composables/useWebGui.js'
+import GameUiSidebar from '../components/GameUiSidebar.vue'
+import GameUiTopBar from '../components/GameUiTopBar.vue'
+import GuiIcon from '../components/GuiIcon.vue'
+import CountUp from '../components/CountUp.vue'
 
 const { t } = useI18n()
 const token = useWebGuiToken()
 setWebguiToken(token)
+const { toast, show } = useActionToast()
 
-const profile = ref(null)
-const loading = ref(false)
+const track = ref(null)
+const loading = ref(true)
 const error = ref(null)
-
-const XP_PER_LEVEL = 10000
+const claiming = ref('')
 
 async function load() {
-  loading.value = true
   try {
-    profile.value = await getBattlepassStatus()
+    track.value = await getBpTrack()
     error.value = null
   } catch (e) {
     error.value = e.message
@@ -27,143 +29,254 @@ async function load() {
     loading.value = false
   }
 }
-
 onMounted(load)
 
-const xpInLevel = computed(() => profile.value ? profile.value.xp % XP_PER_LEVEL : 0)
-const xpPercent = computed(() => Math.min(100, Math.round(xpInLevel.value / XP_PER_LEVEL * 100)))
-const xpToNext = computed(() => XP_PER_LEVEL - xpInLevel.value)
+const xpInLevel = computed(() => track.value ? track.value.xp % (track.value.xp_per_level || 10000) : 0)
+const xpPct = computed(() => track.value ? Math.min(100, Math.round(xpInLevel.value / (track.value.xp_per_level || 10000) * 100)) : 0)
+const readyCount = computed(() => {
+  if (!track.value?.levels) return 0
+  let n = 0
+  for (const tier of track.value.levels) {
+    if (cellState(tier, false) === 'ready') n++
+    if (cellState(tier, true) === 'ready') n++
+  }
+  return n
+})
 
-function formatExpiry(d) {
-  if (!d) return null
-  return new Date(d).toLocaleDateString('ru-RU', { day: '2-digit', month: 'long', year: 'numeric' })
+// Let the mouse wheel scroll the horizontal reward track (vertical wheel → sideways).
+function onTrackWheel(e) {
+  const el = e.currentTarget
+  if (el.scrollWidth <= el.clientWidth) return
+  const delta = Math.abs(e.deltaY) > Math.abs(e.deltaX) ? e.deltaY : e.deltaX
+  if (!delta) return
+  el.scrollLeft += delta
+  e.preventDefault()
+}
+
+function money(v) { return Number(v || 0).toLocaleString('ru-RU', { maximumFractionDigits: 0 }) }
+function itemIcon(r) {
+  if (!r || r.type !== 'item' || !r.material) return null
+  const id = String(r.material).toLowerCase().replace('minecraft:', '')
+  return `/item-icons/minecraft/${id}.png`
+}
+function rewardIcon(r) {
+  if (!r) return 'gift'
+  if (r.type === 'money') return 'coins'
+  if (r.type === 'exp') return 'sparkles'
+  return 'gift'
+}
+function rewardAmount(r) {
+  if (!r) return ''
+  if (r.type === 'money') return money(r.amount)
+  if (r.type === 'exp') return `${money(r.amount)} XP`
+  return r.count > 1 ? `×${r.count}` : ''
+}
+function cellState(tier, premiumTrack) {
+  const r = premiumTrack ? tier.premium : tier.free
+  if (!r) return 'empty'
+  const claimed = premiumTrack ? tier.premium_claimed : tier.free_claimed
+  if (claimed) return 'claimed'
+  const reached = tier.level <= (track.value?.level || 0)
+  if (premiumTrack && !track.value?.has_premium) return 'premlock'
+  if (reached) return 'ready'
+  return 'locked'
+}
+
+async function claim(tier, premiumTrack) {
+  const key = `${premiumTrack ? 'p' : 'f'}${tier.level}`
+  if (claiming.value) return
+  claiming.value = key
+  try {
+    await runGameCommand(`bp claim ${premiumTrack ? 'premium' : 'free'} ${tier.level}`)
+    show(t('gameUiBattlepass.claimed'), true)
+    setTimeout(load, 1600)
+  } catch (e) {
+    show(e.message || t('gameUiBattlepass.claimFail'), false)
+  } finally {
+    setTimeout(() => { claiming.value = '' }, 1600)
+  }
 }
 </script>
 
 <template>
-  <div class="gui-root">
-    <header class="gui-header">
-      <span class="gui-title"><span class="gui-title-icon">⭐</span>{{ t('gameUiBattlepass.title') }}</span>
-      <button class="gui-close" @click="closeGui">✕</button>
-    </header>
+  <section class="gp-shell">
+    <GameUiSidebar current="battlepass" />
+    <GameUiTopBar :title="t('gameUiNav.battlepass')" />
 
-    <GameUiNav current="battlepass" />
+    <div class="gp-wrap gp-wrap--wide gp-wrap--app">
+      <div v-if="!token" class="gp-center"><div class="gp-card gp-state"><span class="gp-state-ico"><GuiIcon name="lock" :size="30" /></span><span class="gp-state-text">{{ t('gameUiBattlepass.tokenError') }}</span></div></div>
+      <div v-else-if="loading" class="gp-center"><span class="gp-spinner"></span></div>
+      <div v-else-if="error" class="gp-center"><div class="gp-card gp-state"><span class="gp-state-ico"><GuiIcon name="alert" :size="30" /></span><span class="gp-state-text">{{ error }}</span></div></div>
 
-    <div v-if="!token" class="gui-state"><span class="gui-state-icon">🔒</span><span class="gui-state-text">{{ t('gameUiBattlepass.tokenError') }}</span></div>
-    <div v-else-if="loading" class="gui-state"><span class="gui-spinner" /><span class="gui-state-sub">{{ t('gameUiBattlepass.loading') }}</span></div>
-    <div v-else-if="error" class="gui-state"><span class="gui-state-icon">⚠️</span><span class="gui-state-text">{{ error }}</span></div>
-
-    <div v-else-if="profile" class="gui-body">
-      <!-- Hero -->
-      <div class="bp-hero" :class="{ premium: profile.has_premium }">
-        <div class="bp-ring">
-          <span class="bp-level">{{ profile.level }}</span>
-          <span class="bp-level-lbl">{{ t('gameUiBattlepass.level') }}</span>
-        </div>
-        <div class="bp-meta">
-          <div class="bp-season">{{ profile.season || t('gameUiBattlepass.title') }}</div>
-          <div v-if="profile.has_premium" class="bp-premium">
-            <span class="bp-star">⭐</span> {{ t('gameUiBattlepass.premium') }}
-          </div>
-          <div v-else class="bp-free">{{ t('gameUiBattlepass.noPremium') }}</div>
-          <div v-if="profile.has_premium && profile.premium_expires_at" class="bp-expiry">
-            {{ t('gameUiBattlepass.until') }} {{ formatExpiry(profile.premium_expires_at) }}
-          </div>
-        </div>
-      </div>
-
-      <!-- XP bar -->
-      <div class="gui-card">
-        <div class="xp-head">
-          <span class="xp-total">{{ Number(profile.xp).toLocaleString('ru-RU') }} XP</span>
-          <span class="xp-next">+{{ xpToNext }} → {{ profile.level + 1 }} {{ t('gameUiBattlepass.level').toLowerCase() }}</span>
-        </div>
-        <div class="xp-track">
-          <div class="xp-fill" :class="{ premium: profile.has_premium }" :style="{ width: xpPercent + '%' }">
-            <span class="xp-shine" />
+      <template v-else-if="track">
+        <!-- Season header -->
+        <div class="bp-hero">
+          <div class="bp-hero-bg"></div>
+          <div class="bp-hero-in">
+            <div class="bp-badge"><span class="bp-badge-lv gp-num"><CountUp :value="track.level" /></span></div>
+            <div class="bp-title-col">
+              <div class="bp-kicker"><GuiIcon name="battlepass" :size="13" />Battle Pass · {{ track.season || t('gameUiBattlepass.season') + ' 1' }}</div>
+              <h1 class="bp-title">{{ t('gameUiBattlepass.title') }}</h1>
+              <div v-if="track.ends_in_days != null" class="bp-ends"><GuiIcon name="clock" :size="13" />{{ t('gameUiBattlepass.endsIn') }} <b>{{ track.ends_in_days }} {{ t('gameUiBattlepass.days') }}</b></div>
+            </div>
+            <div class="bp-prog-col">
+              <div class="bp-prog-head">
+                <span class="bp-lvl-lbl">{{ t('gameUiBattlepass.level') }} {{ track.level }}</span>
+                <span class="gp-num bp-xp"><CountUp :value="xpInLevel" :format="money" /> / {{ money(track.xp_per_level) }} XP</span>
+              </div>
+              <div class="gp-track" style="height:14px"><div class="gp-fill" :class="{ 'gp-fill--gold': track.has_premium }" :style="{ width: xpPct + '%' }"></div></div>
+              <div class="bp-cta-row">
+                <span v-if="track.has_premium" class="gp-pill gp-pill--gold"><GuiIcon name="crown" :size="13" />{{ t('gameUiBattlepass.premium') }}</span>
+                <button v-else class="gp-btn gp-btn--primary gp-btn--sm" @click="runGameCommand('battlepass')"><GuiIcon name="crown" :size="15" />{{ t('gameUiBattlepass.getPremium') }}</button>
+                <button v-if="readyCount" class="gp-btn gp-btn--ghost gp-btn--sm claim-all" disabled><GuiIcon name="gift" :size="14" />{{ t('gameUiBattlepass.claimReady') }} ({{ readyCount }})</button>
+              </div>
+            </div>
           </div>
         </div>
-        <div class="xp-foot">{{ xpInLevel }} / {{ XP_PER_LEVEL }} · {{ xpPercent }}%</div>
-      </div>
 
-      <div class="bp-note">💡 {{ t('gameUiBattlepass.rewardsNote') }}</div>
+        <!-- Reward track -->
+        <div v-if="!track.levels?.length" class="gp-card gp-state"><span class="gp-state-ico"><GuiIcon name="gift" :size="30" /></span><span class="gp-state-text">{{ t('gameUiBattlepass.noRewards') }}</span></div>
+
+        <div v-else class="gp-panel track-panel gp-grow">
+          <div class="track-wrap">
+            <div class="track-labels">
+              <div class="tl free">{{ t('gameUiBattlepass.free') }}</div>
+              <div class="tl-gap"></div>
+              <div class="tl prem"><GuiIcon name="crown" :size="14" />{{ t('gameUiBattlepass.premiumShort') }}</div>
+            </div>
+
+            <div class="track-scroll" @wheel="onTrackWheel">
+              <div v-for="tier in track.levels" :key="tier.level" class="tier">
+                <div class="cell" :class="cellState(tier, false)">
+                  <template v-if="tier.free">
+                    <div class="cell-ico">
+                      <img v-if="itemIcon(tier.free)" :src="itemIcon(tier.free)" alt="" @error="$event.target.style.display='none'" />
+                      <GuiIcon v-else :name="rewardIcon(tier.free)" :size="30" class="cell-gi" />
+                    </div>
+                    <div class="cell-amt gp-num">{{ rewardAmount(tier.free) }}</div>
+                    <div class="cell-foot">
+                      <span v-if="cellState(tier,false)==='claimed'" class="ok"><GuiIcon name="check" :size="14" /></span>
+                      <span v-else-if="cellState(tier,false)==='locked'" class="lock"><GuiIcon name="lock" :size="13" /></span>
+                      <button v-else-if="cellState(tier,false)==='ready'" class="claim-btn" :disabled="claiming===`f${tier.level}`" @click="claim(tier,false)">
+                        {{ claiming===`f${tier.level}` ? '…' : t('gameUiBattlepass.take') }}
+                      </button>
+                    </div>
+                  </template>
+                </div>
+
+                <div class="tier-badge" :class="{ reached: tier.level <= track.level, cur: tier.level === track.level }">{{ tier.level }}</div>
+
+                <div class="cell prem-cell" :class="cellState(tier, true)">
+                  <template v-if="tier.premium">
+                    <div class="cell-ico">
+                      <img v-if="itemIcon(tier.premium)" :src="itemIcon(tier.premium)" alt="" @error="$event.target.style.display='none'" />
+                      <GuiIcon v-else :name="rewardIcon(tier.premium)" :size="30" class="cell-gi" />
+                    </div>
+                    <div class="cell-amt gp-num">{{ rewardAmount(tier.premium) }}</div>
+                    <div class="cell-foot">
+                      <span v-if="cellState(tier,true)==='claimed'" class="ok"><GuiIcon name="check" :size="14" /></span>
+                      <span v-else-if="cellState(tier,true)==='premlock' || cellState(tier,true)==='locked'" class="lock"><GuiIcon name="lock" :size="13" /></span>
+                      <button v-else-if="cellState(tier,true)==='ready'" class="claim-btn gold" :disabled="claiming===`p${tier.level}`" @click="claim(tier,true)">
+                        {{ claiming===`p${tier.level}` ? '…' : t('gameUiBattlepass.take') }}
+                      </button>
+                    </div>
+                  </template>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div class="track-note"><GuiIcon name="sparkles" :size="14" />{{ t('gameUiBattlepass.premiumNote') }}</div>
+        </div>
+      </template>
     </div>
-  </div>
+
+    <transition name="gp-toast">
+      <div v-if="toast" class="gp-toast" :class="toast.ok ? 'gp-toast--ok' : 'gp-toast--err'">
+        <GuiIcon :name="toast.ok ? 'check' : 'alert'" :size="16" /><span>{{ toast.text }}</span>
+      </div>
+    </transition>
+  </section>
 </template>
 
 <style scoped>
-.bp-hero {
-  display: flex;
-  align-items: center;
-  gap: 18px;
-  padding: 18px;
-  border-radius: 16px;
-  background: linear-gradient(135deg, rgba(99, 102, 241, 0.16), rgba(139, 92, 246, 0.07));
-  border: 1px solid rgba(129, 140, 248, 0.28);
-}
-.bp-hero.premium {
-  background: linear-gradient(135deg, rgba(251, 191, 36, 0.16), rgba(217, 119, 6, 0.07));
-  border-color: rgba(251, 191, 36, 0.4);
-  box-shadow: 0 0 0 1px rgba(251, 191, 36, 0.18), 0 10px 30px rgba(217, 119, 6, 0.18);
-}
-
-.bp-ring {
-  width: 82px; height: 82px;
-  border-radius: 50%;
-  display: flex; flex-direction: column; align-items: center; justify-content: center;
-  flex-shrink: 0;
-  background: radial-gradient(circle at center, rgba(99, 102, 241, 0.25), rgba(99, 102, 241, 0.05));
-  border: 2px solid rgba(129, 140, 248, 0.55);
-  box-shadow: inset 0 0 18px rgba(129, 140, 248, 0.25);
-}
-.bp-hero.premium .bp-ring {
-  background: radial-gradient(circle at center, rgba(251, 191, 36, 0.28), rgba(251, 191, 36, 0.05));
-  border-color: rgba(251, 191, 36, 0.7);
-  box-shadow: inset 0 0 18px rgba(251, 191, 36, 0.3);
-}
-.bp-level { font-size: 1.8rem; font-weight: 900; color: #a5b4fc; line-height: 1; }
-.bp-hero.premium .bp-level { color: #fcd34d; }
-.bp-level-lbl { font-size: 0.6rem; color: #6b7a9c; text-transform: uppercase; letter-spacing: 0.1em; margin-top: 2px; }
-
-.bp-meta { flex: 1; min-width: 0; }
-.bp-season { font-size: 1rem; font-weight: 700; color: #e8eefc; margin-bottom: 5px; }
-.bp-premium { font-size: 0.84rem; font-weight: 700; color: #fcd34d; display: flex; align-items: center; gap: 5px; }
-.bp-star { filter: drop-shadow(0 0 5px rgba(251,191,36,0.7)); }
-.bp-free { font-size: 0.82rem; color: #6b7a9c; }
-.bp-expiry { font-size: 0.72rem; color: #6b7a9c; margin-top: 3px; }
-
-.xp-head { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 9px; }
-.xp-total { font-size: 0.92rem; font-weight: 800; color: #e8eefc; }
-.xp-next { font-size: 0.72rem; color: #6b7a9c; }
-
-.xp-track {
-  height: 11px;
-  background: rgba(0, 0, 0, 0.3);
-  border-radius: 999px;
-  overflow: hidden;
-  border: 1px solid rgba(148, 163, 184, 0.1);
-}
-.xp-fill {
-  position: relative;
-  height: 100%;
-  border-radius: 999px;
-  background: linear-gradient(90deg, #6366f1, #818cf8);
-  transition: width 0.5s cubic-bezier(0.16, 1, 0.3, 1);
-  overflow: hidden;
-}
-.xp-fill.premium { background: linear-gradient(90deg, #d97706, #fbbf24); }
-.xp-shine {
+/* Season header */
+.bp-hero { position: relative; overflow: hidden; border-radius: var(--gp-r-xl); border: 1px solid rgba(139,123,255,0.28); }
+.bp-hero-bg {
   position: absolute; inset: 0;
-  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.35), transparent);
-  animation: xp-sweep 2.2s ease-in-out infinite;
+  background:
+    radial-gradient(600px 300px at 88% -20%, rgba(217,70,239,0.24), transparent 60%),
+    radial-gradient(500px 320px at 6% 130%, rgba(139,123,255,0.28), transparent 60%),
+    linear-gradient(120deg, rgba(28,20,56,0.92), rgba(14,14,28,0.85));
 }
-@keyframes xp-sweep { 0% { transform: translateX(-100%); } 60%, 100% { transform: translateX(220%); } }
-.xp-foot { text-align: right; font-size: 0.7rem; color: #6b7a9c; margin-top: 6px; }
+.bp-hero-in { position: relative; display: flex; align-items: center; gap: 22px; padding: 20px 24px; flex-wrap: wrap; }
+.bp-badge {
+  width: 64px; height: 64px; flex-shrink: 0; display: grid; place-items: center; border-radius: 18px;
+  border: 1px solid rgba(139,123,255,0.5); background: radial-gradient(circle, rgba(139,123,255,0.32), rgba(139,123,255,0.06));
+  box-shadow: 0 0 30px -6px rgba(139,123,255,0.6);
+}
+.bp-badge-lv { font-size: 1.9rem; font-weight: 900; color: #e6ddff; }
+.bp-title-col { min-width: 0; }
+.bp-kicker { display: flex; align-items: center; gap: 6px; font-size: 0.66rem; font-weight: 800; letter-spacing: 0.16em; text-transform: uppercase; color: #c4b5fd; }
+.bp-title { margin-top: 3px; font-size: 1.7rem; font-weight: 900; color: #f4f7ff; line-height: 1; }
+.bp-ends { display: flex; align-items: center; gap: 6px; margin-top: 7px; font-size: 0.78rem; color: var(--gp-ink-soft); }
+.bp-ends b { color: var(--gp-gold); }
 
-.bp-note {
-  font-size: 0.78rem; color: #6b7a9c; text-align: center;
-  padding: 10px; border-radius: 10px;
-  background: rgba(255, 255, 255, 0.02);
-  border: 1px solid rgba(148, 163, 184, 0.08);
+.bp-prog-col { flex: 1; min-width: 280px; display: flex; flex-direction: column; gap: 9px; }
+.bp-prog-head { display: flex; align-items: baseline; justify-content: space-between; }
+.bp-lvl-lbl { font-size: 0.86rem; font-weight: 800; color: #eef2ff; }
+.bp-xp { font-size: 0.8rem; color: var(--gp-ink-soft); }
+.bp-cta-row { display: flex; align-items: center; gap: 10px; margin-top: 2px; }
+.claim-all { color: var(--gp-gold); }
+
+/* track */
+.track-panel { padding: 18px; justify-content: center; }
+.cell-gi { color: var(--gp-violet-2); }
+.prem-cell .cell-gi { color: var(--gp-gold); }
+.track-wrap { display: grid; grid-template-columns: auto 1fr; gap: 12px; align-items: center; }
+.track-labels { display: grid; grid-template-rows: 1fr auto 1fr; height: 100%; }
+.tl { display: flex; align-items: center; justify-content: flex-end; gap: 6px; font-size: 0.72rem; font-weight: 800; letter-spacing: 0.08em; text-transform: uppercase; padding-right: 6px; min-height: 116px; }
+.tl.free { color: var(--gp-ink-soft); }
+.tl.prem { color: var(--gp-gold); }
+.tl-gap { height: 34px; }
+
+.track-scroll { display: flex; gap: 10px; overflow-x: auto; padding: 4px 2px 12px; scroll-snap-type: x proximity; }
+.track-scroll::-webkit-scrollbar { height: 8px; }
+.track-scroll::-webkit-scrollbar-thumb { background: rgba(139,123,255,0.3); border-radius: 4px; }
+.tier { flex-shrink: 0; width: 104px; display: grid; grid-template-rows: 1fr auto 1fr; scroll-snap-align: start; }
+
+.cell {
+  height: 116px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px;
+  border-radius: 14px; padding: 8px; border: 1px solid var(--gp-line); background: rgba(255,255,255,0.03);
+  transition: border-color 0.15s, background 0.15s;
 }
+.cell.empty { opacity: 0.28; }
+.cell.ready { border-color: rgba(52,211,153,0.5); background: rgba(52,211,153,0.08); box-shadow: 0 0 0 1px rgba(52,211,153,0.15); }
+.cell.claimed { opacity: 0.6; border-color: rgba(52,211,153,0.3); }
+.cell.premlock { opacity: 0.5; }
+.prem-cell { background: linear-gradient(180deg, rgba(251,191,36,0.05), rgba(255,255,255,0.01)); border-color: rgba(251,191,36,0.18); }
+.prem-cell.ready { border-color: rgba(251,191,36,0.5); background: rgba(251,191,36,0.1); box-shadow: 0 0 0 1px rgba(251,191,36,0.2); }
+.prem-cell.locked, .prem-cell.premlock { border-color: rgba(251,191,36,0.14); }
+
+.cell-ico { width: 44px; height: 44px; display: grid; place-items: center; }
+.cell-ico img { width: 42px; height: 42px; image-rendering: pixelated; filter: drop-shadow(0 3px 5px rgba(0,0,0,0.5)); }
+.cell-emoji { font-size: 1.9rem; }
+.cell-amt { font-size: 0.82rem; font-weight: 800; color: #eef2ff; }
+.cell-foot { min-height: 20px; display: flex; align-items: center; }
+.ok { color: var(--gp-green); display: grid; place-items: center; }
+.lock { opacity: 0.6; color: var(--gp-ink-soft); display: grid; place-items: center; }
+.claim-btn { padding: 3px 12px; border-radius: 8px; border: none; font-family: inherit; font-size: 0.72rem; font-weight: 800; color: #fff; cursor: pointer; background: linear-gradient(135deg, #16a34a, #22c55e); }
+.claim-btn.gold { background: linear-gradient(135deg, #d97706, #fbbf24); color: #1a1200; }
+.claim-btn:active { transform: scale(0.95); }
+
+.tier-badge {
+  align-self: center; justify-self: center; width: 30px; height: 30px; margin: 4px 0;
+  display: grid; place-items: center; border-radius: 9px;
+  font-family: 'JetBrains Mono', monospace; font-size: 0.82rem; font-weight: 800;
+  color: var(--gp-ink-dim); background: rgba(0,0,0,0.3); border: 1px solid var(--gp-line);
+}
+.tier-badge.reached { color: #fff; background: linear-gradient(135deg, #7c6bff, #b45cf0); border-color: transparent; }
+.tier-badge.cur { animation: gp-pulse 2.2s ease-in-out infinite; }
+
+.track-note { display: flex; align-items: center; gap: 7px; margin-top: 12px; font-size: 0.76rem; color: var(--gp-ink-dim); }
+.track-note svg { color: var(--gp-gold); }
 </style>

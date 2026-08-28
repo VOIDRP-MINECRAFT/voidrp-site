@@ -89,10 +89,18 @@ export function removeMod(token, filename, target = 'both') {
 }
 
 // Rebuild the launcher manifest for the active server (dispatches the correct
-// per-server generator; never --all).
+// per-server generator; never --all). Starts a detached job; poll status below.
 export function regenerateManifest(token) {
   return apiRequest('/admin/mods/regenerate', {
     ...ah(token),
     method: 'POST',
+  })
+}
+
+// Poll live manifest-rebuild status: { running, state, percent, log, error, ... }.
+export function getManifestJobStatus(token) {
+  return apiRequest('/admin/mods/regenerate/status', {
+    ...ah(token),
+    method: 'GET',
   })
 }

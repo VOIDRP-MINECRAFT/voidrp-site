@@ -251,6 +251,7 @@ onMounted(load)
               </td>
               <td class="cell-dim adm-num">{{ formatDate(item.user.created_at) }}</td>
               <td>
+                <RouterLink class="adm-btn adm-btn--sm" :to="`/admin/players/${item.player_account.minecraft_nickname}`">Карточка</RouterLink>
                 <button class="adm-btn adm-btn--sm" @click="openModal(item)">Управление</button>
               </td>
             </tr>

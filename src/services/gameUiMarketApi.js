@@ -42,6 +42,10 @@ export function getItems() {
   return req('/game-ui/market/items')
 }
 
+export function getTopBar() {
+  return req('/game-ui/home/topbar')
+}
+
 export function getOrderBook(itemKey) {
   return req(`/game-ui/market/order-book/${encodeURIComponent(itemKey)}`)
 }

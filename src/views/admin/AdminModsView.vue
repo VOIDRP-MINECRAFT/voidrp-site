@@ -1,5 +1,5 @@
 <script setup>
-import { computed, onMounted, ref } from 'vue'
+import { computed, nextTick, onBeforeUnmount, onMounted, ref } from 'vue'
 import {
   getMods,
   uploadMods,
@@ -8,6 +8,7 @@ import {
   setModTargets,
   removeMod,
   regenerateManifest,
+  getManifestJobStatus,
 } from '../../services/adminModsApi.js'
 import { serverPowerAction } from '../../services/adminServerOpsApi.js'
 import { authState, hasPermission } from '../../stores/authStore'
@@ -221,25 +222,70 @@ async function del(mod) {
   }
 }
 
-// ── Footer actions: rebuild manifest + restart server ────────────────────────
-const regenBusy = ref(false)
-async function regen() {
-  const ok = await confirmDialog({
-    title: 'Пересобрать манифест',
-    message: `Пересобрать клиентский манифест для «${serverName.value}»? Игроки получат изменения при следующем запуске лаунчера.`,
-    confirmLabel: 'Пересобрать',
-  })
-  if (!ok) return
-  regenBusy.value = true
+// ── Footer actions: rebuild manifest (live console modal) + restart server ───
+const buildOpen = ref(false)
+const buildLog = ref('')
+const buildPercent = ref(0)
+const buildState = ref('running') // running | success | error
+const buildError = ref('')
+const buildServer = ref('')
+const consoleEl = ref(null)
+let buildTimer = null
+
+const regenRunning = computed(() => buildOpen.value && buildState.value === 'running')
+
+function stopBuildPolling() {
+  if (buildTimer) { clearInterval(buildTimer); buildTimer = null }
+}
+function closeBuildModal() {
+  if (buildState.value === 'running') return // не закрываем во время сборки
+  stopBuildPolling()
+  buildOpen.value = false
+}
+
+async function pollBuild() {
   try {
-    await regenerateManifest(token())
-    needsRegen.value = false
-    toastSuccess('Манифест пересобран')
+    const s = await getManifestJobStatus(token())
+    buildLog.value = s.log || ''
+    buildPercent.value = s.percent ?? 0
+    buildState.value = s.state || (s.running ? 'running' : 'success')
+    buildError.value = s.error || ''
+    await nextTick()
+    if (consoleEl.value) consoleEl.value.scrollTop = consoleEl.value.scrollHeight
+    if (!s.running) {
+      stopBuildPolling()
+      if (buildState.value === 'success') {
+        needsRegen.value = false
+        buildPercent.value = 100
+      }
+    }
   } catch (e) {
-    toastError(e?.message || 'Ошибка пересборки манифеста')
-  } finally {
-    regenBusy.value = false
+    buildError.value = e?.message || 'Ошибка получения статуса'
   }
+}
+
+async function regen() {
+  // Окно открывается сразу — сборка идёт в фоне, лог/проценты тянем поллингом.
+  buildOpen.value = true
+  buildServer.value = serverName.value
+  buildLog.value = ''
+  buildPercent.value = 0
+  buildError.value = ''
+  buildState.value = 'running'
+  try {
+    const s = await regenerateManifest(token())
+    buildState.value = s.state || 'running'
+  } catch (e) {
+    // 409 = сборка уже идёт — просто подключаемся к ней поллингом.
+    if (!/уже идёт|409/i.test(e?.message || '')) {
+      buildState.value = 'error'
+      buildError.value = e?.message || 'Не удалось запустить пересборку'
+      return
+    }
+  }
+  stopBuildPolling()
+  await pollBuild()
+  buildTimer = setInterval(pollBuild, 700)
 }
 
 const restartBusy = ref(false)
@@ -263,6 +309,7 @@ async function restartServer() {
 }
 
 onMounted(load)
+onBeforeUnmount(stopBuildPolling)
 </script>
 
 <template>
@@ -273,8 +320,8 @@ onMounted(load)
         <p class="adm-sub">Управление модами клиента и сервера выбранного сервера</p>
       </div>
       <div class="adm-head-actions">
-        <button v-if="canManage" class="adm-btn adm-btn--acc" :disabled="regenBusy" @click="regen">
-          {{ regenBusy ? 'Пересборка…' : 'Пересобрать манифест' }}
+        <button v-if="canManage" class="adm-btn adm-btn--acc" :disabled="regenRunning" @click="regen">
+          {{ regenRunning ? 'Сборка…' : 'Пересобрать манифест' }}
         </button>
         <button v-if="canManage && canRestart" class="adm-btn adm-btn--danger" :disabled="restartBusy" @click="restartServer">
           Перезапустить сервер
@@ -426,6 +473,44 @@ onMounted(load)
         </div>
       </div>
     </div>
+
+    <!-- ── Пересборка манифеста: живой лог + прогресс ────────────────── -->
+    <div v-if="buildOpen" class="adm-modal-backdrop" @click.self="closeBuildModal">
+      <div class="adm-modal mfb">
+        <div class="mfb__head">
+          <div class="mfb__head-l">
+            <h3 class="adm-card__title">Сборка манифеста</h3>
+            <p class="adm-sub mfb__server">{{ buildServer }}</p>
+          </div>
+          <span class="mfb__state" :class="'mfb__state--' + buildState">
+            <span class="mfb__dot" />
+            <template v-if="buildState === 'running'">Сборка…</template>
+            <template v-else-if="buildState === 'success'">Готово</template>
+            <template v-else>Ошибка</template>
+          </span>
+        </div>
+
+        <div class="mfb__bar">
+          <div
+            class="mfb__bar-fill"
+            :class="{ 'is-err': buildState === 'error', 'is-ok': buildState === 'success' }"
+            :style="{ width: buildPercent + '%' }"
+          />
+        </div>
+        <div class="mfb__pct adm-num">{{ buildPercent }}%</div>
+
+        <pre ref="consoleEl" class="mfb__console">{{ buildLog || 'Запуск пересборки…' }}</pre>
+
+        <div v-if="buildError" class="mfb__err">{{ buildError }}</div>
+
+        <div class="mfb__foot">
+          <span v-if="buildState === 'success'" class="adm-sub mfb__hint">Игроки получат изменения при следующем запуске лаунчера.</span>
+          <button class="adm-btn adm-btn--acc" :disabled="buildState === 'running'" @click="closeBuildModal">
+            {{ buildState === 'running' ? 'Идёт сборка…' : 'Закрыть' }}
+          </button>
+        </div>
+      </div>
+    </div>
   </div>
 </template>
 
@@ -486,4 +571,44 @@ onMounted(load)
 .mods-edit__title { word-break: break-all; }
 .mods-field { display: flex; flex-direction: column; gap: 0.25rem; font-size: 0.76rem; color: var(--adm-dim); }
 .mods-edit__actions { display: flex; justify-content: flex-end; gap: 0.4rem; margin-top: 0.3rem; }
+
+/* ── Модалка пересборки манифеста (на глобальном .adm-modal) ─────────── */
+.mfb { max-width: 820px; display: flex; flex-direction: column; gap: 0.7rem; }
+.mfb__head { display: flex; align-items: flex-start; justify-content: space-between; gap: 1rem; }
+.mfb__head-l { min-width: 0; }
+.mfb__server { margin-top: 0.15rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+.mfb__state { display: inline-flex; align-items: center; gap: 0.4rem; flex-shrink: 0; font-size: 0.76rem; font-weight: 800; }
+.mfb__dot { width: 8px; height: 8px; border-radius: 50%; background: var(--adm-acc); }
+.mfb__state--running { color: var(--adm-acc-text); }
+.mfb__state--running .mfb__dot { animation: mfb-pulse 1s ease-in-out infinite; }
+.mfb__state--success { color: var(--adm-ok, #34d399); }
+.mfb__state--success .mfb__dot { background: var(--adm-ok, #34d399); }
+.mfb__state--error { color: var(--adm-err, #f87171); }
+.mfb__state--error .mfb__dot { background: var(--adm-err, #f87171); }
+@keyframes mfb-pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.3; } }
+
+.mfb__bar { height: 6px; border-radius: 4px; background: rgba(148, 163, 184, 0.12); overflow: hidden; }
+.mfb__bar-fill {
+  height: 100%; width: 0; border-radius: 4px; background: var(--adm-acc);
+  transition: width 0.35s ease;
+}
+.mfb__bar-fill.is-ok { background: var(--adm-ok, #34d399); }
+.mfb__bar-fill.is-err { background: var(--adm-err, #f87171); }
+.mfb__pct { align-self: flex-end; margin-top: -0.3rem; font-size: 0.78rem; font-weight: 800; color: var(--adm-text); }
+
+.mfb__console {
+  min-height: 240px; max-height: 46vh; overflow-y: auto; margin: 0;
+  padding: 0.75rem 0.85rem; border-radius: var(--adm-r-sm, 10px);
+  background: var(--adm-bg, #06080f); border: 1px solid var(--adm-line);
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 0.72rem; line-height: 1.5; color: var(--adm-mut);
+  white-space: pre-wrap; word-break: break-word;
+}
+.mfb__err {
+  padding: 0.5rem 0.7rem; border-radius: var(--adm-r-sm, 8px);
+  font-size: 0.76rem; color: var(--adm-err, #f87171); background: rgba(248, 113, 113, 0.08);
+}
+.mfb__foot { display: flex; align-items: center; justify-content: flex-end; gap: 0.8rem; }
+.mfb__hint { margin-right: auto; }
 </style>
