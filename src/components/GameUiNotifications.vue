@@ -37,9 +37,22 @@ function act(n) {
   if (n.action_type === 'command' && n.action_payload) runGameCommand(n.action_payload).catch(() => {})
   drop(n.id)
 }
+// Triggered by the in-game "Open notification" keybind (mod dispatches it): act on the
+// newest actionable toast — works during gameplay without freeing the cursor.
+function actLatest() {
+  const n = notes.value.find((x) => x.action_type && x.action_payload) || notes.value[0]
+  if (n) act(n)
+}
 
-onMounted(() => { poll(); pollTimer = setInterval(poll, 8000) })
-onUnmounted(() => { clearInterval(pollTimer); timers.forEach((t) => clearTimeout(t)) })
+onMounted(() => {
+  window.__voidNotifyAct = actLatest
+  window.addEventListener('webgui:notifyAct', actLatest)
+  poll(); pollTimer = setInterval(poll, 8000)
+})
+onUnmounted(() => {
+  clearInterval(pollTimer); timers.forEach((t) => clearTimeout(t))
+  window.removeEventListener('webgui:notifyAct', actLatest)
+})
 </script>
 
 <template>
@@ -52,17 +65,14 @@ onUnmounted(() => { clearInterval(pollTimer); timers.forEach((t) => clearTimeout
       <div class="gnote-main">
         <div class="gnote-title">{{ n.title }}</div>
         <div v-if="n.body" class="gnote-body">{{ n.body }}</div>
-        <button v-if="n.action_label" class="gnote-act" @click="act(n)">
-          {{ n.action_label }}<GuiIcon name="arrowRight" :size="12" />
-        </button>
+        <div v-if="n.action_label" class="gnote-act"><kbd class="gnote-key">↑</kbd>{{ n.action_label }}</div>
       </div>
-      <button class="gnote-x" @click="drop(n.id)" aria-label="close"><GuiIcon name="x" :size="12" /></button>
     </div>
   </transition-group>
 </template>
 
 <style scoped>
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@500;600;700;800&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@500;600;700;800&family=JetBrains+Mono:wght@700;800&display=swap');
 
 /* CEF-safe: flat fill + crisp border (no backdrop-filter/box-shadow halo). */
 .gnotes {
@@ -98,21 +108,16 @@ onUnmounted(() => { clearInterval(pollTimer); timers.forEach((t) => clearTimeout
 .gnote-title { font-size: 0.78rem; font-weight: 800; color: #fff; line-height: 1.2; }
 .gnote-body { font-size: 0.68rem; line-height: 1.35; color: #c3cdec; }
 .gnote-act {
-  align-self: flex-start; margin-top: 5px;
-  display: inline-flex; align-items: center; gap: 4px;
-  padding: 3px 9px; border-radius: 7px;
-  font-family: inherit; font-size: 0.68rem; font-weight: 800; cursor: pointer;
-  color: var(--ac); background: var(--acs, rgba(139,123,255,0.16));
-  border: 1px solid color-mix(in srgb, var(--ac) 42%, transparent);
-  transition: filter 0.12s, transform 0.1s;
+  align-self: flex-start; margin-top: 6px;
+  display: inline-flex; align-items: center; gap: 6px;
+  font-size: 0.66rem; font-weight: 700; color: var(--ac);
 }
-.gnote-act:hover { filter: brightness(1.18); }
-.gnote-act:active { transform: scale(0.95); }
-.gnote-x {
-  flex-shrink: 0; display: grid; place-items: center; width: 18px; height: 18px; margin: -2px -2px 0 0;
-  border: none; border-radius: 6px; background: transparent; color: #7c889f; cursor: pointer; transition: all 0.12s;
+.gnote-key {
+  font-family: 'JetBrains Mono', monospace; font-size: 0.62rem; font-weight: 800; color: #eaf0ff;
+  min-width: 15px; text-align: center; padding: 0 5px; border-radius: 5px; line-height: 1.5;
+  background: color-mix(in srgb, var(--ac) 22%, transparent);
+  border: 1px solid color-mix(in srgb, var(--ac) 55%, transparent); border-bottom-width: 2px;
 }
-.gnote-x:hover { background: rgba(255,255,255,0.08); color: #fda4af; }
 
 /* slide-in from the right */
 .gnote-enter-active { transition: opacity 0.3s, transform 0.35s cubic-bezier(0.22,1,0.36,1); }
