@@ -116,3 +116,12 @@ export function getBattlepassStatus() {
 export function getMyAlliance() {
   return req('/game-ui/alliance/my')
 }
+
+// ── Notifications (reactive HUD toasts) ───────────────────────────────────────
+// The feed returns UNSEEN notifications and marks them seen on fetch — one-shot.
+export function getNotifications() {
+  return req('/game-ui/notifications')
+}
+export function dismissNotification(id) {
+  return req(`/game-ui/notifications/${id}/dismiss`, { method: 'POST' })
+}

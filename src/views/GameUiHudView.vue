@@ -5,6 +5,7 @@ import { getHudSnapshot, setWebguiToken } from '../services/gameUiApi.js'
 import { API_BASE_URL } from '../services/apiBase'
 import { useWebGuiToken, useWebGuiClient, runCommand } from '../composables/useWebGui.js'
 import GuiIcon from '../components/GuiIcon.vue'
+import GameUiNotifications from '../components/GameUiNotifications.vue'
 
 const { t } = useI18n()
 const token = useWebGuiToken()
@@ -175,6 +176,9 @@ function openQuests() { runCommand('/dailyquest') }
       </div>
     </div>
   </div>
+
+  <!-- reactive notification toasts (own stack, shown regardless of HUD slide state) -->
+  <GameUiNotifications v-if="token" />
 </template>
 
 <style scoped>
