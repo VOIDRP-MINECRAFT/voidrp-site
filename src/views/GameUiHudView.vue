@@ -15,16 +15,17 @@ const data = ref(null)
 const error = ref(null)
 const clock = ref('')
 const flash = ref(null)     // { amount, positive } — balance change pop
-const collapsed = ref(false)
+const hidden = ref(false)   // slid off-screen (toggled by the in-game keybind)
 let pollTimer = null
 let clockTimer = null
 let flashTimer = null
 let prevBalance = null
 
-try { collapsed.value = localStorage.getItem('voidrp_hud_collapsed') === '1' } catch {}
-function toggle() {
-  collapsed.value = !collapsed.value
-  try { localStorage.setItem('voidrp_hud_collapsed', collapsed.value ? '1' : '0') } catch {}
+try { hidden.value = localStorage.getItem('voidrp_hud_hidden') === '1' } catch {}
+// The mod's HUD-slide keybind dispatches this event into the page; we animate the slide.
+function onSlide() {
+  hidden.value = !hidden.value
+  try { localStorage.setItem('voidrp_hud_hidden', hidden.value ? '1' : '0') } catch {}
 }
 
 async function load() {
@@ -58,6 +59,8 @@ function tickClock() {
 
 onMounted(() => {
   document.documentElement.classList.add('webgui-hud')
+  window.addEventListener('webgui:hudSlide', onSlide)
+  window.__voidHudToggle = onSlide  // fallback the mod can call directly
   load()
   tickClock()
   pollTimer = setInterval(load, 10_000)
@@ -67,6 +70,7 @@ onUnmounted(() => {
   clearInterval(pollTimer)
   clearInterval(clockTimer)
   clearTimeout(flashTimer)
+  window.removeEventListener('webgui:hudSlide', onSlide)
   document.documentElement.classList.remove('webgui-hud')
 })
 
@@ -107,16 +111,8 @@ function openQuests() { runCommand('/dailyquest') }
 </script>
 
 <template>
-  <div class="hud">
+  <div class="hud" :class="{ hidden }">
     <div v-if="error && !data" class="hud-err"><GuiIcon name="alert" :size="14" /> WebGUI</div>
-
-    <!-- collapsed slim pill -->
-    <button v-else-if="collapsed" class="hud-mini" @click="toggle" :title="t('gameUiHud.expand')">
-      <img v-if="headUrl" class="hud-mini-av" :src="headUrl" alt="" @error="$event.target.style.visibility='hidden'" />
-      <span class="hud-mini-bal"><GuiIcon name="coins" :size="12" />{{ data ? formatBalance(data.balance) : '…' }}</span>
-      <span v-if="data && data.bp_level" class="hud-mini-lvl">{{ data.bp_level }}</span>
-      <GuiIcon name="chevronRight" :size="13" class="hud-mini-arr" />
-    </button>
 
     <div v-else class="hud-card">
       <!-- accent strip -->
@@ -136,7 +132,6 @@ function openQuests() { runCommand('/dailyquest') }
           <span v-if="ping != null" class="hud-ping" :class="pingClass"><span class="hud-ping-dot" />{{ ping }}</span>
           <span class="hud-clock">{{ clock }}</span>
         </div>
-        <button class="hud-collapse" @click="toggle" :title="t('gameUiHud.collapse')"><GuiIcon name="chevronRight" :size="13" /></button>
       </div>
 
       <div class="hud-sep" />
@@ -157,30 +152,27 @@ function openQuests() { runCommand('/dailyquest') }
         <span class="hud-bp-track"><i :style="{ width: bpPct + '%' }"></i></span>
       </div>
 
-      <!-- position + dimension -->
-      <div class="hud-meta" v-if="pos || dimension.name">
-        <span v-if="pos" class="hud-chip">
+      <!-- position -->
+      <div class="hud-meta" v-if="pos">
+        <span class="hud-chip">
           <GuiIcon name="map" :size="12" class="hud-chip-ic" />
           <span class="hud-coords"><b>{{ pos.x }}</b> <b>{{ pos.y }}</b> <b>{{ pos.z }}</b></span>
         </span>
-        <span v-if="dimension.name" class="hud-chip" :style="{ '--dt': dimension.tint }">
-          <GuiIcon :name="dimension.icon" :size="12" class="hud-chip-ic hud-dim-ic" />
-          <span class="hud-dim">{{ dimension.name }}</span>
-        </span>
       </div>
 
-      <!-- action badges -->
-      <div class="hud-badges" v-if="data && (data.pending_deliveries > 0 || data.completed_quests > 0)">
-        <button v-if="data.pending_deliveries > 0" class="hud-badge hud-badge--alert" @click="openMarket" :title="t('gameUiHud.pendingDeliveries')">
+      <!-- deliveries alert (actionable) -->
+      <div class="hud-badges" v-if="data && data.pending_deliveries > 0">
+        <button class="hud-badge hud-badge--alert" @click="openMarket" :title="t('gameUiHud.pendingDeliveries')">
           <GuiIcon name="package" :size="12" />{{ data.pending_deliveries }}
         </button>
-        <button v-if="data.completed_quests > 0" class="hud-badge" @click="openQuests" :title="t('gameUiHud.questsDone')">
-          <GuiIcon name="quest" :size="12" />{{ data.completed_quests }}
-        </button>
       </div>
 
-      <!-- F6 hint -->
-      <div class="hud-hint"><kbd class="hud-key">F6</kbd><span>{{ t('gameUiHud.menuHint') }}</span></div>
+      <!-- key hints -->
+      <div class="hud-hint">
+        <kbd class="hud-key">F6</kbd><span>{{ t('gameUiHud.hintMenu') }}</span>
+        <span class="hud-hint-dot">·</span>
+        <kbd class="hud-key">→</kbd><span>{{ t('gameUiHud.hintHide') }}</span>
+      </div>
     </div>
   </div>
 </template>
@@ -195,7 +187,10 @@ function openQuests() { runCommand('/dailyquest') }
   pointer-events: none;
   font-family: 'Inter', system-ui, sans-serif;
   user-select: none;
+  transition: transform 0.42s cubic-bezier(0.22, 1, 0.36, 1);
 }
+/* slid off the right edge (toggled by the in-game keybind) */
+.hud.hidden { transform: translateY(-50%) translateX(calc(100% + 26px)); }
 
 /* CEF-safe: NO backdrop-filter / box-shadow (they smear a halo on the transparent
    surface). Flat gradient fill + crisp 1px border. Per-glyph text-shadow for legibility. */
@@ -287,6 +282,7 @@ function openQuests() { runCommand('/dailyquest') }
   background: rgba(139, 123, 255, 0.16); border: 1px solid rgba(139, 123, 255, 0.4);
   border-bottom-width: 2px;
 }
+.hud-hint-dot { color: #4b5570; }
 
 /* collapse button */
 .hud-collapse {

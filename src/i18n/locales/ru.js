@@ -1574,6 +1574,8 @@ emailDomainNotice: 'Только российские почтовые серв�
     pendingDeliveries: 'Незабранные доставки на рынке',
     questsDone: 'Выполнено квестов',
     menuHint: '— открыть меню',
+    hintMenu: 'меню',
+    hintHide: 'скрыть',
     collapse: 'Свернуть',
     expand: 'Развернуть',
   },

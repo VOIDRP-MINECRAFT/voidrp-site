@@ -1574,6 +1574,8 @@ export default {
     pendingDeliveries: 'Unclaimed market deliveries',
     questsDone: 'Quests completed',
     menuHint: '— open menu',
+    hintMenu: 'menu',
+    hintHide: 'hide',
     collapse: 'Collapse',
     expand: 'Expand',
   },
