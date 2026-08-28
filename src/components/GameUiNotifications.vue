@@ -47,8 +47,7 @@ function actLatest() {
 }
 
 onMounted(() => {
-  window.__voidNotifyAct = actLatest
-  window.addEventListener('webgui:notifyAct', actLatest)
+  window.addEventListener('webgui:notifyAct', actLatest)  // mod emits this via WebviewClientEmit
   poll(); pollTimer = setInterval(poll, 8000)
 })
 onUnmounted(() => {

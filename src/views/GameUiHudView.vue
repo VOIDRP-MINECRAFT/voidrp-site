@@ -60,8 +60,7 @@ function tickClock() {
 
 onMounted(() => {
   document.documentElement.classList.add('webgui-hud')
-  window.addEventListener('webgui:hudSlide', onSlide)
-  window.__voidHudToggle = onSlide  // fallback the mod can call directly
+  window.addEventListener('webgui:hudSlide', onSlide)  // mod emits this via WebviewClientEmit
   load()
   tickClock()
   pollTimer = setInterval(load, 10_000)
