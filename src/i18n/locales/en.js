@@ -1574,6 +1574,8 @@ export default {
     pendingDeliveries: 'Unclaimed market deliveries',
     questsDone: 'Quests completed',
     menuHint: '— open menu',
+    collapse: 'Collapse',
+    expand: 'Expand',
   },
   gameUiNationMarket: {
     title: 'Nation Market',

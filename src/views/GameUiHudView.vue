@@ -14,18 +14,43 @@ const client = useWebGuiClient()
 const data = ref(null)
 const error = ref(null)
 const clock = ref('')
+const flash = ref(null)     // { amount, positive } — balance change pop
+const collapsed = ref(false)
 let pollTimer = null
 let clockTimer = null
+let flashTimer = null
+let prevBalance = null
+
+try { collapsed.value = localStorage.getItem('voidrp_hud_collapsed') === '1' } catch {}
+function toggle() {
+  collapsed.value = !collapsed.value
+  try { localStorage.setItem('voidrp_hud_collapsed', collapsed.value ? '1' : '0') } catch {}
+}
 
 async function load() {
   if (!token) { error.value = 'no_token'; return }
   try {
-    data.value = await getHudSnapshot()
+    const next = await getHudSnapshot()
+    // Balance-change flash (skip the first load)
+    if (prevBalance != null && next.balance !== prevBalance) {
+      const delta = next.balance - prevBalance
+      flash.value = { amount: Math.abs(delta), positive: delta > 0 }
+      clearTimeout(flashTimer)
+      flashTimer = setTimeout(() => { flash.value = null }, 2600)
+    }
+    prevBalance = next.balance
+    data.value = next
     error.value = null
   } catch (e) {
     error.value = e.message
   }
 }
+
+const bpPct = computed(() => {
+  const d = data.value
+  if (!d) return 0
+  return Math.min(100, Math.round((d.bp_xp % 10000) / 100))
+})
 
 function tickClock() {
   clock.value = new Date().toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' })
@@ -41,6 +66,7 @@ onMounted(() => {
 onUnmounted(() => {
   clearInterval(pollTimer)
   clearInterval(clockTimer)
+  clearTimeout(flashTimer)
   document.documentElement.classList.remove('webgui-hud')
 })
 
@@ -84,6 +110,14 @@ function openQuests() { runCommand('/dailyquest') }
   <div class="hud">
     <div v-if="error && !data" class="hud-err"><GuiIcon name="alert" :size="14" /> WebGUI</div>
 
+    <!-- collapsed slim pill -->
+    <button v-else-if="collapsed" class="hud-mini" @click="toggle" :title="t('gameUiHud.expand')">
+      <img v-if="headUrl" class="hud-mini-av" :src="headUrl" alt="" @error="$event.target.style.visibility='hidden'" />
+      <span class="hud-mini-bal"><GuiIcon name="coins" :size="12" />{{ data ? formatBalance(data.balance) : '…' }}</span>
+      <span v-if="data && data.bp_level" class="hud-mini-lvl">{{ data.bp_level }}</span>
+      <GuiIcon name="chevronRight" :size="13" class="hud-mini-arr" />
+    </button>
+
     <div v-else class="hud-card">
       <!-- accent strip -->
       <span class="hud-accent" aria-hidden="true"></span>
@@ -102,6 +136,7 @@ function openQuests() { runCommand('/dailyquest') }
           <span v-if="ping != null" class="hud-ping" :class="pingClass"><span class="hud-ping-dot" />{{ ping }}</span>
           <span class="hud-clock">{{ clock }}</span>
         </div>
+        <button class="hud-collapse" @click="toggle" :title="t('gameUiHud.collapse')"><GuiIcon name="chevronRight" :size="13" /></button>
       </div>
 
       <div class="hud-sep" />
@@ -111,7 +146,16 @@ function openQuests() { runCommand('/dailyquest') }
         <span class="hud-bico"><GuiIcon name="coins" :size="15" /></span>
         <span class="hud-money">{{ data ? formatBalance(data.balance) : '…' }}</span>
         <span class="hud-unit">{{ t('gameUiHud.monUnit') }}</span>
+        <transition name="hud-flash">
+          <span v-if="flash" class="hud-delta" :class="flash.positive ? 'pos' : 'neg'">{{ flash.positive ? '+' : '−' }}{{ formatBalance(flash.amount) }}</span>
+        </transition>
       </button>
+
+      <!-- battle pass mini-bar -->
+      <div v-if="data && data.bp_level" class="hud-bp" :class="{ prem: data.bp_has_premium }">
+        <span class="hud-bp-lvl"><GuiIcon :name="data.bp_has_premium ? 'crown' : 'battlepass'" :size="12" />LVL {{ data.bp_level }}</span>
+        <span class="hud-bp-track"><i :style="{ width: bpPct + '%' }"></i></span>
+      </div>
 
       <!-- position + dimension -->
       <div class="hud-meta" v-if="pos || dimension.name">
@@ -145,7 +189,9 @@ function openQuests() { runCommand('/dailyquest') }
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@500;600;700;800;900&family=JetBrains+Mono:wght@600;700&display=swap');
 
 .hud {
-  position: fixed; top: 14px; left: 14px; z-index: 9999;
+  /* Right edge, vertically centered — the notification stack will share this zone. */
+  position: fixed; top: 50%; right: 14px; left: auto; transform: translateY(-50%);
+  z-index: 9999;
   pointer-events: none;
   font-family: 'Inter', system-ui, sans-serif;
   user-select: none;
@@ -156,10 +202,10 @@ function openQuests() { runCommand('/dailyquest') }
 .hud-card {
   pointer-events: auto;
   position: relative;
-  min-width: 190px;
-  display: flex; flex-direction: column; gap: 8px;
-  padding: 11px 13px 11px 15px;
-  border-radius: 13px;
+  min-width: 158px; max-width: 200px;
+  display: flex; flex-direction: column; gap: 6px;
+  padding: 8px 10px 8px 12px;
+  border-radius: 11px;
   background: linear-gradient(160deg, rgba(16, 18, 34, 0.72), rgba(9, 11, 22, 0.62));
   border: 1px solid rgba(139, 123, 255, 0.3);
   overflow: hidden;
@@ -171,61 +217,61 @@ function openQuests() { runCommand('/dailyquest') }
 }
 
 /* identity */
-.hud-top { display: flex; align-items: center; gap: 9px; }
+.hud-top { display: flex; align-items: center; gap: 8px; }
 .hud-avatar {
-  width: 30px; height: 30px; border-radius: 7px; image-rendering: pixelated;
+  width: 26px; height: 26px; border-radius: 6px; image-rendering: pixelated;
   border: 1px solid rgba(139, 123, 255, 0.5); flex-shrink: 0;
 }
 .hud-idt { display: flex; flex-direction: column; gap: 1px; min-width: 0; flex: 1; }
-.hud-name { font-size: 0.86rem; font-weight: 800; color: #fff; line-height: 1.1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.hud-nation { display: flex; align-items: center; gap: 4px; font-size: 0.68rem; font-weight: 600; color: #c3cdec; line-height: 1.1; }
+.hud-name { font-size: 0.8rem; font-weight: 800; color: #fff; line-height: 1.1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.hud-nation { display: flex; align-items: center; gap: 4px; font-size: 0.64rem; font-weight: 600; color: #c3cdec; line-height: 1.1; }
 .hud-nation svg { color: #a78bfa; flex-shrink: 0; }
 .hud-nation--none { color: #8b97b5; }
 .hud-role { color: #a78bfa; font-weight: 700; }
 
-.hud-side { display: flex; flex-direction: column; align-items: flex-end; gap: 2px; flex-shrink: 0; }
-.hud-ping { display: flex; align-items: center; gap: 4px; font-size: 0.66rem; font-weight: 800; color: #aab6d4; font-variant-numeric: tabular-nums; }
-.hud-ping-dot { width: 6px; height: 6px; border-radius: 50%; background: #64748b; }
+.hud-side { display: flex; flex-direction: column; align-items: flex-end; gap: 1px; flex-shrink: 0; }
+.hud-ping { display: flex; align-items: center; gap: 4px; font-size: 0.62rem; font-weight: 800; color: #aab6d4; font-variant-numeric: tabular-nums; }
+.hud-ping-dot { width: 5px; height: 5px; border-radius: 50%; background: #64748b; }
 .hud-ping.good { color: #4ade80; } .hud-ping.good .hud-ping-dot { background: #4ade80; }
 .hud-ping.mid { color: #fbbf24; } .hud-ping.mid .hud-ping-dot { background: #fbbf24; }
 .hud-ping.bad { color: #f87171; } .hud-ping.bad .hud-ping-dot { background: #f87171; }
-.hud-clock { font-size: 0.64rem; font-weight: 700; color: #8b97b5; font-variant-numeric: tabular-nums; }
+.hud-clock { font-size: 0.6rem; font-weight: 700; color: #8b97b5; font-variant-numeric: tabular-nums; }
 
 .hud-sep { height: 1px; background: rgba(139, 123, 255, 0.16); }
 
 /* balance */
 .hud-balance {
-  pointer-events: auto; display: flex; align-items: center; gap: 8px;
-  padding: 5px 8px; margin: -1px 0; width: 100%;
-  border-radius: 9px; border: 1px solid rgba(251, 191, 36, 0.22);
+  pointer-events: auto; display: flex; align-items: center; gap: 7px;
+  padding: 4px 7px; width: 100%;
+  border-radius: 8px; border: 1px solid rgba(251, 191, 36, 0.22);
   background: rgba(251, 191, 36, 0.08);
   font-family: inherit; cursor: pointer; transition: background 0.13s, border-color 0.13s;
 }
 .hud-balance:hover { background: rgba(251, 191, 36, 0.14); border-color: rgba(251, 191, 36, 0.4); }
 .hud-balance:active { transform: scale(0.98); }
 .hud-bico { color: #fbbf24; display: grid; place-items: center; flex-shrink: 0; }
-.hud-money { font-family: 'JetBrains Mono', monospace; font-weight: 800; font-size: 0.92rem; color: #fcd34d; letter-spacing: 0.01em; }
-.hud-unit { font-size: 0.62rem; color: #b48a2e; font-weight: 700; margin-left: auto; }
+.hud-money { font-family: 'JetBrains Mono', monospace; font-weight: 800; font-size: 0.84rem; color: #fcd34d; letter-spacing: 0.01em; }
+.hud-unit { font-size: 0.58rem; color: #b48a2e; font-weight: 700; margin-left: auto; }
 
 /* position + dimension chips */
-.hud-meta { display: flex; gap: 6px; flex-wrap: wrap; }
+.hud-meta { display: flex; gap: 5px; flex-wrap: wrap; }
 .hud-chip {
-  display: inline-flex; align-items: center; gap: 5px;
-  padding: 3px 8px; border-radius: 8px;
+  display: inline-flex; align-items: center; gap: 4px;
+  padding: 2px 7px; border-radius: 7px;
   border: 1px solid rgba(139, 123, 255, 0.2); background: rgba(255, 255, 255, 0.04);
 }
 .hud-chip-ic { color: #9fb0d6; flex-shrink: 0; }
 .hud-dim-ic { color: var(--dt, #8b7bff); }
-.hud-coords { display: flex; gap: 7px; font-family: 'JetBrains Mono', monospace; font-size: 0.72rem; color: #cdd6ea; }
+.hud-coords { display: flex; gap: 6px; font-family: 'JetBrains Mono', monospace; font-size: 0.68rem; color: #cdd6ea; }
 .hud-coords b { font-weight: 700; color: #fff; }
-.hud-dim { font-size: 0.72rem; color: #dbe2f6; font-weight: 700; }
+.hud-dim { font-size: 0.68rem; color: #dbe2f6; font-weight: 700; }
 
 /* badges */
-.hud-badges { display: flex; gap: 6px; flex-wrap: wrap; }
+.hud-badges { display: flex; gap: 5px; flex-wrap: wrap; }
 .hud-badge {
   pointer-events: auto; display: inline-flex; align-items: center; gap: 4px;
-  padding: 3px 9px; border-radius: 999px;
-  font-size: 0.71rem; font-weight: 800; font-family: inherit;
+  padding: 2px 8px; border-radius: 999px;
+  font-size: 0.66rem; font-weight: 800; font-family: inherit;
   color: #c7d2fe; background: rgba(139, 123, 255, 0.2); border: 1px solid rgba(139, 123, 255, 0.42);
   cursor: pointer; transition: filter 0.12s, transform 0.1s;
 }
@@ -234,13 +280,61 @@ function openQuests() { runCommand('/dailyquest') }
 .hud-badge--alert { color: #1a1205; background: rgba(251, 191, 36, 0.95); border-color: #fbbf24; }
 
 /* F6 hint */
-.hud-hint { display: flex; align-items: center; gap: 6px; margin-top: 1px; font-size: 0.64rem; font-weight: 600; color: #8b97b5; }
+.hud-hint { display: flex; align-items: center; gap: 5px; font-size: 0.6rem; font-weight: 600; color: #8b97b5; }
 .hud-key {
-  font-family: 'JetBrains Mono', monospace; font-size: 0.6rem; font-weight: 700; color: #c9beff;
-  padding: 1px 5px; border-radius: 5px; line-height: 1.4;
+  font-family: 'JetBrains Mono', monospace; font-size: 0.56rem; font-weight: 700; color: #c9beff;
+  padding: 0 4px; border-radius: 4px; line-height: 1.5;
   background: rgba(139, 123, 255, 0.16); border: 1px solid rgba(139, 123, 255, 0.4);
   border-bottom-width: 2px;
 }
+
+/* collapse button */
+.hud-collapse {
+  pointer-events: auto; flex-shrink: 0; align-self: flex-start;
+  display: grid; place-items: center; width: 19px; height: 19px; margin: -2px -2px 0 1px;
+  border-radius: 6px; border: 1px solid rgba(139, 123, 255, 0.24);
+  background: rgba(255, 255, 255, 0.05); color: #9fb0d6; cursor: pointer; transition: all 0.13s;
+}
+.hud-collapse:hover { background: rgba(139, 123, 255, 0.18); color: #d7cffb; }
+
+/* balance delta flash */
+.hud-balance { position: relative; }
+.hud-delta {
+  position: absolute; right: 8px; top: -13px;
+  font-family: 'JetBrains Mono', monospace; font-size: 0.72rem; font-weight: 800;
+  padding: 0 4px; border-radius: 5px; pointer-events: none;
+}
+.hud-delta.pos { color: #4ade80; background: rgba(34, 197, 94, 0.14); }
+.hud-delta.neg { color: #f87171; background: rgba(248, 113, 113, 0.14); }
+.hud-flash-enter-active { transition: opacity 0.2s, transform 0.2s; }
+.hud-flash-leave-active { transition: opacity 0.5s ease, transform 0.5s ease; }
+.hud-flash-enter-from { opacity: 0; transform: translateY(6px); }
+.hud-flash-leave-to { opacity: 0; transform: translateY(-10px); }
+
+/* battle pass mini-bar */
+.hud-bp { display: flex; align-items: center; gap: 8px; }
+.hud-bp-lvl { display: flex; align-items: center; gap: 4px; font-size: 0.62rem; font-weight: 800; color: #c9beff; flex-shrink: 0; }
+.hud-bp-lvl svg { color: #a78bfa; }
+.hud-bp.prem .hud-bp-lvl { color: #fcd77a; } .hud-bp.prem .hud-bp-lvl svg { color: #fbbf24; }
+.hud-bp-track { flex: 1; height: 4px; border-radius: 999px; background: rgba(0, 0, 0, 0.4); overflow: hidden; }
+.hud-bp-track i { display: block; height: 100%; border-radius: 999px; background: linear-gradient(90deg, #7c6bff, #b45cf0); transition: width 0.5s ease; }
+.hud-bp.prem .hud-bp-track i { background: linear-gradient(90deg, #f59e0b, #fbbf24); }
+
+/* collapsed slim pill */
+.hud-mini {
+  pointer-events: auto; display: inline-flex; align-items: center; gap: 7px;
+  padding: 5px 9px 5px 6px; border-radius: 10px;
+  background: linear-gradient(160deg, rgba(16, 18, 34, 0.72), rgba(9, 11, 22, 0.62));
+  border: 1px solid rgba(139, 123, 255, 0.3); border-right: 3px solid rgba(139, 123, 255, 0.9);
+  font-family: inherit; cursor: pointer; transition: border-color 0.13s;
+}
+.hud-mini * { text-shadow: 0 1px 2px rgba(0, 0, 0, 0.9); }
+.hud-mini:hover { border-color: rgba(139, 123, 255, 0.55); }
+.hud-mini-av { width: 22px; height: 22px; border-radius: 5px; image-rendering: pixelated; border: 1px solid rgba(139, 123, 255, 0.5); flex-shrink: 0; }
+.hud-mini-bal { display: flex; align-items: center; gap: 4px; font-family: 'JetBrains Mono', monospace; font-size: 0.78rem; font-weight: 800; color: #fcd34d; }
+.hud-mini-bal svg { color: #fbbf24; }
+.hud-mini-lvl { font-size: 0.6rem; font-weight: 800; color: #c9beff; padding: 1px 6px; border-radius: 6px; background: rgba(139, 123, 255, 0.18); border: 1px solid rgba(139, 123, 255, 0.34); }
+.hud-mini-arr { color: #7c889f; transform: rotate(180deg); }
 
 .hud-err {
   pointer-events: auto; display: inline-flex; align-items: center; gap: 5px;
