@@ -92,6 +92,16 @@ export function runGameCommand(command) {
   })
 }
 
+// Open a WEBGUI page in-game (menu|market|nmarket|treasury|research|alliance|battlepass|quests).
+// The plugin polls this and opens the page via the WebGUI bridge (unlike a command that may
+// open a native GUI). Used by notification actions.
+export function runGameOpenPage(page) {
+  return req('/game-ui/market/pending-action', {
+    method: 'POST',
+    body: JSON.stringify({ action_type: 'open_gui', payload: { page } }),
+  })
+}
+
 // ── Nation research (tech tree) ───────────────────────────────────────────────
 
 export function getResearchOverview() {

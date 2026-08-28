@@ -3,7 +3,7 @@
 // Polls the one-shot feed; each notification slides in once, auto-hides, and can
 // carry an action (runs a whitelisted command server-side via the web-action poll).
 import { ref, onMounted, onUnmounted } from 'vue'
-import { getNotifications, runGameCommand } from '../services/gameUiApi.js'
+import { getNotifications, runGameCommand, runGameOpenPage } from '../services/gameUiApi.js'
 import GuiIcon from './GuiIcon.vue'
 
 const notes = ref([])
@@ -34,7 +34,9 @@ function drop(id) {
   const t = timers.get(id); if (t) { clearTimeout(t); timers.delete(id) }
 }
 function act(n) {
-  if (n.action_type === 'command' && n.action_payload) runGameCommand(n.action_payload).catch(() => {})
+  if (!n.action_payload) { drop(n.id); return }
+  if (n.action_type === 'route') runGameOpenPage(n.action_payload).catch(() => {})   // open a WEBGUI page
+  else if (n.action_type === 'command') runGameCommand(n.action_payload).catch(() => {})
   drop(n.id)
 }
 // Triggered by the in-game "Open notification" keybind (mod dispatches it): act on the
