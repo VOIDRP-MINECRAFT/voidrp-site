@@ -1575,6 +1575,8 @@ export default {
     quickAccess: 'Quick access',
     topNations: 'Top nations',
     viewAll: 'All',
+    achievements: 'Achievements',
+    unlocked: 'Unlocked',
     min: 'min', dShort: 'd', hShort: 'h', mShort: 'm',
     roleLeader: 'Leader', roleOfficer: 'Officer', roleMember: 'Citizen',
   },

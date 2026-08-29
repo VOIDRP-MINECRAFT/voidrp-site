@@ -4,7 +4,7 @@ import { useI18n } from 'vue-i18n'
 import { useRoute, useRouter } from 'vue-router'
 import '../assets/gui-premium.css'
 import { getHome, getLeaderboards, setWebguiToken } from '../services/gameUiApi.js'
-import { readableAccent } from '../utils/nationColor.js'
+import { readableAccent, readableAccentAlpha } from '../utils/nationColor.js'
 import { useWebGuiToken, useWebGuiClient, closeGui } from '../composables/useWebGui.js'
 import GameUiSidebar from '../components/GameUiSidebar.vue'
 import GameUiStarfield from '../components/GameUiStarfield.vue'
@@ -30,6 +30,8 @@ let viewer = null
 const username = computed(() => home.value?.nickname || client.value?.username || '')
 const ping = computed(() => client.value?.server?.ping)
 const accent = computed(() => home.value?.nation?.accent_color || '#8b7bff')
+const achievements = computed(() => home.value?.achievements || [])
+const achUnlocked = computed(() => achievements.value.filter((a) => a.unlocked).length)
 const bpPct = computed(() => {
   const bp = home.value?.battlepass
   if (!bp) return 0
@@ -252,10 +254,30 @@ function formatDate(d) {
             <div class="tn-list">
               <button v-for="n in topNations" :key="n.rank" class="tn-row" :class="'rk-' + n.rank" @click="goLeaderboards">
                 <span class="tn-rank">{{ n.rank }}</span>
-                <span class="tn-tag" :style="{ color: safeAccent(n.accent), borderColor: safeAccent(n.accent) + '66', background: safeAccent(n.accent) + '1f' }">{{ n.tag }}</span>
+                <span class="tn-tag" :style="{ color: safeAccent(n.accent), borderColor: readableAccentAlpha(n.accent, 0.4), background: readableAccentAlpha(n.accent, 0.12) }">{{ n.tag }}</span>
                 <span class="tn-name" :style="{ color: safeAccent(n.accent) }">{{ n.name }}</span>
                 <span class="tn-val gp-num"><GuiIcon name="trophy" :size="12" />{{ money(n.value) }}</span>
               </button>
+            </div>
+          </div>
+
+          <!-- achievements -->
+          <div v-if="achievements.length" class="gp-panel">
+            <div class="gp-phead">
+              <span class="gp-phead-ic"><GuiIcon name="trophy" :size="16" /></span>
+              <span class="gp-phead-tt">{{ t('gameUiHome.achievements') }}</span>
+              <span class="gp-phead-sp"></span>
+              <span class="ach-count gp-num">{{ achUnlocked }}/{{ achievements.length }}</span>
+            </div>
+            <div class="ach-grid">
+              <div v-for="a in achievements" :key="a.key" class="ach" :class="{ locked: !a.unlocked }" :title="a.desc + (a.unlocked ? '' : ` — ${a.progress}/${a.goal}`)">
+                <span class="ach-ico"><GuiIcon :name="a.icon" :size="18" /></span>
+                <span class="ach-body">
+                  <span class="ach-name">{{ a.title }}</span>
+                  <span v-if="!a.unlocked" class="ach-bar"><span class="ach-fill" :style="{ width: Math.round(a.progress / a.goal * 100) + '%' }"></span></span>
+                  <span v-else class="ach-done">{{ t('gameUiHome.unlocked') }}</span>
+                </span>
+              </div>
             </div>
           </div>
         </div>
@@ -267,6 +289,20 @@ function formatDate(d) {
 <style scoped>
 .dash { display: grid; grid-template-columns: 320px 1fr; gap: 16px; align-items: start; }
 @media (max-width: 900px) { .dash { grid-template-columns: 1fr; } }
+
+/* achievements */
+.ach-count { font-size: 0.72rem; font-weight: 800; color: var(--gp-gold, #fbbf24); }
+.ach-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px; }
+@media (max-width: 560px) { .ach-grid { grid-template-columns: 1fr; } }
+.ach { display: flex; align-items: center; gap: 10px; padding: 9px 11px; border-radius: 11px; border: 1px solid var(--gp-line); background: rgba(255,255,255,0.02); }
+.ach.locked { opacity: 0.55; }
+.ach-ico { flex-shrink: 0; width: 32px; height: 32px; display: grid; place-items: center; border-radius: 9px; background: rgba(251,191,36,0.14); border: 1px solid rgba(251,191,36,0.3); color: #fcd34d; }
+.ach.locked .ach-ico { background: rgba(255,255,255,0.03); border-color: var(--gp-line); color: var(--gp-ink-dim, #8a90a8); }
+.ach-body { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 3px; }
+.ach-name { font-size: 0.8rem; font-weight: 700; color: #eef2ff; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.ach-done { font-size: 0.62rem; font-weight: 700; color: #34d399; text-transform: uppercase; letter-spacing: 0.05em; }
+.ach-bar { height: 4px; border-radius: 3px; background: rgba(0,0,0,0.3); overflow: hidden; }
+.ach-fill { display: block; height: 100%; border-radius: 3px; background: linear-gradient(90deg, #8b7bff, #a78bfa); }
 
 /* profile */
 .profile { align-items: center; gap: 12px; }

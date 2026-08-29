@@ -1575,6 +1575,8 @@ emailDomainNotice: 'Только российские почтовые серв�
     quickAccess: 'Быстрый доступ',
     topNations: 'Топ государств',
     viewAll: 'Все',
+    achievements: 'Достижения',
+    unlocked: 'Получено',
     min: 'мин', dShort: 'д', hShort: 'ч', mShort: 'м',
     roleLeader: 'Глава', roleOfficer: 'Офицер', roleMember: 'Гражданин',
   },
