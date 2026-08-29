@@ -36,6 +36,13 @@ const statCards = computed(() => {
   ]
 })
 const unlockedAchievements = computed(() => (gameStats.value?.achievements || []).filter((a) => a.unlocked))
+// Only show the game section once the player actually has something to show.
+const hasGameData = computed(() => {
+  const s = gameStats.value?.stats
+  if (!s) return false
+  return (s.playtime_minutes > 0) || s.pvp_kills > 0 || s.mob_kills > 0 ||
+    s.blocks_broken > 0 || s.blocks_placed > 0 || unlockedAchievements.value.length > 0
+})
 const ACH_ICON = { citizen: '🛡️', first_blood: '⚔️', warrior: '⚔️', streak5: '🔥', streak10: '🔥', hunter: '🏹', slayer: '💀', miner: '⛏️', builder: '🧱', veteran: '🎖️', quester: '📜', tycoon: '💰' }
 const publicNation = computed(() => profile.value?.nation || null)
 
@@ -358,7 +365,7 @@ onBeforeUnmount(() => {
               </section>
 
               <!-- game stats + achievements (shareable) -->
-              <section v-if="statCards.length" class="surface-card p-4 md:p-5" :style="cardStyle">
+              <section v-if="hasGameData" class="surface-card p-4 md:p-5" :style="cardStyle">
                 <div class="section-kicker !mb-2">{{ t('publicProfile.gameKicker') }}</div>
                 <h2 class="text-lg font-black text-slate-50 md:text-xl">{{ t('publicProfile.gameTitle') }}</h2>
                 <div class="mt-3 h-[2px] w-full rounded-full" :style="accentLineStyle"></div>
