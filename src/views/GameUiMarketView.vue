@@ -479,7 +479,7 @@ onUnmounted(() => { if (poll) clearInterval(poll) })
 
       <div v-if="movers.length" class="vm-movers">
         <button v-for="m in movers" :key="m.item_key" class="vm-mover" :class="m.dir > 0 ? 'up' : 'down'"
-                @click="selectItem({ item_key: m.item_key })" :title="label(m.item_key)">
+                @click="selectItem(items.find((it) => it.item_key === m.item_key) || { item_key: m.item_key })" :title="label(m.item_key)">
           <span class="vm-mover-ico"><ItemIcon :item-key="m.item_key" :size="18" /></span>
           <span class="vm-mover-pct">{{ m.dir > 0 ? '+' : '' }}{{ m.change_pct.toFixed(1) }}%</span>
         </button>

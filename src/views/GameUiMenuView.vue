@@ -37,11 +37,18 @@ const nationEvents = ref([])
 const activityMax = computed(() => Math.max(1, ...activity.value.map((d) => d.minutes)))
 const EVENT_ICONS = {
   member_joined: 'users', join_requested: 'users', join_approved: 'users',
-  member_left: 'users', member_removed: 'users', nation_season_reward: 'trophy',
-  alliance_proposal_created: 'alliance', treasury_deposit: 'treasury',
-  treasury_withdraw: 'treasury', research_unlocked: 'tech',
+  join_rejected: 'users', member_left: 'users', member_removed: 'users',
+  member_role_updated: 'users', leadership_transferred: 'crown', nation_created: 'users',
+  nation_season_reward: 'trophy', capital_reward_granted: 'trophy',
+  nation_treasury_deposit: 'treasury', nation_treasury_withdraw: 'treasury',
+  nation_treasury_donated_by_player: 'treasury', nation_treasury_interest: 'coins',
+  nation_research_purchase: 'tech',
 }
-function eventIcon(type) { return EVENT_ICONS[type] || 'bell' }
+function eventIcon(type) {
+  if (!type) return 'bell'
+  if (type.startsWith('alliance')) return 'alliance'
+  return EVENT_ICONS[type] || 'bell'
+}
 function eventAgo(iso) {
   const s = Math.max(0, (Date.now() - new Date(iso).getTime()) / 1000)
   if (s < 60) return t('gameUiNotifications.now')
