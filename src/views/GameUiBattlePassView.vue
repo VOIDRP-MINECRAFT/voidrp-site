@@ -212,9 +212,15 @@ async function claim(tier, premiumTrack) {
 }
 .bp-hero-in { position: relative; display: flex; align-items: center; gap: 22px; padding: 20px 24px; flex-wrap: wrap; }
 .bp-badge {
+  position: relative; overflow: hidden;
   width: 64px; height: 64px; flex-shrink: 0; display: grid; place-items: center; border-radius: 18px;
   border: 1px solid rgba(139,123,255,0.5); background: radial-gradient(circle, rgba(139,123,255,0.32), rgba(139,123,255,0.06));
   box-shadow: 0 0 30px -6px rgba(139,123,255,0.6);
+}
+.bp-badge::after {
+  content: ''; position: absolute; inset: 0; pointer-events: none;
+  background: linear-gradient(115deg, transparent 38%, rgba(255,255,255,0.35) 47%, rgba(198,148,255,0.42) 52%, transparent 63%);
+  transform: translateX(-130%); animation: gp-enchant 3.4s ease-in-out infinite;
 }
 .bp-badge-lv { font-family: 'Silkscreen', 'JetBrains Mono', monospace; font-size: 1.5rem; font-weight: 700; color: #e6ddff; text-shadow: 0 2px 0 rgba(0,0,0,0.4); }
 .bp-title-col { min-width: 0; }

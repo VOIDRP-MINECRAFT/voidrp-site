@@ -283,7 +283,12 @@ function formatDate(d) {
 /* Minecraft block textures as decorative artwork (local assets, Type C) */
 .welcome-art { position: absolute; inset: 0; pointer-events: none; overflow: hidden; }
 .wa { position: absolute; image-rendering: pixelated; filter: drop-shadow(0 6px 12px rgba(0,0,0,0.5)); }
-.wa0 { width: 118px; height: 118px; right: 40px; top: 50%; transform: translateY(-50%) rotate(-8deg); opacity: 0.9; filter: drop-shadow(0 0 26px rgba(139,123,255,0.6)) drop-shadow(0 8px 14px rgba(0,0,0,0.55)); animation: wfloat 5s ease-in-out infinite; }
+.wa0 { width: 118px; height: 118px; right: 40px; top: 50%; transform: translateY(-50%) rotate(-8deg); opacity: 0.95; animation: wfloat 5s ease-in-out infinite, wa-glow 3.2s ease-in-out infinite; }
+@keyframes wa-glow {
+  0%, 100% { filter: drop-shadow(0 0 24px rgba(139,123,255,0.55)) drop-shadow(0 8px 14px rgba(0,0,0,0.55)); }
+  50%      { filter: drop-shadow(0 0 42px rgba(167,139,250,0.95)) drop-shadow(0 0 16px rgba(217,70,239,0.5)) drop-shadow(0 8px 14px rgba(0,0,0,0.55)); }
+}
+@media (prefers-reduced-motion: reduce) { .wa0 { animation: none; } }
 .wa1 { width: 46px; height: 46px; right: 150px; top: 26px; opacity: 0.55; transform: rotate(10deg); animation: wfloat 6s ease-in-out 0.4s infinite; }
 .wa2 { width: 40px; height: 40px; right: 30px; bottom: 22px; opacity: 0.5; transform: rotate(-6deg); animation: wfloat 5.5s ease-in-out 0.8s infinite; }
 .wa3 { width: 34px; height: 34px; right: 200px; bottom: 30px; opacity: 0.45; animation: wfloat 6.5s ease-in-out 0.2s infinite; }
