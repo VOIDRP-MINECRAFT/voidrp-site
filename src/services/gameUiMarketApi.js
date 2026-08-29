@@ -50,6 +50,10 @@ export function getOrderBook(itemKey) {
   return req(`/game-ui/market/order-book/${encodeURIComponent(itemKey)}`)
 }
 
+export function getPriceHistory(itemKey) {
+  return req(`/game-ui/market/history/${encodeURIComponent(itemKey)}`)
+}
+
 export function getMySellOrders() {
   return req('/game-ui/market/my-sell-orders')
 }

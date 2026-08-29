@@ -5,10 +5,12 @@ import { useI18n } from 'vue-i18n'
 import {
   setWebguiToken, getItems, getOrderBook, getMySellOrders,
   getMyBuyOrders, getMyTrades, getPickupReady, createPendingAction, getTopBar,
+  getPriceHistory,
 } from '../services/gameUiMarketApi'
 import { useItemNames } from '../composables/useItemNames'
 import ItemIcon from '../components/ItemIcon.vue'
 import GameUiSidebar from '../components/GameUiSidebar.vue'
+import GameUiSparkline from '../components/GameUiSparkline.vue'
 import GameUiStarfield from '../components/GameUiStarfield.vue'
 import { closeGui } from '../composables/useWebGui.js'
 import { toastSuccess, toastError, toastInfo } from '../services/toast'
@@ -37,6 +39,7 @@ const search     = ref('')
 const selected   = ref(null)         // selected item
 const orderBook  = ref(null)
 const obLoading  = ref(false)
+const priceHistory = ref([])         // [{ t, buy, sell }] for the selected item
 
 const mySell     = ref([])
 const myBuy      = ref([])
@@ -106,9 +109,14 @@ async function loadPickup() {
 async function selectItem(item) {
   selected.value = item
   orderBook.value = null
+  priceHistory.value = []
   buyForm.value  = { show: false, price: '', amount: 1, busy: false, res: null }
   sellForm.value = { show: false, price: '', amount: 1, busy: false, res: null }
   obLoading.value = true
+  // non-blocking: price sparkline (absent for items without dynamic-price history)
+  getPriceHistory(item.item_key)
+    .then((d) => { priceHistory.value = d?.points || [] })
+    .catch(() => { priceHistory.value = [] })
   try {
     orderBook.value = await getOrderBook(item.item_key)
   } catch (e) {
@@ -521,6 +529,20 @@ onUnmounted(() => { if (poll) clearInterval(poll) })
               <span class="vm-quote-label">{{ t('vmarket.vol24') }}</span>
               <span class="vm-quote-val">{{ money(selected.volume_24h) }}</span>
             </div>
+          </div>
+        </div>
+
+        <!-- price history sparkline -->
+        <div v-if="priceHistory.length >= 2" class="vm-spark-card">
+          <div class="vm-spark-head">
+            <span class="vm-spark-title">{{ t('vmarket.priceHistory') }}</span>
+            <span class="vm-spark-legend">
+              <span class="lg sell">{{ t('vmarket.sellShort') }}</span>
+              <span class="lg buy">{{ t('vmarket.buyShort') }}</span>
+            </span>
+          </div>
+          <div class="vm-spark-body">
+            <GameUiSparkline :points="priceHistory" :width="320" :height="52" />
           </div>
         </div>
 
@@ -1140,6 +1162,15 @@ onUnmounted(() => { if (poll) clearInterval(poll) })
 .vm-quote.vol  .vm-quote-val { color: var(--accent-2); }
 
 /* loading / spinner */
+.vm-spark-card { margin: 0 20px 14px; padding: 12px 14px; border-radius: 14px; border: 1px solid rgba(255,255,255,0.07); background: rgba(255,255,255,0.02); }
+.vm-spark-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px; }
+.vm-spark-title { font-size: 11px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: var(--gp-ink-dim, #8a90a8); }
+.vm-spark-legend { display: inline-flex; gap: 10px; font-size: 10px; font-weight: 700; }
+.vm-spark-legend .lg { display: inline-flex; align-items: center; gap: 4px; color: #9aa0b8; }
+.vm-spark-legend .lg::before { content: ''; width: 10px; height: 2px; border-radius: 2px; }
+.vm-spark-legend .lg.sell::before { background: #34d399; }
+.vm-spark-legend .lg.buy::before { background: rgba(139,123,255,0.6); }
+.vm-spark-body { height: 52px; }
 .vm-ob-loading { display: grid; place-items: center; padding: 60px; }
 .vm-spinner {
   width: 30px; height: 30px; border-radius: 50%;
