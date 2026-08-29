@@ -25,6 +25,7 @@ const routes = [
   { path: '/game-ui/battlepass', name: 'game-ui-battlepass', component: () => import('../views/GameUiBattlePassView.vue'), meta: { title: 'Battle Pass', hidePublicShell: true } },
   { path: '/game-ui/alliance', name: 'game-ui-alliance', component: () => import('../views/GameUiAllianceView.vue'), meta: { title: 'Альянс', hidePublicShell: true } },
   { path: '/game-ui/quests', name: 'game-ui-quests', component: () => import('../views/GameUiQuestsView.vue'), meta: { title: 'Квесты', hidePublicShell: true } },
+  { path: '/game-ui/leaderboards', name: 'game-ui-leaderboards', component: () => import('../views/GameUiLeaderboardsView.vue'), meta: { title: 'Лидерборды', hidePublicShell: true } },
   { path: '/game-ui/voxel-editor', name: 'game-ui-voxel-editor', component: () => import('../views/GameUiVoxelEditorView.vue'), meta: { title: 'Voxel Engine — редактор', hidePublicShell: true } },
   { path: '/game-ui/voxel-hud', name: 'game-ui-voxel-hud', component: () => import('../views/GameUiVoxelHudView.vue'), meta: { title: 'Voxel HUD', hidePublicShell: true } },
   { path: '/market', name: 'market', component: () => import('../views/MarketView.vue'), meta: { title: 'Рынок игроков', feature: 'economy' } },

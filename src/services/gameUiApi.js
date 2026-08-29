@@ -127,6 +127,11 @@ export function getMyAlliance() {
   return req('/game-ui/alliance/my')
 }
 
+// ── Leaderboards ──────────────────────────────────────────────────────────────
+export function getLeaderboards() {
+  return req('/game-ui/leaderboards')
+}
+
 // ── Notifications (reactive HUD toasts) ───────────────────────────────────────
 // The feed returns UNSEEN notifications and marks them seen on fetch — one-shot.
 export function getNotifications() {
