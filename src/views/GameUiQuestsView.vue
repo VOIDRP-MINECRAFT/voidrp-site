@@ -5,6 +5,7 @@ import '../assets/gui-premium.css'
 import { getMyQuests, setWebguiToken, runGameCommand } from '../services/gameUiApi.js'
 import { useWebGuiToken, closeGui, useActionToast } from '../composables/useWebGui.js'
 import GameUiSidebar from '../components/GameUiSidebar.vue'
+import GameUiStarfield from '../components/GameUiStarfield.vue'
 import GameUiTopBar from '../components/GameUiTopBar.vue'
 import GuiIcon from '../components/GuiIcon.vue'
 
@@ -86,6 +87,7 @@ async function openOther(q) {
 
 <template>
   <section class="gp-shell">
+    <GameUiStarfield />
     <GameUiSidebar current="quests" />
     <GameUiTopBar :title="t('gameUiNav.quests')" />
 

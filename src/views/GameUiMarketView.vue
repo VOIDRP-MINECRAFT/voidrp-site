@@ -9,6 +9,7 @@ import {
 import { useItemNames } from '../composables/useItemNames'
 import ItemIcon from '../components/ItemIcon.vue'
 import GameUiSidebar from '../components/GameUiSidebar.vue'
+import GameUiStarfield from '../components/GameUiStarfield.vue'
 import { closeGui } from '../composables/useWebGui.js'
 import { toastSuccess, toastError, toastInfo } from '../services/toast'
 
@@ -371,6 +372,7 @@ onUnmounted(() => { if (poll) clearInterval(poll) })
     <span class="vm-glow vm-glow-a"></span>
     <span class="vm-glow vm-glow-b"></span>
     <span class="vm-grid"></span>
+    <GameUiStarfield />
   </div>
 
   <!-- Token error -->
@@ -896,6 +898,8 @@ onUnmounted(() => { if (poll) clearInterval(poll) })
   mask-image: radial-gradient(ellipse 80% 60% at 50% 40%, #000 40%, transparent 100%); }
 @keyframes vm-float-a { 0%,100% { transform: translate(0,0); } 50% { transform: translate(40px, 30px); } }
 @keyframes vm-float-b { 0%,100% { transform: translate(0,0); } 50% { transform: translate(-30px, -40px); } }
+
+/* ambient starfield rendered by GameUiStarfield.vue (canvas) inside .vm-bg */
 
 .vm-root > *:not(.vm-bg) { position: relative; z-index: 1; }
 

@@ -5,6 +5,7 @@ import '../assets/gui-premium.css'
 import { getNationMarketListings, setWebguiToken, runGameCommand } from '../services/gameUiApi.js'
 import { useWebGuiToken, useActionToast } from '../composables/useWebGui.js'
 import GameUiSidebar from '../components/GameUiSidebar.vue'
+import GameUiStarfield from '../components/GameUiStarfield.vue'
 import GameUiTopBar from '../components/GameUiTopBar.vue'
 import GuiIcon from '../components/GuiIcon.vue'
 
@@ -110,6 +111,7 @@ function iconUrl(l) {
 
 <template>
   <section class="gp-shell">
+    <GameUiStarfield />
     <GameUiSidebar current="nmarket" />
     <GameUiTopBar :title="t('gameUiNav.nmarket')" />
 

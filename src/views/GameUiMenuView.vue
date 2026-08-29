@@ -6,6 +6,7 @@ import '../assets/gui-premium.css'
 import { getHome, setWebguiToken } from '../services/gameUiApi.js'
 import { useWebGuiToken, useWebGuiClient, closeGui } from '../composables/useWebGui.js'
 import GameUiSidebar from '../components/GameUiSidebar.vue'
+import GameUiStarfield from '../components/GameUiStarfield.vue'
 import GameUiTopBar from '../components/GameUiTopBar.vue'
 import GuiIcon from '../components/GuiIcon.vue'
 import CountUp from '../components/CountUp.vue'
@@ -112,6 +113,7 @@ function formatDate(d) {
 
 <template>
   <section class="gp-shell" :style="{ '--accent': accent }">
+    <GameUiStarfield />
     <GameUiSidebar current="home" />
     <GameUiTopBar :title="t('gameUiNav.home')" />
 

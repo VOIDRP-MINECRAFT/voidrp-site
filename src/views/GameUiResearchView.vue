@@ -5,6 +5,7 @@ import '../assets/gui-premium.css'
 import { getResearchOverview, purchaseResearch, setWebguiToken } from '../services/gameUiApi.js'
 import { useWebGuiToken, useActionToast } from '../composables/useWebGui.js'
 import GameUiSidebar from '../components/GameUiSidebar.vue'
+import GameUiStarfield from '../components/GameUiStarfield.vue'
 import GameUiTopBar from '../components/GameUiTopBar.vue'
 import GuiIcon from '../components/GuiIcon.vue'
 import CountUp from '../components/CountUp.vue'
@@ -149,6 +150,7 @@ async function buy(node) {
 
 <template>
   <section class="gp-shell">
+    <GameUiStarfield />
     <GameUiSidebar current="research" />
     <GameUiTopBar :title="t('gameUiNav.research')" />
 
@@ -291,7 +293,7 @@ async function buy(node) {
 .hex:hover { transform: translateY(-2px); }
 .hex-ic { width: 42px; height: 42px; display: grid; place-items: center; border-radius: 12px; border: 1px solid rgba(139,123,255,0.26); background: linear-gradient(135deg, rgba(139,123,255,0.2), rgba(217,70,239,0.08)); }
 .hex-ic img { width: 26px; height: 26px; image-rendering: pixelated; filter: drop-shadow(0 2px 3px rgba(0,0,0,0.5)); }
-.hex-lv { font-family: 'Silkscreen', 'JetBrains Mono', monospace; font-size: 0.56rem; font-weight: 700; color: var(--gp-ink-dim); }
+.hex-lv { font-family: 'Silkscreen', 'JetBrains Mono', monospace; font-size: 0.74rem; font-weight: 700; color: #b9c4e6; }
 .hex-name { font-size: 0.68rem; font-weight: 700; color: #dbe2f6; text-align: center; line-height: 1.2; }
 .hex.available .hex-ic { border-color: rgba(139,123,255,0.4); }
 .hex.active { border-color: rgba(139,123,255,0.4); }

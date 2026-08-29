@@ -5,6 +5,7 @@ import '../assets/gui-premium.css'
 import { getBpTrack, setWebguiToken, runGameCommand } from '../services/gameUiApi.js'
 import { useWebGuiToken, useActionToast } from '../composables/useWebGui.js'
 import GameUiSidebar from '../components/GameUiSidebar.vue'
+import GameUiStarfield from '../components/GameUiStarfield.vue'
 import GameUiTopBar from '../components/GameUiTopBar.vue'
 import GuiIcon from '../components/GuiIcon.vue'
 import CountUp from '../components/CountUp.vue'
@@ -100,6 +101,7 @@ async function claim(tier, premiumTrack) {
 
 <template>
   <section class="gp-shell">
+    <GameUiStarfield />
     <GameUiSidebar current="battlepass" />
     <GameUiTopBar :title="t('gameUiNav.battlepass')" />
 

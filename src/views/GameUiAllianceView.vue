@@ -5,6 +5,7 @@ import '../assets/gui-premium.css'
 import { getMyAlliance, setWebguiToken } from '../services/gameUiApi.js'
 import { useWebGuiToken, runCommand, useActionToast } from '../composables/useWebGui.js'
 import GameUiSidebar from '../components/GameUiSidebar.vue'
+import GameUiStarfield from '../components/GameUiStarfield.vue'
 import GameUiTopBar from '../components/GameUiTopBar.vue'
 import GuiIcon from '../components/GuiIcon.vue'
 import CountUp from '../components/CountUp.vue'
@@ -63,6 +64,7 @@ function statusLabel(s) { return { open: t('gameUiAlliance.statusOpen'), approve
 
 <template>
   <section class="gp-shell">
+    <GameUiStarfield />
     <GameUiSidebar current="alliance" />
     <GameUiTopBar :title="t('gameUiNav.alliance')" />
 
