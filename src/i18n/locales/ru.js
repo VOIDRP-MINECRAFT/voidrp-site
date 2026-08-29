@@ -1588,6 +1588,7 @@ emailDomainNotice: 'Только российские почтовые серв�
     achievements: 'Достижения',
     unlocked: 'Получено',
     activity: 'Активность',
+    onbTitle: 'С чего начать',
     nationActivity: 'События государства',
     min: 'мин', dShort: 'д', hShort: 'ч', mShort: 'м',
     roleLeader: 'Глава', roleOfficer: 'Офицер', roleMember: 'Гражданин',

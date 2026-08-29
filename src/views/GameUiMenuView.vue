@@ -32,6 +32,10 @@ const ping = computed(() => client.value?.server?.ping)
 const accent = computed(() => home.value?.nation?.accent_color || '#8b7bff')
 const achievements = computed(() => home.value?.achievements || [])
 const achUnlocked = computed(() => achievements.value.filter((a) => a.unlocked).length)
+const onboarding = computed(() => home.value?.onboarding || [])
+const onbDone = computed(() => onboarding.value.filter((s) => s.done).length)
+// Show the checklist only while the player still has steps left (new-player guide).
+const onboardingOpen = computed(() => onboarding.value.length > 0 && onbDone.value < onboarding.value.length)
 const activity = ref([])
 const nationEvents = ref([])
 const activityMax = computed(() => Math.max(1, ...activity.value.map((d) => d.minutes)))
@@ -233,6 +237,26 @@ function formatDate(d) {
             </div>
           </div>
 
+          <!-- onboarding checklist (new players; hides when complete) -->
+          <div v-if="onboardingOpen" class="gp-panel onb">
+            <div class="gp-phead">
+              <span class="gp-phead-ic"><GuiIcon name="sparkles" :size="16" /></span>
+              <span class="gp-phead-tt">{{ t('gameUiHome.onbTitle') }}</span>
+              <span class="gp-phead-sp"></span>
+              <span class="onb-count gp-num">{{ onbDone }}/{{ onboarding.length }}</span>
+            </div>
+            <div class="onb-track"><span class="onb-fill" :style="{ width: Math.round(onbDone / onboarding.length * 100) + '%' }"></span></div>
+            <div class="onb-list">
+              <div v-for="s in onboarding" :key="s.key" class="onb-row" :class="{ done: s.done }">
+                <span class="onb-check"><GuiIcon v-if="s.done" name="check" :size="14" /><span v-else class="onb-dot"></span></span>
+                <span class="onb-body">
+                  <span class="onb-label">{{ s.label }}</span>
+                  <span v-if="!s.done" class="onb-hint">{{ s.hint }}</span>
+                </span>
+              </div>
+            </div>
+          </div>
+
           <!-- KPIs -->
           <div class="gp-grid gp-grid--4 gp-stagger">
             <div class="gp-kpi gp-kpi--gold">
@@ -355,6 +379,21 @@ function formatDate(d) {
 <style scoped>
 .dash { display: grid; grid-template-columns: 320px 1fr; gap: 16px; align-items: start; }
 @media (max-width: 900px) { .dash { grid-template-columns: 1fr; } }
+
+/* onboarding checklist */
+.onb { border-color: rgba(139,123,255,0.28); background: linear-gradient(180deg, rgba(139,123,255,0.06), rgba(255,255,255,0.02)); }
+.onb-count { font-size: 0.72rem; font-weight: 800; color: var(--gp-violet-2, #a78bfa); }
+.onb-track { height: 6px; border-radius: 999px; background: rgba(0,0,0,0.3); overflow: hidden; margin: 4px 0 12px; }
+.onb-fill { display: block; height: 100%; border-radius: 999px; background: linear-gradient(90deg, #8b7bff, #a78bfa); transition: width 0.4s; }
+.onb-list { display: flex; flex-direction: column; gap: 8px; }
+.onb-row { display: flex; align-items: center; gap: 11px; }
+.onb-check { flex-shrink: 0; width: 24px; height: 24px; display: grid; place-items: center; border-radius: 7px; background: rgba(139,123,255,0.14); color: var(--gp-violet-2, #a78bfa); }
+.onb-row.done .onb-check { background: rgba(52,211,153,0.15); color: #34d399; }
+.onb-dot { width: 9px; height: 9px; border-radius: 50%; border: 1.6px solid var(--gp-ink-dim, #6b779a); }
+.onb-body { display: flex; flex-direction: column; gap: 1px; min-width: 0; }
+.onb-label { font-size: 0.86rem; font-weight: 700; color: #eef2ff; }
+.onb-row.done .onb-label { color: var(--gp-ink-dim, #8a90a8); text-decoration: line-through; }
+.onb-hint { font-size: 0.72rem; color: var(--gp-ink-dim, #8a90a8); }
 
 /* achievements */
 .ach-count { font-size: 0.72rem; font-weight: 800; color: var(--gp-gold, #fbbf24); }

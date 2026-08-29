@@ -1588,6 +1588,7 @@ export default {
     achievements: 'Achievements',
     unlocked: 'Unlocked',
     activity: 'Activity',
+    onbTitle: 'Getting started',
     nationActivity: 'Nation activity',
     min: 'min', dShort: 'd', hShort: 'h', mShort: 'm',
     roleLeader: 'Leader', roleOfficer: 'Officer', roleMember: 'Citizen',
