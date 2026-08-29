@@ -137,6 +137,10 @@ export function getLeaderboards() {
 export function getNotifications() {
   return req('/game-ui/notifications')
 }
+// Notification center: recent undismissed notifications (does NOT mark them seen).
+export function getNotificationHistory() {
+  return req('/game-ui/notifications/history')
+}
 export function dismissNotification(id) {
   return req(`/game-ui/notifications/${id}/dismiss`, { method: 'POST' })
 }

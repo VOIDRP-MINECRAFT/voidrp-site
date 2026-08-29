@@ -1505,7 +1505,17 @@ export default {
     battlepass: 'Pass',
     quests: 'Quests',
     leaderboards: 'Top',
+    notifications: 'Alerts',
     close: 'Close',
+  },
+  gameUiNotifications: {
+    empty: 'No notifications yet',
+    dismiss: 'Dismiss',
+    tokenError: 'Session is invalid',
+    now: 'just now',
+    minAgo: '{n} min ago',
+    hourAgo: '{n} h ago',
+    dayAgo: '{n} d ago',
   },
   gameUiLeaderboards: {
     title: 'Leaderboards',

@@ -1505,7 +1505,17 @@ emailDomainNotice: 'Только российские почтовые серв�
     battlepass: 'Пропуск',
     quests: 'Квесты',
     leaderboards: 'Топы',
+    notifications: 'Уведомления',
     close: 'Закрыть',
+  },
+  gameUiNotifications: {
+    empty: 'Пока нет уведомлений',
+    dismiss: 'Убрать',
+    tokenError: 'Сессия недействительна',
+    now: 'только что',
+    minAgo: '{n} мин назад',
+    hourAgo: '{n} ч назад',
+    dayAgo: '{n} дн назад',
   },
   gameUiLeaderboards: {
     title: 'Лидерборды',
