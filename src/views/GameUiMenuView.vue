@@ -3,7 +3,7 @@ import { ref, computed, onMounted, onBeforeUnmount, useTemplateRef } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useRoute, useRouter } from 'vue-router'
 import '../assets/gui-premium.css'
-import { getHome, getLeaderboards, getActivity, getNationActivity, setWebguiToken } from '../services/gameUiApi.js'
+import { getHome, getLeaderboards, getActivity, getNationActivity, getWeekly, setWebguiToken } from '../services/gameUiApi.js'
 import { readableAccent, readableAccentAlpha } from '../utils/nationColor.js'
 import { useWebGuiToken, useWebGuiClient, closeGui } from '../composables/useWebGui.js'
 import GameUiSidebar from '../components/GameUiSidebar.vue'
@@ -32,6 +32,7 @@ const ping = computed(() => client.value?.server?.ping)
 const accent = computed(() => home.value?.nation?.accent_color || '#8b7bff')
 const achievements = computed(() => home.value?.achievements || [])
 const achUnlocked = computed(() => achievements.value.filter((a) => a.unlocked).length)
+const weekly = ref([])
 const onboarding = computed(() => home.value?.onboarding || [])
 const onbDone = computed(() => onboarding.value.filter((s) => s.done).length)
 // Show the checklist only while the player still has steps left (new-player guide).
@@ -105,6 +106,7 @@ async function load() {
   getLeaderboards().then((d) => { topNations.value = (d?.nations?.prestige || []).slice(0, 3) }).catch(() => {})
   getActivity().then((d) => { activity.value = d?.days || [] }).catch(() => {})
   getNationActivity().then((d) => { nationEvents.value = Array.isArray(d) ? d : [] }).catch(() => {})
+  getWeekly().then((d) => { weekly.value = d?.challenges || [] }).catch(() => {})
 }
 
 function safeAccent(c) {
@@ -320,6 +322,26 @@ function formatDate(d) {
             </div>
           </div>
 
+          <!-- weekly challenges -->
+          <div v-if="weekly.length" class="gp-panel">
+            <div class="gp-phead">
+              <span class="gp-phead-ic"><GuiIcon name="quest" :size="16" /></span>
+              <span class="gp-phead-tt">{{ t('gameUiHome.weeklyTitle') }}</span>
+              <span class="gp-phead-sp"></span>
+              <span class="wk-count gp-num">{{ weekly.filter((c) => c.done).length }}/{{ weekly.length }}</span>
+            </div>
+            <div class="wk-list">
+              <div v-for="c in weekly" :key="c.key" class="wk-row" :class="{ done: c.done }">
+                <div class="wk-top">
+                  <span class="wk-title">{{ c.title }}</span>
+                  <span class="wk-reward gp-num"><GuiIcon name="coins" :size="12" />{{ money(c.reward) }}</span>
+                </div>
+                <div class="wk-track"><span class="wk-fill" :style="{ width: Math.round(c.progress / c.goal * 100) + '%' }"></span></div>
+                <span class="wk-prog">{{ c.done ? t('gameUiHome.unlocked') : `${c.progress} / ${c.goal}` }}</span>
+              </div>
+            </div>
+          </div>
+
           <!-- achievements -->
           <div v-if="achievements.length" class="gp-panel">
             <div class="gp-phead">
@@ -394,6 +416,20 @@ function formatDate(d) {
 .onb-label { font-size: 0.86rem; font-weight: 700; color: #eef2ff; }
 .onb-row.done .onb-label { color: var(--gp-ink-dim, #8a90a8); text-decoration: line-through; }
 .onb-hint { font-size: 0.72rem; color: var(--gp-ink-dim, #8a90a8); }
+
+/* weekly challenges */
+.wk-count { font-size: 0.72rem; font-weight: 800; color: var(--gp-green, #34d399); }
+.wk-list { display: flex; flex-direction: column; gap: 12px; }
+.wk-row.done { opacity: 0.6; }
+.wk-top { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 6px; }
+.wk-title { font-size: 0.86rem; font-weight: 700; color: #eef2ff; }
+.wk-reward { display: inline-flex; align-items: center; gap: 4px; font-size: 0.76rem; font-weight: 800; color: var(--gp-gold, #fbbf24); }
+.wk-reward svg { color: var(--gp-gold, #fbbf24); }
+.wk-track { height: 7px; border-radius: 999px; background: rgba(0,0,0,0.3); overflow: hidden; }
+.wk-fill { display: block; height: 100%; border-radius: 999px; background: linear-gradient(90deg, #34d399, #10b981); transition: width 0.4s; }
+.wk-row.done .wk-fill { background: linear-gradient(90deg, #34d399, #34d399); }
+.wk-prog { display: block; margin-top: 4px; font-size: 0.68rem; font-weight: 600; color: var(--gp-ink-dim, #8a90a8); }
+.wk-row.done .wk-prog { color: #34d399; text-transform: uppercase; letter-spacing: 0.05em; }
 
 /* achievements */
 .ach-count { font-size: 0.72rem; font-weight: 800; color: var(--gp-gold, #fbbf24); }

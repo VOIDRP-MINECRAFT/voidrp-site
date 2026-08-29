@@ -149,6 +149,10 @@ export function getActivity() {
 export function getNationActivity() {
   return req('/game-ui/home/nation-activity')
 }
+// Current week's rotating challenges + progress.
+export function getWeekly() {
+  return req('/game-ui/weekly')
+}
 export function dismissNotification(id) {
   return req(`/game-ui/notifications/${id}/dismiss`, { method: 'POST' })
 }

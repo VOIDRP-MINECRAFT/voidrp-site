@@ -1589,6 +1589,7 @@ export default {
     unlocked: 'Unlocked',
     activity: 'Activity',
     onbTitle: 'Getting started',
+    weeklyTitle: 'Weekly challenges',
     nationActivity: 'Nation activity',
     min: 'min', dShort: 'd', hShort: 'h', mShort: 'm',
     roleLeader: 'Leader', roleOfficer: 'Officer', roleMember: 'Citizen',

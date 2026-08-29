@@ -1589,6 +1589,7 @@ emailDomainNotice: 'Только российские почтовые серв�
     unlocked: 'Получено',
     activity: 'Активность',
     onbTitle: 'С чего начать',
+    weeklyTitle: 'Челленджи недели',
     nationActivity: 'События государства',
     min: 'мин', dShort: 'д', hShort: 'ч', mShort: 'м',
     roleLeader: 'Глава', roleOfficer: 'Офицер', roleMember: 'Гражданин',
