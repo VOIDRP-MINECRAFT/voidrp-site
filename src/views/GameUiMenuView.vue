@@ -3,7 +3,7 @@ import { ref, computed, onMounted, onBeforeUnmount, useTemplateRef } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useRoute, useRouter } from 'vue-router'
 import '../assets/gui-premium.css'
-import { getHome, setWebguiToken } from '../services/gameUiApi.js'
+import { getHome, getLeaderboards, setWebguiToken } from '../services/gameUiApi.js'
 import { useWebGuiToken, useWebGuiClient, closeGui } from '../composables/useWebGui.js'
 import GameUiSidebar from '../components/GameUiSidebar.vue'
 import GameUiStarfield from '../components/GameUiStarfield.vue'
@@ -19,6 +19,7 @@ setWebguiToken(token)
 const client = useWebGuiClient()
 
 const home = ref(null)
+const topNations = ref([])
 const loading = ref(true)
 const error = ref(null)
 const canvasRef = useTemplateRef('skinCanvas')
@@ -60,6 +61,19 @@ async function load() {
   } finally {
     loading.value = false
   }
+  // non-blocking: top nations preview
+  getLeaderboards().then((d) => { topNations.value = (d?.nations?.prestige || []).slice(0, 3) }).catch(() => {})
+}
+
+function safeAccent(c) {
+  // fall back to violet for missing / near-black accents (unreadable on dark bg)
+  if (!c || /^#?0{3,6}$/i.test(c.replace('#', ''))) return '#a78bfa'
+  return c
+}
+function goLeaderboards() {
+  const raw = route.query.webgui_token
+  const webgui_token = Array.isArray(raw) ? raw[0] : raw
+  router.push({ name: 'game-ui-leaderboards', query: webgui_token ? { webgui_token } : {} })
 }
 
 async function mountSkin() {
@@ -226,6 +240,24 @@ function formatDate(d) {
               </div>
             </div>
           </div>
+
+          <!-- top nations preview -->
+          <div v-if="topNations.length" class="gp-panel top-nations">
+            <div class="gp-phead">
+              <span class="gp-phead-ic"><GuiIcon name="trophy" :size="16" /></span>
+              <span class="gp-phead-tt">{{ t('gameUiHome.topNations') }}</span>
+              <span class="gp-phead-sp"></span>
+              <button class="tn-all" @click="goLeaderboards">{{ t('gameUiHome.viewAll') }}<GuiIcon name="chevronRight" :size="13" /></button>
+            </div>
+            <div class="tn-list">
+              <button v-for="n in topNations" :key="n.rank" class="tn-row" :class="'rk-' + n.rank" @click="goLeaderboards">
+                <span class="tn-rank">{{ n.rank }}</span>
+                <span class="tn-tag" :style="{ color: safeAccent(n.accent), borderColor: safeAccent(n.accent) + '66', background: safeAccent(n.accent) + '1f' }">{{ n.tag }}</span>
+                <span class="tn-name" :style="{ color: safeAccent(n.accent) }">{{ n.name }}</span>
+                <span class="tn-val gp-num"><GuiIcon name="trophy" :size="12" />{{ money(n.value) }}</span>
+              </button>
+            </div>
+          </div>
         </div>
       </div>
     </div>
@@ -321,4 +353,19 @@ function formatDate(d) {
 .tile:hover { transform: translateY(-2px); border-color: rgba(139,123,255,0.4); background: rgba(139,123,255,0.1); color: #d7cffb; }
 .tile:active { transform: scale(0.95); }
 .tile svg { color: var(--gp-violet-2); }
+
+/* top nations preview */
+.tn-all { display: inline-flex; align-items: center; gap: 3px; background: none; border: none; color: var(--gp-violet-2); font-family: inherit; font-size: 0.7rem; font-weight: 700; cursor: pointer; }
+.tn-all:hover { color: #d7cffb; }
+.tn-list { display: flex; flex-direction: column; gap: 7px; }
+.tn-row { display: flex; align-items: center; gap: 11px; padding: 9px 12px; border-radius: 12px; border: 1px solid var(--gp-line); background: rgba(255,255,255,0.02); cursor: pointer; font-family: inherit; text-align: left; transition: border-color 0.14s, transform 0.1s; }
+.tn-row:hover { transform: translateX(2px); border-color: var(--gp-line-strong); }
+.tn-rank { width: 24px; height: 24px; flex-shrink: 0; display: grid; place-items: center; border-radius: 7px; font-family: 'Silkscreen','JetBrains Mono',monospace; font-size: 0.62rem; font-weight: 700; color: var(--gp-ink-dim); background: rgba(0,0,0,0.28); border: 1px solid var(--gp-line); }
+.tn-row.rk-1 .tn-rank { color: #1a1200; background: linear-gradient(135deg, #fcd34d, #f59e0b); border-color: transparent; }
+.tn-row.rk-2 .tn-rank { color: #11131f; background: linear-gradient(135deg, #e5e7eb, #9ca3af); border-color: transparent; }
+.tn-row.rk-3 .tn-rank { color: #1a0f06; background: linear-gradient(135deg, #d9a066, #b45309); border-color: transparent; }
+.tn-tag { flex-shrink: 0; font-size: 0.56rem; font-weight: 900; padding: 2px 6px; border-radius: 5px; border: 1px solid; }
+.tn-name { flex: 1; min-width: 0; font-size: 0.84rem; font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.tn-val { display: inline-flex; align-items: center; gap: 5px; flex-shrink: 0; font-size: 0.82rem; font-weight: 800; color: var(--gp-gold); }
+.tn-val svg { color: var(--gp-gold); }
 </style>

@@ -1563,6 +1563,8 @@ emailDomainNotice: 'Только российские почтовые серв�
     welcomeSub: 'Развивайся, сражайся и стань легендой своей империи. Лучший Minecraft RPG-сервер с уникальными возможностями.',
     playBtn: 'Начать игру',
     quickAccess: 'Быстрый доступ',
+    topNations: 'Топ государств',
+    viewAll: 'Все',
     min: 'мин', dShort: 'д', hShort: 'ч', mShort: 'м',
     roleLeader: 'Глава', roleOfficer: 'Офицер', roleMember: 'Гражданин',
   },

@@ -1563,6 +1563,8 @@ export default {
     welcomeSub: 'Grow, fight and become a legend of your empire. The ultimate Minecraft RPG server with unique features.',
     playBtn: 'Start playing',
     quickAccess: 'Quick access',
+    topNations: 'Top nations',
+    viewAll: 'All',
     min: 'min', dShort: 'd', hShort: 'h', mShort: 'm',
     roleLeader: 'Leader', roleOfficer: 'Officer', roleMember: 'Citizen',
   },
