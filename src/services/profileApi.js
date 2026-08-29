@@ -24,6 +24,14 @@ export async function getPublicProfileBySlug(slug, accessToken = null) {
   })
 }
 
+// Public game stats + achievements for a profile (default server).
+export async function getPublicProfileGameStats(slug, accessToken = null) {
+  return await apiRequest(`/profiles/${encodeURIComponent(slug)}/game`, {
+    method: 'GET',
+    headers: buildAuthHeaders(accessToken),
+  })
+}
+
 async function uploadProfileAsset(accessToken, slot, file) {
   const formData = new FormData()
   formData.append('file', file)

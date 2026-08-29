@@ -2,7 +2,7 @@
 import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { RouterLink, useRoute } from 'vue-router'
 import { useI18n } from 'vue-i18n'
-import { getPublicProfileBySlug } from '../services/profileApi'
+import { getPublicProfileBySlug, getPublicProfileGameStats } from '../services/profileApi'
 import { followProfile, unfollowProfile } from '../services/socialApi'
 import { useAuthStore } from '../stores/authStore'
 import { getBattlePassProfileByNick } from '../services/battlepassApi'
@@ -18,6 +18,25 @@ const actionMessage = ref('')
 const followLoading = ref(false)
 const profile = ref(null)
 const bpProfile = ref(null)
+const gameStats = ref(null)
+
+const statCards = computed(() => {
+  const s = gameStats.value?.stats
+  if (!s) return []
+  const kd = s.deaths > 0 ? (s.pvp_kills / s.deaths).toFixed(2) : String(s.pvp_kills || 0)
+  const h = Math.floor((s.playtime_minutes || 0) / 60)
+  const m = (s.playtime_minutes || 0) % 60
+  return [
+    { key: 'playtime', label: t('publicProfile.stat.playtime'), value: h > 0 ? `${h}ч ${m}м` : `${m}м` },
+    { key: 'pvp', label: t('publicProfile.stat.pvp'), value: s.pvp_kills },
+    { key: 'kd', label: 'K/D', value: kd },
+    { key: 'mobs', label: t('publicProfile.stat.mobs'), value: s.mob_kills },
+    { key: 'broken', label: t('publicProfile.stat.mined'), value: (s.blocks_broken || 0).toLocaleString('ru-RU') },
+    { key: 'streak', label: t('publicProfile.stat.streak'), value: s.best_kill_streak },
+  ]
+})
+const unlockedAchievements = computed(() => (gameStats.value?.achievements || []).filter((a) => a.unlocked))
+const ACH_ICON = { citizen: '🛡️', first_blood: '⚔️', warrior: '⚔️', streak5: '🔥', streak10: '🔥', hunter: '🏹', slayer: '💀', miner: '⛏️', builder: '🧱', veteran: '🎖️', quester: '📜', tycoon: '💰' }
 const publicNation = computed(() => profile.value?.nation || null)
 
 function hexToRgba(hex, alpha) {
@@ -167,6 +186,10 @@ async function loadProfile() {
     if (nick && serverFeatureEnabled('battlepass')) {
       bpProfile.value = await getBattlePassProfileByNick(nick).catch(() => null)
     }
+    // non-blocking: game stats + achievements for the shareable page
+    getPublicProfileGameStats(route.params.slug, authStore.accessToken || null)
+      .then((g) => { gameStats.value = g })
+      .catch(() => { gameStats.value = null })
   } catch (err) {
     error.value = err.message || t('publicProfile.loadError')
   } finally {
@@ -311,6 +334,7 @@ onBeforeUnmount(() => {
             </div>
 
             <div class="grid gap-4 lg:grid-cols-[minmax(0,1fr)_280px]">
+              <div class="min-w-0 space-y-4">
               <section class="surface-card p-4 md:p-5" :style="cardStyle">
                 <div class="section-kicker !mb-2">{{ t('publicProfile.aboutKicker') }}</div>
                 <div class="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
@@ -332,6 +356,30 @@ onBeforeUnmount(() => {
                   </div>
                 </div>
               </section>
+
+              <!-- game stats + achievements (shareable) -->
+              <section v-if="statCards.length" class="surface-card p-4 md:p-5" :style="cardStyle">
+                <div class="section-kicker !mb-2">{{ t('publicProfile.gameKicker') }}</div>
+                <h2 class="text-lg font-black text-slate-50 md:text-xl">{{ t('publicProfile.gameTitle') }}</h2>
+                <div class="mt-3 h-[2px] w-full rounded-full" :style="accentLineStyle"></div>
+                <div class="mt-4 grid grid-cols-3 gap-3 sm:grid-cols-6">
+                  <div v-for="c in statCards" :key="c.key" class="metric-card profile-stat-card text-center" :style="cardStyle">
+                    <p class="text-xl font-black leading-none text-slate-50">{{ c.value }}</p>
+                    <p class="mt-2 text-[0.6rem] font-bold uppercase tracking-[0.16em] text-slate-500">{{ c.label }}</p>
+                  </div>
+                </div>
+                <div v-if="unlockedAchievements.length" class="mt-5">
+                  <p class="mb-2 text-xs font-bold uppercase tracking-[0.24em] text-slate-500">{{ t('publicProfile.achievements') }} · {{ unlockedAchievements.length }}</p>
+                  <div class="flex flex-wrap gap-2">
+                    <span v-for="a in unlockedAchievements" :key="a.key"
+                          class="inline-flex items-center gap-1.5 rounded-full border border-amber-400/30 bg-amber-400/10 px-3 py-1.5 text-sm font-semibold text-amber-100"
+                          :title="a.desc">
+                      <span>{{ ACH_ICON[a.key] || '🏆' }}</span>{{ a.title }}
+                    </span>
+                  </div>
+                </div>
+              </section>
+              </div>
 
               <aside class="space-y-4">
                 <section class="surface-card p-4 md:p-5" :style="cardStyle">
