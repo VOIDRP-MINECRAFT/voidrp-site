@@ -3,7 +3,7 @@ import { ref, computed, onMounted, onBeforeUnmount, useTemplateRef } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useRoute, useRouter } from 'vue-router'
 import '../assets/gui-premium.css'
-import { getHome, getLeaderboards, getActivity, setWebguiToken } from '../services/gameUiApi.js'
+import { getHome, getLeaderboards, getActivity, getNationActivity, setWebguiToken } from '../services/gameUiApi.js'
 import { readableAccent, readableAccentAlpha } from '../utils/nationColor.js'
 import { useWebGuiToken, useWebGuiClient, closeGui } from '../composables/useWebGui.js'
 import GameUiSidebar from '../components/GameUiSidebar.vue'
@@ -33,7 +33,22 @@ const accent = computed(() => home.value?.nation?.accent_color || '#8b7bff')
 const achievements = computed(() => home.value?.achievements || [])
 const achUnlocked = computed(() => achievements.value.filter((a) => a.unlocked).length)
 const activity = ref([])
+const nationEvents = ref([])
 const activityMax = computed(() => Math.max(1, ...activity.value.map((d) => d.minutes)))
+const EVENT_ICONS = {
+  member_joined: 'users', join_requested: 'users', join_approved: 'users',
+  member_left: 'users', member_removed: 'users', nation_season_reward: 'trophy',
+  alliance_proposal_created: 'alliance', treasury_deposit: 'treasury',
+  treasury_withdraw: 'treasury', research_unlocked: 'tech',
+}
+function eventIcon(type) { return EVENT_ICONS[type] || 'bell' }
+function eventAgo(iso) {
+  const s = Math.max(0, (Date.now() - new Date(iso).getTime()) / 1000)
+  if (s < 60) return t('gameUiNotifications.now')
+  const m = Math.floor(s / 60); if (m < 60) return t('gameUiNotifications.minAgo', { n: m })
+  const h = Math.floor(m / 60); if (h < 24) return t('gameUiNotifications.hourAgo', { n: h })
+  return t('gameUiNotifications.dayAgo', { n: Math.floor(h / 24) })
+}
 function dayLabel(iso) {
   const d = new Date(iso + 'T00:00:00')
   return d.toLocaleDateString('ru-RU', { weekday: 'short' }).replace('.', '')
@@ -78,6 +93,7 @@ async function load() {
   // non-blocking: top nations preview
   getLeaderboards().then((d) => { topNations.value = (d?.nations?.prestige || []).slice(0, 3) }).catch(() => {})
   getActivity().then((d) => { activity.value = d?.days || [] }).catch(() => {})
+  getNationActivity().then((d) => { nationEvents.value = Array.isArray(d) ? d : [] }).catch(() => {})
 }
 
 function safeAccent(c) {
@@ -308,6 +324,21 @@ function formatDate(d) {
               </div>
             </div>
           </div>
+
+          <!-- nation activity feed -->
+          <div v-if="nationEvents.length" class="gp-panel">
+            <div class="gp-phead">
+              <span class="gp-phead-ic"><GuiIcon name="alliance" :size="16" /></span>
+              <span class="gp-phead-tt">{{ t('gameUiHome.nationActivity') }}</span>
+            </div>
+            <div class="nf-list">
+              <div v-for="(e, i) in nationEvents" :key="i" class="nf-row">
+                <span class="nf-ico"><GuiIcon :name="eventIcon(e.event_type)" :size="15" /></span>
+                <span class="nf-text">{{ e.message || e.event_type }}<span v-if="e.actor" class="nf-actor"> · {{ e.actor }}</span></span>
+                <span class="nf-time">{{ eventAgo(e.created_at) }}</span>
+              </div>
+            </div>
+          </div>
         </div>
       </div>
     </div>
@@ -339,6 +370,15 @@ function formatDate(d) {
 .act-bar { width: 100%; border-radius: 4px 4px 2px 2px; background: linear-gradient(180deg, #a78bfa, #7c6df0); transition: height 0.2s; }
 .act-bar.zero { background: rgba(255,255,255,0.06); }
 .act-day { font-size: 0.58rem; font-weight: 600; color: var(--gp-ink-dim, #8a90a8); text-transform: lowercase; }
+
+/* nation activity feed */
+.nf-list { display: flex; flex-direction: column; }
+.nf-row { display: flex; align-items: center; gap: 10px; padding: 8px 2px; border-bottom: 1px solid rgba(255,255,255,0.04); }
+.nf-row:last-child { border-bottom: none; }
+.nf-ico { flex-shrink: 0; width: 26px; height: 26px; display: grid; place-items: center; border-radius: 8px; background: rgba(139,123,255,0.12); color: var(--gp-violet-2, #a78bfa); }
+.nf-text { flex: 1; min-width: 0; font-size: 0.8rem; color: #d7dcec; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.nf-actor { color: var(--gp-ink-dim, #8a90a8); }
+.nf-time { flex-shrink: 0; font-size: 0.66rem; color: var(--gp-ink-dim, #8a90a8); font-weight: 600; }
 
 /* profile */
 .profile { align-items: center; gap: 12px; }

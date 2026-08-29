@@ -5,7 +5,7 @@ import { useI18n } from 'vue-i18n'
 import {
   setWebguiToken, getItems, getOrderBook, getMySellOrders,
   getMyBuyOrders, getMyTrades, getPickupReady, createPendingAction, getTopBar,
-  getPriceHistory,
+  getPriceHistory, getMovers,
 } from '../services/gameUiMarketApi'
 import { useItemNames } from '../composables/useItemNames'
 import ItemIcon from '../components/ItemIcon.vue'
@@ -88,6 +88,16 @@ function parsePrice(s) {
 async function loadItems() {
   const r = await getItems()
   items.value = r?.items || []
+}
+
+const movers = ref([])   // [{ item_key, change_pct, dir }]
+async function loadMovers() {
+  try {
+    const d = await getMovers()
+    const g = (d?.gainers || []).slice(0, 3).map((m) => ({ ...m, dir: 1 }))
+    const l = (d?.losers || []).slice(0, 3).map((m) => ({ ...m, dir: -1 }))
+    movers.value = [...g, ...l]
+  } catch { movers.value = [] }
 }
 
 async function loadMyOrders() {
@@ -366,6 +376,7 @@ onMounted(() => {
   if (tokenValid.value) {
     switchTab('market')
     loadTopbar()
+    loadMovers()
     poll = setInterval(silentPoll, 6000)
   }
 })
@@ -464,6 +475,14 @@ onUnmounted(() => { if (poll) clearInterval(poll) })
         <svg class="vm-search-ico" width="15" height="15" viewBox="0 0 15 15" fill="none"><circle cx="6.5" cy="6.5" r="4.5" stroke="currentColor" stroke-width="1.4"/><path d="M10 10l2.5 2.5" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg>
         <input v-model="search" class="vm-search" :placeholder="t('vmarket.searchPlaceholder')" />
         <span v-if="search" class="vm-search-clear" @click="search = ''">✕</span>
+      </div>
+
+      <div v-if="movers.length" class="vm-movers">
+        <button v-for="m in movers" :key="m.item_key" class="vm-mover" :class="m.dir > 0 ? 'up' : 'down'"
+                @click="selectItem({ item_key: m.item_key })" :title="label(m.item_key)">
+          <span class="vm-mover-ico"><ItemIcon :item-key="m.item_key" :size="18" /></span>
+          <span class="vm-mover-pct">{{ m.dir > 0 ? '+' : '' }}{{ m.change_pct.toFixed(1) }}%</span>
+        </button>
       </div>
 
       <div class="vm-list-head">
@@ -1171,6 +1190,15 @@ onUnmounted(() => { if (poll) clearInterval(poll) })
 .vm-spark-legend .lg.sell::before { background: #34d399; }
 .vm-spark-legend .lg.buy::before { background: rgba(139,123,255,0.6); }
 .vm-spark-body { height: 52px; }
+.vm-movers { display: flex; gap: 6px; overflow-x: auto; padding: 2px 0 8px; scrollbar-width: none; }
+.vm-movers::-webkit-scrollbar { display: none; }
+.vm-mover { flex-shrink: 0; display: inline-flex; align-items: center; gap: 5px; padding: 4px 8px 4px 5px; border-radius: 9px; border: 1px solid; background: rgba(255,255,255,0.02); cursor: pointer; font-family: inherit; }
+.vm-mover.up { border-color: rgba(52,211,153,0.3); }
+.vm-mover.down { border-color: rgba(251,111,132,0.3); }
+.vm-mover-ico { width: 18px; height: 18px; }
+.vm-mover-pct { font-size: 0.72rem; font-weight: 800; }
+.vm-mover.up .vm-mover-pct { color: #34d399; }
+.vm-mover.down .vm-mover-pct { color: #fb7185; }
 .vm-ob-loading { display: grid; place-items: center; padding: 60px; }
 .vm-spinner {
   width: 30px; height: 30px; border-radius: 50%;

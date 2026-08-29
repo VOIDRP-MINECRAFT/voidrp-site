@@ -54,6 +54,10 @@ export function getPriceHistory(itemKey) {
   return req(`/game-ui/market/history/${encodeURIComponent(itemKey)}`)
 }
 
+export function getMovers() {
+  return req('/game-ui/market/movers')
+}
+
 export function getMySellOrders() {
   return req('/game-ui/market/my-sell-orders')
 }

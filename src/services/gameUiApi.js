@@ -145,6 +145,10 @@ export function getNotificationHistory() {
 export function getActivity() {
   return req('/game-ui/activity')
 }
+// Recent activity of the player's own nation (home feed).
+export function getNationActivity() {
+  return req('/game-ui/home/nation-activity')
+}
 export function dismissNotification(id) {
   return req(`/game-ui/notifications/${id}/dismiss`, { method: 'POST' })
 }
