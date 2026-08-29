@@ -3,6 +3,7 @@ import { ref, computed, onMounted } from 'vue'
 import { useI18n } from 'vue-i18n'
 import '../assets/gui-premium.css'
 import { getLeaderboards, setWebguiToken } from '../services/gameUiApi.js'
+import { readableAccent, readableAccentAlpha } from '../utils/nationColor.js'
 import { useWebGuiToken } from '../composables/useWebGui.js'
 import GameUiSidebar from '../components/GameUiSidebar.vue'
 import GameUiStarfield from '../components/GameUiStarfield.vue'
@@ -90,10 +91,10 @@ function fmtValue(v) {
         <div v-if="!rows.length" class="gp-state" style="padding:40px"><span class="gp-state-ico"><GuiIcon name="trophy" :size="30" /></span><span class="gp-state-text">{{ t('gameUiLeaderboards.empty') }}</span></div>
 
         <div v-else class="lb-list gp-stagger">
-          <div v-for="r in rows" :key="r.rank" class="lb-row" :class="['rk-' + Math.min(r.rank, 4)]" :style="scope==='nations' && r.accent ? { '--nac': r.accent } : {}">
+          <div v-for="r in rows" :key="r.rank" class="lb-row" :class="['rk-' + Math.min(r.rank, 4)]" :style="scope==='nations' && r.accent ? { '--nac': readableAccent(r.accent) } : {}">
             <span class="lb-rank">{{ r.rank }}</span>
-            <span v-if="scope==='nations'" class="lb-tag" :style="r.accent ? { color: r.accent, borderColor: r.accent + '66', background: r.accent + '1f' } : {}">{{ r.tag }}</span>
-            <span class="lb-name" :style="scope==='nations' && r.accent ? { color: r.accent } : {}">{{ r.name }}</span>
+            <span v-if="scope==='nations'" class="lb-tag" :style="r.accent ? { color: readableAccent(r.accent), borderColor: readableAccentAlpha(r.accent, 0.5), background: readableAccentAlpha(r.accent, 0.16) } : {}">{{ r.tag }}</span>
+            <span class="lb-name" :style="scope==='nations' && r.accent ? { color: readableAccent(r.accent) } : {}">{{ r.name }}</span>
             <span class="lb-val gp-num" :class="{ gold: activeMetric.gold }">
               <GuiIcon :name="activeMetric.icon" :size="13" class="lb-val-ic" />{{ fmtValue(r.value) }}
             </span>
@@ -120,9 +121,11 @@ function fmtValue(v) {
 .lb-row {
   display: flex; align-items: center; gap: 12px; padding: 11px 14px;
   border-radius: 13px; border: 1px solid var(--gp-line); background: rgba(255,255,255,0.022);
+  box-shadow: inset 3px 0 0 var(--nac, transparent);
   transition: border-color 0.14s, transform 0.1s;
 }
 .lb-row:hover { transform: translateX(2px); border-color: var(--gp-line-strong); }
+.lb-name { text-shadow: 0 1px 6px rgba(0,0,0,0.55); }
 .lb-rank {
   width: 30px; height: 30px; flex-shrink: 0; display: grid; place-items: center; border-radius: 9px;
   font-family: 'Silkscreen', 'JetBrains Mono', monospace; font-size: 0.72rem; font-weight: 700;

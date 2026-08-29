@@ -4,6 +4,7 @@ import { useI18n } from 'vue-i18n'
 import { useRoute, useRouter } from 'vue-router'
 import '../assets/gui-premium.css'
 import { getHome, getLeaderboards, setWebguiToken } from '../services/gameUiApi.js'
+import { readableAccent } from '../utils/nationColor.js'
 import { useWebGuiToken, useWebGuiClient, closeGui } from '../composables/useWebGui.js'
 import GameUiSidebar from '../components/GameUiSidebar.vue'
 import GameUiStarfield from '../components/GameUiStarfield.vue'
@@ -66,9 +67,8 @@ async function load() {
 }
 
 function safeAccent(c) {
-  // fall back to violet for missing / near-black accents (unreadable on dark bg)
-  if (!c || /^#?0{3,6}$/i.test(c.replace('#', ''))) return '#a78bfa'
-  return c
+  // keep the nation's hue but lift lightness so even near-black accents read on dark bg
+  return readableAccent(c)
 }
 function goLeaderboards() {
   const raw = route.query.webgui_token
