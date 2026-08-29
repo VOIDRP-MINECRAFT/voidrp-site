@@ -443,7 +443,7 @@ onUnmounted(() => { if (poll) clearInterval(poll) })
     </nav>
 
     <div class="vm-header-actions">
-      <div v-if="topbar" class="vm-coins"><span class="vm-coin-ic">⛃</span>{{ fmtCoins(topbar.balance) }}</div>
+      <div v-if="topbar" class="vm-coins"><span class="vm-coin-ic"><svg width="15" height="15" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="9" stroke="currentColor" stroke-width="1.8"/><circle cx="12" cy="12" r="4.5" stroke="currentColor" stroke-width="1.6"/></svg></span>{{ fmtCoins(topbar.balance) }}</div>
       <button class="vm-hand-btn" @click="handForm = { show: true, price: '', amount: 1, busy: false, res: null }">
         <svg width="15" height="15" viewBox="0 0 16 16" fill="none"><path d="M6 3a1 1 0 0 1 1-1h2a1 1 0 0 1 1 1v5h1a1 1 0 0 1 1 1v4a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V9a1 1 0 0 1 1-1h1V3z" stroke="currentColor" stroke-width="1.3"/></svg>
         <span>{{ t('vmarket.tabHandSell') }}</span>
@@ -493,7 +493,9 @@ onUnmounted(() => { if (poll) clearInterval(poll) })
 
       <div class="vm-list-scroll">
         <div v-if="!filtered.length" class="vm-list-empty">
-          <span class="vm-list-empty-ico">🔍</span>
+          <span class="vm-list-empty-ico">
+            <svg width="26" height="26" viewBox="0 0 24 24" fill="none"><circle cx="10.5" cy="10.5" r="6.5" stroke="currentColor" stroke-width="1.7"/><path d="M15.5 15.5L21 21" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/></svg>
+          </span>
           {{ t('vmarket.nothingFound') }}
         </div>
         <button
@@ -789,7 +791,9 @@ onUnmounted(() => { if (poll) clearInterval(poll) })
   <!-- ═══════════════════ HISTORY TAB ═══════════════════════════ -->
   <div v-else-if="tab === 'history'" class="vm-page">
     <div v-if="!myTrades.length" class="vm-empty-state">
-      <div class="vm-empty-ico">📊</div>
+      <div class="vm-empty-ico">
+        <svg width="30" height="30" viewBox="0 0 24 24" fill="none"><path d="M4 20V10M10 20V4M16 20v-7M22 20H2" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/></svg>
+      </div>
       <div class="vm-empty-title">{{ t('vmarket.noTradesTitle') }}</div>
       <div class="vm-empty-sub">{{ t('vmarket.noTradesSub') }}</div>
     </div>
