@@ -214,7 +214,7 @@ async function claim(tier, premiumTrack) {
   border: 1px solid rgba(139,123,255,0.5); background: radial-gradient(circle, rgba(139,123,255,0.32), rgba(139,123,255,0.06));
   box-shadow: 0 0 30px -6px rgba(139,123,255,0.6);
 }
-.bp-badge-lv { font-size: 1.9rem; font-weight: 900; color: #e6ddff; }
+.bp-badge-lv { font-family: 'Silkscreen', 'JetBrains Mono', monospace; font-size: 1.5rem; font-weight: 700; color: #e6ddff; text-shadow: 0 2px 0 rgba(0,0,0,0.4); }
 .bp-title-col { min-width: 0; }
 .bp-kicker { display: flex; align-items: center; gap: 6px; font-size: 0.66rem; font-weight: 800; letter-spacing: 0.16em; text-transform: uppercase; color: #c4b5fd; }
 .bp-title { margin-top: 3px; font-size: 1.7rem; font-weight: 900; color: #f4f7ff; line-height: 1; }
@@ -257,8 +257,16 @@ async function claim(tier, premiumTrack) {
 .prem-cell.ready { border-color: rgba(251,191,36,0.5); background: rgba(251,191,36,0.1); box-shadow: 0 0 0 1px rgba(251,191,36,0.2); }
 .prem-cell.locked, .prem-cell.premlock { border-color: rgba(251,191,36,0.14); }
 
-.cell-ico { width: 44px; height: 44px; display: grid; place-items: center; }
-.cell-ico img { width: 42px; height: 42px; image-rendering: pixelated; filter: drop-shadow(0 3px 5px rgba(0,0,0,0.5)); }
+.cell-ico { position: relative; overflow: hidden; width: 44px; height: 44px; border-radius: 10px; display: grid; place-items: center; }
+.cell-ico img { width: 42px; height: 42px; image-rendering: pixelated; filter: drop-shadow(0 3px 5px rgba(0,0,0,0.5)); transition: transform 0.2s; }
+.cell.ready .cell-ico img { animation: bp-bob 2.4s ease-in-out infinite; }
+@keyframes bp-bob { 0%,100% { transform: translateY(0); } 50% { transform: translateY(-3px); } }
+/* premium rewards get the Minecraft enchant glint */
+.prem-cell .cell-ico::after {
+  content: ''; position: absolute; inset: 0; pointer-events: none;
+  background: linear-gradient(115deg, transparent 38%, rgba(255,255,255,0.34) 47%, rgba(251,191,36,0.4) 52%, transparent 63%);
+  transform: translateX(-130%); animation: gp-enchant 3s ease-in-out infinite;
+}
 .cell-emoji { font-size: 1.9rem; }
 .cell-amt { font-size: 0.82rem; font-weight: 800; color: #eef2ff; }
 .cell-foot { min-height: 20px; display: flex; align-items: center; }
@@ -271,7 +279,7 @@ async function claim(tier, premiumTrack) {
 .tier-badge {
   align-self: center; justify-self: center; width: 30px; height: 30px; margin: 4px 0;
   display: grid; place-items: center; border-radius: 9px;
-  font-family: 'JetBrains Mono', monospace; font-size: 0.82rem; font-weight: 800;
+  font-family: 'Silkscreen', 'JetBrains Mono', monospace; font-size: 0.62rem; font-weight: 700;
   color: var(--gp-ink-dim); background: rgba(0,0,0,0.3); border: 1px solid var(--gp-line);
 }
 .tier-badge.reached { color: #fff; background: linear-gradient(135deg, #7c6bff, #b45cf0); border-color: transparent; }

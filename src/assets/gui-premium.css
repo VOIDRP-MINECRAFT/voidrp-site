@@ -3,7 +3,7 @@
    One cohesive layer for every /game-ui/* page. Class-prefixed `gp-`.
    The root MUST be a full-viewport fixed layer (.gp-shell) or clicks die in MCEF.
    ============================================================================ */
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=JetBrains+Mono:wght@500;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=JetBrains+Mono:wght@500;600;700&family=Silkscreen:wght@400;700&display=swap');
 
 .gp-shell {
   --gp-bg-0: #05060d;
@@ -59,6 +59,38 @@
   background-size: 46px 46px;
   mask-image: radial-gradient(ellipse 80% 60% at 50% 30%, #000 30%, transparent 100%);
 }
+
+/* ambient drifting particles — cheap (one animated bg-position), gives the whole UI life */
+.gp-shell::after {
+  content: '';
+  position: fixed; left: 0; right: 0; top: -20%; height: 140%;
+  pointer-events: none; z-index: 0; opacity: 0.55;
+  background-image:
+    radial-gradient(1.5px 1.5px at 15% 20%, rgba(251, 191, 36, 0.6), transparent 60%),
+    radial-gradient(1px 1px at 70% 35%, rgba(139, 123, 255, 0.6), transparent 60%),
+    radial-gradient(1.5px 1.5px at 40% 70%, rgba(217, 70, 239, 0.5), transparent 60%),
+    radial-gradient(1px 1px at 85% 80%, rgba(139, 123, 255, 0.5), transparent 60%),
+    radial-gradient(1.5px 1.5px at 25% 90%, rgba(251, 191, 36, 0.45), transparent 60%),
+    radial-gradient(1px 1px at 60% 12%, rgba(52, 211, 153, 0.4), transparent 60%);
+  background-size: 380px 380px;
+  animation: gp-particles 42s linear infinite;
+}
+@keyframes gp-particles { from { background-position: 0 0; } to { background-position: 0 -380px; } }
+@media (prefers-reduced-motion: reduce) { .gp-shell::after { animation: none; } }
+
+/* Minecraft enchant-glint — an animated light sweep for premium/legendary items */
+.gp-glint { position: relative; overflow: hidden; }
+.gp-glint::after {
+  content: ''; position: absolute; inset: -30%; pointer-events: none;
+  background: linear-gradient(115deg, transparent 38%, rgba(255,255,255,0.32) 47%, rgba(198,148,255,0.4) 52%, transparent 63%);
+  transform: translateX(-130%);
+  animation: gp-enchant 3.2s ease-in-out infinite;
+}
+@keyframes gp-enchant { 0% { transform: translateX(-130%); } 55%, 100% { transform: translateX(130%); } }
+@media (prefers-reduced-motion: reduce) { .gp-glint::after { animation: none; opacity: 0; } }
+
+/* pixel accent font for game-y bits (counts, levels) — Minecraft flavor, not body text */
+.gp-pixel { font-family: 'Silkscreen', 'JetBrains Mono', monospace; letter-spacing: 0.02em; }
 
 .gp-wrap {
   position: relative;
@@ -282,7 +314,9 @@
   display: flex; flex-direction: column; align-items: center; justify-content: center;
   gap: 12px; padding: 48px 24px; text-align: center;
 }
-.gp-state-ico { font-size: 2.6rem; opacity: 0.8; }
+.gp-state-ico { font-size: 2.6rem; opacity: 0.8; color: var(--gp-violet-2); animation: gp-float 3.6s ease-in-out infinite; }
+@keyframes gp-float { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-6px); } }
+@media (prefers-reduced-motion: reduce) { .gp-state-ico { animation: none; } }
 .gp-state-text { font-size: 0.9rem; color: var(--gp-ink-soft); max-width: 300px; line-height: 1.5; }
 .gp-spinner {
   width: 38px; height: 38px; border-radius: 50%;
@@ -394,11 +428,20 @@
 .gp-item:hover { transform: translateY(-3px); border-color: color-mix(in srgb, var(--rar, #8b7bff) 55%, transparent); box-shadow: 0 16px 30px -18px color-mix(in srgb, var(--rar, #8b7bff) 70%, black); }
 .gp-item.sel { border-color: var(--rar, #8b7bff); box-shadow: 0 0 0 1px var(--rar, #8b7bff), 0 16px 30px -18px color-mix(in srgb, var(--rar, #8b7bff) 70%, black); }
 .gp-item-thumb {
-  position: relative; height: 68px; display: grid; place-items: center; margin-bottom: 8px;
+  position: relative; overflow: hidden; height: 68px; display: grid; place-items: center; margin-bottom: 8px;
   border-radius: 10px; background: radial-gradient(circle at 50% 45%, var(--rar-soft, rgba(139,123,255,0.12)), transparent 70%);
 }
-.gp-item-thumb img { width: 46px; height: 46px; image-rendering: pixelated; filter: drop-shadow(0 4px 6px rgba(0,0,0,0.5)); }
-.gp-item-qty { position: absolute; top: 6px; right: 8px; font-family: 'JetBrains Mono', monospace; font-size: 0.66rem; font-weight: 800; color: #cfd8f0; background: rgba(0,0,0,0.55); padding: 1px 6px; border-radius: 6px; }
+.gp-item-thumb img { width: 46px; height: 46px; image-rendering: pixelated; filter: drop-shadow(0 4px 6px rgba(0,0,0,0.5)); transition: transform 0.15s; }
+.gp-item:hover .gp-item-thumb img { transform: translateY(-2px) scale(1.06); }
+.gp-item-qty { position: absolute; z-index: 2; top: 6px; right: 8px; font-family: 'Silkscreen', 'JetBrains Mono', monospace; font-size: 0.6rem; font-weight: 700; color: #cfd8f0; background: rgba(0,0,0,0.6); padding: 2px 6px; border-radius: 6px; }
+/* enchant glint on rare-tier item thumbs (Minecraft magic) */
+.gp-item.rar-legendary .gp-item-thumb::after,
+.gp-item.rar-epic .gp-item-thumb::after {
+  content: ''; position: absolute; inset: 0; pointer-events: none;
+  background: linear-gradient(115deg, transparent 40%, rgba(255,255,255,0.3) 48%, rgba(198,148,255,0.38) 52%, transparent 62%);
+  transform: translateX(-130%); animation: gp-enchant 3.4s ease-in-out infinite;
+}
+@media (prefers-reduced-motion: reduce) { .gp-item.rar-legendary .gp-item-thumb::after, .gp-item.rar-epic .gp-item-thumb::after { animation: none; opacity: 0; } }
 .gp-item-name { font-size: 0.78rem; font-weight: 700; color: #eef2ff; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .gp-item-sub { font-size: 0.64rem; font-weight: 700; letter-spacing: 0.04em; text-transform: uppercase; color: var(--rar, #94a3b8); margin-top: 1px; }
 .gp-item-price { margin-top: 7px; font-family: 'JetBrains Mono', monospace; font-weight: 800; font-size: 0.86rem; color: #fcd77a; display: flex; align-items: center; gap: 5px; }
