@@ -22,7 +22,13 @@ const decline = () => setCookieChoice('declined')
         :aria-label="t('cookie.title')"
       >
         <div class="cookie-banner__head">
-          <span class="cookie-banner__icon" aria-hidden="true">🍪</span>
+          <span class="cookie-banner__icon" aria-hidden="true">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
+              <path d="M12 2a10 10 0 1 0 10 10 4 4 0 0 1-4-4 4 4 0 0 1-4-4 2 2 0 0 0-2-2Z" fill="currentColor" opacity="0.85"/>
+              <circle cx="9" cy="10" r="1.1" fill="#3a2a15"/><circle cx="14" cy="8.5" r="1" fill="#3a2a15"/>
+              <circle cx="15" cy="14" r="1.2" fill="#3a2a15"/><circle cx="9.5" cy="15" r="1" fill="#3a2a15"/>
+            </svg>
+          </span>
           <p class="cookie-banner__title">{{ t('cookie.title') }}</p>
         </div>
 
@@ -66,7 +72,7 @@ const decline = () => setCookieChoice('declined')
   gap: 0.55rem;
   margin-bottom: 0.5rem;
 }
-.cookie-banner__icon { font-size: 1.15rem; line-height: 1; }
+.cookie-banner__icon { display: inline-flex; line-height: 1; color: #d9a066; }
 .cookie-banner__title {
   font-weight: 700;
   font-size: 0.98rem;

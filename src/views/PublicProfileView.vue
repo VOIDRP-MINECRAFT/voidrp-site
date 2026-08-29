@@ -43,7 +43,6 @@ const hasGameData = computed(() => {
   return (s.playtime_minutes > 0) || s.pvp_kills > 0 || s.mob_kills > 0 ||
     s.blocks_broken > 0 || s.blocks_placed > 0 || unlockedAchievements.value.length > 0
 })
-const ACH_ICON = { citizen: '🛡️', first_blood: '⚔️', warrior: '⚔️', streak5: '🔥', streak10: '🔥', hunter: '🏹', slayer: '💀', miner: '⛏️', builder: '🧱', veteran: '🎖️', quester: '📜', tycoon: '💰' }
 const publicNation = computed(() => profile.value?.nation || null)
 
 function hexToRgba(hex, alpha) {
@@ -379,9 +378,9 @@ onBeforeUnmount(() => {
                   <p class="mb-2 text-xs font-bold uppercase tracking-[0.24em] text-slate-500">{{ t('publicProfile.achievements') }} · {{ unlockedAchievements.length }}</p>
                   <div class="flex flex-wrap gap-2">
                     <span v-for="a in unlockedAchievements" :key="a.key"
-                          class="inline-flex items-center gap-1.5 rounded-full border border-amber-400/30 bg-amber-400/10 px-3 py-1.5 text-sm font-semibold text-amber-100"
+                          class="inline-flex items-center gap-2 rounded-full border border-amber-400/30 bg-amber-400/10 px-3 py-1.5 text-sm font-semibold text-amber-100"
                           :title="a.desc">
-                      <span>{{ ACH_ICON[a.key] || '🏆' }}</span>{{ a.title }}
+                      <span class="h-1.5 w-1.5 rounded-full bg-amber-300"></span>{{ a.title }}
                     </span>
                   </div>
                 </div>
