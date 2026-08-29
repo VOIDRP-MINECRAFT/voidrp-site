@@ -3,7 +3,7 @@ import { ref, computed, onMounted, onBeforeUnmount, useTemplateRef } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useRoute, useRouter } from 'vue-router'
 import '../assets/gui-premium.css'
-import { getHome, getLeaderboards, setWebguiToken } from '../services/gameUiApi.js'
+import { getHome, getLeaderboards, getActivity, setWebguiToken } from '../services/gameUiApi.js'
 import { readableAccent, readableAccentAlpha } from '../utils/nationColor.js'
 import { useWebGuiToken, useWebGuiClient, closeGui } from '../composables/useWebGui.js'
 import GameUiSidebar from '../components/GameUiSidebar.vue'
@@ -32,6 +32,17 @@ const ping = computed(() => client.value?.server?.ping)
 const accent = computed(() => home.value?.nation?.accent_color || '#8b7bff')
 const achievements = computed(() => home.value?.achievements || [])
 const achUnlocked = computed(() => achievements.value.filter((a) => a.unlocked).length)
+const activity = ref([])
+const activityMax = computed(() => Math.max(1, ...activity.value.map((d) => d.minutes)))
+function dayLabel(iso) {
+  const d = new Date(iso + 'T00:00:00')
+  return d.toLocaleDateString('ru-RU', { weekday: 'short' }).replace('.', '')
+}
+function fmtDuration(min) {
+  const h = Math.floor(min / 60)
+  const m = min % 60
+  return h > 0 ? `${h}ч ${m}м` : `${m}м`
+}
 const bpPct = computed(() => {
   const bp = home.value?.battlepass
   if (!bp) return 0
@@ -66,6 +77,7 @@ async function load() {
   }
   // non-blocking: top nations preview
   getLeaderboards().then((d) => { topNations.value = (d?.nations?.prestige || []).slice(0, 3) }).catch(() => {})
+  getActivity().then((d) => { activity.value = d?.days || [] }).catch(() => {})
 }
 
 function safeAccent(c) {
@@ -280,6 +292,22 @@ function formatDate(d) {
               </div>
             </div>
           </div>
+
+          <!-- activity (playtime last 14 days) -->
+          <div v-if="activity.some((d) => d.minutes > 0)" class="gp-panel">
+            <div class="gp-phead">
+              <span class="gp-phead-ic"><GuiIcon name="clock" :size="16" /></span>
+              <span class="gp-phead-tt">{{ t('gameUiHome.activity') }}</span>
+            </div>
+            <div class="act-chart">
+              <div v-for="(d, i) in activity" :key="i" class="act-col" :title="`${fmtDuration(d.minutes)}`">
+                <span class="act-bar-wrap">
+                  <span class="act-bar" :class="{ zero: !d.minutes }" :style="{ height: Math.max(3, Math.round(d.minutes / activityMax * 100)) + '%' }"></span>
+                </span>
+                <span class="act-day">{{ dayLabel(d.day) }}</span>
+              </div>
+            </div>
+          </div>
         </div>
       </div>
     </div>
@@ -303,6 +331,14 @@ function formatDate(d) {
 .ach-done { font-size: 0.62rem; font-weight: 700; color: #34d399; text-transform: uppercase; letter-spacing: 0.05em; }
 .ach-bar { height: 4px; border-radius: 3px; background: rgba(0,0,0,0.3); overflow: hidden; }
 .ach-fill { display: block; height: 100%; border-radius: 3px; background: linear-gradient(90deg, #8b7bff, #a78bfa); }
+
+/* activity chart */
+.act-chart { display: flex; align-items: flex-end; gap: 5px; height: 96px; padding-top: 6px; }
+.act-col { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 5px; height: 100%; min-width: 0; }
+.act-bar-wrap { flex: 1; width: 100%; display: flex; align-items: flex-end; }
+.act-bar { width: 100%; border-radius: 4px 4px 2px 2px; background: linear-gradient(180deg, #a78bfa, #7c6df0); transition: height 0.2s; }
+.act-bar.zero { background: rgba(255,255,255,0.06); }
+.act-day { font-size: 0.58rem; font-weight: 600; color: var(--gp-ink-dim, #8a90a8); text-transform: lowercase; }
 
 /* profile */
 .profile { align-items: center; gap: 12px; }

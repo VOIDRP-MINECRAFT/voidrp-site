@@ -1577,6 +1577,7 @@ export default {
     viewAll: 'All',
     achievements: 'Achievements',
     unlocked: 'Unlocked',
+    activity: 'Activity',
     min: 'min', dShort: 'd', hShort: 'h', mShort: 'm',
     roleLeader: 'Leader', roleOfficer: 'Officer', roleMember: 'Citizen',
   },

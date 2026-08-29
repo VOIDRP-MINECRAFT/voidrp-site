@@ -141,6 +141,10 @@ export function getNotifications() {
 export function getNotificationHistory() {
   return req('/game-ui/notifications/history')
 }
+// Daily playtime for the in-game activity chart (last N days, zero-filled).
+export function getActivity() {
+  return req('/game-ui/activity')
+}
 export function dismissNotification(id) {
   return req(`/game-ui/notifications/${id}/dismiss`, { method: 'POST' })
 }
