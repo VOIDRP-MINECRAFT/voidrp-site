@@ -143,6 +143,9 @@ function openQuests() { runGameCommand('dailyquest').catch(() => {}) }
         <span class="hud-bico"><GuiIcon name="coins" :size="15" /></span>
         <span class="hud-money">{{ data ? formatBalance(data.balance) : '…' }}</span>
         <span class="hud-unit">{{ t('gameUiHud.monUnit') }}</span>
+        <span v-if="data" class="hud-vcoin" :title="t('gameUiHud.voidCoin')">
+          <GuiIcon name="voidcoin" :size="12" />{{ formatBalance(data.void_coins) }}
+        </span>
         <transition name="hud-flash">
           <span v-if="flash" class="hud-delta" :class="flash.positive ? 'pos' : 'neg'">{{ flash.positive ? '+' : '−' }}{{ formatBalance(flash.amount) }}</span>
         </transition>
@@ -251,7 +254,14 @@ function openQuests() { runGameCommand('dailyquest').catch(() => {}) }
 .hud-balance:active { transform: scale(0.98); }
 .hud-bico { color: #fbbf24; display: grid; place-items: center; flex-shrink: 0; }
 .hud-money { font-family: 'JetBrains Mono', monospace; font-weight: 800; font-size: 0.84rem; color: #fcd34d; letter-spacing: 0.01em; }
-.hud-unit { font-size: 0.58rem; color: #b48a2e; font-weight: 700; margin-left: auto; }
+.hud-unit { font-size: 0.58rem; color: #b48a2e; font-weight: 700; }
+.hud-vcoin {
+  margin-left: auto; display: inline-flex; align-items: center; gap: 4px;
+  font-family: 'JetBrains Mono', monospace; font-weight: 800; font-size: 0.72rem; color: #c4b5fd;
+  padding: 2px 7px; border-radius: 7px;
+  background: rgba(139,123,255,0.15); border: 1px solid rgba(167,139,250,0.36);
+}
+.hud-vcoin svg { color: #c4b5fd; }
 
 /* position + dimension chips */
 .hud-meta { display: flex; gap: 5px; flex-wrap: wrap; }

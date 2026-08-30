@@ -1632,6 +1632,9 @@ emailDomainNotice: 'Только российские почтовые серв�
     quests: 'Квесты',
     site: 'Открыть сайт',
   },
+  gameUiTopbar: {
+    voidCoin: 'Void Coin — премиум-валюта',
+  },
   gameUiHud: {
     tokenError: 'Нет токена — открой из игры.',
     dimNether: 'Незер',
@@ -1642,6 +1645,7 @@ emailDomainNotice: 'Только российские почтовые серв�
     roleMember: 'Участник',
     noNation: 'Без государства',
     monUnit: 'мон.',
+    voidCoin: 'Void Coin',
     openMarket: 'Открыть рынок',
     pendingDeliveries: 'Незабранные доставки на рынке',
     questsDone: 'Выполнено квестов',

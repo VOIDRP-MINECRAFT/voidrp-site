@@ -1,8 +1,11 @@
 <script setup>
 import { ref, onMounted } from 'vue'
+import { useI18n } from 'vue-i18n'
 import { getTopBar } from '../services/gameUiApi.js'
 import { closeGui } from '../composables/useWebGui.js'
 import GuiIcon from './GuiIcon.vue'
+
+const { t } = useI18n()
 
 defineProps({
   title: { type: String, default: '' },
@@ -29,6 +32,11 @@ function money(v) { return Number(v || 0).toLocaleString('ru-RU', { maximumFract
     </div>
 
     <div class="tb-right">
+      <div v-if="bar" class="vcoins" :title="t('gameUiTopbar.voidCoin')">
+        <GuiIcon name="voidcoin" :size="15" class="vcoin-ic" />
+        <span class="vcoin-val gp-num">{{ money(bar.void_coins) }}</span>
+      </div>
+
       <div v-if="bar" class="coins">
         <GuiIcon name="coins" :size="16" class="coin-ic" />
         <span class="coin-val gp-num">{{ money(bar.balance) }}</span>
@@ -75,6 +83,17 @@ function money(v) { return Number(v || 0).toLocaleString('ru-RU', { maximumFract
 }
 .coin-ic { color: #fbbf24; }
 .coin-val { font-weight: 800; font-size: 0.9rem; color: #fcd77a; }
+
+/* Void Coin — premium currency, project violet */
+.vcoins {
+  display: flex; align-items: center; gap: 7px;
+  padding: 7px 13px; border-radius: 11px;
+  background: linear-gradient(135deg, rgba(139,123,255,0.16), rgba(180,92,240,0.12));
+  border: 1px solid rgba(167,139,250,0.4);
+  box-shadow: inset 0 0 12px rgba(139,123,255,0.14);
+}
+.vcoin-ic { color: #c4b5fd; filter: drop-shadow(0 0 4px rgba(167,139,250,0.6)); }
+.vcoin-val { font-weight: 800; font-size: 0.9rem; color: #d8ccff; }
 
 .user { display: flex; align-items: center; gap: 10px; padding-left: 4px; }
 .head {

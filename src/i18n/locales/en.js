@@ -1632,6 +1632,9 @@ export default {
     quests: 'Quests',
     site: 'Open Website',
   },
+  gameUiTopbar: {
+    voidCoin: 'Void Coin — premium currency',
+  },
   gameUiHud: {
     tokenError: 'No token — open from in-game.',
     dimNether: 'Nether',
@@ -1642,6 +1645,7 @@ export default {
     roleMember: 'Member',
     noNation: 'No nation',
     monUnit: 'coins',
+    voidCoin: 'Void Coin',
     openMarket: 'Open market',
     pendingDeliveries: 'Unclaimed market deliveries',
     questsDone: 'Quests completed',
