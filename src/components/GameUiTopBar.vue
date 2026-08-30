@@ -1,8 +1,9 @@
 <script setup>
-import { ref, onMounted } from 'vue'
+import { ref, computed, onMounted, onUnmounted, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { getTopBar } from '../services/gameUiApi.js'
 import { closeGui } from '../composables/useWebGui.js'
+import { currency, setVoidCoins, setBalance } from '../composables/useCurrency.js'
 import GuiIcon from './GuiIcon.vue'
 
 const { t } = useI18n()
@@ -13,10 +14,34 @@ defineProps({
 })
 
 const bar = ref(null)
+let pollTimer = null
 
-onMounted(async () => {
-  try { bar.value = await getTopBar() } catch { /* silent */ }
+// Prefer the live shared value (updated instantly by pages that spend currency),
+// fall back to what this topbar last fetched.
+const voidCoins = computed(() => (currency.voidCoins != null ? currency.voidCoins : bar.value?.void_coins || 0))
+const balance = computed(() => (currency.balance != null ? currency.balance : bar.value?.balance || 0))
+
+async function refresh() {
+  try {
+    bar.value = await getTopBar()
+    setVoidCoins(bar.value.void_coins)
+    setBalance(bar.value.balance)
+  } catch { /* silent */ }
+}
+
+// brief pulse whenever the Void Coin value changes (spend/grant)
+const vcBump = ref(false)
+let bumpTimer = null
+watch(voidCoins, (nv, ov) => {
+  if (ov == null || nv === ov) return
+  vcBump.value = false
+  requestAnimationFrame(() => { vcBump.value = true })
+  clearTimeout(bumpTimer)
+  bumpTimer = setTimeout(() => { vcBump.value = false }, 500)
 })
+
+onMounted(() => { refresh(); pollTimer = setInterval(refresh, 15000) })
+onUnmounted(() => { clearInterval(pollTimer); clearTimeout(bumpTimer) })
 
 function money(v) { return Number(v || 0).toLocaleString('ru-RU', { maximumFractionDigits: 0 }) }
 </script>
@@ -32,9 +57,9 @@ function money(v) { return Number(v || 0).toLocaleString('ru-RU', { maximumFract
     </div>
 
     <div class="tb-right">
-      <div v-if="bar" class="vcoins cur">
+      <div v-if="bar" class="vcoins cur" :class="{ bump: vcBump }">
         <GuiIcon name="voidcoin" :size="15" class="vcoin-ic" />
-        <span class="vcoin-val gp-num">{{ money(bar.void_coins) }}</span>
+        <span class="vcoin-val gp-num">{{ money(voidCoins) }}</span>
         <span class="cur-tip cur-tip--void">
           <span class="cur-tip-h">{{ t('gameUiTopbar.voidName') }}</span>
           <span class="cur-tip-d">{{ t('gameUiTopbar.voidDesc') }}</span>
@@ -43,7 +68,7 @@ function money(v) { return Number(v || 0).toLocaleString('ru-RU', { maximumFract
 
       <div v-if="bar" class="coins cur">
         <GuiIcon name="coins" :size="16" class="coin-ic" />
-        <span class="coin-val gp-num">{{ money(bar.balance) }}</span>
+        <span class="coin-val gp-num">{{ money(balance) }}</span>
         <span class="cur-tip">
           <span class="cur-tip-h">{{ t('gameUiTopbar.coinName') }}</span>
           <span class="cur-tip-d">{{ t('gameUiTopbar.coinDesc') }}</span>
@@ -101,7 +126,14 @@ function money(v) { return Number(v || 0).toLocaleString('ru-RU', { maximumFract
   box-shadow: inset 0 0 12px rgba(139,123,255,0.14);
 }
 .vcoin-ic { color: #c4b5fd; filter: drop-shadow(0 0 4px rgba(167,139,250,0.6)); }
-.vcoin-val { font-weight: 800; font-size: 0.9rem; color: #d8ccff; }
+.vcoin-val { font-weight: 800; font-size: 0.9rem; color: #d8ccff; transition: color .2s; }
+.vcoins { transition: box-shadow .2s, transform .2s; }
+.vcoins.bump { animation: vc-bump .5s ease; }
+@keyframes vc-bump {
+  0% { transform: scale(1); }
+  35% { transform: scale(1.14); box-shadow: 0 0 16px -2px rgba(167,139,250,0.8); }
+  100% { transform: scale(1); }
+}
 
 /* currency hover tooltip (native title doesn't render in MCEF) */
 .cur { position: relative; }

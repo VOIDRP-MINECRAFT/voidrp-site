@@ -5,6 +5,7 @@ import '../assets/gui-premium.css'
 import { getUpgraderRewards, spinUpgrader, getUpgraderHistory, getUpgraderRecentWins, setWebguiToken } from '../services/gameUiApi.js'
 import { API_BASE_URL } from '../services/apiBase'
 import { useWebGuiToken } from '../composables/useWebGui.js'
+import { setVoidCoins } from '../composables/useCurrency.js'
 import GameUiSidebar from '../components/GameUiSidebar.vue'
 import GameUiStarfield from '../components/GameUiStarfield.vue'
 import GameUiTopBar from '../components/GameUiTopBar.vue'
@@ -133,6 +134,7 @@ async function doSpin() {
     const base = pointerDeg.value - (pointerDeg.value % 360)
     pointerDeg.value = base + 360 * 6 + target
     balance.value = res.new_void_coins
+    setVoidCoins(res.new_void_coins)   // update the navbar instantly
     setTimeout(() => {
       result.value = { won: res.won, reward: res.reward }
       wheelState.value = res.won ? 'win' : 'lose'
@@ -157,6 +159,7 @@ async function load() {
     const d = await getUpgraderRewards()
     rewards.value = d.rewards || []
     balance.value = d.void_coins || 0
+    setVoidCoins(d.void_coins || 0)
     rtp.value = d.rtp || 0.9
     minStake.value = d.min_stake || 1
     maxMult.value = d.max_multiplier || 100
