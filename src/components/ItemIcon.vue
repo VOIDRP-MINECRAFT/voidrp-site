@@ -1,14 +1,14 @@
 <template>
-  <img
+  <!-- Square frame that clips the image to its top square. Modded animated textures are
+       stored as vertical strips (e.g. 16×128 = 8 frames); this shows just the first frame,
+       so any current or future animated icon renders as a clean static square with no stretch. -->
+  <span
     v-if="iconUrl && !imgError"
-    :src="iconUrl"
-    :width="size"
-    :height="size"
-    :alt="itemKey"
-    class="object-contain rounded"
-    style="image-rendering: pixelated"
-    @error="imgError = true"
-  />
+    class="ii-frame"
+    :style="{ width: size + 'px', height: size + 'px' }"
+  >
+    <img :src="iconUrl" :alt="itemKey" class="ii-img" @error="imgError = true" />
+  </span>
   <div
     v-else
     :style="{ width: size + 'px', height: size + 'px', background: fallbackBg }"
@@ -18,6 +18,11 @@
     {{ shortKey }}
   </div>
 </template>
+
+<style scoped>
+.ii-frame { display: inline-block; overflow: hidden; line-height: 0; border-radius: 4px; vertical-align: middle; }
+.ii-img { display: block; width: 100%; height: auto; image-rendering: pixelated; }
+</style>
 
 <script setup>
 import { ref, computed } from 'vue'
