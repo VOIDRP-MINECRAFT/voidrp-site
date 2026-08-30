@@ -32,14 +32,22 @@ function money(v) { return Number(v || 0).toLocaleString('ru-RU', { maximumFract
     </div>
 
     <div class="tb-right">
-      <div v-if="bar" class="vcoins" :title="t('gameUiTopbar.voidCoin')">
+      <div v-if="bar" class="vcoins cur">
         <GuiIcon name="voidcoin" :size="15" class="vcoin-ic" />
         <span class="vcoin-val gp-num">{{ money(bar.void_coins) }}</span>
+        <span class="cur-tip cur-tip--void">
+          <span class="cur-tip-h">{{ t('gameUiTopbar.voidName') }}</span>
+          <span class="cur-tip-d">{{ t('gameUiTopbar.voidDesc') }}</span>
+        </span>
       </div>
 
-      <div v-if="bar" class="coins">
+      <div v-if="bar" class="coins cur">
         <GuiIcon name="coins" :size="16" class="coin-ic" />
         <span class="coin-val gp-num">{{ money(bar.balance) }}</span>
+        <span class="cur-tip">
+          <span class="cur-tip-h">{{ t('gameUiTopbar.coinName') }}</span>
+          <span class="cur-tip-d">{{ t('gameUiTopbar.coinDesc') }}</span>
+        </span>
       </div>
 
       <div v-if="bar" class="user">
@@ -94,6 +102,27 @@ function money(v) { return Number(v || 0).toLocaleString('ru-RU', { maximumFract
 }
 .vcoin-ic { color: #c4b5fd; filter: drop-shadow(0 0 4px rgba(167,139,250,0.6)); }
 .vcoin-val { font-weight: 800; font-size: 0.9rem; color: #d8ccff; }
+
+/* currency hover tooltip (native title doesn't render in MCEF) */
+.cur { position: relative; }
+.cur-tip {
+  position: absolute; top: calc(100% + 9px); left: 50%; transform: translateX(-50%) translateY(-4px);
+  width: 200px; padding: 9px 11px; border-radius: 11px;
+  display: flex; flex-direction: column; gap: 3px; text-align: left;
+  background: rgba(16,18,32,0.98); border: 1px solid rgba(150,168,220,0.22);
+  box-shadow: 0 14px 34px -12px rgba(0,0,0,0.85);
+  opacity: 0; pointer-events: none; transition: opacity .14s, transform .14s; z-index: 80;
+}
+.cur:hover .cur-tip { opacity: 1; transform: translateX(-50%) translateY(0); }
+.cur-tip::before {
+  content: ''; position: absolute; bottom: 100%; left: 50%; transform: translateX(-50%);
+  border: 6px solid transparent; border-bottom-color: rgba(16,18,32,0.98);
+}
+.cur-tip--void { border-color: rgba(167,139,250,0.4); }
+.cur-tip--void::before { border-bottom-color: rgba(16,18,32,0.98); }
+.cur-tip-h { font-size: 0.8rem; font-weight: 800; color: #eef2ff; }
+.cur-tip--void .cur-tip-h { color: #d8ccff; }
+.cur-tip-d { font-size: 0.7rem; line-height: 1.35; color: #aab2cc; }
 
 .user { display: flex; align-items: center; gap: 10px; padding-left: 4px; }
 .head {

@@ -1634,6 +1634,10 @@ emailDomainNotice: 'Только российские почтовые серв�
   },
   gameUiTopbar: {
     voidCoin: 'Void Coin — премиум-валюта',
+    coinName: 'Монеты',
+    coinDesc: 'Игровая валюта — зарабатывается в игре',
+    voidName: 'Void Coin',
+    voidDesc: 'Премиум-валюта — покупается за донат',
   },
   gameUiHud: {
     tokenError: 'Нет токена — открой из игры.',

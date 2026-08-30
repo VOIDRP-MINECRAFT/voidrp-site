@@ -1634,6 +1634,10 @@ export default {
   },
   gameUiTopbar: {
     voidCoin: 'Void Coin — premium currency',
+    coinName: 'Coins',
+    coinDesc: 'In-game currency — earned by playing',
+    voidName: 'Void Coin',
+    voidDesc: 'Premium currency — bought with donations',
   },
   gameUiHud: {
     tokenError: 'No token — open from in-game.',
