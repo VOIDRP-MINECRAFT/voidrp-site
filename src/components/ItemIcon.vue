@@ -7,7 +7,7 @@
     class="ii-frame"
     :style="{ width: size + 'px', height: size + 'px' }"
   >
-    <img :src="iconUrl" :alt="itemKey" class="ii-img" @error="imgError = true" />
+    <img :src="iconUrl" :alt="itemKey" class="ii-img" loading="lazy" decoding="async" @error="imgError = true" />
   </span>
   <div
     v-else
