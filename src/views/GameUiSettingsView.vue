@@ -1,8 +1,8 @@
 <script setup>
-import { computed } from 'vue'
+import { computed, onMounted, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 import '../assets/gui-premium.css'
-import { setWebguiToken } from '../services/gameUiApi.js'
+import { setWebguiToken, getAccountSettings, patchAccountSettings } from '../services/gameUiApi.js'
 import { useWebGuiToken } from '../composables/useWebGui.js'
 import { useGameUiSettings } from '../composables/useGameUiSettings.js'
 import { setLocale } from '../i18n'
@@ -18,6 +18,28 @@ const settings = useGameUiSettings()
 
 const lang = computed(() => (locale.value || 'ru').startsWith('en') ? 'en' : 'ru')
 function pickLang(l) { setLocale(l) }
+
+// Account-level (server-synced) settings.
+const account = ref(null)
+onMounted(async () => {
+  try { account.value = await getAccountSettings() } catch { /* silent */ }
+})
+async function setHudAutoOpen(v) {
+  if (!account.value) return
+  account.value.hud_auto_open = v
+  try { await patchAccountSettings({ hud_auto_open: v }) } catch { /* keep optimistic */ }
+}
+function isMuted(type) { return (account.value?.muted_notifications || []).includes(type) }
+async function toggleNotif(type) {
+  if (!account.value) return
+  const muted = new Set(account.value.muted_notifications || [])
+  if (muted.has(type)) muted.delete(type); else muted.add(type)
+  account.value.muted_notifications = [...muted]
+  try { await patchAccountSettings({ muted_notifications: account.value.muted_notifications }) } catch { /* keep optimistic */ }
+}
+function notifLabel(type) {
+  return t('gameUiSettings.notif.' + type)
+}
 </script>
 
 <template>
@@ -64,6 +86,33 @@ function pickLang(l) { setLocale(l) }
         </div>
 
         <p class="st-foot">{{ t('gameUiSettings.savedNote') }}</p>
+      </div>
+
+      <!-- account (synced) settings -->
+      <div v-if="account" class="gp-panel st" style="margin-top:16px">
+        <div class="gp-phead">
+          <span class="gp-phead-ic"><GuiIcon name="users" :size="16" /></span>
+          <span class="gp-phead-tt">{{ t('gameUiSettings.accountTitle') }}</span>
+        </div>
+
+        <div class="st-row">
+          <div class="st-info">
+            <div class="st-label">{{ t('gameUiSettings.hudAutoOpen') }}</div>
+            <div class="st-hint">{{ t('gameUiSettings.hudAutoOpenHint') }}</div>
+          </div>
+          <button class="st-toggle" :class="{ on: account.hud_auto_open }" @click="setHudAutoOpen(!account.hud_auto_open)" role="switch" :aria-checked="account.hud_auto_open"><span class="st-knob"></span></button>
+        </div>
+
+        <div v-if="(account.mutable_notifications || []).length" class="st-notif">
+          <div class="st-label" style="margin:6px 0 2px">{{ t('gameUiSettings.notifPrefs') }}</div>
+          <div class="st-hint" style="margin-bottom:10px">{{ t('gameUiSettings.notifPrefsHint') }}</div>
+          <div v-for="type in account.mutable_notifications" :key="type" class="st-row">
+            <div class="st-info"><div class="st-label" style="font-size:0.82rem">{{ notifLabel(type) }}</div></div>
+            <button class="st-toggle" :class="{ on: !isMuted(type) }" @click="toggleNotif(type)" role="switch" :aria-checked="!isMuted(type)"><span class="st-knob"></span></button>
+          </div>
+        </div>
+
+        <p class="st-foot">{{ t('gameUiSettings.accountNote') }}</p>
       </div>
     </div>
   </section>

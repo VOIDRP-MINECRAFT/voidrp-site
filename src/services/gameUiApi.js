@@ -153,6 +153,13 @@ export function getNationActivity() {
 export function getWeekly() {
   return req('/game-ui/weekly')
 }
+// Account-level (synced) settings.
+export function getAccountSettings() {
+  return req('/game-ui/settings')
+}
+export function patchAccountSettings(body) {
+  return req('/game-ui/settings', { method: 'PATCH', body: JSON.stringify(body) })
+}
 export function dismissNotification(id) {
   return req(`/game-ui/notifications/${id}/dismiss`, { method: 'POST' })
 }
