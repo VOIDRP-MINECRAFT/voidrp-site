@@ -159,6 +159,9 @@ export function spinUpgrader(rewardId, stake, clientSeed) {
 export function getUpgraderHistory() {
   return req('/game-ui/upgrader/history')
 }
+export function getUpgraderRecentWins() {
+  return req('/game-ui/upgrader/recent-wins')
+}
 
 // ── Notifications (reactive HUD toasts) ───────────────────────────────────────
 // The feed returns UNSEEN notifications and marks them seen on fetch — one-shot.

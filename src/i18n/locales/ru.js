@@ -1530,6 +1530,10 @@ emailDomainNotice: 'Только российские почтовые серв�
     spinning: 'Крутим…',
     win: 'Успех!',
     lose: 'Мимо',
+    search: 'Поиск награды…',
+    allTiers: 'Все',
+    noResult: 'Ничего не найдено',
+    recentWins: 'Последние победы',
     tier: { common: 'Обычный', rare: 'Редкий', epic: 'Эпический', legendary: 'Легендарный' },
   },
   gameUiSettings: {

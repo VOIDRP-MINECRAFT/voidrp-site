@@ -1,8 +1,9 @@
 <script setup>
-import { ref, computed, onMounted, nextTick } from 'vue'
+import { ref, computed, onMounted, onUnmounted, nextTick } from 'vue'
 import { useI18n } from 'vue-i18n'
 import '../assets/gui-premium.css'
-import { getUpgraderRewards, spinUpgrader, getUpgraderHistory, setWebguiToken } from '../services/gameUiApi.js'
+import { getUpgraderRewards, spinUpgrader, getUpgraderHistory, getUpgraderRecentWins, setWebguiToken } from '../services/gameUiApi.js'
+import { API_BASE_URL } from '../services/apiBase'
 import { useWebGuiToken } from '../composables/useWebGui.js'
 import GameUiSidebar from '../components/GameUiSidebar.vue'
 import GameUiStarfield from '../components/GameUiStarfield.vue'
@@ -38,11 +39,28 @@ let pid = 0
 
 const TIER_ORDER = ['common', 'rare', 'epic', 'legendary']
 const tierColor = { common: '#94a3b8', rare: '#38bdf8', epic: '#a78bfa', legendary: '#fbbf24' }
-const grouped = computed(() => {
+
+// reward browsing: search + tier filter, inside a fixed-height scroll area
+const rewardSearch = ref('')
+const tierFilter = ref('all')
+const filteredGrouped = computed(() => {
+  const q = rewardSearch.value.trim().toLowerCase()
   const g = {}
-  for (const r of rewards.value) (g[r.tier] || (g[r.tier] = [])).push(r)
+  for (const r of rewards.value) {
+    if (tierFilter.value !== 'all' && r.tier !== tierFilter.value) continue
+    if (q && !(r.display_name.toLowerCase().includes(q) || r.item_key.includes(q))) continue
+    ;(g[r.tier] || (g[r.tier] = [])).push(r)
+  }
   return TIER_ORDER.filter((tk) => g[tk]?.length).map((tk) => ({ tier: tk, items: g[tk] }))
 })
+
+// recent-wins ticker
+const recentWins = ref([])
+let winsTimer = null
+function headUrl(nick) { return `${API_BASE_URL}/public/player-head/${encodeURIComponent(nick)}` }
+async function loadWins() {
+  try { recentWins.value = await getUpgraderRecentWins() } catch { /* silent */ }
+}
 
 const multiplier = computed(() => {
   if (!selected.value || stake.value < 1) return 0
@@ -121,6 +139,7 @@ async function doSpin() {
       spinning.value = false
       burst(res.won)
       loadHistory()
+      if (res.won) loadWins()
     }, 4300)
   } catch (e) {
     error.value = e?.message || 'error'
@@ -149,8 +168,10 @@ async function load() {
     loading.value = false
   }
   loadHistory()
+  loadWins()
 }
-onMounted(load)
+onMounted(() => { load(); winsTimer = setInterval(loadWins, 12000) })
+onUnmounted(() => { clearInterval(winsTimer) })
 </script>
 
 <template>
@@ -239,17 +260,28 @@ onMounted(load)
         <div class="up-side">
           <div class="gp-panel">
             <div class="gp-phead"><span class="gp-phead-ic"><GuiIcon name="gift" :size="16" /></span><span class="gp-phead-tt">{{ t('gameUiUpgrader.rewards') }}</span></div>
-            <div v-for="grp in grouped" :key="grp.tier" class="up-tier-grp">
-              <div class="up-tier-head" :style="{ '--tc': tierColor[grp.tier] }"><span class="up-tier-dot"></span>{{ t('gameUiUpgrader.tier.' + grp.tier) }}</div>
-              <div class="up-grid">
-                <button v-for="r in grp.items" :key="r.id" class="up-card" :class="['t-' + r.tier, { sel: selected && selected.id === r.id }]"
-                        :style="{ '--tc': tierColor[r.tier] }" @click="pickReward(r)">
-                  <span class="up-card-shine"></span>
-                  <ItemIcon :itemKey="r.item_key" :size="30" />
-                  <span class="up-card-name">{{ r.display_name }}</span>
-                  <span class="up-card-val"><GuiIcon name="voidcoin" :size="10" />{{ money(r.vc_value) }}</span>
-                </button>
+            <div class="up-filters">
+              <div class="up-search"><GuiIcon name="market" :size="14" /><input v-model="rewardSearch" :placeholder="t('gameUiUpgrader.search')" /></div>
+              <div class="up-chips">
+                <button class="up-chip" :class="{ on: tierFilter === 'all' }" @click="tierFilter = 'all'">{{ t('gameUiUpgrader.allTiers') }}</button>
+                <button v-for="tk in TIER_ORDER" :key="tk" class="up-chip" :class="{ on: tierFilter === tk }"
+                        :style="tierFilter === tk ? { color: tierColor[tk], borderColor: tierColor[tk] } : {}" @click="tierFilter = tk">{{ t('gameUiUpgrader.tier.' + tk) }}</button>
               </div>
+            </div>
+            <div class="up-rewards-scroll">
+              <div v-for="grp in filteredGrouped" :key="grp.tier" class="up-tier-grp">
+                <div class="up-tier-head" :style="{ '--tc': tierColor[grp.tier] }"><span class="up-tier-dot"></span>{{ t('gameUiUpgrader.tier.' + grp.tier) }}</div>
+                <div class="up-grid">
+                  <button v-for="r in grp.items" :key="r.id" class="up-card" :class="['t-' + r.tier, { sel: selected && selected.id === r.id }]"
+                          :style="{ '--tc': tierColor[r.tier] }" @click="pickReward(r)">
+                    <span class="up-card-shine"></span>
+                    <ItemIcon :itemKey="r.item_key" :size="30" />
+                    <span class="up-card-name">{{ r.display_name }}</span>
+                    <span class="up-card-val"><GuiIcon name="voidcoin" :size="10" />{{ money(r.vc_value) }}</span>
+                  </button>
+                </div>
+              </div>
+              <div v-if="!filteredGrouped.length" class="up-noresult">{{ t('gameUiUpgrader.noResult') }}</div>
             </div>
           </div>
 
@@ -261,6 +293,22 @@ onMounted(load)
                 <span class="up-hname">{{ h.reward_display }}</span>
                 <span class="up-hstake"><GuiIcon name="voidcoin" :size="10" />{{ money(h.stake) }}</span>
                 <span class="up-hmult">×{{ h.multiplier }}</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- recent winners ticker -->
+        <div v-if="recentWins.length" class="gp-panel up-recent">
+          <div class="gp-phead"><span class="gp-phead-ic"><GuiIcon name="trophy" :size="16" /></span><span class="gp-phead-tt">{{ t('gameUiUpgrader.recentWins') }}</span></div>
+          <div class="up-recent-row">
+            <div v-for="(w, i) in recentWins" :key="i" class="up-win" :style="{ '--tc': '#a78bfa' }">
+              <img class="up-win-head" :src="headUrl(w.nickname)" alt="" @error="$event.target.style.visibility='hidden'" />
+              <div class="up-win-ic"><ItemIcon :itemKey="w.reward_item_key" :size="26" /></div>
+              <div class="up-win-info">
+                <div class="up-win-item">{{ w.reward_display }}</div>
+                <div class="up-win-meta"><span class="up-win-nick">{{ w.nickname }}</span><span class="up-win-mult">×{{ w.multiplier }}</span></div>
+                <div class="up-win-stake"><GuiIcon name="voidcoin" :size="10" />{{ money(w.stake) }}</div>
               </div>
             </div>
           </div>
@@ -381,6 +429,36 @@ onMounted(load)
 @keyframes shine { to { left: 130%; } }
 .up-card-name { font-size: 0.63rem; font-weight: 700; color: #c9d2ee; text-align: center; line-height: 1.15; }
 .up-card-val { display: inline-flex; align-items: center; gap: 3px; font-size: 0.65rem; font-weight: 800; color: #c4b5fd; }
+
+/* reward search + tier filter + scroll area */
+.up-filters { display: flex; flex-direction: column; gap: 8px; margin: 10px 0 6px; }
+.up-search { display: flex; align-items: center; gap: 7px; padding: 7px 11px; border-radius: 10px; background: rgba(0,0,0,0.3); border: 1px solid var(--gp-line); color: #8a90a8; }
+.up-search:focus-within { border-color: rgba(139,123,255,0.5); }
+.up-search input { flex: 1; min-width: 0; background: none; border: none; outline: none; color: #eef2ff; font-size: 0.82rem; }
+.up-chips { display: flex; flex-wrap: wrap; gap: 5px; }
+.up-chip { padding: 4px 10px; border-radius: 999px; border: 1px solid var(--gp-line); background: rgba(255,255,255,0.03); color: #aeb9d6; font-size: 0.68rem; font-weight: 800; cursor: pointer; transition: background .12s, border-color .12s; }
+.up-chip:hover { background: rgba(139,123,255,0.12); }
+.up-chip.on { background: rgba(139,123,255,0.16); border-color: rgba(167,139,250,0.5); color: #eef2ff; }
+.up-rewards-scroll { max-height: 300px; overflow-y: auto; padding-right: 4px; }
+.up-rewards-scroll::-webkit-scrollbar { width: 6px; }
+.up-rewards-scroll::-webkit-scrollbar-thumb { background: rgba(139,123,255,0.3); border-radius: 3px; }
+.up-noresult { text-align: center; padding: 24px; font-size: 0.8rem; color: #8a90a8; }
+
+/* recent winners ticker */
+.up-recent { grid-column: 1 / -1; }
+.up-recent-row { display: flex; gap: 9px; overflow-x: auto; padding: 10px 2px 4px; }
+.up-recent-row::-webkit-scrollbar { height: 6px; }
+.up-recent-row::-webkit-scrollbar-thumb { background: rgba(139,123,255,0.3); border-radius: 3px; }
+.up-win { flex: 0 0 auto; display: flex; align-items: center; gap: 9px; padding: 9px 12px 9px 9px; border-radius: 12px;
+  background: linear-gradient(120deg, rgba(52,211,153,0.08), rgba(255,255,255,0.02)); border: 1px solid rgba(52,211,153,0.28); min-width: 190px; }
+.up-win-head { width: 34px; height: 34px; border-radius: 8px; image-rendering: pixelated; flex-shrink: 0; border: 1px solid rgba(255,255,255,0.12); }
+.up-win-ic { width: 34px; height: 34px; display: grid; place-items: center; border-radius: 9px; background: rgba(0,0,0,0.3); border: 1px solid var(--gp-line); flex-shrink: 0; }
+.up-win-info { min-width: 0; }
+.up-win-item { font-size: 0.76rem; font-weight: 800; color: #eef2ff; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 130px; }
+.up-win-meta { display: flex; align-items: center; gap: 6px; margin-top: 1px; }
+.up-win-nick { font-size: 0.66rem; font-weight: 700; color: #34d399; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 84px; }
+.up-win-mult { font-size: 0.64rem; font-weight: 800; color: #a78bfa; }
+.up-win-stake { display: inline-flex; align-items: center; gap: 3px; font-size: 0.64rem; font-weight: 700; color: #c4b5fd; margin-top: 1px; }
 
 /* history */
 .up-hist { display: flex; flex-direction: column; gap: 5px; margin-top: 8px; }

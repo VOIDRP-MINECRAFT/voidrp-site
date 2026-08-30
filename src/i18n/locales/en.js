@@ -1530,6 +1530,10 @@ export default {
     spinning: 'Spinning…',
     win: 'Win!',
     lose: 'Miss',
+    search: 'Search reward…',
+    allTiers: 'All',
+    noResult: 'Nothing found',
+    recentWins: 'Recent wins',
     tier: { common: 'Common', rare: 'Rare', epic: 'Epic', legendary: 'Legendary' },
   },
   gameUiSettings: {
