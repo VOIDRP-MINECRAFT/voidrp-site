@@ -147,6 +147,7 @@ const navGroups = computed(() => {
         { to: '/admin/monitoring', label: 'Мониторинг', icon: icons.monitoring, perm: 'monitoring.view' },
         { to: '/admin/mods', label: 'Моды', icon: icons.mods, perm: 'mods.view' },
         { to: '/admin/market', label: 'Рынок', icon: icons.market, perm: 'market.view' },
+        { to: '/admin/upgrader', label: 'Апгрейдер', icon: icons.market, perm: 'upgrader.view' },
         { to: '/admin/nations', label: 'Государства', icon: icons.nations, perm: 'nations.view' },
         { to: '/admin/battlepass', label: 'Battle Pass', icon: icons.battlepass, perm: 'battlepass.view' },
         { to: '/admin/anticheat', label: 'Античит', icon: icons.anticheat, perm: 'anticheat.view' },

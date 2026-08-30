@@ -1,10 +1,10 @@
 <script setup>
-import { onMounted, ref } from 'vue'
+import { onMounted, ref, computed } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useRoute, useRouter } from 'vue-router'
 import GuiIcon from './GuiIcon.vue'
 import { closeGui, navigateGamePage } from '../composables/useWebGui.js'
-import { getNotificationHistory, getWebguiToken, setWebguiToken } from '../services/gameUiApi.js'
+import { getNotificationHistory, getWebguiToken, setWebguiToken, getFeatures } from '../services/gameUiApi.js'
 
 const props = defineProps({ current: { type: String, default: '' } })
 
@@ -16,6 +16,7 @@ const router = useRouter()
 // (The one-shot toast feed runs only on the HUD overlay, so notifications fired while
 // in the full menu stay unseen — this prompts opening the center.)
 const unread = ref(0)
+const features = ref(null)
 onMounted(async () => {
   // This child mounts before the parent view's onMounted sets the token, so ensure it
   // ourselves from the route — otherwise the badge fetch drops ?webgui_token= and 422s.
@@ -28,7 +29,16 @@ onMounted(async () => {
     const d = await getNotificationHistory()
     unread.value = (d?.items || []).filter((n) => !n.seen_at).length
   } catch { /* silent */ }
+  try { features.value = (await getFeatures())?.features || {} } catch { /* silent */ }
 })
+
+// A tab maps to a per-server feature; hide it only when the feature is explicitly false
+// (absent/true ⇒ shown, matching the features contract).
+const FEATURE_OF = { upgrader: 'upgrader', leaderboards: 'leaderboards', battlepass: 'battlepass', quests: 'quests', alliance: 'alliances' }
+const visibleItems = computed(() => items.filter((it) => {
+  const f = FEATURE_OF[it.key]
+  return !(f && features.value && features.value[f] === false)
+}))
 
 // Left icon rail — the persistent in-game navigation (reference layout).
 const items = [
@@ -66,7 +76,7 @@ function go(item) {
 
     <nav class="grail-nav">
       <button
-        v-for="item in items"
+        v-for="item in visibleItems"
         :key="item.key"
         class="grail-tab"
         :class="{ active: item.key === current }"

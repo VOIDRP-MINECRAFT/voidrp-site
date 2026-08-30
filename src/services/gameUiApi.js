@@ -141,6 +141,11 @@ export function getLeaderboards() {
   return req('/game-ui/leaderboards')
 }
 
+// Per-server feature toggles (to hide disabled tabs in the WebGUI).
+export function getFeatures() {
+  return req('/game-ui/home/features')
+}
+
 // ── Void Upgrader ─────────────────────────────────────────────────────────────
 export function getUpgraderRewards() {
   return req('/game-ui/upgrader/rewards')
