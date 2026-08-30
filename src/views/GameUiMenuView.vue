@@ -32,6 +32,14 @@ const ping = computed(() => client.value?.server?.ping)
 const accent = computed(() => home.value?.nation?.accent_color || '#8b7bff')
 const achievements = computed(() => home.value?.achievements || [])
 const achUnlocked = computed(() => achievements.value.filter((a) => a.unlocked).length)
+
+// Custom hover tooltip for achievements (native `title` doesn't render inside MCEF).
+const achTip = ref({ show: false, x: 0, y: 0, a: null })
+function showAchTip(e, a) {
+  const r = e.currentTarget.getBoundingClientRect()
+  achTip.value = { show: true, x: r.left + r.width / 2, y: r.top, a }
+}
+function hideAchTip() { achTip.value = { ...achTip.value, show: false } }
 const weekly = ref([])
 const onboarding = computed(() => home.value?.onboarding || [])
 const onbDone = computed(() => onboarding.value.filter((s) => s.done).length)
@@ -351,7 +359,8 @@ function formatDate(d) {
               <span class="ach-count gp-num">{{ achUnlocked }}/{{ achievements.length }}</span>
             </div>
             <div class="ach-grid">
-              <div v-for="a in achievements" :key="a.key" class="ach" :class="{ locked: !a.unlocked }" :title="a.desc + (a.unlocked ? '' : ` — ${a.progress}/${a.goal}`)">
+              <div v-for="a in achievements" :key="a.key" class="ach" :class="{ locked: !a.unlocked }"
+                   @mouseenter="showAchTip($event, a)" @mouseleave="hideAchTip">
                 <span class="ach-ico"><GuiIcon :name="a.icon" :size="18" /></span>
                 <span class="ach-body">
                   <span class="ach-name">{{ a.title }}</span>
@@ -393,6 +402,16 @@ function formatDate(d) {
             </div>
           </div>
         </div>
+      </div>
+    </div>
+
+    <!-- floating achievement tooltip (native title doesn't render in MCEF) -->
+    <div v-if="achTip.show && achTip.a" class="ach-tip" :style="{ left: achTip.x + 'px', top: achTip.y + 'px' }">
+      <div class="ach-tip-h">{{ achTip.a.title }}</div>
+      <div class="ach-tip-cap">{{ achTip.a.unlocked ? t('gameUiHome.achEarned') : t('gameUiHome.achGoal') }}</div>
+      <div class="ach-tip-d">{{ achTip.a.desc }}</div>
+      <div class="ach-tip-s" :class="{ ok: achTip.a.unlocked }">
+        {{ achTip.a.unlocked ? '✓' : t('gameUiHome.achProgress', { cur: achTip.a.progress, goal: achTip.a.goal }) }}
       </div>
     </div>
   </section>
@@ -444,6 +463,25 @@ function formatDate(d) {
 .ach-done { font-size: 0.62rem; font-weight: 700; color: #34d399; text-transform: uppercase; letter-spacing: 0.05em; }
 .ach-bar { height: 4px; border-radius: 3px; background: rgba(0,0,0,0.3); overflow: hidden; }
 .ach-fill { display: block; height: 100%; border-radius: 3px; background: linear-gradient(90deg, #8b7bff, #a78bfa); }
+.ach { cursor: help; transition: border-color .14s, background .14s; }
+.ach:hover { border-color: rgba(139,123,255,0.4); background: rgba(139,123,255,0.06); }
+
+/* floating tooltip — position:fixed at the viewport so scroll containers don't clip it */
+.ach-tip {
+  position: fixed; z-index: 90; transform: translate(-50%, calc(-100% - 10px));
+  width: 210px; padding: 10px 12px; border-radius: 12px;
+  background: rgba(16, 18, 32, 0.98); border: 1px solid rgba(150,168,220,0.22);
+  box-shadow: 0 14px 34px -12px rgba(0,0,0,0.85); pointer-events: none;
+}
+.ach-tip::after {
+  content: ''; position: absolute; left: 50%; top: 100%; transform: translateX(-50%);
+  border: 6px solid transparent; border-top-color: rgba(16, 18, 32, 0.98);
+}
+.ach-tip-h { font-size: 0.86rem; font-weight: 800; color: #eef2ff; }
+.ach-tip-cap { margin-top: 5px; font-size: 0.6rem; font-weight: 800; letter-spacing: 0.06em; text-transform: uppercase; color: var(--gp-violet-2, #a78bfa); }
+.ach-tip-d { margin-top: 2px; font-size: 0.76rem; line-height: 1.35; color: #c3cbe6; }
+.ach-tip-s { margin-top: 7px; font-size: 0.72rem; font-weight: 700; color: #8a90a8; }
+.ach-tip-s.ok { color: #34d399; }
 
 /* activity chart */
 .act-chart { display: flex; align-items: flex-end; gap: 5px; height: 96px; padding-top: 6px; }
