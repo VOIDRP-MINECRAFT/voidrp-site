@@ -212,18 +212,50 @@ onUnmounted(() => { clearInterval(winsTimer) })
                     :style="{ '--tx': p.tx, '--ty': p.ty, '--rot': p.rot, '--dl': p.delay, '--du': p.dur, width: p.sz+'px', height: p.sz+'px', background: p.color }"></span>
             </div>
             <svg class="up-wheel" viewBox="0 0 200 200">
-              <circle class="up-track" cx="100" cy="100" r="84" fill="none" stroke-width="15" />
-              <circle v-show="arcVisible" class="up-arc" cx="100" cy="100" r="84" fill="none" stroke="url(#upg)" stroke-width="15"
-                      :stroke-dasharray="winDash" transform="rotate(-90 100 100)" stroke-linecap="round" />
-              <circle class="up-ticks" cx="100" cy="100" r="72" fill="none" stroke="rgba(255,255,255,0.10)" stroke-width="10"
-                      stroke-dasharray="0.6 11.5" transform="rotate(-90 100 100)" />
               <defs>
-                <linearGradient id="upg" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#8b7bff" /><stop offset="0.5" stop-color="#c084fc" /><stop offset="1" stop-color="#f0abfc" /></linearGradient>
+                <linearGradient id="upgArc" x1="0" y1="0" x2="1" y2="1">
+                  <stop offset="0" stop-color="#7c6bff" /><stop offset="0.5" stop-color="#c084fc" /><stop offset="1" stop-color="#f472d0" />
+                </linearGradient>
+                <radialGradient id="upgHub" cx="50%" cy="40%" r="70%">
+                  <stop offset="0" stop-color="#1b1e38" /><stop offset="0.68" stop-color="#0d0f20" /><stop offset="1" stop-color="#06070f" />
+                </radialGradient>
+                <linearGradient id="upgGloss" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="0" stop-color="rgba(255,255,255,0.12)" /><stop offset="1" stop-color="rgba(255,255,255,0)" />
+                </linearGradient>
+                <filter id="upgGlow" x="-40%" y="-40%" width="180%" height="180%">
+                  <feGaussianBlur stdDeviation="3.4" result="b" /><feMerge><feMergeNode in="b" /><feMergeNode in="SourceGraphic" /></feMerge>
+                </filter>
               </defs>
-              <g class="up-needle" :style="{ transform: 'rotate(' + pointerDeg + 'deg)', transition: spinning ? 'transform 4.2s cubic-bezier(0.12,0.72,0.16,1)' : 'none' }">
-                <polygon points="100,6 92,32 108,32" />
+
+              <!-- bezel -->
+              <circle cx="100" cy="100" r="94" fill="none" stroke="rgba(150,168,220,0.10)" stroke-width="1" />
+              <circle cx="100" cy="100" r="90.5" fill="none" stroke="rgba(150,168,220,0.05)" stroke-width="2.5" />
+
+              <!-- track + graduated ticks -->
+              <circle class="up-track" cx="100" cy="100" r="84" fill="none" stroke-width="15" />
+              <circle class="up-ticks" cx="100" cy="100" r="72" fill="none" stroke="rgba(255,255,255,0.09)" stroke-width="9"
+                      stroke-dasharray="0.7 10.4" transform="rotate(-90 100 100)" />
+
+              <!-- win arc: soft glow underlay + crisp arc + glossy centerline -->
+              <g v-show="arcVisible">
+                <circle class="up-arc-glow" cx="100" cy="100" r="84" fill="none" stroke="url(#upgArc)" stroke-width="15"
+                        :stroke-dasharray="winDash" transform="rotate(-90 100 100)" stroke-linecap="round" filter="url(#upgGlow)" />
+                <circle class="up-arc" cx="100" cy="100" r="84" fill="none" stroke="url(#upgArc)" stroke-width="15"
+                        :stroke-dasharray="winDash" transform="rotate(-90 100 100)" stroke-linecap="round" />
+                <circle class="up-arc-hi" cx="100" cy="100" r="84" fill="none" stroke="rgba(255,255,255,0.45)" stroke-width="2.5"
+                        :stroke-dasharray="winDash" transform="rotate(-90 100 100)" stroke-linecap="round" />
               </g>
-              <circle class="up-hub" cx="100" cy="100" r="58" />
+
+              <!-- hub -->
+              <circle cx="100" cy="100" r="63" fill="none" stroke="rgba(139,123,255,0.16)" stroke-width="1" />
+              <circle class="up-hub" cx="100" cy="100" r="60" fill="url(#upgHub)" stroke="rgba(150,168,220,0.14)" stroke-width="1" />
+              <ellipse cx="100" cy="80" rx="50" ry="28" fill="url(#upgGloss)" />
+
+              <!-- pointer -->
+              <g class="up-needle" :style="{ transform: 'rotate(' + pointerDeg + 'deg)', transition: spinning ? 'transform 4.2s cubic-bezier(0.12,0.72,0.16,1)' : 'none' }">
+                <path d="M100 3 L108.5 25 Q100 31 91.5 25 Z" />
+                <circle class="up-needle-knob" cx="100" cy="11" r="3.4" />
+              </g>
             </svg>
             <div class="up-wheel-center">
               <transition name="up-pop" mode="out-in">
@@ -355,14 +387,18 @@ onUnmounted(() => { clearInterval(winsTimer) })
 @keyframes aura-flash { 0% { transform: scale(.6); opacity: 1; } 100% { transform: scale(1.15); opacity: 1; } }
 
 .up-wheel { width: 100%; height: 100%; position: relative; z-index: 1; }
-.up-track { stroke: rgba(255,255,255,0.06); }
-.up-arc { filter: drop-shadow(0 0 6px rgba(168,85,247,0.8)); transition: stroke-dasharray .35s ease; }
-.up-wheel-box.win .up-arc { stroke: #34d399; filter: drop-shadow(0 0 8px rgba(52,211,153,0.9)); }
-.up-hub { fill: rgba(9,11,22,0.94); stroke: rgba(150,168,220,0.16); stroke-width: 1; }
+.up-track { stroke: rgba(255,255,255,0.055); }
+.up-arc { transition: stroke-dasharray .35s ease; }
+.up-arc-glow { opacity: 0.5; transition: stroke-dasharray .35s ease; }
+.up-arc-hi { opacity: 0.5; transition: stroke-dasharray .35s ease; }
+.up-ticks { transition: stroke .3s; }
+.up-wheel-box.win .up-arc, .up-wheel-box.win .up-arc-glow { stroke: #34d399; }
+.up-hub { transition: stroke .3s; }
 .up-needle { transform-origin: 100px 100px; }
-.up-needle polygon { fill: #eef2ff; filter: drop-shadow(0 0 5px rgba(238,242,255,0.9)); }
-.up-wheel-box.win .up-needle polygon { fill: #34d399; filter: drop-shadow(0 0 7px rgba(52,211,153,1)); }
-.up-wheel-box.lose .up-needle polygon { fill: #fb7185; }
+.up-needle path { fill: #f4f7ff; filter: drop-shadow(0 0 5px rgba(238,242,255,0.95)); transition: fill .2s; }
+.up-needle-knob { fill: #f4f7ff; filter: drop-shadow(0 0 4px rgba(238,242,255,0.9)); transition: fill .2s; }
+.up-wheel-box.win .up-needle path, .up-wheel-box.win .up-needle-knob { fill: #34d399; filter: drop-shadow(0 0 8px rgba(52,211,153,1)); }
+.up-wheel-box.lose .up-needle path, .up-wheel-box.lose .up-needle-knob { fill: #fb7185; filter: drop-shadow(0 0 6px rgba(251,113,133,0.9)); }
 .up-wheel-box.lose { animation: shake .4s ease; }
 @keyframes shake { 0%,100% { transform: translateX(0); } 20% { transform: translateX(-7px); } 40% { transform: translateX(6px); } 60% { transform: translateX(-4px); } 80% { transform: translateX(3px); } }
 
