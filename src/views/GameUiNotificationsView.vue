@@ -4,7 +4,7 @@ import { useI18n } from 'vue-i18n'
 import { useRoute, useRouter } from 'vue-router'
 import '../assets/gui-premium.css'
 import { getNotificationHistory, getNotifications, dismissNotification, setWebguiToken } from '../services/gameUiApi.js'
-import { useWebGuiToken } from '../composables/useWebGui.js'
+import { useWebGuiToken, navigateGamePage } from '../composables/useWebGui.js'
 import GameUiSidebar from '../components/GameUiSidebar.vue'
 import GameUiStarfield from '../components/GameUiStarfield.vue'
 import GameUiTopBar from '../components/GameUiTopBar.vue'
@@ -62,7 +62,7 @@ function act(n) {
   if (!name) return
   const raw = route.query.webgui_token
   const webgui_token = Array.isArray(raw) ? raw[0] : raw
-  router.push({ name, query: webgui_token ? { webgui_token } : {} })
+  navigateGamePage(router, name, webgui_token)   // bridge in-game, soft-nav in browser
 }
 
 async function dismiss(n) {

@@ -5,9 +5,18 @@
 import { ref, onMounted, onUnmounted } from 'vue'
 import { getNotifications, runGameCommand, runGameOpenPage } from '../services/gameUiApi.js'
 import { useGameUiSettings } from '../composables/useGameUiSettings.js'
+import { openGui, useWebGuiToken } from '../composables/useWebGui.js'
 import GuiIcon from './GuiIcon.vue'
 
 const guiSettings = useGameUiSettings()
+const webguiToken = useWebGuiToken()
+
+// Known page keys → route path; toast route-actions open the interactive GUI here.
+const PAGES = new Set(['menu','market','nmarket','treasury','research','alliance','battlepass','quests','leaderboards','notifications'])
+function pageUrl(page) {
+  const q = webguiToken ? '?webgui_token=' + encodeURIComponent(webguiToken) : ''
+  return window.location.origin + '/game-ui/' + page + q
+}
 
 const notes = ref([])
 const timers = new Map()
@@ -38,8 +47,17 @@ function drop(id) {
 }
 function act(n) {
   if (!n.action_payload) { drop(n.id); return }
-  if (n.action_type === 'route') runGameOpenPage(n.action_payload).catch(() => {})   // open a WEBGUI page
-  else if (n.action_type === 'command') runGameCommand(n.action_payload).catch(() => {})
+  if (n.action_type === 'route') {
+    // Open the interactive WEBGUI page directly via the mod bridge (instant, no backend
+    // round-trip); fall back to the server-polled open_gui action if the bridge isn't there.
+    if (PAGES.has(n.action_payload)) {
+      openGui(pageUrl(n.action_payload)).catch(() => runGameOpenPage(n.action_payload).catch(() => {}))
+    } else {
+      runGameOpenPage(n.action_payload).catch(() => {})
+    }
+  } else if (n.action_type === 'command') {
+    runGameCommand(n.action_payload).catch(() => {})
+  }
   drop(n.id)
 }
 // Triggered by the in-game "Open notification" keybind (mod dispatches it): act on the
@@ -62,7 +80,8 @@ onUnmounted(() => {
 
 <template>
   <transition-group tag="div" name="gnote" class="gnotes">
-    <div v-for="n in notes" :key="n.id" class="gnote" :class="'ac-' + (n.accent || 'violet')">
+    <div v-for="n in notes" :key="n.id" class="gnote" :class="'ac-' + (n.accent || 'violet')"
+         :style="{ cursor: n.action_payload ? 'pointer' : 'default' }" @click="act(n)">
       <span class="gnote-ic">
         <img v-if="isItemIcon(n)" :src="itemUrl(n.icon)" alt="" @error="$event.target.style.display='none'" />
         <GuiIcon v-else :name="n.icon || 'bell'" :size="18" />

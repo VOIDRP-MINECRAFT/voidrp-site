@@ -3,7 +3,7 @@ import { onMounted, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useRoute, useRouter } from 'vue-router'
 import GuiIcon from './GuiIcon.vue'
-import { closeGui } from '../composables/useWebGui.js'
+import { closeGui, navigateGamePage } from '../composables/useWebGui.js'
 import { getNotificationHistory, getWebguiToken, setWebguiToken } from '../services/gameUiApi.js'
 
 const props = defineProps({ current: { type: String, default: '' } })
@@ -49,7 +49,7 @@ function go(item) {
   if (item.key === props.current) return
   const raw = route.query.webgui_token
   const webgui_token = Array.isArray(raw) ? raw[0] : raw
-  router.push({ name: item.route, query: webgui_token ? { webgui_token } : {} })
+  navigateGamePage(router, item.route, webgui_token)   // bridge in-game, soft-nav in browser
 }
 </script>
 
