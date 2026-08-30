@@ -3,7 +3,7 @@ import { ref, onMounted } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useRoute, useRouter } from 'vue-router'
 import '../assets/gui-premium.css'
-import { getNotificationHistory, getNotifications, dismissNotification, setWebguiToken } from '../services/gameUiApi.js'
+import { getNotificationHistory, getNotifications, dismissNotification, setWebguiToken, runGameCommand } from '../services/gameUiApi.js'
 import { useWebGuiToken, navigateGamePage } from '../composables/useWebGui.js'
 import GameUiSidebar from '../components/GameUiSidebar.vue'
 import GameUiStarfield from '../components/GameUiStarfield.vue'
@@ -56,13 +56,37 @@ async function load() {
   }
 }
 
+// Resolve an action payload to a route name, tolerating old/inconsistent producers:
+// a page key ("battlepass"), a full route name ("game-ui-battlepass"), or a "game-ui-"
+// prefixed key. Returns null when it isn't a known in-app page.
+function routeNameFor(payload) {
+  if (!payload) return null
+  if (PAGE_ROUTES[payload]) return PAGE_ROUTES[payload]
+  const key = String(payload).replace(/^game-ui-/, '')
+  if (PAGE_ROUTES[key]) return PAGE_ROUTES[key]
+  if (Object.values(PAGE_ROUTES).includes(payload)) return payload   // already a route name
+  return null
+}
+
+// True when a notification has something actionable (drives the button's visibility).
+function hasAction(n) {
+  if (!n.action_label) return false
+  if (routeNameFor(n.action_payload)) return true
+  return n.action_type === 'command' && !!n.action_payload
+}
+
 function act(n) {
-  if (n.action_type !== 'route' || !n.action_payload) return
-  const name = PAGE_ROUTES[n.action_payload]
-  if (!name) return
-  const raw = route.query.webgui_token
-  const webgui_token = Array.isArray(raw) ? raw[0] : raw
-  navigateGamePage(router, name, webgui_token)   // bridge in-game, soft-nav in browser
+  const name = routeNameFor(n.action_payload)
+  if (name) {
+    // Navigating to an in-app page always wins, whatever action_type an old row carried.
+    const raw = route.query.webgui_token
+    const webgui_token = Array.isArray(raw) ? raw[0] : raw
+    navigateGamePage(router, name, webgui_token)
+    return
+  }
+  if (n.action_type === 'command' && n.action_payload) {
+    runGameCommand(n.action_payload).catch(() => {})   // whitelisted server-side command
+  }
 }
 
 async function dismiss(n) {
@@ -106,7 +130,7 @@ onMounted(load)
               <div v-if="n.body" class="nc-text">{{ n.body }}</div>
               <div class="nc-meta">
                 <span class="nc-time">{{ timeAgo(n.created_at) }}</span>
-                <button v-if="n.action_type === 'route' && n.action_label" class="nc-act" @click="act(n)">
+                <button v-if="hasAction(n)" class="nc-act" @click="act(n)">
                   {{ n.action_label }}<GuiIcon name="chevronRight" :size="12" />
                 </button>
               </div>

@@ -60,20 +60,19 @@ export function openGui(url) {
 }
 
 /**
- * Navigate to another game-ui page by route name, reliably in BOTH contexts.
- * In-game (MCEF) soft-routing can leave the offscreen browser unrepainted / clicks
- * dead, so we ask the mod to (re)load the target URL via the open_gui bridge — the
- * same canonical path the game uses to open every WebGUI page. In a normal browser
- * we just soft-navigate. Pass the current route's webgui_token through so the target
- * page stays authenticated.
+ * Navigate to another game-ui page by route name from WITHIN an open WebGUI screen
+ * (sidebar tabs, dashboard tiles, notification-center action buttons).
+ *
+ * This is a plain SPA soft-navigation. Do NOT route it through the open_gui mod
+ * bridge: that does setScreen(new WebViewScreen) which REPLACES the current screen,
+ * and replacing a WebViewScreen from inside its own page (mid-cefQuery-callback)
+ * doesn't reliably re-open — the button appears to "do nothing" in-game. router.push
+ * stays inside the same MCEF browser and repaints reliably. (The open_gui bridge is
+ * only for opening a GUI from the HUD overlay, where no screen is open yet.)
+ * The webgui_token is carried through so the target page stays authenticated.
  */
 export function navigateGamePage(router, name, webguiToken) {
   const query = webguiToken ? { webgui_token: webguiToken } : {}
-  if (isInMod()) {
-    const href = router.resolve({ name, query }).href
-    const url = window.location.origin + href
-    return openGui(url).catch(() => router.push({ name, query }))  // fall back to soft-nav
-  }
   return Promise.resolve(router.push({ name, query }))
 }
 

@@ -13,6 +13,13 @@ const webguiToken = useWebGuiToken()
 
 // Known page keys → route path; toast route-actions open the interactive GUI here.
 const PAGES = new Set(['menu','market','nmarket','treasury','research','alliance','battlepass','quests','leaderboards','notifications'])
+// Tolerate old producers that sent "game-ui-battlepass" instead of the "battlepass" key.
+function pageKey(payload) {
+  if (!payload) return null
+  if (PAGES.has(payload)) return payload
+  const key = String(payload).replace(/^game-ui-/, '')
+  return PAGES.has(key) ? key : null
+}
 function pageUrl(page) {
   const q = webguiToken ? '?webgui_token=' + encodeURIComponent(webguiToken) : ''
   return window.location.origin + '/game-ui/' + page + q
@@ -47,16 +54,15 @@ function drop(id) {
 }
 function act(n) {
   if (!n.action_payload) { drop(n.id); return }
-  if (n.action_type === 'route') {
-    // Open the interactive WEBGUI page directly via the mod bridge (instant, no backend
-    // round-trip); fall back to the server-polled open_gui action if the bridge isn't there.
-    if (PAGES.has(n.action_payload)) {
-      openGui(pageUrl(n.action_payload)).catch(() => runGameOpenPage(n.action_payload).catch(() => {}))
-    } else {
-      runGameOpenPage(n.action_payload).catch(() => {})
-    }
-  } else if (n.action_type === 'command') {
+  const key = pageKey(n.action_payload)
+  if (key) {
+    // A known page always opens the interactive WEBGUI page directly via the mod bridge
+    // (instant), whatever action_type an old row carried; fall back to the polled action.
+    openGui(pageUrl(key)).catch(() => runGameOpenPage(key).catch(() => {}))
+  } else if (n.action_type === 'command' && n.action_payload) {
     runGameCommand(n.action_payload).catch(() => {})
+  } else if (n.action_type === 'route' && n.action_payload) {
+    runGameOpenPage(n.action_payload).catch(() => {})
   }
   drop(n.id)
 }
