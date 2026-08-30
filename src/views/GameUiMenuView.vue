@@ -12,7 +12,7 @@ import GameUiTopBar from '../components/GameUiTopBar.vue'
 import GuiIcon from '../components/GuiIcon.vue'
 import CountUp from '../components/CountUp.vue'
 
-const { t } = useI18n()
+const { t, locale } = useI18n()
 const route = useRoute()
 const router = useRouter()
 const token = useWebGuiToken()
@@ -40,6 +40,18 @@ function showAchTip(e, a) {
   achTip.value = { show: true, x: r.left + r.width / 2, y: r.top, a }
 }
 function hideAchTip() { achTip.value = { ...achTip.value, show: false } }
+
+// Same, for the activity chart bars (native `title` also invisible in MCEF).
+const actTip = ref({ show: false, x: 0, y: 0, d: null })
+function showActTip(e, d) {
+  const r = e.currentTarget.getBoundingClientRect()
+  actTip.value = { show: true, x: r.left + r.width / 2, y: r.top, d }
+}
+function hideActTip() { actTip.value = { ...actTip.value, show: false } }
+function actTipDate(iso) {
+  const loc = String(locale.value || 'ru').startsWith('en') ? 'en-US' : 'ru-RU'
+  return new Date(iso + 'T00:00:00').toLocaleDateString(loc, { weekday: 'long', day: 'numeric', month: 'short' })
+}
 const weekly = ref([])
 const onboarding = computed(() => home.value?.onboarding || [])
 const onbDone = computed(() => onboarding.value.filter((s) => s.done).length)
@@ -378,7 +390,8 @@ function formatDate(d) {
               <span class="gp-phead-tt">{{ t('gameUiHome.activity') }}</span>
             </div>
             <div class="act-chart">
-              <div v-for="(d, i) in activity" :key="i" class="act-col" :title="`${fmtDuration(d.minutes)}`">
+              <div v-for="(d, i) in activity" :key="i" class="act-col"
+                   @mouseenter="showActTip($event, d)" @mouseleave="hideActTip">
                 <span class="act-bar-wrap">
                   <span class="act-bar" :class="{ zero: !d.minutes }" :style="{ height: Math.max(3, Math.round(d.minutes / activityMax * 100)) + '%' }"></span>
                 </span>
@@ -412,6 +425,14 @@ function formatDate(d) {
       <div class="ach-tip-d">{{ achTip.a.desc }}</div>
       <div class="ach-tip-s" :class="{ ok: achTip.a.unlocked }">
         {{ achTip.a.unlocked ? '✓' : t('gameUiHome.achProgress', { cur: achTip.a.progress, goal: achTip.a.goal }) }}
+      </div>
+    </div>
+
+    <!-- floating activity tooltip -->
+    <div v-if="actTip.show && actTip.d" class="ach-tip act-tip" :style="{ left: actTip.x + 'px', top: actTip.y + 'px' }">
+      <div class="ach-tip-h">{{ actTipDate(actTip.d.day) }}</div>
+      <div class="ach-tip-s" :class="{ ok: actTip.d.minutes > 0 }">
+        {{ actTip.d.minutes > 0 ? fmtDuration(actTip.d.minutes) : t('gameUiHome.actNone') }}
       </div>
     </div>
   </section>
@@ -482,6 +503,10 @@ function formatDate(d) {
 .ach-tip-d { margin-top: 2px; font-size: 0.76rem; line-height: 1.35; color: #c3cbe6; }
 .ach-tip-s { margin-top: 7px; font-size: 0.72rem; font-weight: 700; color: #8a90a8; }
 .ach-tip-s.ok { color: #34d399; }
+.act-tip { width: auto; min-width: 116px; text-align: center; }
+.act-tip .ach-tip-h { text-transform: capitalize; font-size: 0.8rem; }
+.act-tip .ach-tip-s { margin-top: 4px; }
+.act-col { cursor: help; }
 
 /* activity chart */
 .act-chart { display: flex; align-items: flex-end; gap: 5px; height: 96px; padding-top: 6px; }

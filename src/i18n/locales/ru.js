@@ -1615,6 +1615,7 @@ emailDomainNotice: 'Только российские почтовые серв�
     achGoal: 'Как получить',
     achProgress: 'Прогресс: {cur} / {goal}',
     activity: 'Активность',
+    actNone: 'Не играл',
     onbTitle: 'С чего начать',
     weeklyTitle: 'Челленджи недели',
     nationActivity: 'События государства',

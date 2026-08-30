@@ -1615,6 +1615,7 @@ export default {
     achGoal: 'How to earn',
     achProgress: 'Progress: {cur} / {goal}',
     activity: 'Activity',
+    actNone: 'No playtime',
     onbTitle: 'Getting started',
     weeklyTitle: 'Weekly challenges',
     nationActivity: 'Nation activity',
