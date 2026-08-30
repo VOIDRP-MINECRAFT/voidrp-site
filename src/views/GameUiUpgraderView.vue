@@ -506,7 +506,9 @@ onUnmounted(() => { clearInterval(winsTimer) })
 .up-win-stake { display: inline-flex; align-items: center; gap: 3px; font-size: 0.64rem; font-weight: 700; color: #c4b5fd; margin-top: 1px; }
 
 /* history */
-.up-hist { display: flex; flex-direction: column; gap: 5px; margin-top: 8px; }
+.up-hist { display: flex; flex-direction: column; gap: 5px; margin-top: 8px; max-height: 264px; overflow-y: auto; padding-right: 4px; }
+.up-hist::-webkit-scrollbar { width: 6px; }
+.up-hist::-webkit-scrollbar-thumb { background: rgba(139,123,255,0.3); border-radius: 3px; }
 .up-hrow { display: flex; align-items: center; gap: 8px; padding: 7px 10px; border-radius: 9px; background: rgba(255,255,255,0.02); border-left: 3px solid transparent; }
 .up-hrow.win { border-left-color: #34d399; background: rgba(52,211,153,0.05); } .up-hrow.lose { border-left-color: #fb7185; }
 .up-hres { font-weight: 900; width: 14px; }
