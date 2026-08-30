@@ -44,7 +44,8 @@ function notifLabel(type) {
 
 <template>
   <section class="gp-shell">
-    <GameUiStarfield />
+    <!-- key by the toggle so flipping it here re-mounts the starfield (its loop inits on mount) -->
+    <GameUiStarfield :key="settings.starfield" />
     <GameUiSidebar current="settings" />
     <GameUiTopBar :title="t('gameUiNav.settings')" />
 

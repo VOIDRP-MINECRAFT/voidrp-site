@@ -4,24 +4,31 @@ import { useI18n } from 'vue-i18n'
 import { useRoute, useRouter } from 'vue-router'
 import GuiIcon from './GuiIcon.vue'
 import { closeGui } from '../composables/useWebGui.js'
-import { getNotificationHistory } from '../services/gameUiApi.js'
+import { getNotificationHistory, getWebguiToken, setWebguiToken } from '../services/gameUiApi.js'
 
 const props = defineProps({ current: { type: String, default: '' } })
+
+const { t } = useI18n()
+const route = useRoute()
+const router = useRouter()
 
 // Unread badge on the notifications tab: undismissed notifications not yet seen.
 // (The one-shot toast feed runs only on the HUD overlay, so notifications fired while
 // in the full menu stay unseen — this prompts opening the center.)
 const unread = ref(0)
 onMounted(async () => {
+  // This child mounts before the parent view's onMounted sets the token, so ensure it
+  // ourselves from the route — otherwise the badge fetch drops ?webgui_token= and 422s.
+  if (!getWebguiToken()) {
+    const raw = route.query.webgui_token
+    const tok = Array.isArray(raw) ? raw[0] : raw
+    if (tok) setWebguiToken(tok)
+  }
   try {
     const d = await getNotificationHistory()
     unread.value = (d?.items || []).filter((n) => !n.seen_at).length
   } catch { /* silent */ }
 })
-
-const { t } = useI18n()
-const route = useRoute()
-const router = useRouter()
 
 // Left icon rail — the persistent in-game navigation (reference layout).
 const items = [
