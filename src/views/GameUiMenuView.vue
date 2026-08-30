@@ -5,7 +5,7 @@ import { useRoute, useRouter } from 'vue-router'
 import '../assets/gui-premium.css'
 import { getHome, getLeaderboards, getActivity, getNationActivity, getWeekly, setWebguiToken } from '../services/gameUiApi.js'
 import { readableAccent, readableAccentAlpha } from '../utils/nationColor.js'
-import { useWebGuiToken, useWebGuiClient, closeGui } from '../composables/useWebGui.js'
+import { useWebGuiToken, useWebGuiClient, closeGui, navigateGamePage } from '../composables/useWebGui.js'
 import GameUiSidebar from '../components/GameUiSidebar.vue'
 import GameUiStarfield from '../components/GameUiStarfield.vue'
 import GameUiTopBar from '../components/GameUiTopBar.vue'
@@ -89,7 +89,7 @@ const tiles = [
 function goTile(tile) {
   const raw = route.query.webgui_token
   const webgui_token = Array.isArray(raw) ? raw[0] : raw
-  router.push({ name: tile.route, query: webgui_token ? { webgui_token } : {} })
+  navigateGamePage(router, tile.route, webgui_token)   // bridge in-game, soft-nav in browser
 }
 
 async function load() {
@@ -116,7 +116,7 @@ function safeAccent(c) {
 function goLeaderboards() {
   const raw = route.query.webgui_token
   const webgui_token = Array.isArray(raw) ? raw[0] : raw
-  router.push({ name: 'game-ui-leaderboards', query: webgui_token ? { webgui_token } : {} })
+  navigateGamePage(router, 'game-ui-leaderboards', webgui_token)   // bridge in-game, soft-nav in browser
 }
 
 async function mountSkin() {
