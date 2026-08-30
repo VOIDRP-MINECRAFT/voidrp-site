@@ -1,9 +1,9 @@
 <script setup>
 import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { useI18n } from 'vue-i18n'
-import { getHudSnapshot, setWebguiToken } from '../services/gameUiApi.js'
+import { getHudSnapshot, setWebguiToken, runGameCommand } from '../services/gameUiApi.js'
 import { API_BASE_URL } from '../services/apiBase'
-import { useWebGuiToken, useWebGuiClient, runCommand } from '../composables/useWebGui.js'
+import { useWebGuiToken, useWebGuiClient } from '../composables/useWebGui.js'
 import GuiIcon from '../components/GuiIcon.vue'
 import GameUiNotifications from '../components/GameUiNotifications.vue'
 
@@ -106,8 +106,10 @@ function formatBalance(v) {
 function roleLabel(r) {
   return { leader: t('gameUiHud.roleLeader'), officer: t('gameUiHud.roleOfficer'), member: t('gameUiHud.roleMember') }[r] || ''
 }
-function openMarket() { runCommand('/shop') }
-function openQuests() { runCommand('/dailyquest') }
+// Plugin commands must go through the web-action bridge — the direct client
+// run_command doesn't execute plugin commands on this Mohist hybrid.
+function openMarket() { runGameCommand('shop').catch(() => {}) }
+function openQuests() { runGameCommand('dailyquest').catch(() => {}) }
 </script>
 
 <template>

@@ -2,8 +2,8 @@
 import { ref, computed, onMounted } from 'vue'
 import { useI18n } from 'vue-i18n'
 import '../assets/gui-premium.css'
-import { getMyAlliance, setWebguiToken } from '../services/gameUiApi.js'
-import { useWebGuiToken, runCommand, useActionToast } from '../composables/useWebGui.js'
+import { getMyAlliance, setWebguiToken, voteAllianceProposal } from '../services/gameUiApi.js'
+import { useWebGuiToken, useActionToast } from '../composables/useWebGui.js'
 import GameUiSidebar from '../components/GameUiSidebar.vue'
 import GameUiStarfield from '../components/GameUiStarfield.vue'
 import GameUiTopBar from '../components/GameUiTopBar.vue'
@@ -48,9 +48,9 @@ function formatDate(d) {
 }
 async function vote(p, choice) {
   try {
-    await runCommand(`/alliance vote ${p.id} ${choice}`)
+    await voteAllianceProposal(p.id, choice)   // votes by id via backend (reliable), not the game command
     show(t('gameUiAlliance.voteSent'), true)
-    setTimeout(load, 1200)
+    setTimeout(load, 800)
   } catch (e) {
     show(e.message || t('gameUiAlliance.voteFail'), false)
   }

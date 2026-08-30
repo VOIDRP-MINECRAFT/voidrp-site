@@ -127,6 +127,15 @@ export function getMyAlliance() {
   return req('/game-ui/alliance/my')
 }
 
+// Vote on an alliance proposal by id (the in-game /alliance vote is index-based &
+// stateful, so the browser votes through the backend directly).
+export function voteAllianceProposal(proposalId, vote, comment) {
+  return req('/game-ui/alliance/vote', {
+    method: 'POST',
+    body: JSON.stringify({ proposal_id: proposalId, vote, comment: comment || null }),
+  })
+}
+
 // ── Leaderboards ──────────────────────────────────────────────────────────────
 export function getLeaderboards() {
   return req('/game-ui/leaderboards')
