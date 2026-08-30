@@ -17,3 +17,6 @@ export function adminUpdateUpgraderReward(token, id, data) {
 export function adminDeleteUpgraderReward(token, id) {
   return apiRequest(`/admin/upgrader/rewards/${id}`, { method: 'DELETE', ...ah(token) })
 }
+export function adminImportUpgraderMarket(token) {
+  return apiRequest('/admin/upgrader/import-market', { method: 'POST', ...ah(token) })
+}

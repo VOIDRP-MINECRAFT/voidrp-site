@@ -6,6 +6,7 @@ import { toastSuccess, toastError } from '../../services/toast'
 import {
   adminGetUpgraderConfig, adminListUpgraderRewards,
   adminCreateUpgraderReward, adminUpdateUpgraderReward, adminDeleteUpgraderReward,
+  adminImportUpgraderMarket,
 } from '../../services/upgraderAdminApi'
 import ItemIcon from '../../components/ItemIcon.vue'
 
@@ -101,6 +102,17 @@ async function toggleEnabled(r) {
   } catch (e) { toastError(e.message || 'Ошибка') }
 }
 
+const importing = ref(false)
+async function importMarket() {
+  if (!(await confirmDialog({ title: 'Импорт с рынка', message: 'Добавить текущие рыночные предметы в пул как выключенные черновики? Затем включите нужные вручную.', confirmLabel: 'Импортировать' }))) return
+  importing.value = true
+  try {
+    const res = await adminImportUpgraderMarket(token())
+    if (res.added > 0) { await load(); toastSuccess(`Добавлено черновиков: ${res.added}`) }
+    else toastSuccess('Новых предметов на рынке нет')
+  } catch (e) { toastError(e.message || 'Ошибка импорта') } finally { importing.value = false }
+}
+
 async function remove(r) {
   if (!(await confirmDialog({ title: 'Удалить награду', message: `Убрать «${r.display_name}» из пула апгрейдера?`, confirmLabel: 'Удалить', danger: true }))) return
   try {
@@ -120,7 +132,10 @@ onMounted(() => { load(); loadCatalog() })
         <h1 class="adm-title">Апгрейдер — награды</h1>
         <p class="adm-sub">Пул предметов, на которые игроки апают Void Coin. Настраивается для активного сервера.</p>
       </div>
-      <button v-if="canManage" class="adm-btn adm-btn--acc" @click="openCreate">+ Добавить предмет</button>
+      <div v-if="canManage" class="adm-head-actions" style="gap:8px">
+        <button class="adm-btn adm-btn--ghost" :disabled="importing" @click="importMarket">{{ importing ? 'Импорт…' : 'Импорт с рынка' }}</button>
+        <button class="adm-btn adm-btn--acc" @click="openCreate">+ Добавить предмет</button>
+      </div>
     </div>
 
     <div class="up-cfg">
