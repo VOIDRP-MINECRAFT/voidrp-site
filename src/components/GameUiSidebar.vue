@@ -1,10 +1,23 @@
 <script setup>
+import { onMounted, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useRoute, useRouter } from 'vue-router'
 import GuiIcon from './GuiIcon.vue'
 import { closeGui } from '../composables/useWebGui.js'
+import { getNotificationHistory } from '../services/gameUiApi.js'
 
 const props = defineProps({ current: { type: String, default: '' } })
+
+// Unread badge on the notifications tab: undismissed notifications not yet seen.
+// (The one-shot toast feed runs only on the HUD overlay, so notifications fired while
+// in the full menu stay unseen — this prompts opening the center.)
+const unread = ref(0)
+onMounted(async () => {
+  try {
+    const d = await getNotificationHistory()
+    unread.value = (d?.items || []).filter((n) => !n.seen_at).length
+  } catch { /* silent */ }
+})
 
 const { t } = useI18n()
 const route = useRoute()
@@ -52,6 +65,7 @@ function go(item) {
         @click="go(item)"
       >
         <GuiIcon :name="item.icon" :size="21" />
+        <span v-if="item.key === 'notifications' && unread > 0" class="grail-badge">{{ unread > 9 ? '9+' : unread }}</span>
         <span class="grail-tip">{{ t('gameUiNav.' + item.key) }}</span>
       </button>
     </nav>
@@ -104,6 +118,12 @@ function go(item) {
   background: linear-gradient(135deg, rgba(124,107,255,0.9), rgba(180,92,240,0.9));
   border-color: rgba(180,140,255,0.5);
   box-shadow: 0 8px 20px -6px rgba(139,123,255,0.7);
+}
+.grail-badge {
+  position: absolute; top: -3px; right: -3px; min-width: 16px; height: 16px; padding: 0 4px;
+  display: grid; place-items: center; border-radius: 999px;
+  background: linear-gradient(135deg, #fb7185, #e11d48); color: #fff;
+  font-size: 9px; font-weight: 800; line-height: 1; box-shadow: 0 0 0 2px rgba(6,7,15,0.9);
 }
 .grail-tab.active::before {
   content: ''; position: absolute; left: -14px; top: 50%; transform: translateY(-50%);

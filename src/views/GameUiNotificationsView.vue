@@ -3,7 +3,7 @@ import { ref, onMounted } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useRoute, useRouter } from 'vue-router'
 import '../assets/gui-premium.css'
-import { getNotificationHistory, dismissNotification, setWebguiToken } from '../services/gameUiApi.js'
+import { getNotificationHistory, getNotifications, dismissNotification, setWebguiToken } from '../services/gameUiApi.js'
 import { useWebGuiToken } from '../composables/useWebGui.js'
 import GameUiSidebar from '../components/GameUiSidebar.vue'
 import GameUiStarfield from '../components/GameUiStarfield.vue'
@@ -47,6 +47,8 @@ async function load() {
   try {
     const d = await getNotificationHistory()
     items.value = d?.items || []
+    // Mark everything seen (one-shot feed) so the sidebar unread badge clears after visiting.
+    getNotifications().catch(() => {})
   } catch (e) {
     error.value = e?.message || 'error'
   } finally {
