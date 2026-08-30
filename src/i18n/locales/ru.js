@@ -1516,7 +1516,18 @@ emailDomainNotice: 'Только российские почтовые серв�
     quests: 'Квесты',
     leaderboards: 'Топы',
     notifications: 'Уведомления',
+    settings: 'Настройки',
     close: 'Закрыть',
+  },
+  gameUiSettings: {
+    title: 'Настройки',
+    language: 'Язык',
+    languageHint: 'Язык интерфейса',
+    starfield: 'Фоновая анимация',
+    starfieldHint: 'Звёзды на фоне. Отключи для большего FPS',
+    toasts: 'Всплывающие уведомления',
+    toastsHint: 'Показывать уведомления поверх HUD',
+    savedNote: 'Настройки сохраняются автоматически на этом клиенте.',
   },
   gameUiNotifications: {
     empty: 'Пока нет уведомлений',

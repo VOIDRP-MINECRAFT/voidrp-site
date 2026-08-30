@@ -35,6 +35,7 @@ const items = [
   { key: 'market',     icon: 'market',     route: 'game-ui-market' },
   { key: 'nmarket',    icon: 'globe',      route: 'game-ui-nmarket' },
   { key: 'battlepass', icon: 'battlepass', route: 'game-ui-battlepass' },
+  { key: 'settings',   icon: 'settings',   route: 'game-ui-settings' },
 ]
 
 function go(item) {

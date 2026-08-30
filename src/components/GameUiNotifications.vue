@@ -4,7 +4,10 @@
 // carry an action (runs a whitelisted command server-side via the web-action poll).
 import { ref, onMounted, onUnmounted } from 'vue'
 import { getNotifications, runGameCommand, runGameOpenPage } from '../services/gameUiApi.js'
+import { useGameUiSettings } from '../composables/useGameUiSettings.js'
 import GuiIcon from './GuiIcon.vue'
+
+const guiSettings = useGameUiSettings()
 
 const notes = ref([])
 const timers = new Map()
@@ -47,6 +50,7 @@ function actLatest() {
 }
 
 onMounted(() => {
+  if (!guiSettings.toasts) return  // toasts disabled in webgui settings
   window.addEventListener('webgui:notifyAct', actLatest)  // mod emits this via WebviewClientEmit
   poll(); pollTimer = setInterval(poll, 8000)
 })

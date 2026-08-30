@@ -2,7 +2,9 @@
 // Canvas starfield matching the public homepage: rising, twinkling stars in the brand
 // palette + occasional meteors. Fixed, behind the page content. Pauses when hidden.
 import { ref, onMounted, onBeforeUnmount } from 'vue'
+import { useGameUiSettings } from '../composables/useGameUiSettings.js'
 
+const guiSettings = useGameUiSettings()
 const canvas = ref(null)
 let raf = 0, ro = null
 let cleanup = () => {}
@@ -13,6 +15,7 @@ const COLORS = ['201,190,255', '167,139,250', '251,191,36', '217,70,239', '110,2
 onMounted(() => {
   const cv = canvas.value
   if (!cv) return
+  if (!guiSettings.starfield) return  // disabled in webgui settings (perf)
   const reduce = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches
   const ctx = cv.getContext('2d')
   let w = 0, h = 0
@@ -87,7 +90,7 @@ onBeforeUnmount(() => cleanup())
 </script>
 
 <template>
-  <canvas ref="canvas" class="gp-stars" aria-hidden="true"></canvas>
+  <canvas v-if="guiSettings.starfield" ref="canvas" class="gp-stars" aria-hidden="true"></canvas>
 </template>
 
 <style scoped>

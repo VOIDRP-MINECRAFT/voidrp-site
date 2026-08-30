@@ -1516,7 +1516,18 @@ export default {
     quests: 'Quests',
     leaderboards: 'Top',
     notifications: 'Alerts',
+    settings: 'Settings',
     close: 'Close',
+  },
+  gameUiSettings: {
+    title: 'Settings',
+    language: 'Language',
+    languageHint: 'Interface language',
+    starfield: 'Background animation',
+    starfieldHint: 'Starfield background. Turn off for more FPS',
+    toasts: 'Popup notifications',
+    toastsHint: 'Show notifications over the HUD',
+    savedNote: 'Settings are saved automatically on this client.',
   },
   gameUiNotifications: {
     empty: 'No notifications yet',
