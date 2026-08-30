@@ -186,7 +186,8 @@ onUnmounted(() => { clearInterval(winsTimer) })
       <div v-else-if="!rewards.length" class="gp-center"><div class="gp-card gp-state"><span class="gp-state-ico"><GuiIcon name="voidcoin" :size="30" /></span><span class="gp-state-text">{{ t('gameUiUpgrader.empty') }}</span></div></div>
 
       <template v-else>
-        <!-- machine -->
+        <!-- left column: machine + recent wins under it -->
+        <div class="up-left">
         <div class="gp-panel up-machine" :style="{ '--sel': selColor }">
           <div class="up-target" v-if="selected" :class="'t-' + selected.tier">
             <div class="up-target-ico">
@@ -256,6 +257,23 @@ onUnmounted(() => { clearInterval(winsTimer) })
           </div>
         </div>
 
+        <!-- recent winners (right under the machine) -->
+        <div v-if="recentWins.length" class="gp-panel up-recent">
+          <div class="gp-phead"><span class="gp-phead-ic"><GuiIcon name="trophy" :size="16" /></span><span class="gp-phead-tt">{{ t('gameUiUpgrader.recentWins') }}</span></div>
+          <div class="up-recent-row">
+            <div v-for="(w, i) in recentWins" :key="i" class="up-win" :style="{ '--tc': '#a78bfa' }">
+              <img class="up-win-head" :src="headUrl(w.nickname)" alt="" @error="$event.target.style.visibility='hidden'" />
+              <div class="up-win-ic"><ItemIcon :itemKey="w.reward_item_key" :size="26" /></div>
+              <div class="up-win-info">
+                <div class="up-win-item">{{ w.reward_display }}</div>
+                <div class="up-win-meta"><span class="up-win-nick">{{ w.nickname }}</span><span class="up-win-mult">×{{ w.multiplier }}</span></div>
+                <div class="up-win-stake"><GuiIcon name="voidcoin" :size="10" />{{ money(w.stake) }}</div>
+              </div>
+            </div>
+          </div>
+        </div>
+        </div><!-- /up-left -->
+
         <!-- reward ladder + history -->
         <div class="up-side">
           <div class="gp-panel">
@@ -293,22 +311,6 @@ onUnmounted(() => { clearInterval(winsTimer) })
                 <span class="up-hname">{{ h.reward_display }}</span>
                 <span class="up-hstake"><GuiIcon name="voidcoin" :size="10" />{{ money(h.stake) }}</span>
                 <span class="up-hmult">×{{ h.multiplier }}</span>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <!-- recent winners ticker -->
-        <div v-if="recentWins.length" class="gp-panel up-recent">
-          <div class="gp-phead"><span class="gp-phead-ic"><GuiIcon name="trophy" :size="16" /></span><span class="gp-phead-tt">{{ t('gameUiUpgrader.recentWins') }}</span></div>
-          <div class="up-recent-row">
-            <div v-for="(w, i) in recentWins" :key="i" class="up-win" :style="{ '--tc': '#a78bfa' }">
-              <img class="up-win-head" :src="headUrl(w.nickname)" alt="" @error="$event.target.style.visibility='hidden'" />
-              <div class="up-win-ic"><ItemIcon :itemKey="w.reward_item_key" :size="26" /></div>
-              <div class="up-win-info">
-                <div class="up-win-item">{{ w.reward_display }}</div>
-                <div class="up-win-meta"><span class="up-win-nick">{{ w.nickname }}</span><span class="up-win-mult">×{{ w.multiplier }}</span></div>
-                <div class="up-win-stake"><GuiIcon name="voidcoin" :size="10" />{{ money(w.stake) }}</div>
               </div>
             </div>
           </div>
@@ -444,8 +446,10 @@ onUnmounted(() => { clearInterval(winsTimer) })
 .up-rewards-scroll::-webkit-scrollbar-thumb { background: rgba(139,123,255,0.3); border-radius: 3px; }
 .up-noresult { text-align: center; padding: 24px; font-size: 0.8rem; color: #8a90a8; }
 
+/* left column: machine stacked over the recent-wins ticker */
+.up-left { display: flex; flex-direction: column; gap: 16px; min-width: 0; }
+
 /* recent winners ticker */
-.up-recent { grid-column: 1 / -1; }
 .up-recent-row { display: flex; gap: 9px; overflow-x: auto; padding: 10px 2px 4px; }
 .up-recent-row::-webkit-scrollbar { height: 6px; }
 .up-recent-row::-webkit-scrollbar-thumb { background: rgba(139,123,255,0.3); border-radius: 3px; }
