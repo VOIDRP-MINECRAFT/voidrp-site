@@ -443,7 +443,19 @@ onUnmounted(() => { if (poll) clearInterval(poll) })
     </nav>
 
     <div class="vm-header-actions">
-      <div v-if="topbar" class="vm-coins"><span class="vm-coin-ic"><svg width="15" height="15" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="9" stroke="currentColor" stroke-width="1.8"/><circle cx="12" cy="12" r="4.5" stroke="currentColor" stroke-width="1.6"/></svg></span>{{ fmtCoins(topbar.balance) }}</div>
+      <div v-if="topbar" class="vm-vcoins cur">
+        <span class="vm-vcoin-ic"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"><path d="M6 3h12l4 6-10 13L2 9Z"/><path d="M11 3 8 9l4 13 4-13-3-6"/><path d="M2 9h20"/></svg></span>{{ fmtCoins(topbar.void_coins) }}
+        <span class="cur-tip cur-tip--void">
+          <span class="cur-tip-h">{{ t('gameUiTopbar.voidName') }}</span>
+          <span class="cur-tip-d">{{ t('gameUiTopbar.voidDesc') }}</span>
+        </span>
+      </div>
+      <div v-if="topbar" class="vm-coins cur"><span class="vm-coin-ic"><svg width="15" height="15" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="9" stroke="currentColor" stroke-width="1.8"/><circle cx="12" cy="12" r="4.5" stroke="currentColor" stroke-width="1.6"/></svg></span>{{ fmtCoins(topbar.balance) }}
+        <span class="cur-tip">
+          <span class="cur-tip-h">{{ t('gameUiTopbar.coinName') }}</span>
+          <span class="cur-tip-d">{{ t('gameUiTopbar.coinDesc') }}</span>
+        </span>
+      </div>
       <button class="vm-hand-btn" @click="handForm = { show: true, price: '', amount: 1, busy: false, res: null }">
         <svg width="15" height="15" viewBox="0 0 16 16" fill="none"><path d="M6 3a1 1 0 0 1 1-1h2a1 1 0 0 1 1 1v5h1a1 1 0 0 1 1 1v4a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V9a1 1 0 0 1 1-1h1V3z" stroke="currentColor" stroke-width="1.3"/></svg>
         <span>{{ t('vmarket.tabHandSell') }}</span>
@@ -1000,6 +1012,38 @@ onUnmounted(() => { if (poll) clearInterval(poll) })
   color: #fcd77a; background: rgba(251,191,36,0.12); border: 1px solid rgba(251,191,36,0.28);
 }
 .vm-coin-ic { color: var(--gold); font-size: 13px; }
+
+/* Void Coin pill — premium currency, project violet */
+.vm-vcoins {
+  display: flex; align-items: center; gap: 6px;
+  padding: 7px 13px; border-radius: 10px;
+  font-family: 'JetBrains Mono', ui-monospace, monospace; font-weight: 800; font-size: 13px;
+  color: #d8ccff;
+  background: linear-gradient(135deg, rgba(139,123,255,0.16), rgba(180,92,240,0.12));
+  border: 1px solid rgba(167,139,250,0.4);
+}
+.vm-vcoin-ic { color: #c4b5fd; display: inline-flex; filter: drop-shadow(0 0 4px rgba(167,139,250,0.55)); }
+
+/* currency hover tooltip (native title doesn't render in MCEF) */
+.cur { position: relative; }
+.cur-tip {
+  position: absolute; top: calc(100% + 9px); left: 50%; transform: translateX(-50%) translateY(-4px);
+  width: 200px; padding: 9px 11px; border-radius: 11px;
+  display: flex; flex-direction: column; gap: 3px; text-align: left;
+  background: rgba(16,18,32,0.98); border: 1px solid rgba(150,168,220,0.22);
+  box-shadow: 0 14px 34px -12px rgba(0,0,0,0.85);
+  opacity: 0; pointer-events: none; transition: opacity .14s, transform .14s; z-index: 40;
+  font-family: 'Inter', system-ui, sans-serif;
+}
+.cur:hover .cur-tip { opacity: 1; transform: translateX(-50%) translateY(0); }
+.cur-tip::before {
+  content: ''; position: absolute; bottom: 100%; left: 50%; transform: translateX(-50%);
+  border: 6px solid transparent; border-bottom-color: rgba(16,18,32,0.98);
+}
+.cur-tip--void { border-color: rgba(167,139,250,0.4); }
+.cur-tip-h { font-size: 0.8rem; font-weight: 800; color: #eef2ff; }
+.cur-tip--void .cur-tip-h { color: #d8ccff; }
+.cur-tip-d { font-size: 0.7rem; line-height: 1.35; color: #aab2cc; }
 
 /* nav */
 .vm-nav {
