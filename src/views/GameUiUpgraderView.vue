@@ -23,6 +23,7 @@ const balance = ref(0)
 const rtp = ref(0.9)
 const minStake = ref(1)
 const maxMult = ref(100)
+const maxChance = ref(0.9)
 
 const selected = ref(null)
 const stake = ref(1)
@@ -69,7 +70,7 @@ const multiplier = computed(() => {
 })
 const chance = computed(() => {
   if (!selected.value || multiplier.value < 1) return 0
-  return Math.min(0.9, rtp.value / multiplier.value)
+  return Math.min(maxChance.value, rtp.value / multiplier.value)
 })
 const winDash = computed(() => `${(chance.value * CIRC).toFixed(2)} ${CIRC.toFixed(2)}`)
 const chancePct = computed(() => (chance.value * 100).toFixed(1))
@@ -163,6 +164,7 @@ async function load() {
     rtp.value = d.rtp || 0.9
     minStake.value = d.min_stake || 1
     maxMult.value = d.max_multiplier || 100
+    maxChance.value = d.max_chance || 0.9
     error.value = null
     if (rewards.value.length) { await nextTick(); pickReward(rewards.value.find((r) => r.tier === 'rare') || rewards.value[0]) }
   } catch (e) {

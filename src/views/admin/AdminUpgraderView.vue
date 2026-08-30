@@ -4,7 +4,7 @@ import { authState, hasPermission } from '../../stores/authStore'
 import { confirmDialog } from '../../composables/useConfirm'
 import { toastSuccess, toastError } from '../../services/toast'
 import {
-  adminGetUpgraderConfig, adminListUpgraderRewards,
+  adminGetUpgraderConfig, adminUpdateUpgraderConfig, adminListUpgraderRewards,
   adminCreateUpgraderReward, adminUpdateUpgraderReward, adminDeleteUpgraderReward,
   adminImportUpgraderMarket,
 } from '../../services/upgraderAdminApi'
@@ -15,7 +15,28 @@ const canManage = computed(() => hasPermission('upgrader.manage'))
 
 const loading = ref(true)
 const rewards = ref([])
-const config = ref({ rtp: 0.9, coins_per_vc: 1000, max_multiplier: 100 })
+const config = ref({ rtp: 0.9, coins_per_vc: 1000, min_stake: 1, max_multiplier: 100, max_chance: 0.9 })
+
+// settings editor
+const cfgModal = ref(false)
+const cfgForm = ref({})
+const cfgSaving = ref(false)
+function openConfig() { cfgForm.value = { ...config.value, rtp_pct: Math.round(config.value.rtp * 100), max_chance_pct: Math.round(config.value.max_chance * 100) }; cfgModal.value = true }
+async function saveConfig() {
+  cfgSaving.value = true
+  try {
+    const upd = await adminUpdateUpgraderConfig(token(), {
+      rtp: Math.min(1, Math.max(0.5, (cfgForm.value.rtp_pct || 90) / 100)),
+      coins_per_vc: Math.max(1, Math.round(cfgForm.value.coins_per_vc)),
+      min_stake: Math.max(1, Math.round(cfgForm.value.min_stake)),
+      max_multiplier: Math.max(1.5, Number(cfgForm.value.max_multiplier)),
+      max_chance: Math.min(0.99, Math.max(0.05, (cfgForm.value.max_chance_pct || 90) / 100)),
+    })
+    config.value = upd
+    cfgModal.value = false
+    toastSuccess('Настройки сохранены')
+  } catch (e) { toastError(e.message || 'Ошибка') } finally { cfgSaving.value = false }
+}
 
 const TIERS = ['common', 'rare', 'epic', 'legendary']
 const tierLabel = { common: 'Обычный', rare: 'Редкий', epic: 'Эпический', legendary: 'Легендарный' }
@@ -142,8 +163,10 @@ onMounted(() => { load(); loadCatalog() })
       <span class="adm-badge adm-badge--info">RTP {{ (config.rtp * 100).toFixed(0) }}%</span>
       <span class="adm-badge">1 VC = {{ money(config.coins_per_vc) }} монет</span>
       <span class="adm-badge">макс ×{{ config.max_multiplier }}</span>
+      <span class="adm-badge">макс шанс {{ (config.max_chance * 100).toFixed(0) }}%</span>
       <span class="adm-badge adm-badge--ok">{{ rewards.filter((r) => r.enabled).length }} активно</span>
       <span class="adm-badge">{{ rewards.length }} всего</span>
+      <button v-if="canManage" class="adm-btn adm-btn--ghost adm-btn--sm" @click="openConfig">⚙ Настройки</button>
     </div>
 
     <div v-if="loading" class="adm-empty">Загрузка…</div>
@@ -174,6 +197,26 @@ onMounted(() => { load(); loadCatalog() })
           </tr>
         </tbody>
       </table>
+    </div>
+
+    <!-- settings modal -->
+    <div v-if="cfgModal" class="adm-modal-backdrop" @click.self="cfgModal = false">
+      <div class="adm-modal" style="width:min(480px,94vw)">
+        <h2 class="adm-title">Настройки апгрейдера</h2>
+        <p class="adm-sub">Действуют для активного сервера. Влияют на новые спины сразу.</p>
+        <div class="up-fields" style="margin-top:12px">
+          <label class="adm-field"><span class="adm-label">RTP (возврат игроку), %</span><input class="adm-input" type="number" min="50" max="100" v-model.number="cfgForm.rtp_pct" /></label>
+          <label class="adm-field"><span class="adm-label">Макс. шанс, %</span><input class="adm-input" type="number" min="5" max="99" v-model.number="cfgForm.max_chance_pct" /></label>
+          <label class="adm-field"><span class="adm-label">Курс: 1 VC = N монет</span><input class="adm-input" type="number" min="1" v-model.number="cfgForm.coins_per_vc" /></label>
+          <label class="adm-field"><span class="adm-label">Мин. ставка (VC)</span><input class="adm-input" type="number" min="1" v-model.number="cfgForm.min_stake" /></label>
+          <label class="adm-field up-wide"><span class="adm-label">Макс. множитель (×)</span><input class="adm-input" type="number" min="1.5" step="0.5" v-model.number="cfgForm.max_multiplier" /></label>
+        </div>
+        <p class="adm-sub" style="margin-top:10px">Дом забирает {{ (100 - (cfgForm.rtp_pct || 90)).toFixed(0) }}%. Курс влияет только на импорт с рынка и seed, не на уже добавленные награды.</p>
+        <div class="adm-head-actions" style="margin-top:14px">
+          <button class="adm-btn adm-btn--ghost" @click="cfgModal = false">Отмена</button>
+          <button class="adm-btn adm-btn--acc" :disabled="cfgSaving" @click="saveConfig">{{ cfgSaving ? 'Сохранение…' : 'Сохранить' }}</button>
+        </div>
+      </div>
     </div>
 
     <!-- modal -->

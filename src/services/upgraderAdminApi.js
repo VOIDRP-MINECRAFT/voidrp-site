@@ -5,6 +5,9 @@ function ah(token) { return { headers: buildAuthHeaders(token) } }
 export function adminGetUpgraderConfig(token) {
   return apiRequest('/admin/upgrader/config', { method: 'GET', ...ah(token) })
 }
+export function adminUpdateUpgraderConfig(token, data) {
+  return apiRequest('/admin/upgrader/config', { method: 'PATCH', body: JSON.stringify(data), ...ah(token) })
+}
 export function adminListUpgraderRewards(token) {
   return apiRequest('/admin/upgrader/rewards', { method: 'GET', ...ah(token) })
 }
