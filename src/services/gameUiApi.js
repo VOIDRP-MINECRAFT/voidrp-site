@@ -141,6 +141,20 @@ export function getLeaderboards() {
   return req('/game-ui/leaderboards')
 }
 
+// ── Void Upgrader ─────────────────────────────────────────────────────────────
+export function getUpgraderRewards() {
+  return req('/game-ui/upgrader/rewards')
+}
+export function spinUpgrader(rewardId, stake, clientSeed) {
+  return req('/game-ui/upgrader/spin', {
+    method: 'POST',
+    body: JSON.stringify({ reward_id: rewardId, stake, client_seed: clientSeed || null }),
+  })
+}
+export function getUpgraderHistory() {
+  return req('/game-ui/upgrader/history')
+}
+
 // ── Notifications (reactive HUD toasts) ───────────────────────────────────────
 // The feed returns UNSEEN notifications and marks them seen on fetch — one-shot.
 export function getNotifications() {

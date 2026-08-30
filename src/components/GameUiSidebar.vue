@@ -38,6 +38,7 @@ const items = [
   { key: 'alliance',   icon: 'alliance',   route: 'game-ui-alliance' },
   { key: 'quests',     icon: 'quest',      route: 'game-ui-quests' },
   { key: 'leaderboards', icon: 'trophy',   route: 'game-ui-leaderboards' },
+  { key: 'upgrader',     icon: 'voidcoin',  route: 'game-ui-upgrader' },
   { key: 'notifications', icon: 'bell',    route: 'game-ui-notifications' },
   { key: 'market',     icon: 'market',     route: 'game-ui-market' },
   { key: 'nmarket',    icon: 'globe',      route: 'game-ui-nmarket' },
