@@ -63,15 +63,18 @@ function itemIcon(r) {
 function rewardIcon(r) {
   if (!r) return 'gift'
   if (r.type === 'money') return 'coins'
+  if (r.type === 'voidcoin') return 'voidcoin'
   if (r.type === 'exp') return 'sparkles'
   return 'gift'
 }
 function rewardAmount(r) {
   if (!r) return ''
   if (r.type === 'money') return money(r.amount)
+  if (r.type === 'voidcoin') return money(r.amount)
   if (r.type === 'exp') return `${money(r.amount)} XP`
   return r.count > 1 ? `×${r.count}` : ''
 }
+function isVoidReward(r) { return r && r.type === 'voidcoin' }
 function cellState(tier, premiumTrack) {
   const r = premiumTrack ? tier.premium : tier.free
   if (!r) return 'empty'
@@ -168,7 +171,7 @@ async function claim(tier, premiumTrack) {
 
                 <div class="tier-badge" :class="{ reached: tier.level <= track.level, cur: tier.level === track.level }">{{ tier.level }}</div>
 
-                <div class="cell prem-cell" :class="cellState(tier, true)">
+                <div class="cell prem-cell" :class="[cellState(tier, true), { void: isVoidReward(tier.premium) }]">
                   <template v-if="tier.premium">
                     <div class="cell-ico">
                       <img v-if="itemIcon(tier.premium)" :src="itemIcon(tier.premium)" alt="" @error="$event.target.style.display='none'" />
@@ -258,6 +261,9 @@ async function claim(tier, premiumTrack) {
   transition: border-color 0.15s, background 0.15s;
 }
 .cell.empty { opacity: 0.28; }
+.cell.void { border-color: rgba(167,139,250,0.5); background: linear-gradient(160deg, rgba(139,123,255,0.16), rgba(180,92,240,0.08)); box-shadow: inset 0 0 16px rgba(139,123,255,0.14); }
+.cell.void .cell-gi { color: #c4b5fd; filter: drop-shadow(0 0 5px rgba(167,139,250,0.7)); }
+.cell.void .cell-amt { color: #d8ccff; }
 .cell.ready { border-color: rgba(52,211,153,0.5); background: rgba(52,211,153,0.08); box-shadow: 0 0 0 1px rgba(52,211,153,0.15); }
 .cell.claimed { opacity: 0.6; border-color: rgba(52,211,153,0.3); }
 .cell.premlock { opacity: 0.5; }
