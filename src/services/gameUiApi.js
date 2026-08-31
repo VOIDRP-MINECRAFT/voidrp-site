@@ -195,6 +195,12 @@ export function getUpgraderJackpot() {
 export function getUpgraderLeaderboard() {
   return req('/game-ui/upgrader/leaderboard')
 }
+export function getUpgraderFairness() {
+  return req('/game-ui/upgrader/fairness')
+}
+export function rotateUpgraderFairness() {
+  return req('/game-ui/upgrader/fairness/rotate', { method: 'POST' })
+}
 
 // ── Notifications (reactive HUD toasts) ───────────────────────────────────────
 // The feed returns UNSEEN notifications and marks them seen on fetch — one-shot.

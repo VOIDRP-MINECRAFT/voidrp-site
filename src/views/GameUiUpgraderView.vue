@@ -5,7 +5,7 @@ import '../assets/gui-premium.css'
 import { getUpgraderRewards, spinUpgrader, getUpgraderHistory, getUpgraderRecentWins,
   getUpgraderWinnings, claimUpgraderWinning, sellUpgraderWinning, sellAllUpgraderWinnings,
   claimAllUpgraderWinnings, getUpgraderStats, dailySpinUpgrader, getUpgraderJackpot,
-  getUpgraderLeaderboard, setWebguiToken } from '../services/gameUiApi.js'
+  getUpgraderLeaderboard, getUpgraderFairness, rotateUpgraderFairness, setWebguiToken } from '../services/gameUiApi.js'
 import { toastSuccess, toastError } from '../services/toast'
 import { API_BASE_URL } from '../services/apiBase'
 import { useWebGuiToken } from '../composables/useWebGui.js'
@@ -126,9 +126,11 @@ async function loadLeaderboard() {
   try { leaderboard.value = await getUpgraderLeaderboard() } catch { /* silent */ }
 }
 
-// provably-fair verification
+// provably-fair (commit-reveal) verification
 const lastSpin = ref(null)
 const verify = ref(null)
+const fairness = ref({ commit_hash: '', nonce: 0, rotated_at: null })
+const rotating = ref(false)
 async function hmacRoll(serverSeed, clientSeed, nonce) {
   const enc = new TextEncoder()
   const key = await crypto.subtle.importKey('raw', enc.encode(serverSeed), { name: 'HMAC', hash: 'SHA-256' }, false, ['sign'])
@@ -136,27 +138,49 @@ async function hmacRoll(serverSeed, clientSeed, nonce) {
   const hex = [...new Uint8Array(sig)].map((b) => b.toString(16).padStart(2, '0')).join('')
   return Number(BigInt('0x' + hex.slice(0, 15))) / 2 ** 60
 }
+async function loadFairness() {
+  try { fairness.value = await getUpgraderFairness() } catch { /* silent */ }
+}
 async function openVerify(src) {
-  if (!src || !src.server_seed) return
+  if (!src) return
   const v = {
-    server_seed: src.server_seed,
+    server_seed: src.server_seed || null,       // present only for a rotated (revealed) seed
+    server_seed_hash: src.server_seed_hash || fairness.value.commit_hash || null,
     client_seed: src.client_seed,
     nonce: src.nonce,
     roll: src.roll,
     win_chance: src.win_chance ?? src.winChance ?? null,
     won: src.won,
     display: src.reward_display || src.reward?.display_name || '',
+    committed: !src.server_seed,                 // still sealed under the active seed
     computed: null,
     ok: null,
   }
   verify.value = v
-  try {
-    const c = await hmacRoll(src.server_seed, src.client_seed, src.nonce)
-    v.computed = c
-    v.ok = Math.abs(c - Number(src.roll)) < 1e-6
-  } catch { v.ok = false }
+  if (v.server_seed) {
+    try {
+      const c = await hmacRoll(v.server_seed, v.client_seed, v.nonce)
+      v.computed = c
+      v.ok = Math.abs(c - Number(v.roll)) < 1e-6
+    } catch { v.ok = false }
+  }
 }
 function closeVerify() { verify.value = null }
+async function rotateSeed() {
+  if (rotating.value) return
+  rotating.value = true
+  try {
+    const res = await rotateUpgraderFairness()
+    fairness.value = { commit_hash: res.commit_hash, nonce: 0, rotated_at: new Date().toISOString() }
+    await loadHistory()
+    toastSuccess(t('gameUiUpgrader.fairRotated', { n: res.revealed_spins }))
+    // if the verify modal is open on a now-revealed spin, refresh it from history
+    if (verify.value) {
+      const match = history.value.find((h) => h.nonce === verify.value.nonce && h.client_seed === verify.value.client_seed && h.server_seed)
+      if (match) openVerify(match); else closeVerify()
+    }
+  } catch (e) { toastError(e?.message || 'Ошибка') } finally { rotating.value = false }
+}
 
 // multiplier presets — set the stake so the payout multiplier ≈ M
 const MULT_PRESETS = [2, 5, 10]
@@ -256,6 +280,7 @@ function applySpinResult(res) {
     if (res.free) { daily.value.available = false; if (typeof res.daily_streak === 'number') daily.value.streak = res.daily_streak }
     if (res.jackpot && res.jackpot.hit) onJackpotHit(res.jackpot)
     refreshJackpot()
+    if (typeof res.nonce === 'number') fairness.value.nonce = res.nonce + 1
   }, 4300)
 }
 
@@ -313,6 +338,7 @@ async function load() {
     maxChance.value = d.max_chance || 0.9
     if (d.jackpot) jackpot.value = d.jackpot
     if (d.daily) daily.value = d.daily
+    if (d.fairness) fairness.value = d.fairness
     error.value = null
     if (rewards.value.length) { await nextTick(); pickReward(rewards.value.find((r) => r.tier === 'rare') || rewards.value[0]) }
   } catch (e) {
@@ -464,6 +490,11 @@ onUnmounted(() => { clearInterval(winsTimer) })
               <span v-if="daily.streak > 0" class="up-daily-streak">🔥{{ daily.streak }}</span>
             </button>
             <div class="up-bal">{{ t('gameUiUpgrader.balance') }}: <b><GuiIcon name="voidcoin" :size="12" />{{ money(balance) }}</b></div>
+            <div v-if="fairness.commit_hash" class="up-fairbar" :title="t('gameUiUpgrader.fairBarHint')">
+              <GuiIcon name="shield" :size="12" />
+              <span class="up-fairbar-h">{{ t('gameUiUpgrader.fairCommit') }}: {{ fairness.commit_hash.slice(0, 16) }}…</span>
+              <button class="up-fairbar-btn" :disabled="rotating" @click="rotateSeed">{{ t('gameUiUpgrader.fairReveal') }}</button>
+            </div>
           </div>
         </div>
 
@@ -597,21 +628,41 @@ onUnmounted(() => { clearInterval(winsTimer) })
             <button class="up-modal-x" @click="closeVerify">✕</button>
           </div>
           <p class="up-modal-desc">{{ t('gameUiUpgrader.fairDesc') }}</p>
-          <div class="up-fair-verdict" :class="verify.ok === true ? 'ok' : verify.ok === false ? 'bad' : ''">
-            <template v-if="verify.ok === true">✓ {{ t('gameUiUpgrader.fairOk') }}</template>
-            <template v-else-if="verify.ok === false">✕ {{ t('gameUiUpgrader.fairBad') }}</template>
-            <template v-else>… {{ t('gameUiUpgrader.fairChecking') }}</template>
-          </div>
-          <div class="up-fair-rows">
-            <div class="up-fair-r"><span>server_seed</span><code>{{ verify.server_seed }}</code></div>
-            <div class="up-fair-r"><span>client_seed</span><code>{{ verify.client_seed }}</code></div>
-            <div class="up-fair-r"><span>nonce</span><code>{{ verify.nonce }}</code></div>
-            <div class="up-fair-r"><span>roll</span><code>{{ Number(verify.roll).toFixed(6) }}</code></div>
-            <div class="up-fair-r"><span>{{ t('gameUiUpgrader.fairComputed') }}</span><code>{{ verify.computed != null ? verify.computed.toFixed(6) : '…' }}</code></div>
-            <div v-if="verify.win_chance != null" class="up-fair-r"><span>win_chance</span><code>{{ Number(verify.win_chance).toFixed(6) }}</code></div>
-          </div>
-          <p class="up-fair-formula">roll = int( HMAC_SHA256(server_seed, client_seed:nonce)[:15], 16 ) / 16<sup>15</sup></p>
-          <p class="up-fair-formula">{{ t('gameUiUpgrader.fairRule') }}</p>
+
+          <!-- committed but still sealed under the active seed -->
+          <template v-if="verify.committed">
+            <div class="up-fair-verdict sealed">🔒 {{ t('gameUiUpgrader.fairSealed') }}</div>
+            <div class="up-fair-rows">
+              <div class="up-fair-r"><span>{{ t('gameUiUpgrader.fairCommit') }}</span><code>{{ verify.server_seed_hash }}</code></div>
+              <div class="up-fair-r"><span>client_seed</span><code>{{ verify.client_seed }}</code></div>
+              <div class="up-fair-r"><span>nonce</span><code>{{ verify.nonce }}</code></div>
+              <div class="up-fair-r"><span>roll</span><code>{{ Number(verify.roll).toFixed(6) }}</code></div>
+            </div>
+            <p class="up-fair-formula">{{ t('gameUiUpgrader.fairSealedHint') }}</p>
+            <button class="up-reveal-btn" :disabled="rotating" @click="rotateSeed">
+              <GuiIcon name="refresh" :size="14" />{{ t('gameUiUpgrader.fairReveal') }}
+            </button>
+          </template>
+
+          <!-- revealed → recompute in-browser -->
+          <template v-else>
+            <div class="up-fair-verdict" :class="verify.ok === true ? 'ok' : verify.ok === false ? 'bad' : ''">
+              <template v-if="verify.ok === true">✓ {{ t('gameUiUpgrader.fairOk') }}</template>
+              <template v-else-if="verify.ok === false">✕ {{ t('gameUiUpgrader.fairBad') }}</template>
+              <template v-else>… {{ t('gameUiUpgrader.fairChecking') }}</template>
+            </div>
+            <div class="up-fair-rows">
+              <div class="up-fair-r"><span>server_seed</span><code>{{ verify.server_seed }}</code></div>
+              <div v-if="verify.server_seed_hash" class="up-fair-r"><span>{{ t('gameUiUpgrader.fairCommit') }}</span><code>{{ verify.server_seed_hash }}</code></div>
+              <div class="up-fair-r"><span>client_seed</span><code>{{ verify.client_seed }}</code></div>
+              <div class="up-fair-r"><span>nonce</span><code>{{ verify.nonce }}</code></div>
+              <div class="up-fair-r"><span>roll</span><code>{{ Number(verify.roll).toFixed(6) }}</code></div>
+              <div class="up-fair-r"><span>{{ t('gameUiUpgrader.fairComputed') }}</span><code>{{ verify.computed != null ? verify.computed.toFixed(6) : '…' }}</code></div>
+              <div v-if="verify.win_chance != null" class="up-fair-r"><span>win_chance</span><code>{{ Number(verify.win_chance).toFixed(6) }}</code></div>
+            </div>
+            <p class="up-fair-formula">roll = int( HMAC_SHA256(server_seed, client_seed:nonce)[:15], 16 ) / 16<sup>15</sup></p>
+            <p class="up-fair-formula">{{ t('gameUiUpgrader.fairRule') }}</p>
+          </template>
         </div>
       </div>
     </transition>
@@ -844,6 +895,19 @@ onUnmounted(() => { clearInterval(winsTimer) })
 .up-fair-r span { flex: 0 0 92px; color: #8a90a8; font-weight: 700; }
 .up-fair-r code { flex: 1; min-width: 0; word-break: break-all; font-family: 'JetBrains Mono', monospace; color: #d5dcf0; background: rgba(0,0,0,0.3); padding: 4px 8px; border-radius: 7px; border: 1px solid var(--gp-line); }
 .up-fair-formula { font-size: 0.68rem; color: #8a90a8; margin-top: 12px; line-height: 1.5; font-family: 'JetBrains Mono', monospace; }
+.up-fair-verdict.sealed { color: #c4b5fd; background: rgba(139,123,255,0.1); border-color: rgba(139,123,255,0.4); }
+.up-reveal-btn { width: 100%; margin-top: 12px; display: inline-flex; align-items: center; justify-content: center; gap: 6px; padding: 9px; border-radius: 10px;
+  border: 1px solid rgba(139,123,255,0.45); background: rgba(139,123,255,0.14); color: #d8ccff; font-weight: 800; font-size: 0.8rem; cursor: pointer; transition: filter .12s; }
+.up-reveal-btn:hover:not(:disabled) { filter: brightness(1.15); }
+.up-reveal-btn:disabled { opacity: 0.5; cursor: default; }
+/* standing-commitment strip */
+.up-fairbar { display: flex; align-items: center; gap: 6px; padding: 6px 10px; border-radius: 9px; background: rgba(139,123,255,0.06);
+  border: 1px solid var(--gp-line); font-size: 0.64rem; color: #8a90a8; }
+.up-fairbar .gp-icon, .up-fairbar > svg { color: #a78bfa; flex-shrink: 0; }
+.up-fairbar-h { flex: 1; min-width: 0; font-family: 'JetBrains Mono', monospace; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.up-fairbar-btn { flex-shrink: 0; padding: 3px 8px; border-radius: 6px; border: 1px solid rgba(139,123,255,0.4); background: rgba(139,123,255,0.12); color: #c4b5fd; font-size: 0.62rem; font-weight: 800; cursor: pointer; }
+.up-fairbar-btn:hover:not(:disabled) { background: rgba(139,123,255,0.24); }
+.up-fairbar-btn:disabled { opacity: 0.5; cursor: default; }
 .up-fade-enter-active, .up-fade-leave-active { transition: opacity .18s; }
 .up-fade-enter-from, .up-fade-leave-to { opacity: 0; }
 
