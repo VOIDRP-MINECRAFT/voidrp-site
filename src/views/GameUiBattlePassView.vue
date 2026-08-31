@@ -8,6 +8,7 @@ import GameUiSidebar from '../components/GameUiSidebar.vue'
 import GameUiStarfield from '../components/GameUiStarfield.vue'
 import GameUiTopBar from '../components/GameUiTopBar.vue'
 import GuiIcon from '../components/GuiIcon.vue'
+import ItemIcon from '../components/ItemIcon.vue'
 import CountUp from '../components/CountUp.vue'
 
 const { t } = useI18n()
@@ -75,6 +76,28 @@ function rewardAmount(r) {
   return r.count > 1 ? `×${r.count}` : ''
 }
 function isVoidReward(r) { return r && r.type === 'voidcoin' }
+// Item texture (vanilla + modded) for item/command rewards; null → use a GuiIcon glyph.
+function rewardItemIcon(r) {
+  if (!r) return null
+  if (r.icon && (r.type === 'item' || r.type === 'command')) return r.icon
+  if (r.type === 'item' && r.material) return `minecraft:${String(r.material).toLowerCase()}`
+  return null
+}
+// Hover tooltip: what the reward gives.
+function rewardTip(r) {
+  if (!r) return ''
+  if (r.type === 'money') return `${money(r.amount)} монет`
+  if (r.type === 'voidcoin') return `${money(r.amount)} Void Coin`
+  if (r.type === 'exp') return `${money(r.amount)} XP`
+  return r.display_name || (r.count > 1 ? `×${r.count}` : 'Награда')
+}
+const tip = ref({ show: false, x: 0, y: 0, text: '', void: false })
+function showTip(e, r) {
+  if (!r) return
+  const rc = e.currentTarget.getBoundingClientRect()
+  tip.value = { show: true, x: rc.left + rc.width / 2, y: rc.top, text: rewardTip(r), void: isVoidReward(r) }
+}
+function hideTip() { tip.value = { ...tip.value, show: false } }
 function cellState(tier, premiumTrack) {
   const r = premiumTrack ? tier.premium : tier.free
   if (!r) return 'empty'
@@ -152,10 +175,10 @@ async function claim(tier, premiumTrack) {
 
             <div class="track-scroll" @wheel="onTrackWheel">
               <div v-for="tier in track.levels" :key="tier.level" class="tier">
-                <div class="cell" :class="cellState(tier, false)">
+                <div class="cell" :class="cellState(tier, false)" @mouseenter="showTip($event, tier.free)" @mouseleave="hideTip">
                   <template v-if="tier.free">
                     <div class="cell-ico">
-                      <img v-if="itemIcon(tier.free)" :src="itemIcon(tier.free)" alt="" @error="$event.target.style.display='none'" />
+                      <ItemIcon v-if="rewardItemIcon(tier.free)" :itemKey="rewardItemIcon(tier.free)" :size="34" />
                       <GuiIcon v-else :name="rewardIcon(tier.free)" :size="30" class="cell-gi" />
                     </div>
                     <div class="cell-amt gp-num">{{ rewardAmount(tier.free) }}</div>
@@ -171,10 +194,10 @@ async function claim(tier, premiumTrack) {
 
                 <div class="tier-badge" :class="{ reached: tier.level <= track.level, cur: tier.level === track.level }">{{ tier.level }}</div>
 
-                <div class="cell prem-cell" :class="[cellState(tier, true), { void: isVoidReward(tier.premium) }]">
+                <div class="cell prem-cell" :class="[cellState(tier, true), { void: isVoidReward(tier.premium) }]" @mouseenter="showTip($event, tier.premium)" @mouseleave="hideTip">
                   <template v-if="tier.premium">
                     <div class="cell-ico">
-                      <img v-if="itemIcon(tier.premium)" :src="itemIcon(tier.premium)" alt="" @error="$event.target.style.display='none'" />
+                      <ItemIcon v-if="rewardItemIcon(tier.premium)" :itemKey="rewardItemIcon(tier.premium)" :size="34" />
                       <GuiIcon v-else :name="rewardIcon(tier.premium)" :size="30" class="cell-gi" />
                     </div>
                     <div class="cell-amt gp-num">{{ rewardAmount(tier.premium) }}</div>
@@ -200,6 +223,9 @@ async function claim(tier, premiumTrack) {
         <GuiIcon :name="toast.ok ? 'check' : 'alert'" :size="16" /><span>{{ toast.text }}</span>
       </div>
     </transition>
+
+    <!-- reward hover tooltip -->
+    <div v-if="tip.show" class="bp-tip" :class="{ void: tip.void }" :style="{ left: tip.x + 'px', top: tip.y + 'px' }">{{ tip.text }}</div>
   </section>
 </template>
 
@@ -261,6 +287,15 @@ async function claim(tier, premiumTrack) {
   transition: border-color 0.15s, background 0.15s;
 }
 .cell.empty { opacity: 0.28; }
+.bp-tip {
+  position: fixed; z-index: 90; transform: translate(-50%, calc(-100% - 9px));
+  max-width: 220px; padding: 7px 11px; border-radius: 10px; text-align: center;
+  font-size: 0.78rem; font-weight: 700; color: #eef2ff; white-space: nowrap;
+  background: rgba(16,18,32,0.98); border: 1px solid rgba(150,168,220,0.22);
+  box-shadow: 0 12px 30px -12px rgba(0,0,0,0.85); pointer-events: none;
+}
+.bp-tip::after { content: ''; position: absolute; left: 50%; top: 100%; transform: translateX(-50%); border: 6px solid transparent; border-top-color: rgba(16,18,32,0.98); }
+.bp-tip.void { border-color: rgba(167,139,250,0.5); color: #d8ccff; }
 .cell.void { border-color: rgba(167,139,250,0.5); background: linear-gradient(160deg, rgba(139,123,255,0.16), rgba(180,92,240,0.08)); box-shadow: inset 0 0 16px rgba(139,123,255,0.14); }
 .cell.void .cell-gi { color: #c4b5fd; filter: drop-shadow(0 0 5px rgba(167,139,250,0.7)); }
 .cell.void .cell-amt { color: #d8ccff; }
