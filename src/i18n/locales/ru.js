@@ -1534,6 +1534,9 @@ emailDomainNotice: 'Только российские почтовые серв�
     allTiers: 'Все',
     noResult: 'Ничего не найдено',
     recentWins: 'Последние победы',
+    myWins: 'Мои выигрыши',
+    sell: 'Продать',
+    take: 'Забрать',
     tier: { common: 'Обычный', rare: 'Редкий', epic: 'Эпический', legendary: 'Легендарный' },
   },
   gameUiSettings: {

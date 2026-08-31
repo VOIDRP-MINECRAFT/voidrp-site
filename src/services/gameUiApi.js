@@ -162,6 +162,15 @@ export function getUpgraderHistory() {
 export function getUpgraderRecentWins() {
   return req('/game-ui/upgrader/recent-wins')
 }
+export function getUpgraderWinnings() {
+  return req('/game-ui/upgrader/winnings')
+}
+export function claimUpgraderWinning(id) {
+  return req(`/game-ui/upgrader/winnings/${id}/claim`, { method: 'POST' })
+}
+export function sellUpgraderWinning(id) {
+  return req(`/game-ui/upgrader/winnings/${id}/sell`, { method: 'POST' })
+}
 
 // ── Notifications (reactive HUD toasts) ───────────────────────────────────────
 // The feed returns UNSEEN notifications and marks them seen on fetch — one-shot.

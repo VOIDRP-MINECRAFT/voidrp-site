@@ -1534,6 +1534,9 @@ export default {
     allTiers: 'All',
     noResult: 'Nothing found',
     recentWins: 'Recent wins',
+    myWins: 'My winnings',
+    sell: 'Sell',
+    take: 'Claim',
     tier: { common: 'Common', rare: 'Rare', epic: 'Epic', legendary: 'Legendary' },
   },
   gameUiSettings: {

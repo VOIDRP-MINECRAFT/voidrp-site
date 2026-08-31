@@ -2,7 +2,9 @@
 import { ref, computed, onMounted, onUnmounted, nextTick } from 'vue'
 import { useI18n } from 'vue-i18n'
 import '../assets/gui-premium.css'
-import { getUpgraderRewards, spinUpgrader, getUpgraderHistory, getUpgraderRecentWins, setWebguiToken } from '../services/gameUiApi.js'
+import { getUpgraderRewards, spinUpgrader, getUpgraderHistory, getUpgraderRecentWins,
+  getUpgraderWinnings, claimUpgraderWinning, sellUpgraderWinning, setWebguiToken } from '../services/gameUiApi.js'
+import { toastSuccess, toastError } from '../services/toast'
 import { API_BASE_URL } from '../services/apiBase'
 import { useWebGuiToken } from '../composables/useWebGui.js'
 import { setVoidCoins } from '../composables/useCurrency.js'
@@ -55,6 +57,33 @@ const filteredGrouped = computed(() => {
   }
   return TIER_ORDER.filter((tk) => g[tk]?.length).map((tk) => ({ tier: tk, items: g[tk] }))
 })
+
+// won-items inventory (claim in-game / sell for Void Coin)
+const winnings = ref([])
+const winBusy = ref('')
+async function loadWinnings() {
+  try { winnings.value = await getUpgraderWinnings() } catch { /* silent */ }
+}
+async function sellWin(w) {
+  if (winBusy.value) return
+  winBusy.value = w.id
+  try {
+    const res = await sellUpgraderWinning(w.id)
+    balance.value = res.new_void_coins
+    setVoidCoins(res.new_void_coins)
+    winnings.value = winnings.value.filter((x) => x.id !== w.id)
+    toastSuccess(`+${money(res.vc_value)} Void Coin`)
+  } catch (e) { toastError(e?.message || 'Ошибка') } finally { winBusy.value = '' }
+}
+async function claimWin(w) {
+  if (winBusy.value) return
+  winBusy.value = w.id
+  try {
+    await claimUpgraderWinning(w.id)
+    winnings.value = winnings.value.filter((x) => x.id !== w.id)
+    toastSuccess('Забрано в игру')
+  } catch (e) { toastError(e?.message || 'Ошибка') } finally { winBusy.value = '' }
+}
 
 // recent-wins ticker
 const recentWins = ref([])
@@ -142,7 +171,7 @@ async function doSpin() {
       spinning.value = false
       burst(res.won)
       loadHistory()
-      if (res.won) loadWins()
+      if (res.won) { loadWins(); loadWinnings() }
     }, 4300)
   } catch (e) {
     error.value = e?.message || 'error'
@@ -174,6 +203,7 @@ async function load() {
   }
   loadHistory()
   loadWins()
+  loadWinnings()
 }
 onMounted(() => { load(); winsTimer = setInterval(loadWins, 12000) })
 onUnmounted(() => { clearInterval(winsTimer) })
@@ -291,6 +321,24 @@ onUnmounted(() => { clearInterval(winsTimer) })
               {{ spinning ? t('gameUiUpgrader.spinning') : t('gameUiUpgrader.spin') }}
             </button>
             <div class="up-bal">{{ t('gameUiUpgrader.balance') }}: <b><GuiIcon name="voidcoin" :size="12" />{{ money(balance) }}</b></div>
+          </div>
+        </div>
+
+        <!-- won-items inventory: claim in-game or sell for Void Coin -->
+        <div v-if="winnings.length" class="gp-panel up-inv">
+          <div class="gp-phead"><span class="gp-phead-ic"><GuiIcon name="gift" :size="16" /></span><span class="gp-phead-tt">{{ t('gameUiUpgrader.myWins') }}</span><span class="gp-phead-sp"></span><span class="up-inv-count">{{ winnings.length }}</span></div>
+          <div class="up-inv-list">
+            <div v-for="w in winnings" :key="w.id" class="up-inv-row" :style="{ '--tc': tierColor[w.tier] || '#8b7bff' }">
+              <div class="up-inv-ic"><ItemIcon :itemKey="w.item_key" :size="30" /></div>
+              <div class="up-inv-info">
+                <div class="up-inv-name">{{ w.display_name }}</div>
+                <div class="up-inv-val"><GuiIcon name="voidcoin" :size="10" />{{ money(w.vc_value) }}</div>
+              </div>
+              <div class="up-inv-btns">
+                <button class="up-inv-sell" :disabled="winBusy === w.id" @click="sellWin(w)"><GuiIcon name="voidcoin" :size="11" />{{ t('gameUiUpgrader.sell') }} {{ money(w.vc_value) }}</button>
+                <button class="up-inv-claim" :disabled="winBusy === w.id" @click="claimWin(w)">{{ t('gameUiUpgrader.take') }}</button>
+              </div>
+            </div>
           </div>
         </div>
 
@@ -489,6 +537,21 @@ onUnmounted(() => { clearInterval(winsTimer) })
 
 /* left column: machine stacked over the recent-wins ticker */
 .up-left { display: flex; flex-direction: column; gap: 16px; min-width: 0; }
+
+/* won-items inventory */
+.up-inv-count { font-size: 0.72rem; font-weight: 800; color: #c4b5fd; }
+.up-inv-list { display: flex; flex-direction: column; gap: 7px; margin-top: 8px; max-height: 260px; overflow-y: auto; padding-right: 3px; }
+.up-inv-row { display: flex; align-items: center; gap: 10px; padding: 8px 10px; border-radius: 11px; background: rgba(255,255,255,0.02); border: 1px solid var(--gp-line); border-left: 3px solid var(--tc); }
+.up-inv-ic { width: 36px; height: 36px; display: grid; place-items: center; border-radius: 9px; background: rgba(0,0,0,0.3); border: 1px solid var(--gp-line); flex-shrink: 0; }
+.up-inv-info { flex: 1; min-width: 0; }
+.up-inv-name { font-size: 0.8rem; font-weight: 800; color: #eef2ff; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.up-inv-val { display: inline-flex; align-items: center; gap: 3px; font-size: 0.68rem; font-weight: 700; color: #c4b5fd; margin-top: 1px; }
+.up-inv-btns { display: flex; flex-direction: column; gap: 5px; flex-shrink: 0; }
+.up-inv-sell, .up-inv-claim { display: inline-flex; align-items: center; justify-content: center; gap: 3px; padding: 5px 10px; border-radius: 8px; font-size: 0.7rem; font-weight: 800; cursor: pointer; border: 1px solid; transition: filter .12s; white-space: nowrap; }
+.up-inv-sell { background: linear-gradient(135deg, rgba(139,123,255,0.22), rgba(180,92,240,0.16)); border-color: rgba(167,139,250,0.5); color: #d8ccff; }
+.up-inv-claim { background: rgba(52,211,153,0.12); border-color: rgba(52,211,153,0.4); color: #6ee7b7; }
+.up-inv-sell:hover:not(:disabled), .up-inv-claim:hover:not(:disabled) { filter: brightness(1.15); }
+.up-inv-sell:disabled, .up-inv-claim:disabled { opacity: 0.5; cursor: default; }
 
 /* recent winners ticker */
 .up-recent-row { display: flex; gap: 9px; overflow-x: auto; padding: 10px 2px 4px; }
