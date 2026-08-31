@@ -123,6 +123,9 @@ export function getBattlepassStatus() {
 export function buyBattlepassPremium() {
   return req('/game-ui/battlepass/buy-premium', { method: 'POST' })
 }
+export function getBattlepassQuests() {
+  return req('/game-ui/battlepass/quests')
+}
 
 // ── Alliance ──────────────────────────────────────────────────────────────────
 

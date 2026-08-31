@@ -2,7 +2,7 @@
 import { ref, computed, onMounted } from 'vue'
 import { useI18n } from 'vue-i18n'
 import '../assets/gui-premium.css'
-import { getBpTrack, setWebguiToken, runGameCommand, buyBattlepassPremium } from '../services/gameUiApi.js'
+import { getBpTrack, setWebguiToken, runGameCommand, buyBattlepassPremium, getBattlepassQuests } from '../services/gameUiApi.js'
 import { useWebGuiToken, useActionToast } from '../composables/useWebGui.js'
 import { setVoidCoins } from '../composables/useCurrency.js'
 import { prestigeColor } from '../composables/usePrestige.js'
@@ -41,6 +41,18 @@ async function buyPremium() {
   }
 }
 
+const quests = ref(null)
+const isFinale = computed(() => track.value && track.value.ends_in_days != null && track.value.ends_in_days <= 7)
+const allQuests = computed(() => {
+  if (!quests.value) return []
+  const free = (quests.value.free || []).map((q) => ({ ...q, premium: false }))
+  const prem = (quests.value.premium || []).map((q) => ({ ...q, premium: true }))
+  return [...free, ...prem]
+})
+
+async function loadQuests() {
+  try { quests.value = await getBattlepassQuests() } catch { /* silent */ }
+}
 async function load() {
   try {
     track.value = await getBpTrack()
@@ -50,6 +62,7 @@ async function load() {
   } finally {
     loading.value = false
   }
+  loadQuests()
 }
 onMounted(load)
 
@@ -180,6 +193,36 @@ async function claim(tier, premiumTrack) {
                   {{ track.has_premium ? t('gameUiBattlepass.extendPremiumVc', { n: money(PREMIUM_VC_PRICE) }) : t('gameUiBattlepass.buyPremiumVc', { n: money(PREMIUM_VC_PRICE) }) }}
                 </button>
                 <button v-if="readyCount" class="gp-btn gp-btn--ghost gp-btn--sm claim-all" disabled><GuiIcon name="gift" :size="14" />{{ t('gameUiBattlepass.claimReady') }} ({{ readyCount }})</button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Season finale banner -->
+        <div v-if="isFinale" class="bp-finale">
+          <span class="bp-finale-ic">🔥</span>
+          <div class="bp-finale-txt">
+            <div class="bp-finale-h">{{ t('gameUiBattlepass.finaleTitle') }}</div>
+            <div class="bp-finale-s">{{ t('gameUiBattlepass.finaleSub', { n: track.ends_in_days }) }}</div>
+          </div>
+          <span class="bp-finale-x2">×2 XP</span>
+        </div>
+
+        <!-- Daily quests -->
+        <div v-if="allQuests.length" class="bp-quests gp-card">
+          <div class="bp-quests-head"><GuiIcon name="quest" :size="16" /><span>{{ t('gameUiBattlepass.questsTitle') }}</span><span class="bp-quests-note">{{ t('gameUiBattlepass.questsNote') }}</span></div>
+          <div class="bp-quests-grid">
+            <div v-for="q in allQuests" :key="(q.premium ? 'p' : 'f') + q.id" class="bp-quest" :class="{ done: q.completed, prem: q.premium, lock: q.premium && !track.has_premium }">
+              <div class="bp-quest-top">
+                <span class="bp-quest-name">{{ q.name }}<span v-if="q.premium" class="bp-quest-badge"><GuiIcon name="crown" :size="10" /></span></span>
+                <span class="bp-quest-xp">+{{ money(q.xp) }} XP</span>
+              </div>
+              <div v-if="q.description" class="bp-quest-desc">{{ q.description }}</div>
+              <div class="bp-quest-bar"><div class="bp-quest-fill" :class="{ full: q.completed }" :style="{ width: Math.min(100, Math.round(q.progress / Math.max(1, q.required) * 100)) + '%' }"></div></div>
+              <div class="bp-quest-prog">
+                <span v-if="q.completed" class="bp-quest-ok">✓ {{ t('gameUiBattlepass.questDone') }}</span>
+                <span v-else>{{ money(q.progress) }} / {{ money(q.required) }}</span>
+                <span v-if="q.premium && !track.has_premium" class="bp-quest-locktxt">🔒 {{ t('gameUiBattlepass.premiumShort') }}</span>
               </div>
             </div>
           </div>
@@ -360,4 +403,36 @@ async function claim(tier, premiumTrack) {
 
 .track-note { display: flex; align-items: center; gap: 7px; margin-top: 12px; font-size: 0.76rem; color: var(--gp-ink-dim); }
 .track-note svg { color: var(--gp-gold); }
+
+/* ── season finale banner ── */
+.bp-finale { display: flex; align-items: center; gap: 12px; margin-bottom: 14px; padding: 12px 16px; border-radius: 14px;
+  background: linear-gradient(120deg, rgba(251,113,60,0.18), rgba(251,191,36,0.12)); border: 1px solid rgba(251,146,60,0.5); box-shadow: 0 0 24px -8px rgba(251,146,60,0.6); }
+.bp-finale-ic { font-size: 1.6rem; animation: bp-bob 1.4s ease-in-out infinite; }
+@keyframes bp-bob { 0%,100% { transform: translateY(0) } 50% { transform: translateY(-3px) } }
+.bp-finale-txt { flex: 1; min-width: 0; }
+.bp-finale-h { font-size: 0.98rem; font-weight: 900; color: #fdba74; text-transform: uppercase; letter-spacing: 0.04em; }
+.bp-finale-s { font-size: 0.78rem; color: #e7cfae; margin-top: 1px; }
+.bp-finale-x2 { font-family: 'JetBrains Mono', monospace; font-size: 1.3rem; font-weight: 800; color: #fff2dc; text-shadow: 0 0 14px rgba(251,146,60,0.7); }
+
+/* ── daily quests ── */
+.bp-quests { margin-bottom: 14px; }
+.bp-quests-head { display: flex; align-items: center; gap: 8px; font-size: 0.92rem; font-weight: 800; color: #eef2ff; }
+.bp-quests-head svg { color: #a78bfa; }
+.bp-quests-note { margin-left: auto; font-size: 0.7rem; font-weight: 600; color: var(--gp-ink-dim); }
+.bp-quests-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(230px, 1fr)); gap: 10px; margin-top: 12px; }
+.bp-quest { padding: 11px 13px; border-radius: 12px; background: rgba(255,255,255,0.02); border: 1px solid var(--gp-line); }
+.bp-quest.prem { border-color: rgba(251,191,36,0.35); background: rgba(251,191,36,0.05); }
+.bp-quest.done { border-color: rgba(52,211,153,0.45); background: rgba(52,211,153,0.06); }
+.bp-quest.lock { opacity: 0.6; }
+.bp-quest-top { display: flex; align-items: baseline; gap: 8px; }
+.bp-quest-name { flex: 1; min-width: 0; font-size: 0.82rem; font-weight: 800; color: #eef2ff; display: inline-flex; align-items: center; gap: 5px; }
+.bp-quest-badge { color: #fbbf24; display: inline-flex; }
+.bp-quest-xp { font-size: 0.72rem; font-weight: 800; color: #c4b5fd; white-space: nowrap; }
+.bp-quest-desc { font-size: 0.7rem; color: var(--gp-ink-dim); margin-top: 3px; line-height: 1.3; }
+.bp-quest-bar { height: 7px; border-radius: 999px; background: rgba(0,0,0,0.32); overflow: hidden; margin-top: 8px; }
+.bp-quest-fill { height: 100%; border-radius: 999px; background: linear-gradient(90deg, #7c6bff, #c084fc); transition: width .3s; }
+.bp-quest-fill.full { background: linear-gradient(90deg, #34d399, #6ee7b7); }
+.bp-quest-prog { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-top: 5px; font-size: 0.7rem; font-weight: 700; color: #aab2cc; }
+.bp-quest-ok { color: #34d399; }
+.bp-quest-locktxt { color: #fbbf24; font-size: 0.64rem; }
 </style>
