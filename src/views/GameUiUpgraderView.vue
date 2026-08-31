@@ -3,7 +3,9 @@ import { ref, computed, onMounted, onUnmounted, nextTick } from 'vue'
 import { useI18n } from 'vue-i18n'
 import '../assets/gui-premium.css'
 import { getUpgraderRewards, spinUpgrader, getUpgraderHistory, getUpgraderRecentWins,
-  getUpgraderWinnings, claimUpgraderWinning, sellUpgraderWinning, setWebguiToken } from '../services/gameUiApi.js'
+  getUpgraderWinnings, claimUpgraderWinning, sellUpgraderWinning, sellAllUpgraderWinnings,
+  claimAllUpgraderWinnings, getUpgraderStats, dailySpinUpgrader, getUpgraderJackpot,
+  getUpgraderLeaderboard, setWebguiToken } from '../services/gameUiApi.js'
 import { toastSuccess, toastError } from '../services/toast'
 import { API_BASE_URL } from '../services/apiBase'
 import { useWebGuiToken } from '../composables/useWebGui.js'
@@ -84,6 +86,87 @@ async function claimWin(w) {
     toastSuccess('Забрано в игру')
   } catch (e) { toastError(e?.message || 'Ошибка') } finally { winBusy.value = '' }
 }
+const poolTotal = computed(() => winnings.value.reduce((s, w) => s + Number(w.vc_value || 0), 0))
+async function sellAll() {
+  if (winBusy.value || !winnings.value.length) return
+  winBusy.value = 'all'
+  try {
+    const res = await sellAllUpgraderWinnings()
+    balance.value = res.new_void_coins
+    setVoidCoins(res.new_void_coins)
+    winnings.value = []
+    toastSuccess(`+${money(res.vc_total)} Void Coin`)
+  } catch (e) { toastError(e?.message || 'Ошибка') } finally { winBusy.value = '' }
+}
+async function claimAll() {
+  if (winBusy.value || !winnings.value.length) return
+  winBusy.value = 'all'
+  try {
+    const res = await claimAllUpgraderWinnings()
+    winnings.value = []
+    toastSuccess(t('gameUiUpgrader.claimedAll', { n: res.claimed_count || 0 }))
+  } catch (e) { toastError(e?.message || 'Ошибка') } finally { winBusy.value = '' }
+}
+
+// personal stats
+const stats = ref(null)
+async function loadStats() {
+  try { stats.value = await getUpgraderStats() } catch { /* silent */ }
+}
+
+// server-wide jackpot + daily free spin + weekly leaderboard
+const jackpot = ref({ enabled: false, amount: 0, last_winner: null, last_amount: null })
+const daily = ref({ enabled: false, available: false, free_stake: 25, streak: 0 })
+const leaderboard = ref({ entries: [] })
+const jackpotFlash = ref(null)
+async function refreshJackpot() {
+  try { jackpot.value = await getUpgraderJackpot() } catch { /* silent */ }
+}
+async function loadLeaderboard() {
+  try { leaderboard.value = await getUpgraderLeaderboard() } catch { /* silent */ }
+}
+
+// provably-fair verification
+const lastSpin = ref(null)
+const verify = ref(null)
+async function hmacRoll(serverSeed, clientSeed, nonce) {
+  const enc = new TextEncoder()
+  const key = await crypto.subtle.importKey('raw', enc.encode(serverSeed), { name: 'HMAC', hash: 'SHA-256' }, false, ['sign'])
+  const sig = await crypto.subtle.sign('HMAC', key, enc.encode(`${clientSeed}:${nonce}`))
+  const hex = [...new Uint8Array(sig)].map((b) => b.toString(16).padStart(2, '0')).join('')
+  return Number(BigInt('0x' + hex.slice(0, 15))) / 2 ** 60
+}
+async function openVerify(src) {
+  if (!src || !src.server_seed) return
+  const v = {
+    server_seed: src.server_seed,
+    client_seed: src.client_seed,
+    nonce: src.nonce,
+    roll: src.roll,
+    win_chance: src.win_chance ?? src.winChance ?? null,
+    won: src.won,
+    display: src.reward_display || src.reward?.display_name || '',
+    computed: null,
+    ok: null,
+  }
+  verify.value = v
+  try {
+    const c = await hmacRoll(src.server_seed, src.client_seed, src.nonce)
+    v.computed = c
+    v.ok = Math.abs(c - Number(src.roll)) < 1e-6
+  } catch { v.ok = false }
+}
+function closeVerify() { verify.value = null }
+
+// multiplier presets — set the stake so the payout multiplier ≈ M
+const MULT_PRESETS = [2, 5, 10]
+function presetStake(m) { return selected.value ? Math.round(selected.value.vc_value / m) : 0 }
+function presetOk(m) {
+  if (!selected.value) return false
+  const s = presetStake(m)
+  return s >= minStake.value && s <= Math.min(balance.value, selected.value.vc_value - 1) && m <= maxMult.value
+}
+function applyPreset(m) { if (presetOk(m)) setStake(presetStake(m)) }
 
 // recent-wins ticker
 const recentWins = ref([])
@@ -153,31 +236,65 @@ function burst(win) {
   setTimeout(() => { particles.value = [] }, 1900)
 }
 
+function applySpinResult(res) {
+  lastSpin.value = res
+  const target = res.roll * 360
+  const base = pointerDeg.value - (pointerDeg.value % 360)
+  pointerDeg.value = base + 360 * 6 + target
+  balance.value = res.new_void_coins
+  setVoidCoins(res.new_void_coins)   // update the navbar instantly
+  if (res.jackpot && typeof res.jackpot.amount === 'number') jackpot.value.amount = res.jackpot.amount
+  setTimeout(() => {
+    result.value = { won: res.won, reward: res.reward }
+    wheelState.value = res.won ? 'win' : 'lose'
+    spinning.value = false
+    burst(res.won)
+    loadHistory()
+    loadStats()
+    loadLeaderboard()
+    if (res.won) { loadWins(); loadWinnings() }
+    if (res.free) { daily.value.available = false; if (typeof res.daily_streak === 'number') daily.value.streak = res.daily_streak }
+    if (res.jackpot && res.jackpot.hit) onJackpotHit(res.jackpot)
+    refreshJackpot()
+  }, 4300)
+}
+
 async function doSpin() {
   if (!canSpin.value) return
   spinning.value = true
   result.value = null
   wheelState.value = 'spinning'
   try {
-    const res = await spinUpgrader(selected.value.id, stake.value, null)
-    const target = res.roll * 360
-    const base = pointerDeg.value - (pointerDeg.value % 360)
-    pointerDeg.value = base + 360 * 6 + target
-    balance.value = res.new_void_coins
-    setVoidCoins(res.new_void_coins)   // update the navbar instantly
-    setTimeout(() => {
-      result.value = { won: res.won, reward: res.reward }
-      wheelState.value = res.won ? 'win' : 'lose'
-      spinning.value = false
-      burst(res.won)
-      loadHistory()
-      if (res.won) { loadWins(); loadWinnings() }
-    }, 4300)
+    applySpinResult(await spinUpgrader(selected.value.id, stake.value, null))
   } catch (e) {
-    error.value = e?.message || 'error'
+    toastError(e?.message || 'Ошибка')
     spinning.value = false
     wheelState.value = ''
   }
+}
+
+async function doDailySpin() {
+  if (spinning.value || !selected.value || !daily.value.available) return
+  if (selected.value.vc_value <= daily.value.free_stake) { toastError(t('gameUiUpgrader.dailyPickBigger', { n: money(daily.value.free_stake) })); return }
+  spinning.value = true
+  result.value = null
+  wheelState.value = 'spinning'
+  try {
+    applySpinResult(await dailySpinUpgrader(selected.value.id, null))
+  } catch (e) {
+    const msg = e?.message || 'Ошибка'
+    if (/сегодня|today/i.test(msg)) daily.value.available = false
+    toastError(msg)
+    spinning.value = false
+    wheelState.value = ''
+  }
+}
+
+function onJackpotHit(j) {
+  jackpotFlash.value = { amount: j.won_amount }
+  burst(true)
+  toastSuccess(`🎉 ${t('gameUiUpgrader.jackpotWon')} +${money(j.won_amount)} Void Coin`)
+  setTimeout(() => { jackpotFlash.value = null }, 6000)
 }
 
 async function loadHistory() {
@@ -194,6 +311,8 @@ async function load() {
     minStake.value = d.min_stake || 1
     maxMult.value = d.max_multiplier || 100
     maxChance.value = d.max_chance || 0.9
+    if (d.jackpot) jackpot.value = d.jackpot
+    if (d.daily) daily.value = d.daily
     error.value = null
     if (rewards.value.length) { await nextTick(); pickReward(rewards.value.find((r) => r.tier === 'rare') || rewards.value[0]) }
   } catch (e) {
@@ -204,8 +323,10 @@ async function load() {
   loadHistory()
   loadWins()
   loadWinnings()
+  loadStats()
+  loadLeaderboard()
 }
-onMounted(() => { load(); winsTimer = setInterval(loadWins, 12000) })
+onMounted(() => { load(); winsTimer = setInterval(() => { loadWins(); refreshJackpot() }, 12000) })
 onUnmounted(() => { clearInterval(winsTimer) })
 </script>
 
@@ -224,6 +345,14 @@ onUnmounted(() => { clearInterval(winsTimer) })
         <!-- left column: machine + recent wins under it -->
         <div class="up-left">
         <div class="gp-panel up-machine" :style="{ '--sel': selColor }">
+          <!-- server-wide progressive jackpot -->
+          <div v-if="jackpot.enabled" class="up-jackpot" :class="{ hit: jackpotFlash }">
+            <span class="up-jp-glow"></span>
+            <span class="up-jp-label"><GuiIcon name="crown" :size="14" />{{ t('gameUiUpgrader.jackpot') }}</span>
+            <span class="up-jp-amount"><GuiIcon name="voidcoin" :size="15" />{{ money(jackpot.amount) }}</span>
+            <span v-if="jackpot.last_winner" class="up-jp-last">{{ t('gameUiUpgrader.jackpotLast', { nick: jackpot.last_winner, amount: money(jackpot.last_amount) }) }}</span>
+          </div>
+
           <div class="up-target" v-if="selected" :class="'t-' + selected.tier">
             <div class="up-target-ico">
               <ItemIcon :itemKey="selected.item_key" :size="42" />
@@ -292,6 +421,7 @@ onUnmounted(() => { clearInterval(winsTimer) })
                 <div v-if="result" :key="'r'" class="up-res-wrap">
                   <div class="up-res" :class="result.won ? 'win' : 'lose'">{{ result.won ? t('gameUiUpgrader.win') : t('gameUiUpgrader.lose') }}</div>
                   <div v-if="result.won" class="up-res-item"><ItemIcon :itemKey="result.reward.item_key" :size="26" /><span>{{ result.reward.display_name }}</span></div>
+                  <button v-if="lastSpin" class="up-fair-btn" @click="openVerify(lastSpin)"><GuiIcon name="shield" :size="12" />{{ t('gameUiUpgrader.fair') }}</button>
                 </div>
                 <div v-else :key="'c'" class="up-meter">
                   <div class="up-chance" :class="chanceClass">{{ chancePct }}<small>%</small></div>
@@ -315,10 +445,22 @@ onUnmounted(() => { clearInterval(winsTimer) })
               <button :disabled="spinning" @click="setStake(stake * 2)">2×</button>
               <button :disabled="spinning" @click="setStake(Math.min(balance, selected.vc_value - 1))">MAX</button>
             </div>
+            <div class="up-presets">
+              <span class="up-presets-lbl">{{ t('gameUiUpgrader.targetMult') }}</span>
+              <button v-for="m in MULT_PRESETS" :key="m" class="up-preset" :disabled="spinning || !presetOk(m)" @click="applyPreset(m)">×{{ m }}</button>
+            </div>
             <button class="up-spin" :class="{ ready: canSpin }" :disabled="!canSpin" @click="doSpin">
               <span class="up-spin-sheen"></span>
               <GuiIcon name="sparkles" :size="16" />
               {{ spinning ? t('gameUiUpgrader.spinning') : t('gameUiUpgrader.spin') }}
+            </button>
+            <!-- daily free spin -->
+            <button v-if="daily.enabled" class="up-daily" :class="{ ready: daily.available && !spinning }"
+                    :disabled="!daily.available || spinning" @click="doDailySpin">
+              <GuiIcon name="gift" :size="15" />
+              <span v-if="daily.available">{{ t('gameUiUpgrader.dailyFree', { n: money(daily.free_stake) }) }}</span>
+              <span v-else>{{ t('gameUiUpgrader.dailyUsed') }}</span>
+              <span v-if="daily.streak > 0" class="up-daily-streak">🔥{{ daily.streak }}</span>
             </button>
             <div class="up-bal">{{ t('gameUiUpgrader.balance') }}: <b><GuiIcon name="voidcoin" :size="12" />{{ money(balance) }}</b></div>
           </div>
@@ -326,7 +468,11 @@ onUnmounted(() => { clearInterval(winsTimer) })
 
         <!-- won-items inventory: claim in-game or sell for Void Coin -->
         <div v-if="winnings.length" class="gp-panel up-inv">
-          <div class="gp-phead"><span class="gp-phead-ic"><GuiIcon name="gift" :size="16" /></span><span class="gp-phead-tt">{{ t('gameUiUpgrader.myWins') }}</span><span class="gp-phead-sp"></span><span class="up-inv-count">{{ winnings.length }}</span></div>
+          <div class="gp-phead"><span class="gp-phead-ic"><GuiIcon name="gift" :size="16" /></span><span class="gp-phead-tt">{{ t('gameUiUpgrader.myWins') }}</span><span class="gp-phead-sp"></span><span class="up-inv-count">{{ winnings.length }} · <GuiIcon name="voidcoin" :size="10" />{{ money(poolTotal) }}</span></div>
+          <div class="up-inv-bulk">
+            <button class="up-bulk-sell" :disabled="winBusy === 'all'" @click="sellAll"><GuiIcon name="voidcoin" :size="12" />{{ t('gameUiUpgrader.sellAll') }} {{ money(poolTotal) }}</button>
+            <button class="up-bulk-claim" :disabled="winBusy === 'all'" @click="claimAll">{{ t('gameUiUpgrader.claimAll') }}</button>
+          </div>
           <div class="up-inv-list">
             <div v-for="w in winnings" :key="w.id" class="up-inv-row" :style="{ '--tc': tierColor[w.tier] || '#8b7bff' }">
               <div class="up-inv-ic"><ItemIcon :itemKey="w.item_key" :size="30" /></div>
@@ -388,6 +534,30 @@ onUnmounted(() => { clearInterval(winsTimer) })
             </div>
           </div>
 
+          <!-- weekly leaderboard: biggest wins this week -->
+          <div v-if="leaderboard.entries.length" class="gp-panel up-lb">
+            <div class="gp-phead"><span class="gp-phead-ic"><GuiIcon name="trophy" :size="16" /></span><span class="gp-phead-tt">{{ t('gameUiUpgrader.weeklyTop') }}</span></div>
+            <div class="up-lb-list">
+              <div v-for="(e, i) in leaderboard.entries" :key="e.nickname" class="up-lb-row" :class="'r' + (i + 1)">
+                <span class="up-lb-rank">{{ i + 1 }}</span>
+                <img class="up-lb-head" :src="headUrl(e.nickname)" alt="" @error="$event.target.style.visibility='hidden'" />
+                <span class="up-lb-nick">{{ e.nickname }}</span>
+                <span class="up-lb-wins">{{ t('gameUiUpgrader.lbWins', { n: e.wins }) }}</span>
+                <span class="up-lb-big"><GuiIcon name="voidcoin" :size="11" />{{ money(e.biggest_win) }}</span>
+              </div>
+            </div>
+          </div>
+
+          <div v-if="stats && stats.spins" class="gp-panel up-stats">
+            <div class="gp-phead"><span class="gp-phead-ic"><GuiIcon name="activity" :size="16" /></span><span class="gp-phead-tt">{{ t('gameUiUpgrader.myStats') }}</span></div>
+            <div class="up-stats-grid">
+              <div class="up-stat"><span class="up-stat-v">{{ money(stats.spins) }}</span><span class="up-stat-l">{{ t('gameUiUpgrader.stSpins') }}</span></div>
+              <div class="up-stat"><span class="up-stat-v" :class="{ hi: stats.win_rate >= 0.4 }">{{ (stats.win_rate * 100).toFixed(0) }}%</span><span class="up-stat-l">{{ t('gameUiUpgrader.stWinrate') }} · {{ money(stats.wins) }}</span></div>
+              <div class="up-stat"><span class="up-stat-v"><GuiIcon name="voidcoin" :size="12" />{{ money(stats.vc_staked) }}</span><span class="up-stat-l">{{ t('gameUiUpgrader.stStaked') }}</span></div>
+              <div class="up-stat"><span class="up-stat-v win"><GuiIcon name="voidcoin" :size="12" />{{ money(stats.vc_won) }}</span><span class="up-stat-l">{{ t('gameUiUpgrader.stWon') }}</span></div>
+            </div>
+          </div>
+
           <div v-if="history.length" class="gp-panel">
             <div class="gp-phead"><span class="gp-phead-ic"><GuiIcon name="clock" :size="16" /></span><span class="gp-phead-tt">{{ t('gameUiUpgrader.history') }}</span></div>
             <div class="up-hist">
@@ -396,12 +566,54 @@ onUnmounted(() => { clearInterval(winsTimer) })
                 <span class="up-hname">{{ h.reward_display }}</span>
                 <span class="up-hstake"><GuiIcon name="voidcoin" :size="10" />{{ money(h.stake) }}</span>
                 <span class="up-hmult">×{{ h.multiplier }}</span>
+                <button v-if="h.server_seed" class="up-hfair" :title="t('gameUiUpgrader.fair')" @click="openVerify(h)"><GuiIcon name="shield" :size="12" /></button>
               </div>
             </div>
           </div>
         </div>
       </template>
     </div>
+
+    <!-- jackpot win celebration -->
+    <transition name="up-fade">
+      <div v-if="jackpotFlash" class="up-jpwin" @click="jackpotFlash = null">
+        <div class="up-jpwin-card">
+          <div class="up-jpwin-crown"><GuiIcon name="crown" :size="46" /></div>
+          <div class="up-jpwin-title">{{ t('gameUiUpgrader.jackpotWon') }}</div>
+          <div class="up-jpwin-amount"><GuiIcon name="voidcoin" :size="30" />{{ money(jackpotFlash.amount) }}</div>
+          <div class="up-jpwin-sub">Void Coin</div>
+        </div>
+      </div>
+    </transition>
+
+    <!-- provably-fair verification -->
+    <transition name="up-fade">
+      <div v-if="verify" class="up-modal" @click.self="closeVerify">
+        <div class="up-modal-card">
+          <div class="up-modal-head">
+            <span class="up-modal-ic"><GuiIcon name="shield" :size="16" /></span>
+            <span class="up-modal-tt">{{ t('gameUiUpgrader.fairTitle') }}</span>
+            <button class="up-modal-x" @click="closeVerify">✕</button>
+          </div>
+          <p class="up-modal-desc">{{ t('gameUiUpgrader.fairDesc') }}</p>
+          <div class="up-fair-verdict" :class="verify.ok === true ? 'ok' : verify.ok === false ? 'bad' : ''">
+            <template v-if="verify.ok === true">✓ {{ t('gameUiUpgrader.fairOk') }}</template>
+            <template v-else-if="verify.ok === false">✕ {{ t('gameUiUpgrader.fairBad') }}</template>
+            <template v-else>… {{ t('gameUiUpgrader.fairChecking') }}</template>
+          </div>
+          <div class="up-fair-rows">
+            <div class="up-fair-r"><span>server_seed</span><code>{{ verify.server_seed }}</code></div>
+            <div class="up-fair-r"><span>client_seed</span><code>{{ verify.client_seed }}</code></div>
+            <div class="up-fair-r"><span>nonce</span><code>{{ verify.nonce }}</code></div>
+            <div class="up-fair-r"><span>roll</span><code>{{ Number(verify.roll).toFixed(6) }}</code></div>
+            <div class="up-fair-r"><span>{{ t('gameUiUpgrader.fairComputed') }}</span><code>{{ verify.computed != null ? verify.computed.toFixed(6) : '…' }}</code></div>
+            <div v-if="verify.win_chance != null" class="up-fair-r"><span>win_chance</span><code>{{ Number(verify.win_chance).toFixed(6) }}</code></div>
+          </div>
+          <p class="up-fair-formula">roll = int( HMAC_SHA256(server_seed, client_seed:nonce)[:15], 16 ) / 16<sup>15</sup></p>
+          <p class="up-fair-formula">{{ t('gameUiUpgrader.fairRule') }}</p>
+        </div>
+      </div>
+    </transition>
   </section>
 </template>
 
@@ -579,4 +791,104 @@ onUnmounted(() => { clearInterval(winsTimer) })
 .up-hname { flex: 1; font-size: 0.75rem; font-weight: 700; color: #d5dcf0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .up-hstake { display: inline-flex; align-items: center; gap: 2px; font-size: 0.68rem; color: #aab2cc; }
 .up-hmult { font-size: 0.68rem; font-weight: 800; color: #a78bfa; }
+.up-hfair { margin-left: 2px; display: grid; place-items: center; width: 22px; height: 22px; border-radius: 7px; border: 1px solid var(--gp-line);
+  background: rgba(139,123,255,0.08); color: #a78bfa; cursor: pointer; flex-shrink: 0; transition: background .12s, color .12s; }
+.up-hfair:hover { background: rgba(139,123,255,0.2); color: #c4b5fd; }
+
+/* multiplier presets */
+.up-presets { display: flex; align-items: center; gap: 6px; }
+.up-presets-lbl { font-size: 0.68rem; font-weight: 700; color: #8a90a8; margin-right: 2px; }
+.up-preset { flex: 1; padding: 6px; border-radius: 9px; border: 1px solid rgba(167,139,250,0.32); background: rgba(139,123,255,0.08);
+  color: #c4b5fd; font-weight: 800; font-size: 0.76rem; cursor: pointer; transition: background .12s, transform .1s; }
+.up-preset:hover:not(:disabled) { background: rgba(139,123,255,0.2); }
+.up-preset:active:not(:disabled) { transform: scale(0.94); }
+.up-preset:disabled { opacity: 0.35; cursor: not-allowed; }
+
+/* provably-fair result button */
+.up-fair-btn { pointer-events: auto; margin-top: 9px; display: inline-flex; align-items: center; gap: 4px; padding: 4px 10px; border-radius: 8px;
+  border: 1px solid rgba(139,123,255,0.4); background: rgba(139,123,255,0.12); color: #c4b5fd; font-size: 0.68rem; font-weight: 800; cursor: pointer; transition: background .12s; }
+.up-fair-btn:hover { background: rgba(139,123,255,0.24); }
+
+/* winnings bulk actions */
+.up-inv-bulk { display: flex; gap: 7px; margin-top: 9px; }
+.up-bulk-sell, .up-bulk-claim { flex: 1; display: inline-flex; align-items: center; justify-content: center; gap: 4px; padding: 8px; border-radius: 10px;
+  font-size: 0.76rem; font-weight: 800; cursor: pointer; border: 1px solid; transition: filter .12s; }
+.up-bulk-sell { background: linear-gradient(135deg, rgba(139,123,255,0.26), rgba(180,92,240,0.2)); border-color: rgba(167,139,250,0.55); color: #e4dcff; }
+.up-bulk-claim { background: rgba(52,211,153,0.14); border-color: rgba(52,211,153,0.45); color: #6ee7b7; flex: 0 0 auto; padding: 8px 14px; }
+.up-bulk-sell:hover:not(:disabled), .up-bulk-claim:hover:not(:disabled) { filter: brightness(1.15); }
+.up-bulk-sell:disabled, .up-bulk-claim:disabled { opacity: 0.5; cursor: default; }
+
+/* personal stats */
+.up-stats-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 8px; }
+.up-stat { display: flex; flex-direction: column; gap: 3px; padding: 10px 12px; border-radius: 11px; background: rgba(255,255,255,0.02); border: 1px solid var(--gp-line); }
+.up-stat-v { display: inline-flex; align-items: center; gap: 4px; font-family: 'JetBrains Mono', monospace; font-size: 1.05rem; font-weight: 800; color: #eef2ff; }
+.up-stat-v.hi { color: #4ade80; } .up-stat-v.win { color: #34d399; }
+.up-stat-l { font-size: 0.64rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; color: #8a90a8; }
+
+/* verify modal */
+.up-modal { position: fixed; inset: 0; z-index: 60; display: grid; place-items: center; padding: 20px; background: rgba(4,5,12,0.72); backdrop-filter: blur(4px); }
+.up-modal-card { width: min(460px, 100%); max-height: 88vh; overflow-y: auto; border-radius: 16px; padding: 18px; background: linear-gradient(180deg, #14162c, #0c0e1c);
+  border: 1px solid rgba(139,123,255,0.28); box-shadow: 0 24px 60px -18px rgba(0,0,0,0.8); }
+.up-modal-head { display: flex; align-items: center; gap: 9px; }
+.up-modal-ic { display: grid; place-items: center; width: 30px; height: 30px; border-radius: 9px; background: rgba(139,123,255,0.16); color: #c4b5fd; }
+.up-modal-tt { flex: 1; font-size: 0.98rem; font-weight: 800; color: #f4f7ff; }
+.up-modal-x { width: 28px; height: 28px; border-radius: 8px; border: 1px solid var(--gp-line); background: rgba(255,255,255,0.03); color: #aeb9d6; cursor: pointer; font-weight: 800; }
+.up-modal-x:hover { background: rgba(255,255,255,0.08); }
+.up-modal-desc { font-size: 0.76rem; color: #9aa3bf; margin: 10px 0 12px; line-height: 1.4; }
+.up-fair-verdict { text-align: center; font-weight: 800; font-size: 0.9rem; padding: 9px; border-radius: 10px; margin-bottom: 12px; border: 1px solid var(--gp-line); color: #aeb9d6; }
+.up-fair-verdict.ok { color: #34d399; background: rgba(52,211,153,0.1); border-color: rgba(52,211,153,0.4); }
+.up-fair-verdict.bad { color: #fb7185; background: rgba(251,113,133,0.1); border-color: rgba(251,113,133,0.4); }
+.up-fair-rows { display: flex; flex-direction: column; gap: 6px; }
+.up-fair-r { display: flex; align-items: baseline; gap: 10px; font-size: 0.74rem; }
+.up-fair-r span { flex: 0 0 92px; color: #8a90a8; font-weight: 700; }
+.up-fair-r code { flex: 1; min-width: 0; word-break: break-all; font-family: 'JetBrains Mono', monospace; color: #d5dcf0; background: rgba(0,0,0,0.3); padding: 4px 8px; border-radius: 7px; border: 1px solid var(--gp-line); }
+.up-fair-formula { font-size: 0.68rem; color: #8a90a8; margin-top: 12px; line-height: 1.5; font-family: 'JetBrains Mono', monospace; }
+.up-fade-enter-active, .up-fade-leave-active { transition: opacity .18s; }
+.up-fade-enter-from, .up-fade-leave-to { opacity: 0; }
+
+/* ── server-wide jackpot bar ── */
+.up-jackpot { position: relative; overflow: hidden; width: 100%; display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
+  padding: 10px 14px; border-radius: 13px; background: linear-gradient(120deg, rgba(251,191,36,0.14), rgba(180,92,240,0.12));
+  border: 1px solid rgba(251,191,36,0.4); box-shadow: 0 0 22px -8px rgba(251,191,36,0.6); }
+.up-jp-glow { position: absolute; top: 0; left: -60%; width: 45%; height: 100%; transform: skewX(-20deg);
+  background: linear-gradient(90deg, transparent, rgba(255,255,255,0.18), transparent); animation: sheen 3.2s ease-in-out infinite; }
+.up-jp-label { display: inline-flex; align-items: center; gap: 5px; font-size: 0.66rem; font-weight: 900; text-transform: uppercase; letter-spacing: 0.08em; color: #fbbf24; }
+.up-jp-amount { display: inline-flex; align-items: center; gap: 5px; font-family: 'JetBrains Mono', monospace; font-size: 1.15rem; font-weight: 800; color: #fff6db; text-shadow: 0 0 12px rgba(251,191,36,0.6); margin-left: auto; }
+.up-jp-last { flex-basis: 100%; font-size: 0.64rem; color: #b9a789; }
+.up-jackpot.hit { animation: jp-flash .6s ease-out 3; }
+@keyframes jp-flash { 0%,100% { box-shadow: 0 0 22px -8px rgba(251,191,36,0.6); } 50% { box-shadow: 0 0 30px 2px rgba(251,191,36,0.95); } }
+
+/* ── daily free spin ── */
+.up-daily { display: flex; align-items: center; justify-content: center; gap: 7px; padding: 10px; border-radius: 12px; cursor: pointer;
+  border: 1px solid rgba(52,211,153,0.4); background: rgba(52,211,153,0.1); color: #6ee7b7; font-weight: 800; font-size: 0.86rem; transition: filter .12s, transform .1s; }
+.up-daily.ready { animation: daily-pulse 2.2s ease-in-out infinite; }
+@keyframes daily-pulse { 0%,100% { box-shadow: 0 0 0 0 rgba(52,211,153,0); } 50% { box-shadow: 0 0 16px -2px rgba(52,211,153,0.6); } }
+.up-daily:hover:not(:disabled) { filter: brightness(1.15); }
+.up-daily:active:not(:disabled) { transform: scale(0.98); }
+.up-daily:disabled { opacity: 0.5; cursor: not-allowed; border-color: var(--gp-line); background: rgba(255,255,255,0.03); color: #8a90a8; animation: none; }
+.up-daily-streak { font-size: 0.72rem; font-weight: 900; color: #fbbf24; }
+
+/* ── weekly leaderboard ── */
+.up-lb-list { display: flex; flex-direction: column; gap: 5px; margin-top: 8px; }
+.up-lb-row { display: flex; align-items: center; gap: 9px; padding: 7px 10px; border-radius: 10px; background: rgba(255,255,255,0.02); border: 1px solid var(--gp-line); }
+.up-lb-row.r1 { border-color: rgba(251,191,36,0.5); background: rgba(251,191,36,0.07); }
+.up-lb-row.r2 { border-color: rgba(203,213,225,0.4); }
+.up-lb-row.r3 { border-color: rgba(217,164,102,0.4); }
+.up-lb-rank { width: 18px; text-align: center; font-family: 'JetBrains Mono', monospace; font-weight: 900; color: #8a90a8; flex-shrink: 0; }
+.up-lb-row.r1 .up-lb-rank { color: #fbbf24; } .up-lb-row.r2 .up-lb-rank { color: #cbd5e1; } .up-lb-row.r3 .up-lb-rank { color: #d9a466; }
+.up-lb-head { width: 26px; height: 26px; border-radius: 7px; image-rendering: pixelated; flex-shrink: 0; border: 1px solid rgba(255,255,255,0.12); }
+.up-lb-nick { flex: 1; min-width: 0; font-size: 0.78rem; font-weight: 800; color: #eef2ff; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.up-lb-wins { font-size: 0.64rem; font-weight: 700; color: #8a90a8; flex-shrink: 0; }
+.up-lb-big { display: inline-flex; align-items: center; gap: 3px; font-family: 'JetBrains Mono', monospace; font-size: 0.76rem; font-weight: 800; color: #fbbf24; flex-shrink: 0; }
+
+/* ── jackpot win celebration ── */
+.up-jpwin { position: fixed; inset: 0; z-index: 70; display: grid; place-items: center; padding: 20px; background: rgba(4,5,12,0.78); backdrop-filter: blur(5px); cursor: pointer; }
+.up-jpwin-card { text-align: center; padding: 34px 46px; border-radius: 22px; background: linear-gradient(160deg, #2a2410, #16182c);
+  border: 1px solid rgba(251,191,36,0.55); box-shadow: 0 0 60px -6px rgba(251,191,36,0.7); animation: jpwin-pop .5s cubic-bezier(0.2,1.6,0.4,1); }
+@keyframes jpwin-pop { 0% { transform: scale(0.4) rotate(-6deg); opacity: 0; } 100% { transform: scale(1) rotate(0); opacity: 1; } }
+.up-jpwin-crown { color: #fbbf24; filter: drop-shadow(0 0 16px rgba(251,191,36,0.9)); animation: jpwin-bob 1.4s ease-in-out infinite; }
+@keyframes jpwin-bob { 0%,100% { transform: translateY(0); } 50% { transform: translateY(-6px); } }
+.up-jpwin-title { margin-top: 8px; font-size: 1.2rem; font-weight: 900; text-transform: uppercase; letter-spacing: 0.1em; color: #fbbf24; text-shadow: 0 0 18px rgba(251,191,36,0.8); }
+.up-jpwin-amount { display: inline-flex; align-items: center; gap: 8px; margin-top: 12px; font-family: 'JetBrains Mono', monospace; font-size: 2.6rem; font-weight: 800; color: #fff6db; text-shadow: 0 0 24px rgba(251,191,36,0.7); }
+.up-jpwin-sub { font-size: 0.8rem; font-weight: 700; color: #b9a789; margin-top: 2px; letter-spacing: 0.15em; text-transform: uppercase; }
 </style>

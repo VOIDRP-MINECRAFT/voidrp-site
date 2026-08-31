@@ -171,6 +171,27 @@ export function claimUpgraderWinning(id) {
 export function sellUpgraderWinning(id) {
   return req(`/game-ui/upgrader/winnings/${id}/sell`, { method: 'POST' })
 }
+export function sellAllUpgraderWinnings() {
+  return req('/game-ui/upgrader/winnings/sell-all', { method: 'POST' })
+}
+export function claimAllUpgraderWinnings() {
+  return req('/game-ui/upgrader/winnings/claim-all', { method: 'POST' })
+}
+export function getUpgraderStats() {
+  return req('/game-ui/upgrader/stats')
+}
+export function dailySpinUpgrader(rewardId, clientSeed) {
+  return req('/game-ui/upgrader/daily-spin', {
+    method: 'POST',
+    body: JSON.stringify({ reward_id: rewardId, client_seed: clientSeed || null }),
+  })
+}
+export function getUpgraderJackpot() {
+  return req('/game-ui/upgrader/jackpot')
+}
+export function getUpgraderLeaderboard() {
+  return req('/game-ui/upgrader/leaderboard')
+}
 
 // ── Notifications (reactive HUD toasts) ───────────────────────────────────────
 // The feed returns UNSEEN notifications and marks them seen on fetch — one-shot.
