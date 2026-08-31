@@ -2,8 +2,10 @@
 import { ref, computed, onMounted } from 'vue'
 import { useI18n } from 'vue-i18n'
 import '../assets/gui-premium.css'
-import { getBpTrack, setWebguiToken, runGameCommand } from '../services/gameUiApi.js'
+import { getBpTrack, setWebguiToken, runGameCommand, buyBattlepassPremium } from '../services/gameUiApi.js'
 import { useWebGuiToken, useActionToast } from '../composables/useWebGui.js'
+import { setVoidCoins } from '../composables/useCurrency.js'
+import { toastSuccess, toastError } from '../services/toast'
 import GameUiSidebar from '../components/GameUiSidebar.vue'
 import GameUiStarfield from '../components/GameUiStarfield.vue'
 import GameUiTopBar from '../components/GameUiTopBar.vue'
@@ -20,6 +22,23 @@ const track = ref(null)
 const loading = ref(true)
 const error = ref(null)
 const claiming = ref('')
+const PREMIUM_VC_PRICE = 2000
+const buying = ref(false)
+
+async function buyPremium() {
+  if (buying.value) return
+  buying.value = true
+  try {
+    const res = await buyBattlepassPremium()
+    setVoidCoins(res.new_void_coins)
+    if (track.value) track.value.has_premium = true   // optimistic; plugin re-syncs the track shortly
+    toastSuccess(t('gameUiBattlepass.premiumBought', { n: res.days }))
+  } catch (e) {
+    toastError(e?.message || 'Ошибка')
+  } finally {
+    buying.value = false
+  }
+}
 
 async function load() {
   try {
@@ -155,7 +174,10 @@ async function claim(tier, premiumTrack) {
               <div class="gp-track" style="height:14px"><div class="gp-fill" :class="{ 'gp-fill--gold': track.has_premium }" :style="{ width: xpPct + '%' }"></div></div>
               <div class="bp-cta-row">
                 <span v-if="track.has_premium" class="gp-pill gp-pill--gold"><GuiIcon name="crown" :size="13" />{{ t('gameUiBattlepass.premium') }}</span>
-                <button v-else class="gp-btn gp-btn--primary gp-btn--sm" @click="runGameCommand('battlepass')"><GuiIcon name="crown" :size="15" />{{ t('gameUiBattlepass.getPremium') }}</button>
+                <button class="gp-btn gp-btn--primary gp-btn--sm bp-buy" :disabled="buying" @click="buyPremium">
+                  <GuiIcon name="crown" :size="15" />
+                  {{ track.has_premium ? t('gameUiBattlepass.extendPremiumVc', { n: money(PREMIUM_VC_PRICE) }) : t('gameUiBattlepass.buyPremiumVc', { n: money(PREMIUM_VC_PRICE) }) }}
+                </button>
                 <button v-if="readyCount" class="gp-btn gp-btn--ghost gp-btn--sm claim-all" disabled><GuiIcon name="gift" :size="14" />{{ t('gameUiBattlepass.claimReady') }} ({{ readyCount }})</button>
               </div>
             </div>

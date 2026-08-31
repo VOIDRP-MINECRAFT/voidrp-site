@@ -120,6 +120,9 @@ export function purchaseResearch(researchKey) {
 export function getBattlepassStatus() {
   return req('/game-ui/battlepass/status')
 }
+export function buyBattlepassPremium() {
+  return req('/game-ui/battlepass/buy-premium', { method: 'POST' })
+}
 
 // ── Alliance ──────────────────────────────────────────────────────────────────
 

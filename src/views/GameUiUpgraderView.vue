@@ -460,6 +460,7 @@ onUnmounted(() => { clearInterval(winsTimer) })
               <GuiIcon name="gift" :size="15" />
               <span v-if="daily.available">{{ t('gameUiUpgrader.dailyFree', { n: money(daily.free_stake) }) }}</span>
               <span v-else>{{ t('gameUiUpgrader.dailyUsed') }}</span>
+              <span v-if="daily.bp_level > 0" class="up-daily-bp" :title="t('gameUiUpgrader.dailyBpBoost')">⚡BP{{ daily.bp_level }}</span>
               <span v-if="daily.streak > 0" class="up-daily-streak">🔥{{ daily.streak }}</span>
             </button>
             <div class="up-bal">{{ t('gameUiUpgrader.balance') }}: <b><GuiIcon name="voidcoin" :size="12" />{{ money(balance) }}</b></div>
@@ -867,6 +868,7 @@ onUnmounted(() => { clearInterval(winsTimer) })
 .up-daily:active:not(:disabled) { transform: scale(0.98); }
 .up-daily:disabled { opacity: 0.5; cursor: not-allowed; border-color: var(--gp-line); background: rgba(255,255,255,0.03); color: #8a90a8; animation: none; }
 .up-daily-streak { font-size: 0.72rem; font-weight: 900; color: #fbbf24; }
+.up-daily-bp { font-size: 0.66rem; font-weight: 900; color: #7dd3fc; }
 
 /* ── weekly leaderboard ── */
 .up-lb-list { display: flex; flex-direction: column; gap: 5px; margin-top: 8px; }
