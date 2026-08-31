@@ -1726,6 +1726,7 @@ emailDomainNotice: 'Только российские почтовые серв�
     roleMember: 'Участник',
   },
   gameUiBattlepass: {
+    prestige: 'Престиж',
     title: 'Battle Pass',
     desc: 'Боевой пропуск сезона: качай уровень и забирай награды бесплатной и премиум-веток.',
     loading: 'Загрузка...',

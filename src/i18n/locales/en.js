@@ -1726,6 +1726,7 @@ export default {
     roleMember: 'Member',
   },
   gameUiBattlepass: {
+    prestige: 'Prestige',
     title: 'Battle Pass',
     desc: 'Season battle pass: level up and claim rewards from the free and premium tracks.',
     loading: 'Loading...',

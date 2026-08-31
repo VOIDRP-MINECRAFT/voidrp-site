@@ -149,7 +149,7 @@ async function claim(tier, premiumTrack) {
             </div>
             <div class="bp-prog-col">
               <div class="bp-prog-head">
-                <span class="bp-lvl-lbl">{{ t('gameUiBattlepass.level') }} {{ track.level }}</span>
+                <span class="bp-lvl-lbl">{{ t('gameUiBattlepass.level') }} {{ track.level }}<span v-if="track.prestige > 0" class="bp-prestige">✦ {{ t('gameUiBattlepass.prestige') }} {{ track.prestige }}</span></span>
                 <span class="gp-num bp-xp"><CountUp :value="xpInLevel" :format="money" /> / {{ money(track.xp_per_level) }} XP</span>
               </div>
               <div class="gp-track" style="height:14px"><div class="gp-fill" :class="{ 'gp-fill--gold': track.has_premium }" :style="{ width: xpPct + '%' }"></div></div>
@@ -261,6 +261,7 @@ async function claim(tier, premiumTrack) {
 .bp-prog-col { flex: 1; min-width: 280px; display: flex; flex-direction: column; gap: 9px; }
 .bp-prog-head { display: flex; align-items: baseline; justify-content: space-between; }
 .bp-lvl-lbl { font-size: 0.86rem; font-weight: 800; color: #eef2ff; }
+.bp-prestige { margin-left: 8px; font-size: 0.68rem; font-weight: 900; letter-spacing: 0.04em; color: #d8ccff; padding: 1px 8px; border-radius: 999px; background: linear-gradient(135deg, rgba(139,123,255,0.22), rgba(180,92,240,0.16)); border: 1px solid rgba(167,139,250,0.5); }
 .bp-xp { font-size: 0.8rem; color: var(--gp-ink-soft); }
 .bp-cta-row { display: flex; align-items: center; gap: 10px; margin-top: 2px; }
 .claim-all { color: var(--gp-gold); }
