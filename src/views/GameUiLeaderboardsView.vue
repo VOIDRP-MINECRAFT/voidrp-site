@@ -28,10 +28,11 @@ const METRICS = {
     { key: 'pvp',       icon: 'swords',   fmt: 'num' },
   ],
   players: [
-    { key: 'pvp',      icon: 'swords', fmt: 'num' },
-    { key: 'playtime', icon: 'clock',  fmt: 'time' },
-    { key: 'balance',  icon: 'coins',  fmt: 'money', gold: true },
-    { key: 'quests',   icon: 'quest',  fmt: 'num' },
+    { key: 'pvp',        icon: 'swords',     fmt: 'num' },
+    { key: 'playtime',   icon: 'clock',      fmt: 'time' },
+    { key: 'balance',    icon: 'coins',      fmt: 'money', gold: true },
+    { key: 'quests',     icon: 'quest',      fmt: 'num' },
+    { key: 'battlepass', icon: 'battlepass', fmt: 'num' },
   ],
 }
 

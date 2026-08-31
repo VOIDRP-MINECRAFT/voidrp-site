@@ -1582,6 +1582,7 @@ emailDomainNotice: 'Только российские почтовые серв�
     m_playtime: 'Время в игре',
     m_balance: 'Баланс',
     m_quests: 'Квесты',
+    m_battlepass: 'Пропуск',
   },
   gameUiResearch: {
     title: 'Технологии государства',

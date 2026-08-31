@@ -1582,6 +1582,7 @@ export default {
     m_playtime: 'Playtime',
     m_balance: 'Balance',
     m_quests: 'Quests',
+    m_battlepass: 'Pass',
   },
   gameUiResearch: {
     title: 'Nation Technologies',
