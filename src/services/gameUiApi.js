@@ -36,6 +36,33 @@ async function req(path, options = {}) {
   return body
 }
 
+// Multipart upload (no forced JSON content-type — the browser sets the boundary).
+async function upload(path, formData) {
+  const res = await fetch(API_BASE_URL + addToken(path), { method: 'POST', body: formData })
+  const body = await res.json().catch(() => null)
+  if (!res.ok) {
+    const msg = body?.detail || body?.message || `HTTP ${res.status}`
+    const err = new Error(typeof msg === 'string' ? msg : JSON.stringify(msg))
+    err.status = res.status
+    throw err
+  }
+  return body
+}
+
+// ── Skin (instant change from the main menu) ──────────────────────────────────
+export function changeSkinFile(file, variant) {
+  const fd = new FormData()
+  fd.append('file', file)
+  if (variant) fd.append('model_variant', variant)
+  return upload('/game-ui/home/skin', fd)
+}
+export function changeSkinFromUsername(username, variant) {
+  const fd = new FormData()
+  fd.append('from_username', username)
+  if (variant) fd.append('model_variant', variant)
+  return upload('/game-ui/home/skin', fd)
+}
+
 // ── HUD ──────────────────────────────────────────────────────────────────────
 
 export function getHudSnapshot() {

@@ -3,7 +3,9 @@ import { ref, computed, onMounted, onBeforeUnmount, useTemplateRef } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useRoute, useRouter } from 'vue-router'
 import '../assets/gui-premium.css'
-import { getHome, getLeaderboards, getActivity, getNationActivity, getWeekly, setWebguiToken } from '../services/gameUiApi.js'
+import { getHome, getLeaderboards, getActivity, getNationActivity, getWeekly, setWebguiToken,
+  changeSkinFile, changeSkinFromUsername } from '../services/gameUiApi.js'
+import { toastSuccess, toastError } from '../services/toast'
 import { readableAccent, readableAccentAlpha } from '../utils/nationColor.js'
 import { useWebGuiToken, useWebGuiClient, closeGui, navigateGamePage } from '../composables/useWebGui.js'
 import GameUiSidebar from '../components/GameUiSidebar.vue'
@@ -26,6 +28,50 @@ const error = ref(null)
 const canvasRef = useTemplateRef('skinCanvas')
 const skin3dOk = ref(false)
 let viewer = null
+
+// ── instant skin change ──
+const skinModal = ref(false)
+const skinTab = ref('upload')       // 'upload' | 'username'
+const skinVariant = ref('classic')  // 'classic' | 'slim'
+const skinUsername = ref('')
+const skinBusy = ref(false)
+const skinFileRef = useTemplateRef('skinFileInput')
+function openSkinModal() {
+  skinVariant.value = home.value?.skin_slim ? 'slim' : 'classic'
+  skinUsername.value = ''
+  skinTab.value = 'upload'
+  skinModal.value = true
+}
+async function reloadSkinViewer(url, slim) {
+  home.value.skin_url = url
+  home.value.skin_slim = slim
+  if (viewer) { try { viewer.dispose() } catch { /* ignore */ } viewer = null }
+  skin3dOk.value = false
+  await mountSkin()
+}
+async function onSkinFile(e) {
+  const file = e.target.files?.[0]
+  if (!file) return
+  if (skinBusy.value) return
+  skinBusy.value = true
+  try {
+    const res = await changeSkinFile(file, skinVariant.value)
+    await reloadSkinViewer(res.skin_url, res.model_variant === 'slim')
+    skinModal.value = false
+    toastSuccess(t('gameUiHome.skinChanged'))
+  } catch (err) { toastError(err?.message || 'Ошибка') } finally { skinBusy.value = false; if (e.target) e.target.value = '' }
+}
+async function applySkinUsername() {
+  const nick = skinUsername.value.trim()
+  if (!nick || skinBusy.value) return
+  skinBusy.value = true
+  try {
+    const res = await changeSkinFromUsername(nick, skinVariant.value)
+    await reloadSkinViewer(res.skin_url, res.model_variant === 'slim')
+    skinModal.value = false
+    toastSuccess(t('gameUiHome.skinChanged'))
+  } catch (err) { toastError(err?.message || 'Ошибка') } finally { skinBusy.value = false }
+}
 
 const username = computed(() => home.value?.nickname || client.value?.username || '')
 const ping = computed(() => client.value?.server?.ping)
@@ -212,6 +258,7 @@ function formatDate(d) {
             <canvas ref="skinCanvas" class="skin-canvas" :class="{ show: skin3dOk }"></canvas>
             <img v-if="!skin3dOk" class="skin-fallback" :src="`https://mc-heads.net/body/${username}/front`" alt="" />
             <span v-if="skin3dOk" class="skin-hint">↔ {{ t('gameUiHome.dragHint') }}</span>
+            <button class="skin-edit" :title="t('gameUiHome.changeSkin')" @click="openSkinModal"><GuiIcon name="settings" :size="14" />{{ t('gameUiHome.changeSkin') }}</button>
           </div>
 
           <div class="id-row">
@@ -435,6 +482,43 @@ function formatDate(d) {
         {{ actTip.d.minutes > 0 ? fmtDuration(actTip.d.minutes) : t('gameUiHome.actNone') }}
       </div>
     </div>
+
+    <!-- instant skin change -->
+    <transition name="sk-fade">
+      <div v-if="skinModal" class="sk-modal" @click.self="skinModal = false">
+        <div class="sk-card">
+          <div class="sk-head">
+            <span class="sk-tt">{{ t('gameUiHome.changeSkin') }}</span>
+            <button class="sk-x" @click="skinModal = false">✕</button>
+          </div>
+          <div class="sk-tabs">
+            <button class="sk-tab" :class="{ on: skinTab === 'upload' }" @click="skinTab = 'upload'">{{ t('gameUiHome.skinUpload') }}</button>
+            <button class="sk-tab" :class="{ on: skinTab === 'username' }" @click="skinTab = 'username'">{{ t('gameUiHome.skinCopy') }}</button>
+          </div>
+          <div class="sk-variant">
+            <span>{{ t('gameUiHome.skinModel') }}</span>
+            <button class="sk-vbtn" :class="{ on: skinVariant === 'classic' }" @click="skinVariant = 'classic'">Classic</button>
+            <button class="sk-vbtn" :class="{ on: skinVariant === 'slim' }" @click="skinVariant = 'slim'">Slim</button>
+          </div>
+
+          <div v-if="skinTab === 'upload'" class="sk-body">
+            <p class="sk-hint">{{ t('gameUiHome.skinUploadHint') }}</p>
+            <input ref="skinFileInput" type="file" accept="image/png" class="sk-file" @change="onSkinFile" />
+            <button class="sk-go" :disabled="skinBusy" @click="skinFileRef?.click()">
+              <GuiIcon name="plus" :size="15" />{{ skinBusy ? t('gameUiHome.skinApplying') : t('gameUiHome.skinPick') }}
+            </button>
+          </div>
+          <div v-else class="sk-body">
+            <p class="sk-hint">{{ t('gameUiHome.skinCopyHint') }}</p>
+            <input v-model="skinUsername" class="sk-input" :placeholder="t('gameUiHome.skinNick')" maxlength="16" @keyup.enter="applySkinUsername" />
+            <button class="sk-go" :disabled="skinBusy || !skinUsername.trim()" @click="applySkinUsername">
+              <GuiIcon name="user" :size="15" />{{ skinBusy ? t('gameUiHome.skinApplying') : t('gameUiHome.skinApply') }}
+            </button>
+          </div>
+          <p class="sk-note">{{ t('gameUiHome.skinNote') }}</p>
+        </div>
+      </div>
+    </transition>
   </section>
 </template>
 
@@ -625,4 +709,38 @@ function formatDate(d) {
 .tn-name { flex: 1; min-width: 0; font-size: 0.84rem; font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .tn-val { display: inline-flex; align-items: center; gap: 5px; flex-shrink: 0; font-size: 0.82rem; font-weight: 800; color: var(--gp-gold); }
 .tn-val svg { color: var(--gp-gold); }
+
+/* ── skin edit button + modal ── */
+.skin-stage { position: relative; }
+.skin-edit { position: absolute; top: 8px; right: 8px; z-index: 3; display: inline-flex; align-items: center; gap: 5px; padding: 5px 10px; border-radius: 9px;
+  border: 1px solid rgba(139,123,255,0.45); background: rgba(20,22,40,0.82); color: #d8ccff; font-size: 0.66rem; font-weight: 800; cursor: pointer;
+  opacity: 0; transition: opacity .16s, filter .12s; }
+.skin-stage:hover .skin-edit { opacity: 1; }
+.skin-edit:hover { filter: brightness(1.2); }
+
+.sk-modal { position: fixed; inset: 0; z-index: 80; display: grid; place-items: center; padding: 20px; background: rgba(4,5,12,0.75); backdrop-filter: blur(5px); }
+.sk-card { width: min(400px, 100%); border-radius: 16px; padding: 18px; background: linear-gradient(180deg, #14162c, #0c0e1c); border: 1px solid rgba(139,123,255,0.3); box-shadow: 0 24px 60px -18px rgba(0,0,0,0.8); }
+.sk-head { display: flex; align-items: center; gap: 9px; margin-bottom: 14px; }
+.sk-tt { flex: 1; font-size: 1rem; font-weight: 800; color: #f4f7ff; }
+.sk-x { width: 28px; height: 28px; border-radius: 8px; border: 1px solid var(--gp-line); background: rgba(255,255,255,0.03); color: #aeb9d6; cursor: pointer; font-weight: 800; }
+.sk-x:hover { background: rgba(255,255,255,0.08); }
+.sk-tabs { display: flex; gap: 6px; margin-bottom: 12px; }
+.sk-tab { flex: 1; padding: 8px; border-radius: 9px; border: 1px solid var(--gp-line); background: rgba(255,255,255,0.03); color: #aeb9d6; font-weight: 800; font-size: 0.78rem; cursor: pointer; }
+.sk-tab.on { background: rgba(139,123,255,0.16); border-color: rgba(167,139,250,0.5); color: #eef2ff; }
+.sk-variant { display: flex; align-items: center; gap: 6px; margin-bottom: 12px; font-size: 0.74rem; color: #aeb9d6; }
+.sk-variant span { margin-right: auto; }
+.sk-vbtn { padding: 4px 12px; border-radius: 8px; border: 1px solid var(--gp-line); background: rgba(255,255,255,0.03); color: #c9d2ee; font-weight: 800; font-size: 0.72rem; cursor: pointer; }
+.sk-vbtn.on { background: rgba(139,123,255,0.18); border-color: rgba(167,139,250,0.5); color: #eef2ff; }
+.sk-body { display: flex; flex-direction: column; gap: 10px; }
+.sk-hint { font-size: 0.76rem; color: #9aa3bf; line-height: 1.4; }
+.sk-file { display: none; }
+.sk-input { padding: 10px 12px; border-radius: 10px; background: rgba(0,0,0,0.32); border: 1px solid rgba(167,139,250,0.35); color: #eef2ff; font-size: 0.86rem; outline: none; }
+.sk-input:focus { border-color: rgba(167,139,250,0.7); }
+.sk-go { display: inline-flex; align-items: center; justify-content: center; gap: 7px; padding: 11px; border-radius: 11px; border: none; cursor: pointer;
+  background: linear-gradient(135deg, #6d5cf0, #b45cf0); color: #fff; font-weight: 800; font-size: 0.88rem; box-shadow: 0 10px 24px -8px rgba(139,123,255,0.7); transition: filter .12s; }
+.sk-go:hover:not(:disabled) { filter: brightness(1.12); }
+.sk-go:disabled { opacity: 0.5; cursor: default; box-shadow: none; }
+.sk-note { margin-top: 12px; font-size: 0.66rem; color: #8a90a8; line-height: 1.4; }
+.sk-fade-enter-active, .sk-fade-leave-active { transition: opacity .18s; }
+.sk-fade-enter-from, .sk-fade-leave-to { opacity: 0; }
 </style>
