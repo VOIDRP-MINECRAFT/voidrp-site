@@ -17,6 +17,18 @@ const loading = ref(true)
 const rewards = ref([])
 const config = ref({ rtp: 0.9, coins_per_vc: 1000, min_stake: 1, max_multiplier: 100, max_chance: 0.9 })
 
+// table search + tier filter (the pool can be hundreds of items)
+const search = ref('')
+const tierFilter = ref('all')
+const filteredRewards = computed(() => {
+  const q = search.value.trim().toLowerCase()
+  return rewards.value.filter((r) => {
+    if (tierFilter.value !== 'all' && r.tier !== tierFilter.value) return false
+    if (q && !(r.display_name.toLowerCase().includes(q) || r.item_key.toLowerCase().includes(q))) return false
+    return true
+  })
+})
+
 // settings editor
 const cfgModal = ref(false)
 const cfgForm = ref({})
@@ -172,11 +184,22 @@ onMounted(() => { load(); loadCatalog() })
     <div v-if="loading" class="adm-empty">Загрузка…</div>
     <div v-else-if="!rewards.length" class="adm-empty">Пул пуст. Добавьте предметы или запустите seed-скрипт.</div>
 
-    <div v-else class="adm-table-wrap">
+    <template v-else>
+      <div class="up-toolbar">
+        <input class="adm-input up-search-in" v-model="search" placeholder="Поиск по названию или ID…" />
+        <div class="up-tier-chips">
+          <button class="up-chip" :class="{ on: tierFilter==='all' }" @click="tierFilter='all'">Все</button>
+          <button v-for="tk in TIERS" :key="tk" class="up-chip" :class="{ on: tierFilter===tk }" :style="tierFilter===tk ? { color: tierColor[tk], borderColor: tierColor[tk] } : {}" @click="tierFilter=tk">{{ tierLabel[tk] }}</button>
+        </div>
+        <span class="up-count">{{ filteredRewards.length }} / {{ rewards.length }}</span>
+      </div>
+
+    <div class="adm-table-wrap">
       <table class="adm-table">
         <thead><tr><th></th><th>Предмет</th><th>ID</th><th class="ar">Цена (VC)</th><th class="ar">Кол-во</th><th>Тир</th><th>Статус</th><th></th></tr></thead>
         <tbody>
-          <tr v-for="r in rewards" :key="r.id">
+          <tr v-if="!filteredRewards.length"><td colspan="8" class="adm-empty" style="padding:20px">Ничего не найдено</td></tr>
+          <tr v-for="r in filteredRewards" :key="r.id">
             <td><div class="up-ic"><ItemIcon :itemKey="r.item_key" :size="28" /></div></td>
             <td>{{ r.display_name }}</td>
             <td class="adm-mono up-id">{{ r.item_key }}</td>
@@ -198,6 +221,7 @@ onMounted(() => { load(); loadCatalog() })
         </tbody>
       </table>
     </div>
+    </template>
 
     <!-- settings modal -->
     <div v-if="cfgModal" class="adm-modal-backdrop" @click.self="cfgModal = false">
@@ -269,6 +293,13 @@ onMounted(() => { load(); loadCatalog() })
 
 <style scoped>
 .up-cfg { display: flex; flex-wrap: wrap; gap: 8px; margin: 4px 0 16px; }
+.up-toolbar { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; margin-bottom: 12px; }
+.up-search-in { flex: 1; min-width: 200px; max-width: 360px; }
+.up-tier-chips { display: flex; gap: 5px; flex-wrap: wrap; }
+.up-chip { padding: 5px 11px; border-radius: 999px; border: 1px solid rgba(255,255,255,0.14); background: rgba(255,255,255,0.03); color: #aeb9d6; font-size: 0.74rem; font-weight: 800; cursor: pointer; }
+.up-chip:hover { background: rgba(139,123,255,0.14); }
+.up-chip.on { background: rgba(139,123,255,0.16); border-color: rgba(167,139,250,0.5); color: #eef2ff; }
+.up-count { margin-left: auto; font-size: 0.78rem; color: #8a90a8; font-weight: 700; }
 .ar { text-align: right; }
 .up-ic { width: 34px; height: 34px; display: grid; place-items: center; border-radius: 8px; background: rgba(0,0,0,0.25); border: 1px solid rgba(255,255,255,0.08); }
 .up-ic--lg { width: 52px; height: 52px; }
