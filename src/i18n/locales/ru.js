@@ -1542,6 +1542,8 @@ emailDomainNotice: 'Только российские почтовые серв�
     tradeUp: 'Апгрейд',
     tradeStaking: 'Ставим предмет',
     tradeGo: 'Апгрейд · {pct}%',
+    sound: 'Звук',
+    prestigeTitle: 'Престиж Battle Pass: {n}',
     claimedAll: 'Выдано в игру: {n}',
     targetMult: 'Цель',
     fair: 'Честность',

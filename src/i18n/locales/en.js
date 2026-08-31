@@ -1542,6 +1542,8 @@ export default {
     tradeUp: 'Trade up',
     tradeStaking: 'Staking item',
     tradeGo: 'Trade up · {pct}%',
+    sound: 'Sound',
+    prestigeTitle: 'Battle Pass prestige: {n}',
     claimedAll: 'Claimed in-game: {n}',
     targetMult: 'Target',
     fair: 'Fairness',

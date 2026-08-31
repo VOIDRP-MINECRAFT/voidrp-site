@@ -5,6 +5,7 @@ import '../assets/gui-premium.css'
 import { getBpTrack, setWebguiToken, runGameCommand, buyBattlepassPremium } from '../services/gameUiApi.js'
 import { useWebGuiToken, useActionToast } from '../composables/useWebGui.js'
 import { setVoidCoins } from '../composables/useCurrency.js'
+import { prestigeColor } from '../composables/usePrestige.js'
 import { toastSuccess, toastError } from '../services/toast'
 import GameUiSidebar from '../components/GameUiSidebar.vue'
 import GameUiStarfield from '../components/GameUiStarfield.vue'
@@ -168,7 +169,7 @@ async function claim(tier, premiumTrack) {
             </div>
             <div class="bp-prog-col">
               <div class="bp-prog-head">
-                <span class="bp-lvl-lbl">{{ t('gameUiBattlepass.level') }} {{ track.level }}<span v-if="track.prestige > 0" class="bp-prestige">✦ {{ t('gameUiBattlepass.prestige') }} {{ track.prestige }}</span></span>
+                <span class="bp-lvl-lbl">{{ t('gameUiBattlepass.level') }} {{ track.level }}<span v-if="track.prestige > 0" class="bp-prestige" :style="{ color: prestigeColor(track.prestige), borderColor: prestigeColor(track.prestige) }">✦ {{ t('gameUiBattlepass.prestige') }} {{ track.prestige }}</span></span>
                 <span class="gp-num bp-xp"><CountUp :value="xpInLevel" :format="money" /> / {{ money(track.xp_per_level) }} XP</span>
               </div>
               <div class="gp-track" style="height:14px"><div class="gp-fill" :class="{ 'gp-fill--gold': track.has_premium }" :style="{ width: xpPct + '%' }"></div></div>

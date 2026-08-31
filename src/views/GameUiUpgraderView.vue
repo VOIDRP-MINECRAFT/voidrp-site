@@ -11,6 +11,7 @@ import { toastSuccess, toastError } from '../services/toast'
 import { API_BASE_URL } from '../services/apiBase'
 import { useWebGuiToken } from '../composables/useWebGui.js'
 import { setVoidCoins } from '../composables/useCurrency.js'
+import { prestigeColor } from '../composables/usePrestige.js'
 import GameUiSidebar from '../components/GameUiSidebar.vue'
 import GameUiStarfield from '../components/GameUiStarfield.vue'
 import GameUiTopBar from '../components/GameUiTopBar.vue'
@@ -271,7 +272,54 @@ function burst(win) {
   setTimeout(() => { particles.value = [] }, 1900)
 }
 
+// ── sound: WebAudio synthesis (no asset files → passes the MCEF CSP sandbox) ──
+const soundOn = ref(true)
+try { soundOn.value = localStorage.getItem('voidrp_up_sound') !== '0' } catch { /* ignore */ }
+let audioCtx = null
+function ac() {
+  if (!soundOn.value) return null
+  try {
+    if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)()
+    if (audioCtx.state === 'suspended') audioCtx.resume()
+    return audioCtx
+  } catch { return null }
+}
+function toggleSound() {
+  soundOn.value = !soundOn.value
+  try { localStorage.setItem('voidrp_up_sound', soundOn.value ? '1' : '0') } catch { /* ignore */ }
+  if (soundOn.value) { ac(); blip(880, 0.06, 'triangle', 0.06) }
+}
+function blip(freq, dur = 0.05, type = 'square', gain = 0.08, when = 0) {
+  const c = ac(); if (!c) return
+  const t = c.currentTime + when
+  const o = c.createOscillator(); const g = c.createGain()
+  o.type = type; o.frequency.setValueAtTime(freq, t)
+  g.gain.setValueAtTime(0.0001, t)
+  g.gain.exponentialRampToValueAtTime(gain, t + 0.006)
+  g.gain.exponentialRampToValueAtTime(0.0001, t + dur)
+  o.connect(g); g.connect(c.destination)
+  o.start(t); o.stop(t + dur + 0.02)
+}
+function sfxTicks() {
+  // ease-out clicks over the 4.15s spin (dense → sparse) so the wheel *feels* like it slows
+  const c = ac(); if (!c) return
+  const N = 36; const total = 4.12
+  for (let i = 0; i < N; i++) {
+    const p = i / N
+    const t = total * (1 - Math.pow(1 - p, 3))   // cubic ease-out, matches the wheel curve
+    blip(1250 + Math.random() * 160, 0.028, 'square', 0.045, t)
+  }
+}
+function sfxWin() { [523.25, 659.25, 783.99, 1046.5].forEach((f, i) => blip(f, 0.2, 'triangle', 0.09, i * 0.085)) }
+function sfxLose() { blip(233, 0.2, 'sawtooth', 0.06, 0); blip(155, 0.32, 'sawtooth', 0.055, 0.1) }
+function sfxJackpot() {
+  const seq = [523, 659, 784, 1046, 1318, 1568]
+  seq.forEach((f, i) => blip(f, 0.22, 'triangle', 0.1, i * 0.08))
+  seq.forEach((f, i) => blip(f, 0.34, 'square', 0.045, 0.55 + i * 0.05))
+}
+
 function applySpinResult(res) {
+  sfxTicks()
   lastSpin.value = res
   const target = res.roll * 360
   const base = pointerDeg.value - (pointerDeg.value % 360)
@@ -286,6 +334,7 @@ function applySpinResult(res) {
     wheelState.value = res.won ? 'win' : 'lose'
     spinning.value = false
     burst(res.won)
+    if (res.won) sfxWin(); else sfxLose()
     loadHistory()
     loadStats()
     loadLeaderboard()
@@ -300,6 +349,7 @@ function applySpinResult(res) {
 
 async function doSpin() {
   if (!canSpin.value) return
+  ac()   // unlock/resume audio inside the click gesture
   spinning.value = true
   result.value = null
   wheelState.value = 'spinning'
@@ -315,6 +365,7 @@ async function doSpin() {
 async function doDailySpin() {
   if (spinning.value || !selected.value || !daily.value.available) return
   if (selected.value.vc_value <= daily.value.free_stake) { toastError(t('gameUiUpgrader.dailyPickBigger', { n: money(daily.value.free_stake) })); return }
+  ac()
   spinning.value = true
   result.value = null
   wheelState.value = 'spinning'
@@ -332,6 +383,7 @@ async function doDailySpin() {
 function onJackpotHit(j) {
   jackpotFlash.value = { amount: j.won_amount }
   burst(true)
+  sfxJackpot()
   toastSuccess(`🎉 ${t('gameUiUpgrader.jackpotWon')} +${money(j.won_amount)} Void Coin`)
   setTimeout(() => { jackpotFlash.value = null }, 6000)
 }
@@ -356,6 +408,7 @@ function cancelUpgrade() {
 }
 async function doUpgrade() {
   if (!canUpgrade.value) return
+  ac()
   spinning.value = true
   result.value = null
   wheelState.value = 'spinning'
@@ -417,6 +470,7 @@ onUnmounted(() => { clearInterval(winsTimer) })
         <!-- left column: machine + recent wins under it -->
         <div class="up-left">
         <div class="gp-panel up-machine" :style="{ '--sel': selColor }">
+          <button class="up-sound" :class="{ off: !soundOn }" :title="t('gameUiUpgrader.sound')" @click="toggleSound">{{ soundOn ? '🔊' : '🔇' }}</button>
           <!-- server-wide progressive jackpot -->
           <div v-if="jackpot.enabled" class="up-jackpot" :class="{ hit: jackpotFlash }">
             <span class="up-jp-glow"></span>
@@ -601,7 +655,7 @@ onUnmounted(() => { clearInterval(winsTimer) })
               <div class="up-win-ic"><ItemIcon :itemKey="w.reward_item_key" :size="26" /></div>
               <div class="up-win-info">
                 <div class="up-win-item">{{ w.reward_display }}</div>
-                <div class="up-win-meta"><span class="up-win-nick">{{ w.nickname }}</span><span class="up-win-mult">×{{ w.multiplier }}</span></div>
+                <div class="up-win-meta"><span class="up-win-nick">{{ w.nickname }}</span><span v-if="w.prestige > 0" class="up-prestige" :style="{ color: prestigeColor(w.prestige) }" :title="t('gameUiUpgrader.prestigeTitle', { n: w.prestige })">✦{{ w.prestige }}</span><span class="up-win-mult">×{{ w.multiplier }}</span></div>
                 <div class="up-win-stake"><GuiIcon name="voidcoin" :size="10" />{{ money(w.stake) }}</div>
               </div>
             </div>
@@ -646,6 +700,7 @@ onUnmounted(() => { clearInterval(winsTimer) })
                 <span class="up-lb-rank">{{ i + 1 }}</span>
                 <img class="up-lb-head" :src="headUrl(e.nickname)" alt="" @error="$event.target.style.visibility='hidden'" />
                 <span class="up-lb-nick">{{ e.nickname }}</span>
+                <span v-if="e.prestige > 0" class="up-prestige" :style="{ color: prestigeColor(e.prestige) }" :title="t('gameUiUpgrader.prestigeTitle', { n: e.prestige })">✦{{ e.prestige }}</span>
                 <span class="up-lb-wins">{{ t('gameUiUpgrader.lbWins', { n: e.wins }) }}</span>
                 <span class="up-lb-big"><GuiIcon name="voidcoin" :size="11" />{{ money(e.biggest_win) }}</span>
               </div>
@@ -745,7 +800,11 @@ onUnmounted(() => { clearInterval(winsTimer) })
 .up-wrap { display: grid; grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr); gap: 16px; align-items: start; }
 @media (max-width: 860px) { .up-wrap { grid-template-columns: 1fr; } }
 
-.up-machine { display: flex; flex-direction: column; align-items: center; gap: 16px; overflow: hidden; }
+.up-machine { position: relative; display: flex; flex-direction: column; align-items: center; gap: 16px; overflow: hidden; }
+.up-sound { position: absolute; top: 12px; right: 12px; z-index: 4; width: 30px; height: 30px; border-radius: 8px; border: 1px solid var(--gp-line);
+  background: rgba(0,0,0,0.3); font-size: 0.9rem; cursor: pointer; line-height: 1; transition: background .12s, opacity .12s; }
+.up-sound:hover { background: rgba(139,123,255,0.16); }
+.up-sound.off { opacity: 0.5; }
 
 /* selected target banner */
 .up-target { display: flex; align-items: center; gap: 12px; width: 100%; padding: 11px 13px; border-radius: 13px;
@@ -1005,6 +1064,7 @@ onUnmounted(() => { clearInterval(winsTimer) })
 .up-daily:disabled { opacity: 0.5; cursor: not-allowed; border-color: var(--gp-line); background: rgba(255,255,255,0.03); color: #8a90a8; animation: none; }
 .up-daily-streak { font-size: 0.72rem; font-weight: 900; color: #fbbf24; }
 .up-daily-bp { font-size: 0.66rem; font-weight: 900; color: #7dd3fc; }
+.up-prestige { font-size: 0.62rem; font-weight: 900; text-shadow: 0 0 8px currentColor; flex-shrink: 0; }
 
 /* ── trade-up ── */
 .up-tradeup { width: 100%; display: flex; align-items: center; gap: 10px; padding: 9px 12px; border-radius: 12px;
