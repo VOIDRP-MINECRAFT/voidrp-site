@@ -174,6 +174,12 @@ export function claimUpgraderWinning(id) {
 export function sellUpgraderWinning(id) {
   return req(`/game-ui/upgrader/winnings/${id}/sell`, { method: 'POST' })
 }
+export function upgradeUpgraderWinning(id, targetRewardId, clientSeed) {
+  return req(`/game-ui/upgrader/winnings/${id}/upgrade`, {
+    method: 'POST',
+    body: JSON.stringify({ target_reward_id: targetRewardId, client_seed: clientSeed || null }),
+  })
+}
 export function sellAllUpgraderWinnings() {
   return req('/game-ui/upgrader/winnings/sell-all', { method: 'POST' })
 }

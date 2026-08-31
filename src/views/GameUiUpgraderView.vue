@@ -3,7 +3,8 @@ import { ref, computed, onMounted, onUnmounted, nextTick } from 'vue'
 import { useI18n } from 'vue-i18n'
 import '../assets/gui-premium.css'
 import { getUpgraderRewards, spinUpgrader, getUpgraderHistory, getUpgraderRecentWins,
-  getUpgraderWinnings, claimUpgraderWinning, sellUpgraderWinning, sellAllUpgraderWinnings,
+  getUpgraderWinnings, claimUpgraderWinning, sellUpgraderWinning, upgradeUpgraderWinning,
+  sellAllUpgraderWinnings,
   claimAllUpgraderWinnings, getUpgraderStats, dailySpinUpgrader, getUpgraderJackpot,
   getUpgraderLeaderboard, getUpgraderFairness, rotateUpgraderFairness, setWebguiToken } from '../services/gameUiApi.js'
 import { toastSuccess, toastError } from '../services/toast'
@@ -51,8 +52,10 @@ const rewardSearch = ref('')
 const tierFilter = ref('all')
 const filteredGrouped = computed(() => {
   const q = rewardSearch.value.trim().toLowerCase()
+  const floor = upgradeSource.value ? upgradeSource.value.vc_value : 0
   const g = {}
   for (const r of rewards.value) {
+    if (floor && r.vc_value <= floor) continue   // trade-up: only bigger targets
     if (tierFilter.value !== 'all' && r.tier !== tierFilter.value) continue
     if (q && !(r.display_name.toLowerCase().includes(q) || r.item_key.includes(q))) continue
     ;(g[r.tier] || (g[r.tier] = [])).push(r)
@@ -200,9 +203,13 @@ async function loadWins() {
   try { recentWins.value = await getUpgraderRecentWins() } catch { /* silent */ }
 }
 
+// trade-up mode: stake a won item toward a bigger one
+const upgradeSource = ref(null)
+const effStake = computed(() => (upgradeSource.value ? upgradeSource.value.vc_value : stake.value))
+
 const multiplier = computed(() => {
-  if (!selected.value || stake.value < 1) return 0
-  return selected.value.vc_value / stake.value
+  if (!selected.value || effStake.value < 1) return 0
+  return selected.value.vc_value / effStake.value
 })
 const chance = computed(() => {
   if (!selected.value || multiplier.value < 1) return 0
@@ -217,6 +224,10 @@ const canSpin = computed(() =>
   !spinning.value && selected.value &&
   stake.value >= minStake.value && stake.value <= balance.value &&
   stake.value < selected.value.vc_value && multiplier.value <= maxMult.value,
+)
+const canUpgrade = computed(() =>
+  !spinning.value && upgradeSource.value && selected.value &&
+  selected.value.vc_value > upgradeSource.value.vc_value && multiplier.value <= maxMult.value,
 )
 
 function money(v) { return Number(v || 0).toLocaleString('ru-RU', { maximumFractionDigits: 0 }) }
@@ -265,18 +276,21 @@ function applySpinResult(res) {
   const target = res.roll * 360
   const base = pointerDeg.value - (pointerDeg.value % 360)
   pointerDeg.value = base + 360 * 6 + target
-  balance.value = res.new_void_coins
-  setVoidCoins(res.new_void_coins)   // update the navbar instantly
+  if (typeof res.new_void_coins === 'number') {   // trade-up spins don't touch VC
+    balance.value = res.new_void_coins
+    setVoidCoins(res.new_void_coins)
+  }
   if (res.jackpot && typeof res.jackpot.amount === 'number') jackpot.value.amount = res.jackpot.amount
   setTimeout(() => {
-    result.value = { won: res.won, reward: res.reward }
+    result.value = { won: res.won, reward: res.reward, tradeUp: !!res.trade_up }
     wheelState.value = res.won ? 'win' : 'lose'
     spinning.value = false
     burst(res.won)
     loadHistory()
     loadStats()
     loadLeaderboard()
-    if (res.won) { loadWins(); loadWinnings() }
+    if (res.trade_up) { loadWinnings(); upgradeSource.value = null }   // item consumed either way
+    else if (res.won) { loadWins(); loadWinnings() }
     if (res.free) { daily.value.available = false; if (typeof res.daily_streak === 'number') daily.value.streak = res.daily_streak }
     if (res.jackpot && res.jackpot.hit) onJackpotHit(res.jackpot)
     refreshJackpot()
@@ -320,6 +334,38 @@ function onJackpotHit(j) {
   burst(true)
   toastSuccess(`🎉 ${t('gameUiUpgrader.jackpotWon')} +${money(j.won_amount)} Void Coin`)
   setTimeout(() => { jackpotFlash.value = null }, 6000)
+}
+
+// ── trade-up: risk a won item for a bigger one ──
+function enterUpgrade(w) {
+  if (spinning.value) return
+  upgradeSource.value = w
+  result.value = null
+  wheelState.value = ''
+  // suggest the cheapest target more valuable than the staked item
+  const bigger = rewards.value.filter((r) => r.vc_value > w.vc_value).sort((a, b) => a.vc_value - b.vc_value)
+  if (bigger.length) { selected.value = bigger[0]; arcVisible.value = true }
+  rewardSearch.value = ''
+  tierFilter.value = 'all'
+  document.querySelector('.up-machine')?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+}
+function cancelUpgrade() {
+  if (spinning.value) return
+  upgradeSource.value = null
+  result.value = null
+}
+async function doUpgrade() {
+  if (!canUpgrade.value) return
+  spinning.value = true
+  result.value = null
+  wheelState.value = 'spinning'
+  try {
+    applySpinResult(await upgradeUpgraderWinning(upgradeSource.value.id, selected.value.id, null))
+  } catch (e) {
+    toastError(e?.message || 'Ошибка')
+    spinning.value = false
+    wheelState.value = ''
+  }
 }
 
 async function loadHistory() {
@@ -377,6 +423,18 @@ onUnmounted(() => { clearInterval(winsTimer) })
             <span class="up-jp-label"><GuiIcon name="crown" :size="14" />{{ t('gameUiUpgrader.jackpot') }}</span>
             <span class="up-jp-amount"><GuiIcon name="voidcoin" :size="15" />{{ money(jackpot.amount) }}</span>
             <span v-if="jackpot.last_winner" class="up-jp-last">{{ t('gameUiUpgrader.jackpotLast', { nick: jackpot.last_winner, amount: money(jackpot.last_amount) }) }}</span>
+          </div>
+
+          <!-- trade-up: staking a won item toward a bigger one -->
+          <div v-if="upgradeSource" class="up-tradeup">
+            <div class="up-tradeup-from">
+              <div class="up-tradeup-ic"><ItemIcon :itemKey="upgradeSource.item_key" :size="26" /></div>
+              <div class="up-tradeup-meta">
+                <div class="up-tradeup-lbl">{{ t('gameUiUpgrader.tradeStaking') }}</div>
+                <div class="up-tradeup-name">{{ upgradeSource.display_name }} <span class="up-tradeup-val"><GuiIcon name="voidcoin" :size="10" />{{ money(upgradeSource.vc_value) }}</span></div>
+              </div>
+            </div>
+            <button class="up-tradeup-x" @click="cancelUpgrade">✕</button>
           </div>
 
           <div class="up-target" v-if="selected" :class="'t-' + selected.tier">
@@ -459,29 +517,40 @@ onUnmounted(() => { clearInterval(winsTimer) })
 
           <!-- stake controls -->
           <div class="up-controls" v-if="selected">
-            <div class="up-stake-row">
-              <span class="up-lbl">{{ t('gameUiUpgrader.stake') }}</span>
-              <div class="up-stake-in">
-                <GuiIcon name="voidcoin" :size="14" class="up-vc" />
-                <input type="number" v-model.number="stake" :min="minStake" :max="Math.min(balance, selected.vc_value - 1)" :disabled="spinning" @input="setStake(stake)" />
+            <!-- normal (VC stake) controls, hidden in trade-up mode -->
+            <template v-if="!upgradeSource">
+              <div class="up-stake-row">
+                <span class="up-lbl">{{ t('gameUiUpgrader.stake') }}</span>
+                <div class="up-stake-in">
+                  <GuiIcon name="voidcoin" :size="14" class="up-vc" />
+                  <input type="number" v-model.number="stake" :min="minStake" :max="Math.min(balance, selected.vc_value - 1)" :disabled="spinning" @input="setStake(stake)" />
+                </div>
               </div>
-            </div>
-            <div class="up-quick">
-              <button :disabled="spinning" @click="setStake(stake / 2)">½</button>
-              <button :disabled="spinning" @click="setStake(stake * 2)">2×</button>
-              <button :disabled="spinning" @click="setStake(Math.min(balance, selected.vc_value - 1))">MAX</button>
-            </div>
-            <div class="up-presets">
-              <span class="up-presets-lbl">{{ t('gameUiUpgrader.targetMult') }}</span>
-              <button v-for="m in MULT_PRESETS" :key="m" class="up-preset" :disabled="spinning || !presetOk(m)" @click="applyPreset(m)">×{{ m }}</button>
-            </div>
-            <button class="up-spin" :class="{ ready: canSpin }" :disabled="!canSpin" @click="doSpin">
+              <div class="up-quick">
+                <button :disabled="spinning" @click="setStake(stake / 2)">½</button>
+                <button :disabled="spinning" @click="setStake(stake * 2)">2×</button>
+                <button :disabled="spinning" @click="setStake(Math.min(balance, selected.vc_value - 1))">MAX</button>
+              </div>
+              <div class="up-presets">
+                <span class="up-presets-lbl">{{ t('gameUiUpgrader.targetMult') }}</span>
+                <button v-for="m in MULT_PRESETS" :key="m" class="up-preset" :disabled="spinning || !presetOk(m)" @click="applyPreset(m)">×{{ m }}</button>
+              </div>
+              <button class="up-spin" :class="{ ready: canSpin }" :disabled="!canSpin" @click="doSpin">
+                <span class="up-spin-sheen"></span>
+                <GuiIcon name="sparkles" :size="16" />
+                {{ spinning ? t('gameUiUpgrader.spinning') : t('gameUiUpgrader.spin') }}
+              </button>
+            </template>
+
+            <!-- trade-up button -->
+            <button v-else class="up-spin up-spin--trade" :class="{ ready: canUpgrade }" :disabled="!canUpgrade" @click="doUpgrade">
               <span class="up-spin-sheen"></span>
-              <GuiIcon name="sparkles" :size="16" />
-              {{ spinning ? t('gameUiUpgrader.spinning') : t('gameUiUpgrader.spin') }}
+              <GuiIcon name="refresh" :size="16" />
+              {{ spinning ? t('gameUiUpgrader.spinning') : t('gameUiUpgrader.tradeGo', { pct: chancePct }) }}
             </button>
+
             <!-- daily free spin -->
-            <button v-if="daily.enabled" class="up-daily" :class="{ ready: daily.available && !spinning }"
+            <button v-if="daily.enabled && !upgradeSource" class="up-daily" :class="{ ready: daily.available && !spinning }"
                     :disabled="!daily.available || spinning" @click="doDailySpin">
               <GuiIcon name="gift" :size="15" />
               <span v-if="daily.available">{{ t('gameUiUpgrader.dailyFree', { n: money(daily.free_stake) }) }}</span>
@@ -514,7 +583,10 @@ onUnmounted(() => { clearInterval(winsTimer) })
               </div>
               <div class="up-inv-btns">
                 <button class="up-inv-sell" :disabled="winBusy === w.id" @click="sellWin(w)"><GuiIcon name="voidcoin" :size="11" />{{ t('gameUiUpgrader.sell') }} {{ money(w.vc_value) }}</button>
-                <button class="up-inv-claim" :disabled="winBusy === w.id" @click="claimWin(w)">{{ t('gameUiUpgrader.take') }}</button>
+                <div class="up-inv-row2">
+                  <button class="up-inv-up" :disabled="winBusy === w.id || spinning" @click="enterUpgrade(w)"><GuiIcon name="refresh" :size="11" />{{ t('gameUiUpgrader.tradeUp') }}</button>
+                  <button class="up-inv-claim" :disabled="winBusy === w.id" @click="claimWin(w)">{{ t('gameUiUpgrader.take') }}</button>
+                </div>
               </div>
             </div>
           </div>
@@ -933,6 +1005,24 @@ onUnmounted(() => { clearInterval(winsTimer) })
 .up-daily:disabled { opacity: 0.5; cursor: not-allowed; border-color: var(--gp-line); background: rgba(255,255,255,0.03); color: #8a90a8; animation: none; }
 .up-daily-streak { font-size: 0.72rem; font-weight: 900; color: #fbbf24; }
 .up-daily-bp { font-size: 0.66rem; font-weight: 900; color: #7dd3fc; }
+
+/* ── trade-up ── */
+.up-tradeup { width: 100%; display: flex; align-items: center; gap: 10px; padding: 9px 12px; border-radius: 12px;
+  background: linear-gradient(120deg, rgba(56,189,248,0.14), rgba(255,255,255,0.02)); border: 1px solid rgba(56,189,248,0.4); }
+.up-tradeup-from { display: flex; align-items: center; gap: 9px; flex: 1; min-width: 0; }
+.up-tradeup-ic { width: 34px; height: 34px; display: grid; place-items: center; border-radius: 9px; background: rgba(0,0,0,0.3); border: 1px solid rgba(56,189,248,0.4); flex-shrink: 0; }
+.up-tradeup-lbl { font-size: 0.6rem; font-weight: 900; text-transform: uppercase; letter-spacing: 0.07em; color: #38bdf8; }
+.up-tradeup-name { font-size: 0.82rem; font-weight: 800; color: #eef2ff; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.up-tradeup-val { display: inline-flex; align-items: center; gap: 2px; font-size: 0.68rem; font-weight: 700; color: #7dd3fc; }
+.up-tradeup-x { flex-shrink: 0; width: 26px; height: 26px; border-radius: 7px; border: 1px solid var(--gp-line); background: rgba(255,255,255,0.03); color: #aeb9d6; cursor: pointer; font-weight: 800; }
+.up-tradeup-x:hover { background: rgba(255,255,255,0.08); }
+.up-spin--trade { background: linear-gradient(135deg, #0ea5e9, #6366f1, #0ea5e9) !important; background-size: 200% 100% !important; box-shadow: 0 12px 30px -8px rgba(56,189,248,0.7) !important; }
+
+.up-inv-row2 { display: flex; gap: 5px; }
+.up-inv-up { flex: 1; display: inline-flex; align-items: center; justify-content: center; gap: 3px; padding: 5px 8px; border-radius: 8px; font-size: 0.7rem; font-weight: 800; cursor: pointer;
+  border: 1px solid rgba(56,189,248,0.45); background: rgba(56,189,248,0.12); color: #7dd3fc; transition: filter .12s; white-space: nowrap; }
+.up-inv-up:hover:not(:disabled) { filter: brightness(1.15); }
+.up-inv-up:disabled { opacity: 0.5; cursor: default; }
 
 /* ── weekly leaderboard ── */
 .up-lb-list { display: flex; flex-direction: column; gap: 5px; margin-top: 8px; }
