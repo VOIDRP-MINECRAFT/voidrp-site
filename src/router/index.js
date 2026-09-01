@@ -23,6 +23,7 @@ const routes = [
   { path: '/game-ui/treasury', name: 'game-ui-treasury', component: () => import('../views/GameUiTreasuryView.vue'), meta: { title: 'Казна', hidePublicShell: true } },
   { path: '/game-ui/research', name: 'game-ui-research', component: () => import('../views/GameUiResearchView.vue'), meta: { title: 'Технологии', hidePublicShell: true } },
   { path: '/game-ui/battlepass', name: 'game-ui-battlepass', component: () => import('../views/GameUiBattlePassView.vue'), meta: { title: 'Battle Pass', hidePublicShell: true } },
+  { path: '/game-ui/cosmetics', name: 'game-ui-cosmetics', component: () => import('../views/GameUiCosmeticsView.vue'), meta: { title: 'Косметика', hidePublicShell: true } },
   { path: '/game-ui/alliance', name: 'game-ui-alliance', component: () => import('../views/GameUiAllianceView.vue'), meta: { title: 'Альянс', hidePublicShell: true } },
   { path: '/game-ui/quests', name: 'game-ui-quests', component: () => import('../views/GameUiQuestsView.vue'), meta: { title: 'Квесты', hidePublicShell: true } },
   { path: '/game-ui/leaderboards', name: 'game-ui-leaderboards', component: () => import('../views/GameUiLeaderboardsView.vue'), meta: { title: 'Лидерборды', hidePublicShell: true } },

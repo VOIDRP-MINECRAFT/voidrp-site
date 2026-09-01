@@ -29,13 +29,15 @@ onMounted(async () => {
     const d = await getNotificationHistory()
     unread.value = (d?.items || []).filter((n) => !n.seen_at).length
   } catch { /* silent */ }
-  try { features.value = (await getFeatures())?.features || {} } catch { /* silent */ }
+  try { const d = await getFeatures(); features.value = d?.features || {}; isAdmin.value = !!d?.is_admin } catch { /* silent */ }
 })
 
+const isAdmin = ref(false)
 // A tab maps to a per-server feature; hide it only when the feature is explicitly false
 // (absent/true ⇒ shown, matching the features contract).
 const FEATURE_OF = { upgrader: 'upgrader', leaderboards: 'leaderboards', battlepass: 'battlepass', quests: 'quests', alliance: 'alliances' }
 const visibleItems = computed(() => items.filter((it) => {
+  if (it.adminOnly && !isAdmin.value) return false
   const f = FEATURE_OF[it.key]
   return !(f && features.value && features.value[f] === false)
 }))
@@ -53,6 +55,7 @@ const items = [
   { key: 'market',     icon: 'market',     route: 'game-ui-market' },
   { key: 'nmarket',    icon: 'globe',      route: 'game-ui-nmarket' },
   { key: 'battlepass', icon: 'battlepass', route: 'game-ui-battlepass' },
+  { key: 'cosmetics',  icon: 'user',       route: 'game-ui-cosmetics', adminOnly: true },
   { key: 'settings',   icon: 'settings',   route: 'game-ui-settings' },
 ]
 

@@ -63,6 +63,23 @@ export function changeSkinFromUsername(username, variant) {
   return upload('/game-ui/home/skin', fd)
 }
 
+// ── Cosmetics (Figura, admin-only for now) ────────────────────────────────────
+export function getCosmetics() {
+  return req('/game-ui/cosmetics')
+}
+export function promoteCosmetic(sourceAvatarId, name) {
+  return req('/game-ui/cosmetics/promote', { method: 'POST', body: JSON.stringify({ source_avatar_id: sourceAvatarId, name }) })
+}
+export function equipCosmetic(cosmeticId) {
+  return req('/game-ui/cosmetics/equip', { method: 'POST', body: JSON.stringify({ cosmetic_id: cosmeticId }) })
+}
+export function unequipCosmetic() {
+  return req('/game-ui/cosmetics/unequip', { method: 'POST' })
+}
+export function deleteCosmetic(cosmeticId) {
+  return req(`/game-ui/cosmetics/${encodeURIComponent(cosmeticId)}`, { method: 'DELETE' })
+}
+
 // ── HUD ──────────────────────────────────────────────────────────────────────
 
 export function getHudSnapshot() {
