@@ -27,7 +27,7 @@ const bannerInput = ref(null)
 
 const BLANK = {
   slug: '', name: '', description: '', icon_url: '', banner_url: '',
-  sort_order: 0, is_visible: true, is_default: false, staff_only: false,
+  sort_order: 0, is_visible: true, is_default: false, staff_only: false, is_external: false,
   host: '', port: 25565, mc_version: '1.21.1', loader: 'neoforge',
   java_version: 21, neoforge_version: '',
   pack_root: '', pack_base_url: '', manifest_url: '',
@@ -332,8 +332,10 @@ onMounted(load)
           <label class="fld"><span>Порядок сортировки</span><input v-model.number="form.sort_order" type="number" /></label>
           <div class="fld fld--row">
             <label class="chk"><input v-model="form.is_visible" type="checkbox" /> Виден на сайте/лаунчере</label>
-            <label class="chk"><input v-model="form.is_default" type="checkbox" /> Сервер по умолчанию</label>
+            <label class="chk"><input v-model="form.is_default" type="checkbox" :disabled="form.is_external" /> Сервер по умолчанию</label>
             <label class="chk"><input v-model="form.staff_only" type="checkbox" /> Только для админов</label>
+            <label class="chk"><input v-model="form.is_external" type="checkbox" /> Внешний сервер (чужой хост)</label>
+            <p v-if="form.is_external" class="adm-hint">Внешний сервер: только карточка в каталоге со статус-пингом и подключением по IP. Пак, лаунчер, game-sync и поля рантайма/RCON не используются.</p>
           </div>
         </div>
         <p class="hint">

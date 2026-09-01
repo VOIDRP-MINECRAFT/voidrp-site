@@ -75,6 +75,8 @@ export default {
     public: 'Public',
     connect: 'Connection address',
     staffOnly: 'Staff only',
+    external: 'External',
+    connectExternal: 'Copy IP',
   },
   auth: {
     login: 'Log in',

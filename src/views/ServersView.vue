@@ -99,6 +99,7 @@ async function copyAddress(s) {
                   <span class="scard__chip scard__chip--muted">{{ whitelistLabel(s.whitelist_mode) }}</span>
                   <!-- Виден только персоналу — обычные игроки этот сервер в списке не получают. -->
                   <span v-if="s.staff_only" class="scard__chip scard__chip--staff">🔒 {{ t('servers.staffOnly') }}</span>
+                  <span v-if="s.is_external" class="scard__chip scard__chip--ext">🌐 {{ t('servers.external') }}</span>
                 </div>
               </div>
               <span v-if="activeServer?.slug === s.slug" class="scard__selected">{{ t('servers.selected') }}</span>
@@ -130,12 +131,16 @@ async function copyAddress(s) {
             </button>
 
             <button
+              v-if="!s.is_external"
               type="button"
               class="scard__cta"
               :class="{ 'scard__cta--active': activeServer?.slug === s.slug }"
               @click="choose(s)"
             >
               {{ activeServer?.slug === s.slug ? t('servers.play') : t('servers.select') }}
+            </button>
+            <button v-else type="button" class="scard__cta scard__cta--ext" @click="copyAddress(s)">
+              {{ t('servers.connectExternal') }}
             </button>
           </div>
         </article>
@@ -226,6 +231,7 @@ async function copyAddress(s) {
 }
 .scard__chip--muted { color: #94a3b8; background: rgba(148, 163, 184, 0.1); }
 .scard__chip--staff { color: #fbbf24; background: rgba(251, 191, 36, 0.14); }
+.scard__chip--ext { color: #38bdf8; background: rgba(56, 189, 248, 0.14); }
 .scard__selected {
   align-self: flex-start; flex-shrink: 0;
   font-size: 0.66rem; font-weight: 800; padding: 0.2rem 0.55rem; border-radius: 999px;
@@ -264,6 +270,8 @@ async function copyAddress(s) {
 }
 .scard__cta:hover { background: rgba(255, 255, 255, 0.12); }
 .scard__cta:active { transform: scale(0.99); }
+.scard__cta--ext { color: #7dd3fc; background: rgba(56, 189, 248, 0.12); border: 1px solid rgba(56, 189, 248, 0.4); }
+.scard__cta--ext:hover { background: rgba(56, 189, 248, 0.2); }
 .scard__cta--active { color: #fff; background: linear-gradient(135deg, #7c3aed, #6366f1); }
 .scard__cta--active:hover { background: linear-gradient(135deg, #6d28d9, #4f46e5); }
 

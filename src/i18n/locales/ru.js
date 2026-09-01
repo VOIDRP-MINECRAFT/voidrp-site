@@ -75,6 +75,8 @@ export default {
     public: 'Открытый',
     connect: 'Адрес подключения',
     staffOnly: 'Только для админов',
+    external: 'Внешний',
+    connectExternal: 'Скопировать IP',
   },
   auth: {
     login: 'Войти',
