@@ -131,16 +131,12 @@ async function copyAddress(s) {
             </button>
 
             <button
-              v-if="!s.is_external"
               type="button"
               class="scard__cta"
               :class="{ 'scard__cta--active': activeServer?.slug === s.slug }"
               @click="choose(s)"
             >
               {{ activeServer?.slug === s.slug ? t('servers.play') : t('servers.select') }}
-            </button>
-            <button v-else type="button" class="scard__cta scard__cta--ext" @click="copyAddress(s)">
-              {{ t('servers.connectExternal') }}
             </button>
           </div>
         </article>

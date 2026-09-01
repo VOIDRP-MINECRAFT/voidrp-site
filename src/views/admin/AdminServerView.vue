@@ -335,7 +335,7 @@ onMounted(load)
             <label class="chk"><input v-model="form.is_default" type="checkbox" :disabled="form.is_external" /> Сервер по умолчанию</label>
             <label class="chk"><input v-model="form.staff_only" type="checkbox" /> Только для админов</label>
             <label class="chk"><input v-model="form.is_external" type="checkbox" /> Внешний сервер (чужой хост)</label>
-            <p v-if="form.is_external" class="adm-hint">Внешний сервер: только карточка в каталоге со статус-пингом и подключением по IP. Пак, лаунчер, game-sync и поля рантайма/RCON не используются.</p>
+            <p v-if="form.is_external" class="adm-hint">Внешний сервер: игровой хост на чужой машине, но клиентский пак и лаунчер — наши (host/port укажи на их IP). RCON используется как обычно. Game-sync-плагины (нации/экономика/WebGUI) на их стороне НЕ стоят, поэтому данные с их сервера к нам не идут. systemd/data/log не заполняются — это не наша машина.</p>
           </div>
         </div>
         <p class="hint">
