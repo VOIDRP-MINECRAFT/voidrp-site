@@ -20,6 +20,9 @@ const token = () => authState.accessToken
 const canManage = hasPermission('mods.manage')
 const canRestart = hasPermission('monitoring.restart')
 const serverName = computed(() => activeServer.value?.name || 'сервер')
+// Partner (external) server: its game host is on someone else's machine, so we can't put
+// mods into its server-side mods folder or restart it — only the client pack is ours.
+const isExternal = computed(() => !!activeServer.value?.is_external)
 
 // ── State ─────────────────────────────────────────────────────────────────────
 const data = ref(null)
@@ -149,6 +152,7 @@ async function applyStaging() {
 
 // ── Toggle client/server on an existing mod ──────────────────────────────────
 async function toggleTarget(mod, which) {
+  if (which === 'on_server' && isExternal.value) return   // external: no server-side mods
   const next = { on_client: mod.on_client, on_server: mod.on_server }
   next[which] = !next[which]
   if (!next.on_client && !next.on_server) {
@@ -323,7 +327,7 @@ onBeforeUnmount(stopBuildPolling)
         <button v-if="canManage" class="adm-btn adm-btn--acc" :disabled="regenRunning" @click="regen">
           {{ regenRunning ? 'Сборка…' : 'Пересобрать манифест' }}
         </button>
-        <button v-if="canManage && canRestart" class="adm-btn adm-btn--danger" :disabled="restartBusy" @click="restartServer">
+        <button v-if="canManage && canRestart && !isExternal" class="adm-btn adm-btn--danger" :disabled="restartBusy" @click="restartServer">
           Перезапустить сервер
         </button>
       </div>
@@ -332,7 +336,7 @@ onBeforeUnmount(stopBuildPolling)
     <!-- предупреждение о пересборке -->
     <div v-if="needsRegen" class="mods-warn">
       Клиентские моды изменены — <b>пересоберите манифест</b>, чтобы игроки получили обновление.
-      Серверные моды применятся только после <b>перезапуска сервера</b>.
+      <template v-if="!isExternal">Серверные моды применятся только после <b>перезапуска сервера</b>.</template>
     </div>
 
     <div v-if="err" class="adm-empty"><div class="adm-empty__title">{{ err }}</div></div>
@@ -431,8 +435,10 @@ onBeforeUnmount(stopBuildPolling)
             </td>
             <td class="mods-c">
               <button class="mods-dot" :class="m.on_server ? 'is-on' : 'is-off'"
-                      :disabled="!canManage" @click="toggleTarget(m, 'on_server')" :title="m.on_server ? 'На сервере — нажмите чтобы убрать' : 'Нет на сервере — нажмите чтобы добавить'">
-                {{ m.on_server ? '✓' : '—' }}
+                      :disabled="!canManage || isExternal"
+                      @click="toggleTarget(m, 'on_server')"
+                      :title="isExternal ? 'Внешний сервер — серверные моды не ставятся (чужой хост)' : (m.on_server ? 'На сервере — нажмите чтобы убрать' : 'Нет на сервере — нажмите чтобы добавить')">
+                {{ isExternal ? '·' : (m.on_server ? '✓' : '—') }}
               </button>
             </td>
             <td>
