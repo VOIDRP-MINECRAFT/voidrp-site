@@ -652,17 +652,10 @@ onBeforeUnmount(() => {
       </div>
     </div>
 
-    <div v-if="isExternal" class="adm-empty adm-empty--info">
-      <div class="adm-empty__sub">
-        Внешний сервер на чужом хосте — метрики хоста (CPU/RAM/диск/процесс) недоступны.
-        Онлайн и игроки берутся пингом, TPS и консоль — по RCON, лог — по ссылке.
-      </div>
-    </div>
-
-    <!-- ── Метрики (только для наших серверов) ──────────────────── -->
-    <div v-if="!isExternal" class="ops-grid">
-      <!-- CPU хоста -->
-      <div class="adm-card adm-card--pad ops-metric">
+    <!-- ── Метрики ──────────────────────────────────────────────── -->
+    <div class="ops-grid">
+      <!-- CPU хоста (только наши серверы) -->
+      <div v-if="!isExternal" class="adm-card adm-card--pad ops-metric">
         <div class="ops-metric__top">
           <span class="ops-metric__label">CPU хоста</span>
           <span class="ops-metric__val adm-num" :class="utilClass(host?.cpu_percent)">{{ pct(host?.cpu_percent) }}</span>
@@ -674,8 +667,8 @@ onBeforeUnmount(() => {
         </div>
       </div>
 
-      <!-- RAM хоста -->
-      <div class="adm-card adm-card--pad ops-metric">
+      <!-- RAM хоста (только наши серверы) -->
+      <div v-if="!isExternal" class="adm-card adm-card--pad ops-metric">
         <div class="ops-metric__top">
           <span class="ops-metric__label">RAM хоста</span>
           <span class="ops-metric__val adm-num" :class="utilClass(host?.mem_percent)">{{ pct(host?.mem_percent) }}</span>
@@ -685,8 +678,8 @@ onBeforeUnmount(() => {
         <div class="ops-metric__meta adm-mono">{{ fmtBytes(host?.mem_used) }} / {{ fmtBytes(host?.mem_total) }}</div>
       </div>
 
-      <!-- Диск -->
-      <div class="adm-card adm-card--pad ops-metric">
+      <!-- Диск (только наши серверы) -->
+      <div v-if="!isExternal" class="adm-card adm-card--pad ops-metric">
         <div class="ops-metric__top">
           <span class="ops-metric__label">Диск сервера</span>
           <span class="ops-metric__val adm-num" :class="utilClass(disk?.percent)">{{ pct(disk?.percent) }}</span>
@@ -698,8 +691,8 @@ onBeforeUnmount(() => {
         </div>
       </div>
 
-      <!-- Процесс JVM -->
-      <div class="adm-card adm-card--pad ops-metric">
+      <!-- Процесс сервера (только наши серверы) -->
+      <div v-if="!isExternal" class="adm-card adm-card--pad ops-metric">
         <div class="ops-metric__top">
           <span class="ops-metric__label">Процесс сервера</span>
           <span class="ops-metric__val adm-num" :class="utilClass(procCpuOfHost)">{{ pct(procCpuOfHost) }}</span>
