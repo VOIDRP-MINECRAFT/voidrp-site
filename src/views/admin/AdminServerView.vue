@@ -475,7 +475,8 @@ onMounted(load)
           <label class="fld"><span>Директория данных (необязательно)</span>
             <input v-model="form.data_dir" placeholder="= WorkingDirectory юнита" /></label>
           <label class="fld"><span>Путь к логу (необязательно)</span>
-            <input v-model="form.log_path" placeholder="= <data_dir>/logs/latest.log" /></label>
+            <input v-model="form.log_path" placeholder="= <data_dir>/logs/latest.log или http(s):// URL" /></label>
+          <p class="adm-hint">Локальный путь к файлу ИЛИ http(s)-ссылка. Для внешнего сервера укажи URL, по которому партнёр отдаёт latest.log — вьюер лога подтянет его по ссылке.</p>
         </div>
         <p class="hint">
           Юнит нужен для метрик CPU/RAM/диска и статуса службы (MainPID и WorkingDirectory берутся из systemd).
