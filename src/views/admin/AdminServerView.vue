@@ -398,7 +398,8 @@ onMounted(load)
         <div class="sec">Статус и доступ</div>
         <div class="grid">
           <label class="fld"><span>Status host (для пинга)</span><input v-model="form.status_host" placeholder="= host" /></label>
-          <label class="fld"><span>Status port</span><input v-model.number="form.status_port" type="number" placeholder="= port" /></label>
+          <label class="fld"><span>Status port</span><input v-model.number="form.status_port" type="number" placeholder="= port (оставь пустым)" /></label>
+          <p class="adm-hint">Статус (онлайн/игроки) берётся ПИНГОМ. У Java-сервера пинг идёт на игровой порт — оставь Status host/port пустыми (= host/port). Отдельный порт указывай только если у сервера реально есть отдельный query/статус-порт.</p>
           <label class="fld"><span>Макс. игроков</span><input v-model.number="form.max_players" type="number" /></label>
           <label class="fld"><span>Режим доступа</span>
             <select v-model="form.whitelist_mode">
