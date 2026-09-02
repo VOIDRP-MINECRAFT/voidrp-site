@@ -230,6 +230,10 @@ const disk = computed(() => metrics.value?.disk || null)
 const jvm = computed(() => metrics.value?.jvm || null)
 const unitState = computed(() => metrics.value?.unit_state || null)
 const notConfigured = computed(() => !firstLoad.value && metrics.value && !metrics.value.unit)
+// Partner (external) server: hosted on someone else's machine — host CPU/RAM/disk/process
+// and watchdog-hang scanning don't apply. We still show ping (online/players), RCON (TPS,
+// console) and the log (which can be a URL).
+const isExternal = computed(() => !!activeServer.value?.is_external)
 
 // ── Power control (start / restart / stop the systemd unit) ─────────────────
 // Buttons enable per current state: start only when the unit is down, restart /
@@ -319,7 +323,7 @@ let metricsBusy = false
 let liveBusy = false
 
 async function loadMetrics() {
-  if (metricsBusy) return
+  if (metricsBusy || isExternal.value) return   // partner server: no host metrics
   metricsBusy = true
   try {
     metrics.value = await getServerMetrics(token())
@@ -544,7 +548,7 @@ const hangs = ref([])
 const hangsAvailable = ref(true)
 let hangsBusy = false
 async function loadHangs() {
-  if (hangsBusy) return
+  if (hangsBusy || isExternal.value) return   // partner server: no watchdog-hang scanning
   hangsBusy = true
   try {
     const res = await getServerHangs(token(), { limit: 50 })
@@ -640,7 +644,7 @@ onBeforeUnmount(() => {
       </div>
     </div>
 
-    <div v-if="notConfigured" class="adm-empty">
+    <div v-if="notConfigured && !isExternal" class="adm-empty">
       <div class="adm-empty__title">Мониторинг не настроен для этого сервера</div>
       <div class="adm-empty__sub">
         Укажите systemd-юнит и RCON в разделе «Серверы» → редактирование сервера
@@ -648,8 +652,15 @@ onBeforeUnmount(() => {
       </div>
     </div>
 
-    <!-- ── Метрики ──────────────────────────────────────────────── -->
-    <div class="ops-grid">
+    <div v-if="isExternal" class="adm-empty adm-empty--info">
+      <div class="adm-empty__sub">
+        Внешний сервер на чужом хосте — метрики хоста (CPU/RAM/диск/процесс) недоступны.
+        Онлайн и игроки берутся пингом, TPS и консоль — по RCON, лог — по ссылке.
+      </div>
+    </div>
+
+    <!-- ── Метрики (только для наших серверов) ──────────────────── -->
+    <div v-if="!isExternal" class="ops-grid">
       <!-- CPU хоста -->
       <div class="adm-card adm-card--pad ops-metric">
         <div class="ops-metric__top">
@@ -798,8 +809,8 @@ onBeforeUnmount(() => {
       </div>
     </div>
 
-    <!-- ── Недавние зависания (Watchdog / HUNG_TICK) ─────────────── -->
-    <div class="adm-card ops-hangs">
+    <!-- ── Недавние зависания (Watchdog / HUNG_TICK) — не для внешних ── -->
+    <div v-if="!isExternal" class="adm-card ops-hangs">
       <div class="adm-card__head">
         <h3 class="adm-card__title">Недавние зависания</h3>
         <div class="ops-hangs__head-r">
@@ -843,7 +854,7 @@ onBeforeUnmount(() => {
       <div class="adm-card__head ops-logs__head">
         <div class="adm-tabs">
           <button class="adm-tab" :class="{ 'adm-tab--active': logSource === 'server' }" @click="switchLogSource('server')">Лог сервера</button>
-          <button class="adm-tab" :class="{ 'adm-tab--active': logSource === 'watchdog' }" @click="switchLogSource('watchdog')">Watchdog</button>
+          <button v-if="!isExternal" class="adm-tab" :class="{ 'adm-tab--active': logSource === 'watchdog' }" @click="switchLogSource('watchdog')">Watchdog</button>
         </div>
         <div class="ops-logs__tools">
           <input v-model="logFilter" class="adm-input adm-input--sm" placeholder="фильтр…" />
