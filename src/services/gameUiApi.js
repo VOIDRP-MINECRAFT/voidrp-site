@@ -63,27 +63,22 @@ export function changeSkinFromUsername(username, variant) {
   return upload('/game-ui/home/skin', fd)
 }
 
-// ── Cosmetics (Figura, admin-only for now) ────────────────────────────────────
+// ── Cosmetics (Figura) — in-game shop: catalogue / buy / equip ───────────────
 export function getCosmetics() {
   return req('/game-ui/cosmetics')
-}
-export function promoteCosmetic(sourceAvatarId, name, slot, price) {
-  return req('/game-ui/cosmetics/promote', { method: 'POST', body: JSON.stringify({ source_avatar_id: sourceAvatarId, name, slot, price }) })
 }
 export function buyCosmetic(slug) {
   return req('/game-ui/cosmetics/buy', { method: 'POST', body: JSON.stringify({ slug }) })
 }
+export function giftCosmetic(nickname, slug) {
+  return req('/game-ui/cosmetics/gift', { method: 'POST', body: JSON.stringify({ nickname, slug }) })
+}
 export function equipCosmetic(slug) {
   return req('/game-ui/cosmetics/equip', { method: 'POST', body: JSON.stringify({ slug }) })
 }
-export function unequipCosmetic() {
-  return req('/game-ui/cosmetics/unequip', { method: 'POST' })
-}
-export function patchCosmetic(slug, body) {
-  return req(`/game-ui/cosmetics/${encodeURIComponent(slug)}`, { method: 'PATCH', body: JSON.stringify(body) })
-}
-export function deleteCosmetic(slug) {
-  return req(`/game-ui/cosmetics/${encodeURIComponent(slug)}`, { method: 'DELETE' })
+export function unequipCosmetic(slug) {
+  const q = slug ? `?slug=${encodeURIComponent(slug)}` : ''
+  return req('/game-ui/cosmetics/unequip' + q, { method: 'POST' })
 }
 
 // ── HUD ──────────────────────────────────────────────────────────────────────

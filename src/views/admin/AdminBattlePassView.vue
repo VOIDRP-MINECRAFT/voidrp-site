@@ -9,8 +9,10 @@ import {
 import { authState } from '../../stores/authStore'
 import { toastError, toastSuccess } from '../../services/toast'
 import { confirmDialog } from '../../composables/useConfirm'
+import AdminBattlePassRewards from './AdminBattlePassRewards.vue'
 
 const token = () => authState.accessToken
+const tab = ref('premium')   // 'premium' | 'rewards'
 
 // Stats
 const stats = ref(null)
@@ -139,14 +141,23 @@ onMounted(loadAll)
     <div class="adm-page__head">
       <div>
         <h1 class="adm-title">Battle Pass</h1>
-        <p class="adm-sub">Premium-подписки выбранного сервера</p>
+        <p class="adm-sub">{{ tab === 'premium' ? 'Premium-подписки выбранного сервера' : 'Награды по уровням (по сезонам)' }}</p>
       </div>
-      <button class="adm-btn" @click="loadAll">
+      <button v-if="tab === 'premium'" class="adm-btn" @click="loadAll">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg>
         Обновить
       </button>
     </div>
 
+    <!-- Tabs -->
+    <div class="bp-tabs">
+      <button class="bp-tab" :class="{ sel: tab === 'premium' }" @click="tab = 'premium'">Premium</button>
+      <button class="bp-tab" :class="{ sel: tab === 'rewards' }" @click="tab = 'rewards'">Награды</button>
+    </div>
+
+    <AdminBattlePassRewards v-if="tab === 'rewards'" />
+
+    <template v-else>
     <!-- Stats -->
     <div v-if="loadingStats" class="adm-skel" style="height: 72px" />
     <div v-else class="grid grid-cols-2 gap-3" style="max-width: 460px">
@@ -235,10 +246,15 @@ onMounted(loadAll)
       <span class="adm-pager__info">Стр. {{ currentPage() }} / {{ totalPages() }}</span>
       <button class="adm-btn adm-btn--sm" :disabled="skip + limit >= totalCount" @click="nextPage">Вперёд →</button>
     </div>
+    </template>
   </div>
 </template>
 
 <style scoped>
+.bp-tabs { display: flex; gap: 6px; margin-bottom: 4px; }
+.bp-tab { padding: 6px 16px; border-radius: 9px; font-size: .82rem; font-weight: 700; cursor: pointer; background: rgba(255,255,255,.04); border: 1px solid rgba(255,255,255,.08); color: var(--adm-dim); }
+.bp-tab.sel { background: var(--adm-acc, rgba(99,102,241,.25)); color: #fff; border-color: transparent; }
+
 .notice {
   padding: 0.5rem 0.85rem;
   border-radius: 8px;

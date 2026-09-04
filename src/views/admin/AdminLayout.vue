@@ -159,6 +159,7 @@ const navGroups = computed(() => {
       label: 'Платформа',
       items: [
         { to: '/admin/players', label: 'Игроки', icon: icons.players, perm: 'players.view' },
+        { to: '/admin/cosmetics', label: 'Косметика', icon: icons.players, perm: 'figura.cosmetics.manage' },
         { to: '/admin/donate', label: 'Донаты', icon: icons.donate, perm: 'donate.view' },
         { to: '/admin/server', label: 'Серверы', icon: icons.servers, perm: 'servers.manage' },
         { to: '/admin/launcher', label: 'Лаунчер', icon: icons.launcher, perm: 'launcher.view' },

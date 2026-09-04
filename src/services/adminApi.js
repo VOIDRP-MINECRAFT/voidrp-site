@@ -216,3 +216,45 @@ export function adminDeleteFeedback(token, id) {
     method: 'DELETE',
   })
 }
+
+// ── Figura cosmetics (site admin: catalogue management) ──────────────────────
+export function adminListCosmetics(token) {
+  return apiRequest('/admin/cosmetics', { method: 'GET', headers: buildAuthHeaders(token) })
+}
+export function adminUploadCosmetic(token, file, name, slot, price) {
+  const fd = new FormData()
+  fd.append('file', file)
+  fd.append('name', name)
+  fd.append('slot', slot)
+  fd.append('price', String(price))
+  return apiRequest('/admin/cosmetics/upload', { method: 'POST', body: fd, headers: buildAuthHeaders(token) })
+}
+export function adminPatchCosmetic(token, slug, payload) {
+  return apiRequest(`/admin/cosmetics/${encodeURIComponent(slug)}`, { method: 'PATCH', body: JSON.stringify(payload), headers: buildAuthHeaders(token) })
+}
+export function adminDeleteCosmetic(token, slug) {
+  return apiRequest(`/admin/cosmetics/${encodeURIComponent(slug)}`, { method: 'DELETE', headers: buildAuthHeaders(token) })
+}
+export function adminGrantCosmetic(token, nickname, slug) {
+  return apiRequest('/admin/cosmetics/grant', { method: 'POST', body: JSON.stringify({ nickname, slug }), headers: buildAuthHeaders(token) })
+}
+export function adminListCosmeticUploads(token, nickname) {
+  return apiRequest(`/admin/cosmetics/uploads?nickname=${encodeURIComponent(nickname)}`, { method: 'GET', headers: buildAuthHeaders(token) })
+}
+export function adminPromoteCosmetic(token, payload) {
+  return apiRequest('/admin/cosmetics/promote', { method: 'POST', body: JSON.stringify(payload), headers: buildAuthHeaders(token) })
+}
+export function adminUploadCosmeticPreview(token, slug, file) {
+  const fd = new FormData()
+  fd.append('file', file)
+  return apiRequest(`/admin/cosmetics/${encodeURIComponent(slug)}/preview`, { method: 'POST', body: fd, headers: buildAuthHeaders(token) })
+}
+export function adminListPlayerCosmetics(token, nickname) {
+  return apiRequest(`/admin/cosmetics/player?nickname=${encodeURIComponent(nickname)}`, { method: 'GET', headers: buildAuthHeaders(token) })
+}
+export function adminRevokeCosmetic(token, nickname, slug) {
+  return apiRequest('/admin/cosmetics/revoke', { method: 'POST', body: JSON.stringify({ nickname, slug }), headers: buildAuthHeaders(token) })
+}
+export function adminListCosmeticOwners(token, slug) {
+  return apiRequest(`/admin/cosmetics/${encodeURIComponent(slug)}/owners`, { method: 'GET', headers: buildAuthHeaders(token) })
+}
