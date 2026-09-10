@@ -18,194 +18,365 @@ const CHECK_STORAGE_KEY = 'voidrp-expert-progression-guide-v1'
 const checked = ref({})
 
 const introCards = [
-  { label: 'Сборка', title: 'FTB Evolution', text: 'Технологическая сборка: развивайся от первых механизмов Create через Mekanism и AE2 до энергетики Draconic Evolution и эндгейм-компонентов Эволюции.', icon: '🧬' },
+  { label: 'Сборка', title: 'FTB Evolution + 100 модов', text: 'Пак давно перерос базовую сборку: 566 модов, несколько параллельных технологических и магических веток. Единственного «правильного» пути нет — есть общая линия и ответвления.', icon: '🧬' },
   { label: 'Навыки', title: 'Прокачка персонажа', text: 'Система навыков Puffish: Магия, Ближний и Дальний бой, Атлетика, Добыча и Защита. Вкладывай очки и открывай пассивки под свой стиль.', icon: '⭐' },
-  { label: 'Финальная цель', title: 'Достичь вершины', text: 'Абсолютная сингулярность, Эволюционный арканум и Воплощённое трансцендентство — вершина сборки через Create, Mekanism, AE2, IE и Draconic.', icon: '🏆' },
+  { label: 'Вершина', title: 'Квант и сингулярность', text: 'Топ снаряжения — Квантовая броня Modern Industrialization, затем MekaSuit и Броня Хаоса. Финал прогрессии — Абсолютная сингулярность и Воплощённое трансцендентство.', icon: '🏆' },
 ]
 
-const routeSteps = [
-  'Выживание + Farmer\'s Delight',
-  'Create / первая механика',
-  'Immersive Engineering / сталь',
-  'Mekanism / энергия',
-  'AE2 / хранение и автокрафт',
-  'Industrial Foregoing / фермы',
-  'Cataclysm / боссы',
-  'Draconic Evolution',
-  'Эволюция / эндгейм',
+// Ветки прогрессии. Ключи совпадают с epochs.list в config.yml плагина GameSync
+// и с PROGRESSION_TIERS на бэкенде — гайд, чат-объявления и рейтинг показывают
+// одно и то же. Меняешь эпоху — меняй во всех трёх местах.
+const branches = [
+  { id: 'all',         label: 'Все',           icon: '🗺️' },
+  { id: 'main',        label: 'Общая линия',   icon: '⚙️' },
+  { id: 'tech',        label: 'Технологии',    icon: '🏭' },
+  { id: 'magic',       label: 'Магия',         icon: '✨' },
+  { id: 'exploration', label: 'Исследование',  icon: '🗡️' },
 ]
+
+const activeBranch = ref('all')
 
 const stages = [
   {
-    id: 'survival',
-    number: '01',
+    id: 'survival', number: '01', branch: 'main', epochKey: null,
     title: 'Базовое выживание',
-    tags: ['Farmer\'s Delight', 'рюкзаки', 'Waystones'],
-    goal: 'Обустроить базу, наладить еду и хранение, заклеймить территорию через FTB Chunks и подготовить ресурсы под Create.',
+    tags: ['Farmer\'s Delight', 'рюкзаки', 'телепорты', 'True Darkness'],
+    goal: 'Пережить первые ночи, обустроить базу и заклеймить территорию. В паке стоит Hardcore True Darkness — без источника света вне базы делать нечего.',
+    gate: null,
     unlocks: [
       'Рюкзаки Sophisticated Backpacks с апгрейдами',
-      'Камни Waystones для быстрых перемещений',
-      'Железо, медь, цинк и редстоун под первые механизмы',
+      'Телепорты: Simple Teleporters и Tempad, команды FTB Essentials',
+      'Готовка Farmer\'s Delight — сытная еда и бафы',
     ],
     checks: [
-      'Есть безопасная база и стабильная еда',
+      'Есть безопасная база и стабильный свет',
       'Заклеймлена территория через FTB Chunks',
-      'Собраны ресурсы под первые механизмы Create',
+      'Налажена еда: ферма или кухня Farmer\'s Delight',
     ],
   },
   {
-    id: 'create',
-    number: '02',
-    title: 'Create — первая механика',
-    tags: ['Create', 'автоматизация', 'механизмы'],
-    goal: 'Построить первые кинетические линии: пресс, миксер, деплоер и дробильные колёса.',
+    id: 'mechanisms', number: '02', branch: 'main', epochKey: 'mechanisms_age',
+    title: 'Эпоха механизмов',
+    tags: ['Create', 'кинетика', 'автоматизация'],
+    goal: 'Собрать первые кинетические линии Create: вращение, пресс, миксер, дробильные колёса. Это самостоятельная ветка автоматизации, а не «подготовка» к другим модам.',
+    gate: { id: 'create:precision_mechanism', name: 'Механизм точности' },
     unlocks: [
-      'Андезитовый сплав, валы и шестерни',
+      'Андезитовый сплав, валы, шестерни, ремни',
       'Механический пресс, миксер, установщик',
-      'Первые автоматические линии обработки',
+      'Механизм точности — ключ к продвинутым машинам Create',
     ],
     checks: [
-      'Работает линия с механическим прессом',
-      'Собраны миксер и установщик',
       'Есть стабильный источник вращения',
+      'Работает линия с прессом и миксером',
+      'Скрафчен Механизм точности',
     ],
   },
   {
-    id: 'steel',
-    number: '03',
-    title: 'Immersive Engineering — сталь',
-    tags: ['Immersive Engineering', 'сталь', 'провода'],
-    goal: 'Наладить производство стали — обязательного материала для Mekanism и большинства машин средней игры.',
+    id: 'steel', number: '03', branch: 'main', epochKey: 'steel_age',
+    title: 'Эпоха стали',
+    tags: ['Immersive Engineering', 'сталь', 'коксовая печь'],
+    goal: 'Поставить коксовую и доменную печь Immersive Engineering. Сталь нужна почти всем машинам среднего уровня — но это не единственный её источник в паке.',
+    gate: { id: 'immersiveengineering:ingot_steel', name: 'Стальной слиток' },
     unlocks: [
-      'Коксовая печь и доменная печь',
-      'Сталь, металлический пресс, дробилка',
-      'Провода и первая передача энергии',
+      'Коксовая печь: кокс и креозот',
+      'Доменная печь: сталь потоком',
+      'Металлический пресс, провода и первая электрика IE',
     ],
     checks: [
-      'Работает доменная печь и идёт сталь',
-      'Собран металлический пресс',
-      'Настроена базовая передача энергии',
+      'Работает коксовая печь',
+      'Доменная печь выдаёт сталь стабильно',
+      'Есть запас стали под машины',
     ],
   },
   {
-    id: 'mekanism',
-    number: '04',
-    title: 'Mekanism — энергия и переработка',
-    tags: ['Mekanism', 'энергия', '5× руда'],
-    goal: 'Запустить энергосеть и умножение руды 3–5×, открыть базовые машины и хранилища энергии.',
+    id: 'energy', number: '04', branch: 'main', epochKey: 'energy_age',
+    title: 'Эпоха энергии',
+    tags: ['Mekanism', 'энергия', 'умножение руды'],
+    goal: 'Запустить энергосеть и переработку руды. У Mekanism своя сталь через Металлургический инфузер, так что ветку можно начинать независимо от Immersive Engineering.',
+    gate: { id: 'mekanism:steel_casing', name: 'Стальной корпус' },
     unlocks: [
-      'Металлургический инфузер, стальной корпус',
-      'Обогащение руды (2×–5×)',
-      'Энергетические кубы и генераторы',
+      'Умножение руды до 5× по цепочке машин',
+      'Энергокубы и передача энергии',
+      'Стальной корпус — основа всех машин Mekanism',
     ],
     checks: [
-      'Работает умножение руды',
-      'Есть стабильный источник энергии',
-      'Собран стальной корпус и базовые схемы',
+      'Есть рабочая энергосеть',
+      'Запущено умножение руды хотя бы 3×',
+      'Скрафчен Стальной корпус',
     ],
   },
   {
-    id: 'ae2',
-    number: '05',
-    title: 'AE2 — хранение и автокрафт',
-    tags: ['Applied Energistics 2', 'хранение', 'автокрафт'],
-    goal: 'Перейти от сундуков к ME-сети с цифровым хранением и автоматическим крафтом по запросу.',
+    id: 'automation', number: '05', branch: 'main', epochKey: 'automation_age',
+    title: 'Эпоха автоматизации',
+    tags: ['AE2', 'Refined Storage', 'автокрафт'],
+    goal: 'Перейти от сундуков к цифровому хранилищу с автокрафтом. В паке есть и AE2, и Refined Storage 2 — бери что ближе, эпоха засчитывается по контроллеру AE2.',
+    gate: { id: 'ae2:controller', name: 'МЭ контроллер' },
     unlocks: [
-      'Процессоры, контроллёр, ячейки хранения',
-      'Молекулярный сборщик и поставщики шаблонов',
-      'Автокрафт по запросу',
+      'ME-сеть: диски, терминалы, автокрафт по запросу',
+      'Процессоры и молекулярный сборщик',
+      'MEGA Cells и Advanced AE для расширения',
     ],
     checks: [
-      'ME-сеть работает стабильно',
-      'Настроен автокрафт через сборщики',
-      'Основные ресурсы заведены в сеть',
+      'Собрана ME-сеть с контроллером',
+      'Работает автокрафт хотя бы одного рецепта',
+      'Хранилище переехало с сундуков на диски',
     ],
   },
   {
-    id: 'automation',
-    number: '06',
-    title: 'Industrial Foregoing — фермы',
-    tags: ['Industrial Foregoing', 'фермы', 'ресурсы'],
-    goal: 'Автоматизировать растения, мобов и добычу ресурсов для позднего потребления.',
+    id: 'industry', number: '06', branch: 'main', epochKey: 'industry_age',
+    title: 'Индустриальная эпоха',
+    tags: ['Modern Industrialization', 'Oritech', 'EnderIO'],
+    goal: 'Выйти на тяжёлую промышленность: многоблочные заводы Modern Industrialization, продвинутые корпуса машин, химия и переработка нефти.',
+    gate: { id: 'modern_industrialization:advanced_machine_hull', name: 'Усовершенствованный корпус механизма' },
     unlocks: [
-      'Сеятель и сборщик растений',
-      'Дробилка мобов, пластик, жидкостные машины',
-      'Лазерный бур и ресурсные линии',
+      'Мультиблоки MI: электродоменная печь, дистилляция',
+      'Продвинутые корпуса и материалы высоких уровней',
+      'Ветки Oritech и EnderIO как альтернативные пути',
     ],
     checks: [
-      'Запущены фермы растений или мобов',
-      'Налажено производство пластика',
-      'Готова ресурсная база под боссов',
+      'Построен хотя бы один мультиблок MI',
+      'Налажена переработка нефти или химия',
+      'Скрафчен усовершенствованный корпус механизма',
     ],
   },
   {
-    id: 'bosses',
-    number: '07',
-    title: 'Cataclysm — боссы',
-    tags: ['L_Ender\'s Cataclysm', 'боссы', 'добыча'],
-    goal: 'Победить боссов Cataclysm и собрать уникальную добычу для позднего снаряжения и компонентов Draconic.',
+    id: 'quantum', number: '07', branch: 'main', epochKey: 'quantum_age',
+    title: 'Квантовая эпоха',
+    tags: ['MI Quantum', 'броня', 'вершина снаряжения'],
+    goal: 'Собрать Квантовую броню Modern Industrialization — лучшая броня пака: каждая деталь снижает шанс получить любой урон на 25%.',
+    gate: { id: 'modern_industrialization:quantum_chestplate', name: 'Квантовый нагрудник' },
     unlocks: [
-      'Игнис, Левиафан, Харбингер и их дроп',
-      'Мощное оружие и броня',
-      'Компоненты под Draconic Evolution',
+      'Квантовая броня MI — топ защиты в паке',
+      'Квантовые нано- и ньяно-комплекты Extended Industrialization',
+      'MekaSuit и Броня Хаоса как альтернативы того же уровня',
     ],
     checks: [
-      'Готово снаряжение и расходники под боссов',
+      'Автоматизированы квантовые компоненты',
+      'Собран Квантовый нагрудник',
+      'Комплект брони закрыт целиком',
+    ],
+  },
+  {
+    id: 'singularity', number: '08', branch: 'main', epochKey: 'singularity_age',
+    title: 'Эпоха сингулярности',
+    tags: ['FTB Evolution', 'пирамида', 'сингулярности'],
+    goal: 'Пирамида Эволюции: Эволюционная материя, первородная эссенция, элементальный арканит и сборка Абсолютной сингулярности.',
+    gate: { id: 'ftbevolution:ultimate_singularity', name: 'Абсолютная сингулярность' },
+    unlocks: [
+      'Эволюционная материя и цепочка пирамиды',
+      'Элементальный арканит и растворённый потенциал',
+      'Абсолютная сингулярность',
+    ],
+    checks: [
+      'Скрафчена Эволюционная материя',
+      'Автоматизирована компрессия ресурсов',
+      'Собрана Абсолютная сингулярность',
+    ],
+  },
+  {
+    id: 'transcendence', number: '09', branch: 'main', epochKey: 'transcendence',
+    title: 'Трансцендентство',
+    tags: ['FTB Evolution', 'апекс', 'финал'],
+    goal: 'Воплощённое трансцендентство — финальная точка прогрессии сборки.',
+    gate: { id: 'ftbevolution:realized_transcendence', name: 'Воплощённое трансцендентство' },
+    unlocks: [
+      'Эволюционный арканум',
+      'Воплощённое трансцендентство',
+      'Полностью закрытая линия прогрессии',
+    ],
+    checks: [
+      'Собран Эволюционный арканум',
+      'Получено Воплощённое трансцендентство',
+      'Вершина прогрессии достигнута',
+    ],
+  },
+  {
+    id: 'magic-path', number: 'M1', branch: 'magic', epochKey: 'magic_path',
+    title: 'Путь магии',
+    tags: ['Ars Nouveau', 'мана', 'заклинания'],
+    goal: 'Ars Nouveau: своя мана, конструктор заклинаний, фамильяры и автоматизация чарами. Полностью независимая ветка — техпрогресс для неё не нужен.',
+    gate: { id: 'ars_nouveau:enchanting_apparatus', name: 'Чародейский Аппарат' },
+    unlocks: [
+      'Чародейский аппарат и крафт глифов',
+      'Собственные заклинания из глифов',
+      'Старбанклы и магическая автоматизация',
+    ],
+    checks: [
+      'Построен Чародейский аппарат',
+      'Собрано первое рабочее заклинание',
+      'Налажен источник маны',
+    ],
+  },
+  {
+    id: 'arcane-path', number: 'M2', branch: 'magic', epochKey: 'arcane_path',
+    title: 'Тайные искусства',
+    tags: ['Forbidden Arcanus', 'Malum', 'Occultism'],
+    goal: 'Тёмная сторона магии: ритуалы Forbidden Arcanus, духи Malum, призыв демонов Occultism и заклинания Iron\'s Spellbooks.',
+    gate: { id: 'forbidden_arcanus:clibano_core', name: 'Ядро Клибано' },
+    unlocks: [
+      'Клибано и ритуалы Forbidden Arcanus',
+      'Алтарь духов Malum и спиритизм',
+      'Ритуалы призыва Occultism',
+    ],
+    checks: [
+      'Собрано Ядро Клибано',
+      'Проведён первый ритуал',
+      'Открыта работа с духами или демонами',
+    ],
+  },
+  {
+    id: 'hunter-path', number: 'E1', branch: 'exploration', epochKey: 'hunter_path',
+    title: 'Путь охотника',
+    tags: ['Cataclysm', 'боссы', 'снаряжение'],
+    goal: 'Боссы L_Ender\'s Cataclysm: Игнис, Левиафан, Сцилла, Харбингер. Дают собственное мощное снаряжение — это самостоятельная ветка, а не ступень к Draconic.',
+    gate: { id: 'cataclysm:ignitium_ingot', name: 'Игнитовый слиток' },
+    unlocks: [
+      'Игнитовая броня и оружие боссов',
+      'Уникальные артефакты подземелий',
+      'Осколки пустоты и редкие материалы',
+    ],
+    checks: [
       'Побеждён хотя бы один босс Cataclysm',
-      'Собрана нужная добыча',
+      'Получен Игнитовый слиток',
+      'Собран комплект боссового снаряжения',
     ],
   },
   {
-    id: 'draconic',
-    number: '08',
-    title: 'Draconic Evolution',
-    tags: ['Draconic Evolution', 'энергия', 'ядра'],
-    goal: 'Выйти на сверхэнергетику: дракониевые ядра, крафт слияния (fusion) и огромное хранение энергии.',
+    id: 'starlight-path', number: 'E2', branch: 'exploration', epochKey: 'starlight_path',
+    title: 'Вечный Звездосвет',
+    tags: ['Eternal Starlight', 'измерение', 'боссы'],
+    goal: 'Измерение Eternal Starlight: собственные биомы, боссы и линейка материалов — эфиросцент, глубинное серебро, нереалий, големосталь.',
+    gate: { id: 'eternal_starlight:starcore', name: 'Звёздное ядро' },
     unlocks: [
-      'Ядро виверны и пробуждённое ядро',
-      'Инжекторы слияния и энергоядро',
-      'Дракониевые инструменты и броня',
+      'Доступ в измерение Вечного Звездосвета',
+      'Эфиросцентное снаряжение и кристальное оружие',
+      'Редкие сплавы: нереалий, големосталь, термальный истокамень',
     ],
     checks: [
-      'Собрано ядро виверны',
-      'Работает крафт слияния (fusion)',
-      'Есть большое хранилище энергии',
+      'Открыт портал в Eternal Starlight',
+      'Побеждён босс измерения',
+      'Получено Звёздное ядро',
     ],
   },
   {
-    id: 'endgame',
-    number: '09',
-    title: 'Эволюция — эндгейм',
-    tags: ['FTB Evolution', 'эндгейм', 'вершина'],
-    goal: 'Собрать эксклюзивные компоненты Эволюции — вершину сборки, доступную в магазине и Battle Pass.',
+    id: 'draconic-path', number: 'T1', branch: 'tech', epochKey: 'draconic_path',
+    title: 'Дракониевая энергетика',
+    tags: ['Draconic Evolution', 'энергия', 'крафт слияния'],
+    goal: 'Draconic Evolution: дракониум, гигантское хранение энергии, реактор и крафт слияния. Никаких драконов тут нет — только Страж Хаоса. Мощная ветка, но НЕ финал: Броня Хаоса стоит ниже Квантовой брони MI.',
+    gate: { id: 'draconicevolution:chaotic_core', name: 'Ядро Хаоса' },
     unlocks: [
-      'Эволюционная материя и первородная эссенция',
-      'Абсолютная сингулярность, Эволюционный арканум',
-      'Воплощённое трансцендентство — апекс сборки',
+      'Дракониевые ядра и крафт слияния',
+      'Реактор и огромное хранение энергии',
+      'Комплект Хаоса — топ-3 броня пака (после Квантовой и MekaSuit)',
     ],
     checks: [
-      'Автоматизированы дорогие промежуточные компоненты',
-      'Получен первый эндгейм-предмет Эволюции',
-      'Достигнута вершина прогрессии',
+      'Собран крафт слияния (fusion crafting)',
+      'Запущено дракониевое хранилище энергии',
+      'Получено Ядро Хаоса',
     ],
   },
 ]
 
+// Иконки лежат как public/item-icons/<modid>/<item_id>.png, оба сегмента в
+// нижнем регистре (та же схема, что у ItemSlot на рынке). Часть предметов —
+// KubeJS-контент без текстуры в паке, поэтому битую картинку просто прячем.
+function iconUrl(itemId) {
+  if (!itemId || !itemId.includes(':')) return null
+  const [mod, item] = itemId.split(':')
+  return `/item-icons/${mod.toLowerCase()}/${item.toLowerCase()}.png`
+}
+
+function onIconError(event) {
+  event.target.style.display = 'none'
+}
+
+// Оглавление всей страницы. Держим списком, а не сканированием DOM: разделы
+// статичные, а так их порядок виден в одном месте и не разъезжается с версткой.
+// ── «Восхождение»: повествовательная шкала прогрессии ────────────────────
+// Пак буквально начинается в Hardcore True Darkness и заканчивается тем, что
+// игрок сам становится источником света. Этот блок — единственное «громкое»
+// место страницы: яркость и цвет колонки идут снизу вверх по материалам эпох,
+// а заполнение нити берётся из настоящего чеклиста игрока, а не декоративное.
+const ascentChapters = [
+  { stage: 'survival',      era: 'Тьма',            line: 'Ночь здесь абсолютная. Видно ровно настолько, насколько светишь сам.' },
+  { stage: 'mechanisms',    era: 'Механизмы',       line: 'Первая шестерня цепляет вторую — мир начинает работать без тебя.' },
+  { stage: 'steel',         era: 'Сталь',           line: 'Печь гудит всю ночь. Появляется материал, который держит нагрузку.' },
+  { stage: 'energy',        era: 'Энергия',         line: 'Провод под напряжением. Руда перестаёт быть редкой.' },
+  { stage: 'automation',    era: 'Автоматизация',   line: 'Сундуки исчезают: всё нажитое помещается в один терминал.' },
+  { stage: 'industry',      era: 'Индустрия',       line: 'Завод занимает чанк целиком и работает, пока ты спишь.' },
+  { stage: 'quantum',       era: 'Квант',           line: 'Урон становится вероятностью, а не событием.' },
+  { stage: 'singularity',   era: 'Сингулярность',   line: 'Ресурсы сжимаются в точку.' },
+  { stage: 'transcendence', era: 'Трансцендентство', line: 'Свет теперь исходит от тебя.' },
+]
+
+/** Доля выполненных пунктов чеклиста по главам восхождения. */
+const ascentProgress = computed(() => {
+  const mainStages = stages.filter((st) => ascentChapters.some((c) => c.stage === st.id))
+  const total = mainStages.reduce((n, st) => n + st.checks.length, 0)
+  if (!total) return 0
+  const done = mainStages.reduce(
+    (n, st) => n + st.checks.filter((_, i) => checked.value[checkKey(st, i)]).length, 0)
+  return done / total
+})
+
+/** Глава считается пройденной, когда закрыт весь её чеклист. */
+function chapterDone(stageId) {
+  const st = stages.find((x) => x.id === stageId)
+  if (!st) return false
+  return st.checks.every((_, i) => checked.value[checkKey(st, i)])
+}
+
+const pageSections = [
+  { id: 'sec-progression', label: 'Прогрессия',    icon: '🗺️' },
+  { id: 'sec-crosslinks',  label: 'Связи модов',   icon: '🔗' },
+  { id: 'sec-tips',        label: 'Советы',        icon: '💡' },
+  { id: 'sec-skills',      label: 'Навыки',        icon: '⭐' },
+  { id: 'sec-farms',       label: 'Фермы мобов',   icon: '🐄' },
+  { id: 'sec-commands',    label: 'Команды',       icon: '⌨️' },
+  { id: 'sec-mods-key',    label: 'Ключевые моды', icon: '🧩' },
+  { id: 'sec-economy',     label: 'Экономика',     icon: '💰' },
+  { id: 'sec-market',      label: 'Рынок',         icon: '🏪' },
+  { id: 'sec-quests',      label: 'Квесты',        icon: '📜' },
+  { id: 'sec-bp',          label: 'Battle Pass',   icon: '🎫' },
+  { id: 'sec-modsell',     label: 'ModSell',       icon: '🏷️' },
+  { id: 'sec-allmods',     label: 'Состав сборки', icon: '📦' },
+]
+
+function scrollToSection(id) {
+  document.getElementById(id)?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+}
+
+// Сворачивание крупных справочных блоков — страница длинная, а читают её
+// обычно ради одного раздела.
+const collapsed = ref({})
+function toggleSection(id) {
+  collapsed.value[id] = !collapsed.value[id]
+}
+
+const visibleStages = computed(() =>
+  activeBranch.value === 'all' ? stages : stages.filter((s) => s.branch === activeBranch.value),
+)
+
+const routeSteps = stages.filter((s) => s.branch === 'main').map((s) => s.title)
+
 const crossLinks = [
-  ['Farmer\'s Delight', 'еда, комфортный старт, рюкзаки', 'подготовку к Create'],
-  ['Create', 'механическая обработка и первые механизмы', 'ресурсы и рамки для IE и Mekanism'],
-  ['Immersive Engineering', 'сталь, провода, тяжёлая промышленность', 'Mekanism и машины средней игры'],
-  ['Mekanism', 'энергия, умножение руды, схемы', 'AE2, Industrial Foregoing, Draconic'],
-  ['Applied Energistics 2', 'хранение, процессоры, автокрафт', 'массовую автоматизацию'],
-  ['Industrial Foregoing', 'фермы, пластик, ресурсы', 'снаряжение под боссов'],
-  ['L_Ender\'s Cataclysm', 'боссы и уникальная добыча', 'Draconic Evolution'],
-  ['Draconic Evolution', 'сверхэнергия и ядра', 'эндгейм Эволюции'],
+  ['Farmer\'s Delight', 'еда, готовка и комфортный старт', 'выживание, ни к чему больше не обязывает'],
+  ['Create', 'кинетическая автоматизация', 'самодостаточную линию машин и логистики'],
+  ['Immersive Engineering', 'сталь, провода, тяжёлая промышленность', 'машины среднего уровня — но Mekanism варит свою сталь сам'],
+  ['Mekanism', 'энергия, умножение руды, MekaSuit', 'энергосеть и переработку для любой ветки'],
+  ['Applied Energistics 2', 'хранение, процессоры, автокрафт', 'массовую автоматизацию всего остального'],
+  ['Modern Industrialization', 'мультиблоки, химия, Квантовая броня', 'вершину технологической линии'],
+  ['Industrial Foregoing', 'фермы растений и мобов, пластик', 'поток ресурсов — снаряжения тут нет'],
+  ['L_Ender\'s Cataclysm', 'боссы и их снаряжение', 'самостоятельную боевую ветку'],
+  ['Draconic Evolution', 'сверхэнергия, ядра, Броня Хаоса', 'мощную ветку энергетики, но не финал'],
+  ['FTB Evolution', 'пирамида, сингулярности, трансцендентство', 'финал прогрессии'],
 ]
 
 const tips = [
-  { title: 'Не уходи в один мод', text: 'Держи несколько целей одновременно: еда, хранение, Create, сталь и энергия.' },
-  { title: 'Сталь — ключевой мост', text: 'Immersive Engineering нужен для Mekanism и почти всех машин средней игры — не откладывай доменную печь.' },
-  { title: 'Автоматизируй рано', text: 'Первые линии Create строй сразу, а к AE2 переходи, как только появятся процессоры.' },
+  { title: 'Одного пути нет', text: 'В паке несколько независимых веток. Общая линия — ориентир, а не обязательный порядок: магию и боссов можно качать параллельно.' },
+  { title: 'Свет — первый приоритет', text: 'Hardcore True Darkness делает ночь и пещеры по-настоящему чёрными. Факелы и фонари бери с собой всегда, на первый вход выдаётся стартовый набор.' },
+  { title: 'Сталь берётся не только у IE', text: 'Immersive Engineering удобен для потока стали, но Mekanism делает свою через Металлургический инфузер, а MI — в электродоменной печи.' },
+  { title: 'Автоматизируй рано', text: 'Первые линии Create строй сразу, а к AE2 переходи, как только появятся процессоры — дальше всё упирается в логистику.' },
   { title: 'Качай навыки', text: 'Вкладывай очки Puffish Skills под свой стиль. Ошибся веткой — купи Сигил сброса в магазине или получи в Battle Pass.' },
 ]
 
@@ -289,16 +460,135 @@ const nationOfficerCommands = [
   { cmd: 'Сайт → Студия → Участники', desc: 'Выдать звание (титул) участнику: офицер — рядовым, глава — всем. Отображается в чате.', web: true },
 ]
 
+// ── Живой каталог модов ──────────────────────────────────────────────────
+// Раздел ниже (modCategories) — редакторские подборки ключевых модов. А этот
+// блок грузит /mods/voidrp.json — тот самый файл, который генерится из
+// джарников пака (scripts/generate_mods_list.py). Благодаря этому список
+// НЕ протухает: добавили или убрали мод — перегенерировали файл, и гайд
+// сразу знает актуальный состав. Раньше здесь был захардкоженный текст, и в
+// нём месяцами жили Waystones, которых в паке давно нет.
+const allMods = ref([])
+const modsLoading = ref(true)
+const modSearch = ref('')
+const activeModCat = ref('all')
+
+// Явные соответствия важнее эвристики: id мода не всегда говорит о его роли.
+const MOD_CATEGORY_BY_ID = {
+  create: 'tech', immersiveengineering: 'tech', mekanism: 'tech', ae2: 'tech',
+  modern_industrialization: 'tech', extended_industrialization: 'tech',
+  oritech: 'tech', enderio: 'tech', powah: 'tech', refinedstorage: 'tech',
+  industrialforegoing: 'tech', draconicevolution: 'tech', bigreactors: 'tech',
+  advanced_ae: 'tech', megacells: 'tech', nautec: 'tech', actuallyadditions: 'tech',
+  pneumaticcraft: 'tech', pncr: 'tech', xnet: 'tech', laserio: 'tech',
+  ars_nouveau: 'magic', forbidden_arcanus: 'magic', malum: 'magic',
+  occultism: 'magic', irons_spellbooks: 'magic', hexerei: 'magic',
+  neovitae: 'magic', theurgy: 'magic', paganbless: 'magic', rootsclassic: 'magic',
+  mahoutsukai: 'magic', not_enough_glyphs: 'magic', ars_elemental: 'magic',
+  cataclysm: 'adventure', eternal_starlight: 'adventure', the_bumblezone: 'adventure',
+  alexsmobs: 'adventure', epicfight: 'adventure', simplyswords: 'adventure',
+  tacz: 'adventure', minecolonies: 'adventure', ferocious_creature: 'adventure',
+  relics: 'adventure', reliquary: 'adventure', gateways: 'adventure',
+  farmersdelight: 'comfort', sophisticatedbackpacks: 'comfort',
+  sophisticatedstorage: 'comfort', supplementaries: 'comfort', jade: 'comfort',
+  jei: 'comfort', emi: 'comfort', simpleteleporters: 'comfort', tempad: 'comfort',
+  ftbchunks: 'comfort', ftbessentials: 'comfort', journeymap: 'comfort',
+  handcrafted: 'building', chipped: 'building', rechiseled: 'building',
+  framedblocks: 'building', mcwfurnitures: 'building', mcwlights: 'building',
+  littletiles: 'building', buildinggadgets2: 'building', another_furniture: 'building',
+  biomeswevegone: 'world', terralith: 'world', tectonic: 'world', midgard: 'world',
+  ctov: 'world', dungeoncrawl: 'world', yungsapi: 'world', nullscape: 'world',
+  hardcore_true_darkness: 'world', tfc: 'world',
+}
+
+// Слова в id, по которым мод относится к категории, если нет явного правила.
+const MOD_CATEGORY_HINTS = [
+  ['tech', ['create_', 'createa', 'ae2', 'mekanism', 'industrial', 'energ', 'rftools', 'storage', 'pipe', 'cable', 'machine', 'reactor', 'quarry', 'logistic']],
+  ['magic', ['ars_', 'magic', 'spell', 'arcan', 'occult', 'ritual', 'mystical', 'sorcer']],
+  ['adventure', ['mob', 'boss', 'dungeon', 'combat', 'weapon', 'sword', 'gun', 'creature', 'monster', 'raid']],
+  ['building', ['chisel', 'furnitur', 'decor', 'block', 'build', 'paint', 'lamp', 'light']],
+  ['world', ['biome', 'terrain', 'world', 'structure', 'cave', 'dimension', 'nether', 'end_']],
+  ['comfort', ['inventory', 'tooltip', 'sort', 'search', 'zoom', 'menu', 'hud', 'map', 'backpack', 'tab']],
+]
+
+const MOD_CATEGORIES = [
+  { id: 'all',       label: 'Все моды',    icon: '📦' },
+  { id: 'tech',      label: 'Технологии',  icon: '🏭' },
+  { id: 'magic',     label: 'Магия',       icon: '✨' },
+  { id: 'adventure', label: 'Приключения', icon: '🗡️' },
+  { id: 'world',     label: 'Мир',         icon: '🌍' },
+  { id: 'building',  label: 'Стройка',     icon: '🧱' },
+  { id: 'comfort',   label: 'Удобства',    icon: '🧰' },
+  { id: 'lib',       label: 'Библиотеки',  icon: '⚙️' },
+]
+
+function categorizeMod(mod) {
+  const id = (mod.id || '').toLowerCase()
+  if (MOD_CATEGORY_BY_ID[id]) return MOD_CATEGORY_BY_ID[id]
+  const text = `${id} ${(mod.name || '').toLowerCase()} ${(mod.description || '').toLowerCase()}`
+  if (/\b(lib|api|core|util)\b/.test(text) || /(lib|api)$/.test(id)) return 'lib'
+  for (const [cat, words] of MOD_CATEGORY_HINTS) {
+    if (words.some((w) => id.includes(w))) return cat
+  }
+  return 'comfort'
+}
+
+const categorizedMods = computed(() =>
+  allMods.value.map((m) => ({ ...m, cat: categorizeMod(m) })),
+)
+
+const modCounts = computed(() => {
+  const counts = { all: categorizedMods.value.length }
+  for (const m of categorizedMods.value) counts[m.cat] = (counts[m.cat] || 0) + 1
+  return counts
+})
+
+const filteredMods = computed(() => {
+  const q = modSearch.value.trim().toLowerCase()
+  return categorizedMods.value
+    .filter((m) => activeModCat.value === 'all' || m.cat === activeModCat.value)
+    .filter((m) => !q
+      || (m.name || '').toLowerCase().includes(q)
+      || (m.id || '').toLowerCase().includes(q)
+      || (m.description_ru || '').toLowerCase().includes(q))
+    .sort((a, b) => (a.name || a.id).localeCompare(b.name || b.id, 'ru'))
+})
+
+onMounted(async () => {
+  try {
+    const res = await fetch('/mods/voidrp.json', { cache: 'no-cache' })
+    allMods.value = await res.json()
+  } catch {
+    allMods.value = []
+  } finally {
+    modsLoading.value = false
+  }
+})
+
 const modCategories = [
   {
     name: 'Технологии',
     color: 'blue',
     mods: [
-      { name: 'Create', key: 'Шестерни, пресс, миксер, deployer, конвейер, каретки', note: 'Старт техно-прогрессии' },
-      { name: 'Immersive Engineering', key: 'Коксовая печь, доменная печь, сталь, металлический пресс', note: 'Единственный источник стали' },
-      { name: 'Mekanism', key: '2–5× обогащение руды, цифровой шахтёр, телепортер, генераторы', note: 'Главная энергосеть' },
+      { name: 'Create', key: 'Шестерни, пресс, миксер, deployer, конвейер, каретки', note: 'Самодостаточная кинетическая ветка' },
+      { name: 'Immersive Engineering', key: 'Коксовая печь, доменная печь, сталь, металлический пресс', note: 'Удобный поток стали' },
+      { name: 'Mekanism', key: '2–5× обогащение руды, цифровой шахтёр, телепортер, MekaSuit', note: 'Энергосеть и своя сталь' },
       { name: 'Applied Energistics 2', key: 'ME-сеть, ячейки хранения, процессоры, молекулярный сборщик', note: 'Автокрафт и хранение' },
-      { name: 'Industrial Foregoing', key: 'Фермы растений и мобов, лазерный бур, пластик, жидкостные машины', note: 'Автоматизация ресурсов' },
+      { name: 'Modern Industrialization', key: 'Мультиблоки, химия, нефть, Квантовая броня', note: 'Вершина технологий пака' },
+      { name: 'Extended Industrialization', key: 'Нано- и ньяно-квантовые комплекты поверх MI', note: 'Надстройка над MI' },
+      { name: 'Oritech / EnderIO / Powah', key: 'Альтернативные машины, проводники и генерация энергии', note: 'Параллельные тех-ветки' },
+      { name: 'Refined Storage 2', key: 'Цифровое хранилище и автокрафт — альтернатива AE2', note: 'На выбор с AE2' },
+      { name: 'Industrial Foregoing', key: 'Фермы растений и мобов, лазерный бур, пластик, жидкостные машины', note: 'Поток ресурсов, снаряжения нет' },
+    ],
+  },
+  {
+    name: 'Магия',
+    color: 'purple',
+    mods: [
+      { name: 'Ars Nouveau', key: 'Конструктор заклинаний из глифов, мана, фамильяры', note: 'Полностью независимая ветка' },
+      { name: 'Forbidden Arcanus', key: 'Клибано, ритуалы, тёмные артефакты', note: 'Тайные искусства' },
+      { name: 'Malum', key: 'Духи, алтарь, спиритизм', note: 'Работа с душами' },
+      { name: 'Occultism', key: 'Призыв демонов, ритуалы, измерение хранилища', note: 'Демонология' },
+      { name: "Iron's Spellbooks", key: 'Школы заклинаний, посохи, книги заклинаний', note: 'Боевая магия' },
     ],
   },
   {
@@ -314,9 +604,10 @@ const modCategories = [
     name: 'Боссы и эндгейм',
     color: 'red',
     mods: [
-      { name: "L_Ender's Cataclysm", key: 'Игнис, Левиафан, Сцилла, Харбингер — боссы с уникальным дропом', note: 'Ключ к позднему снаряжению' },
-      { name: 'Draconic Evolution', key: 'Дракониевые ядра, крафт слияния, реактор, огромное хранение энергии', note: 'Сверхэнергетика' },
-      { name: 'Эволюция (FTB Evolution)', key: 'Эксклюзивные компоненты: сингулярность, арканум, трансцендентство', note: 'Вершина сборки' },
+      { name: "L_Ender's Cataclysm", key: 'Игнис, Левиафан, Сцилла, Харбингер — боссы со своим снаряжением', note: 'Самостоятельная боевая ветка' },
+      { name: 'Eternal Starlight', key: 'Своё измерение, боссы, эфиросцент и редкие сплавы', note: 'Ветка исследования' },
+      { name: 'Draconic Evolution', key: 'Дракониевые ядра, крафт слияния, реактор, Броня Хаоса', note: 'Мощная энергетика, но не финал' },
+      { name: 'Эволюция (FTB Evolution)', key: 'Пирамида: материя, арканум, Воплощённое трансцендентство', note: 'Финал прогрессии' },
     ],
   },
   {
@@ -326,7 +617,9 @@ const modCategories = [
       { name: 'Sophisticated Backpacks', key: 'Рюкзаки с апгрейдами: авто-подбор, сортировка, компактное хранение', note: 'Нужен с первых минут' },
       { name: 'Farmer\'s Delight', key: 'Готовка, блюда, урожай и комфортная еда на старте', note: 'Стабильная еда' },
       { name: 'Supplementaries', key: 'Верёвки, флаги, фонари, доски объявлений, декор', note: 'Декор и утилити' },
-      { name: 'Waystones', key: 'Камни путешественника — телепортация между точками, бесплатная на спавн', note: 'Основной транспорт' },
+      { name: 'Simple Teleporters', key: 'Крафтящийся блок-телепортер для быстрых перемещений', note: 'Основной транспорт' },
+      { name: 'Tempad', key: 'Портал в любую сохранённую точку прямо из руки', note: 'Личные порталы' },
+      { name: 'FTB Essentials', key: 'Служебные команды: дом, варпы, back', note: 'Команды перемещения' },
     ],
   },
 ]
@@ -449,8 +742,8 @@ watch(checked, (value) => {
           <p class="gp-eyebrow">Гайд · VoidRP Expert</p>
           <h1 class="gp-h1">Progression Rebuild</h1>
           <p class="gp-desc">
-            Полное прохождение сборки FTB Evolution для Minecraft {{ siteConfig.serverVersion }}:
-            от базового выживания до Draconic Evolution и эндгейм-компонентов Эволюции.
+            Полное прохождение сборки для Minecraft {{ siteConfig.serverVersion }}: от первой ночи
+            в кромешной тьме до Квантовой брони и Воплощённого трансцендентства.
           </p>
           <div class="gp-header__actions">
             <RouterLink to="/download-launcher" class="btn btn-primary btn-sm">Скачать лаунчер</RouterLink>
@@ -484,14 +777,55 @@ watch(checked, (value) => {
         </div>
       </div>
 
+      <!-- ─── ASCENT: narrative spine ─── -->
+      <div class="surface-card gp-card asc">
+        <h2 class="gp-section-title">Путь сборки за девять глав</h2>
+        <p class="gp-tier-hint">
+          Сборка начинается с того, что ты ничего не видишь, и заканчивается тем, что светишь сам.
+          Линия слева заполняется по мере того, как ты отмечаешь пункты в чеклистах ниже.
+        </p>
+
+        <ol class="asc__list" :style="{ '--asc-progress': ascentProgress }">
+          <li
+            v-for="(ch, i) in ascentChapters"
+            :key="ch.stage"
+            class="asc__chapter"
+            :class="{ 'is-done': chapterDone(ch.stage) }"
+          >
+            <button type="button" class="asc__hit" @click="scrollToSection('sec-progression')">
+              <span class="asc__node" aria-hidden="true"></span>
+              <span class="asc__num">{{ String(i + 1).padStart(2, '0') }}</span>
+              <span class="asc__body">
+                <span class="asc__era">{{ ch.era }}</span>
+                <span class="asc__line">{{ ch.line }}</span>
+              </span>
+            </button>
+          </li>
+        </ol>
+      </div>
+
       <!-- ─── MAIN: sidebar + stages ─── -->
+      <div id="sec-progression"></div>
       <div class="gp-layout">
 
         <!-- sticky nav -->
         <aside class="gp-nav surface-card">
-          <p class="gp-nav__label">Маршрут</p>
+          <p class="gp-nav__label">Разделы гайда</p>
+          <div class="gp-toc">
+            <button
+              v-for="sec in pageSections"
+              :key="sec.id"
+              type="button"
+              class="gp-toc__item"
+              @click="scrollToSection(sec.id)"
+            >
+              <span aria-hidden="true">{{ sec.icon }}</span>{{ sec.label }}
+            </button>
+          </div>
+
+          <p class="gp-nav__label" style="margin-top:.75rem">Маршрут</p>
           <nav class="gp-nav__list">
-            <a v-for="stage in stages" :key="stage.id" :href="`#${stage.id}`" class="gp-nav-link">
+            <a v-for="stage in visibleStages" :key="stage.id" :href="`#${stage.id}`" class="gp-nav-link">
               <span class="gp-nav-link__num">{{ stage.number }}</span>
               <span class="gp-nav-link__title">{{ stage.title }}</span>
             </a>
@@ -509,15 +843,48 @@ watch(checked, (value) => {
 
         <!-- stages -->
         <div class="gp-stages">
-          <article v-for="stage in stages" :id="stage.id" :key="stage.id" class="surface-card gp-stage">
+          <div class="gp-branchbar">
+            <button
+              v-for="b in branches"
+              :key="b.id"
+              type="button"
+              class="gp-branch"
+              :class="{ active: activeBranch === b.id }"
+              @click="activeBranch = b.id"
+            >
+              <span aria-hidden="true">{{ b.icon }}</span>{{ b.label }}
+              <em>{{ b.id === 'all' ? stages.length : stages.filter((s) => s.branch === b.id).length }}</em>
+            </button>
+          </div>
+
+          <article v-for="stage in visibleStages" :id="stage.id" :key="stage.id" class="surface-card gp-stage">
             <div class="gp-stage__header">
               <div>
-                <div class="gp-stage__num">Этап {{ stage.number }}</div>
+                <div class="gp-stage__num">
+                  Этап {{ stage.number }}
+                  <span v-if="stage.branch !== 'main'" class="gp-branch-chip">ветка</span>
+                </div>
                 <h2 class="gp-stage__title">{{ stage.title }}</h2>
                 <p class="gp-stage__goal">{{ stage.goal }}</p>
               </div>
               <div class="gp-tags">
                 <span v-for="tag in stage.tags" :key="tag" class="gp-tag">{{ tag }}</span>
+              </div>
+            </div>
+
+            <div v-if="stage.gate" class="gp-gate">
+              <img
+                v-if="iconUrl(stage.gate.id)"
+                :src="iconUrl(stage.gate.id)"
+                :alt="stage.gate.name"
+                class="gp-gate__icon"
+                loading="lazy"
+                @error="onIconError"
+              />
+              <div class="gp-gate__text">
+                <span class="gp-gate__label">Эпоха засчитывается за</span>
+                <strong>{{ stage.gate.name }}</strong>
+                <code>{{ stage.gate.id }}</code>
               </div>
             </div>
 
@@ -546,7 +913,7 @@ watch(checked, (value) => {
       </div>
 
       <!-- ─── CROSS-LINKS TABLE ─── -->
-      <div class="surface-card gp-card">
+      <div :id="'sec-crosslinks'" class="surface-card gp-card">
         <h2 class="gp-section-title">Связи модов — почему нельзя пропускать ветки</h2>
         <div class="gp-table-wrap">
           <table class="gp-table">
@@ -569,7 +936,7 @@ watch(checked, (value) => {
       </div>
 
       <!-- ─── TIPS ─── -->
-      <div class="surface-card gp-card">
+      <div :id="'sec-tips'" class="surface-card gp-card">
         <h2 class="gp-section-title">Как проходить без лишней боли</h2>
         <div class="gp-tips-grid">
           <div v-for="tip in tips" :key="tip.title" class="gp-tip">
@@ -580,7 +947,7 @@ watch(checked, (value) => {
       </div>
 
       <!-- ─── TIER GATES ─── -->
-      <div class="surface-card gp-card">
+      <div :id="'sec-skills'" class="surface-card gp-card">
         <h2 class="gp-section-title">Навыки персонажа (Puffish Skills)</h2>
         <p class="gp-tier-hint">За игру ты получаешь очки навыков и вкладываешь их в 6 веток. Открой дерево навыков клавишей (по умолчанию <code class="gp-cmd" style="display:inline">K</code>). Передумал — купи Сигил сброса ветки в магазине или получи его в Battle Pass.</p>
         <div class="gp-tier-grid">
@@ -596,7 +963,7 @@ watch(checked, (value) => {
       </div>
 
       <!-- ─── MOB FARM RULES ─── -->
-      <div class="surface-card gp-card">
+      <div :id="'sec-farms'" class="surface-card gp-card">
         <h2 class="gp-section-title">Правила для ферм мобов</h2>
         <p class="gp-farm-intro">
           Фермы мобов создают нагрузку на сервер. Несоблюдение правил — причина для административного вмешательства без предупреждения.
@@ -618,7 +985,7 @@ watch(checked, (value) => {
       </div>
 
       <!-- ─── SERVER COMMANDS ─── -->
-      <div class="surface-card gp-card">
+      <div :id="'sec-commands'" class="surface-card gp-card">
         <h2 class="gp-section-title">Команды сервера</h2>
 
         <!-- Limits row -->
@@ -694,7 +1061,7 @@ watch(checked, (value) => {
       </div>
 
       <!-- ─── MODS REFERENCE ─── -->
-      <div class="surface-card gp-card">
+      <div :id="'sec-mods-key'" class="surface-card gp-card">
         <h2 class="gp-section-title">Справочник по модам</h2>
         <div class="gp-mods-grid">
           <div v-for="cat in modCategories" :key="cat.name" class="gp-mod-cat">
@@ -713,7 +1080,7 @@ watch(checked, (value) => {
       </div>
 
       <!-- ─── ECONOMY & TAXES ─── -->
-      <div class="surface-card gp-card">
+      <div :id="'sec-economy'" class="surface-card gp-card">
         <h2 class="gp-section-title">Экономика и налоги</h2>
         <p class="gp-tier-hint">Прогрессивный налог на богатство списывается раз в неделю — только с суммы выше порога. Рыночная комиссия 2% с каждой продажи автоматически поступает в казну государства продавца.</p>
 
@@ -742,7 +1109,7 @@ watch(checked, (value) => {
       </div>
 
       <!-- ─── PLAYER MARKET ─── -->
-      <div class="surface-card gp-card">
+      <div :id="'sec-market'" class="surface-card gp-card">
         <h2 class="gp-section-title">Игровой рынок (/shop)</h2>
         <p class="gp-tier-hint">Ордерная биржа: игроки выставляют ордера на продажу и покупку — сделки исполняются автоматически при совпадении цен. После исполнения ордера забери товар через <code class="gp-cmd" style="display:inline">/pm pickup</code>.</p>
         <div class="gp-cmds-grid">
@@ -785,7 +1152,7 @@ watch(checked, (value) => {
       </div>
 
       <!-- ─── DAILY QUESTS ─── -->
-      <div class="surface-card gp-card">
+      <div :id="'sec-quests'" class="surface-card gp-card">
         <h2 class="gp-section-title">Ежедневные квесты</h2>
         <p class="gp-tier-hint">Три независимые системы квестов с разными сроками и наградами. При получении награды автоматически начисляется XP Battle Pass.</p>
 
@@ -818,15 +1185,25 @@ watch(checked, (value) => {
       </div>
 
       <!-- ─── BATTLE PASS ─── -->
-      <div class="surface-card gp-card">
+      <div :id="'sec-bp'" class="surface-card gp-card">
         <h2 class="gp-section-title">Battle Pass (/bp)</h2>
-        <p class="gp-tier-hint">100 уровней, по 10 000 XP на уровень — прогресс рассчитан на весь сезон. Каждый уровень даёт награду: монеты, предметы или опыт. Доступны бесплатная и Premium дорожки со своими квестами каждый день. XP за мобов, сделки и достижения ограничен <strong>8 000 в день</strong>, поэтому уровни зарабатываются постепенно, а не за один вечер.</p>
+        <p class="gp-tier-hint"><strong>500 уровней</strong>, по <strong>2 500 XP</strong> на уровень — шаг подобран так, чтобы упорный игрок закрывал пасс к концу сезона. Каждый уровень даёт награду на обеих дорожках: предмет, монеты, Void Coin или опыт. XP за мобов, сделки и достижения ограничен <strong>8 000 в день</strong>, а XP за квесты этот лимит НЕ расходует.</p>
 
         <div class="gp-limits-row" style="margin-bottom:.85rem">
           <div class="gp-limit-chip">
             <span class="gp-limit-label">Уровни</span>
-            <span class="gp-limit-value">1 – 100</span>
-            <span class="gp-limit-hint">10 000 XP на уровень</span>
+            <span class="gp-limit-value">1 – 500</span>
+            <span class="gp-limit-hint">2 500 XP на уровень</span>
+          </div>
+          <div class="gp-limit-chip">
+            <span class="gp-limit-label">Выходные</span>
+            <span class="gp-limit-value">×2 XP</span>
+            <span class="gp-limit-hint">суббота и воскресенье</span>
+          </div>
+          <div class="gp-limit-chip">
+            <span class="gp-limit-label">Финал сезона</span>
+            <span class="gp-limit-value">×2 XP</span>
+            <span class="gp-limit-hint">последняя неделя, множители складываются</span>
           </div>
           <div class="gp-limit-chip">
             <span class="gp-limit-label">Бесплатные квесты</span>
@@ -855,7 +1232,7 @@ watch(checked, (value) => {
       </div>
 
       <!-- ─── MODSELL ─── -->
-      <div class="surface-card gp-card">
+      <div :id="'sec-modsell'" class="surface-card gp-card">
         <h2 class="gp-section-title">ModSell — продажа модовых предметов</h2>
         <p class="gp-tier-hint">Продажа предметов из модов напрямую за монеты сервера. Цены динамические — рассчитываются автоматически по рыночной модели. Продажа через ModSell засчитывается в квесты типа «ModSell» в Daily Quests.</p>
         <div class="gp-cmds-grid">
@@ -875,11 +1252,63 @@ watch(checked, (value) => {
         </div>
       </div>
 
+      <!-- ─── LIVE MOD CATALOGUE ─── -->
+      <div :id="'sec-allmods'" class="surface-card gp-card">
+        <h2 class="gp-section-title">
+          Весь состав сборки
+          <span v-if="!modsLoading" class="gp-mods-total">{{ modCounts.all }} модов</span>
+        </h2>
+        <p class="gp-tier-hint">
+          Список читается прямо из состава пака, поэтому не устаревает: добавили или
+          убрали мод — здесь сразу актуально. Ищи по названию, id или описанию.
+        </p>
+
+        <div class="gp-branchbar">
+          <button
+            v-for="c in MOD_CATEGORIES"
+            :key="c.id"
+            type="button"
+            class="gp-branch"
+            :class="{ active: activeModCat === c.id }"
+            @click="activeModCat = c.id"
+          >
+            <span aria-hidden="true">{{ c.icon }}</span>{{ c.label }}
+            <em>{{ modCounts[c.id] || 0 }}</em>
+          </button>
+        </div>
+
+        <input
+          v-model="modSearch"
+          type="search"
+          class="gp-mod-search"
+          placeholder="Поиск по модам — например «create», «магия», «хранение»"
+        />
+
+        <p v-if="modsLoading" class="gp-tier-hint">Загружаем состав сборки…</p>
+        <p v-else-if="!filteredMods.length" class="gp-tier-hint">Ничего не нашлось.</p>
+
+        <div v-else class="gp-mod-list">
+          <div v-for="mod in filteredMods" :key="mod.id" class="gp-mod-row">
+            <div class="gp-mod-row__left">
+              <strong class="gp-mod-name">{{ mod.name || mod.id }}</strong>
+              <span class="gp-mod-key">{{ mod.description_ru || mod.description || '—' }}</span>
+            </div>
+            <span class="gp-mod-note">{{ mod.id }}</span>
+          </div>
+        </div>
+      </div>
+
     </div>
   </section>
 </template>
 
 <style scoped>
+/* Пиксельный шрифт — родной язык темы. Применяется ТОЛЬКО к дисплейным
+   элементам (заголовки разделов, номера, крупные значения); всё читаемое
+   остаётся на Inter. @import обязан быть первым, иначе Vite его выбрасывает. */
+@import url('https://fonts.googleapis.com/css2?family=Silkscreen:wght@400;700&display=swap');
+
+
 /* ─── Header ─── */
 .gp-header {
   display: grid;
@@ -1626,4 +2055,354 @@ watch(checked, (value) => {
   margin: 0;
   line-height: 1.5;
 }
+
+/* ── Фильтр веток прогрессии ── */
+.gp-branchbar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: .5rem;
+  margin-bottom: 1rem;
+}
+
+.gp-branch {
+  display: inline-flex;
+  align-items: center;
+  gap: .4rem;
+  padding: .45rem .85rem;
+  border-radius: 999px;
+  border: 1px solid rgba(255,255,255,.12);
+  background: rgba(255,255,255,.04);
+  color: rgba(255,255,255,.7);
+  font-size: .8rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background .15s, border-color .15s, color .15s;
+}
+
+.gp-branch:hover { background: rgba(255,255,255,.08); color: rgba(255,255,255,.9); }
+
+.gp-branch.active {
+  background: rgba(56,189,248,.16);
+  border-color: rgba(56,189,248,.45);
+  color: #e0f2fe;
+}
+
+.gp-branch em {
+  font-style: normal;
+  font-size: .7rem;
+  opacity: .65;
+}
+
+.gp-branch-chip {
+  margin-left: .45rem;
+  padding: .05rem .4rem;
+  border-radius: 999px;
+  background: rgba(168,85,247,.18);
+  border: 1px solid rgba(168,85,247,.35);
+  color: #e9d5ff;
+  font-size: .62rem;
+  letter-spacing: .04em;
+  text-transform: uppercase;
+}
+
+/* ── Предмет-гейт эпохи ── */
+.gp-gate {
+  display: flex;
+  align-items: center;
+  gap: .75rem;
+  margin: 0 0 .9rem;
+  padding: .6rem .8rem;
+  border-radius: 14px;
+  border: 1px solid rgba(255,255,255,.1);
+  background: rgba(255,255,255,.035);
+}
+
+.gp-gate__icon {
+  width: 34px;
+  height: 34px;
+  flex-shrink: 0;
+  image-rendering: pixelated;
+}
+
+.gp-gate__text {
+  display: flex;
+  flex-direction: column;
+  gap: .1rem;
+  min-width: 0;
+}
+
+.gp-gate__label {
+  font-size: .68rem;
+  text-transform: uppercase;
+  letter-spacing: .06em;
+  color: rgba(255,255,255,.45);
+}
+
+.gp-gate__text strong {
+  font-size: .9rem;
+  color: rgba(255,255,255,.92);
+}
+
+.gp-gate__text code {
+  font-size: .7rem;
+  color: rgba(56,189,248,.75);
+  word-break: break-all;
+}
+
+.gp-mods-total {
+  margin-left: .6rem;
+  font-size: .75rem;
+  font-weight: 600;
+  color: rgba(255,255,255,.45);
+}
+
+.gp-mod-search {
+  width: 100%;
+  margin: 0 0 .9rem;
+  padding: .55rem .8rem;
+  border-radius: 12px;
+  border: 1px solid rgba(255,255,255,.12);
+  background: rgba(255,255,255,.04);
+  color: rgba(255,255,255,.9);
+  font-size: .85rem;
+}
+
+.gp-mod-search:focus {
+  outline: none;
+  border-color: rgba(56,189,248,.5);
+  background: rgba(255,255,255,.06);
+}
+
+/* ── Оглавление страницы ── */
+.gp-toc {
+  display: flex;
+  flex-direction: column;
+  gap: .15rem;
+  margin-bottom: .35rem;
+}
+
+.gp-toc__item {
+  display: flex;
+  align-items: center;
+  gap: .45rem;
+  padding: .32rem .5rem;
+  border: 0;
+  border-radius: 8px;
+  background: transparent;
+  color: rgba(255,255,255,.6);
+  font-size: .78rem;
+  text-align: left;
+  cursor: pointer;
+  transition: background .15s, color .15s;
+}
+
+.gp-toc__item:hover {
+  background: rgba(255,255,255,.06);
+  color: rgba(255,255,255,.92);
+}
+
+/* ══ Пиксельная дисплейная типографика ═══════════════════════════════════
+   Одна гарнитура на все акцентные цифры и заголовки страницы — так шрифт
+   читается как система, а не как случайная вставка в одном блоке. */
+.gp-h1,
+.gp-section-title,
+.gp-stage__num,
+.gp-progress__num,
+.gp-limit-value,
+.asc__num {
+  font-family: 'Silkscreen', 'JetBrains Mono', ui-monospace, monospace;
+  letter-spacing: .02em;
+}
+
+.gp-h1 { font-size: clamp(1.5rem, 4vw, 2.1rem); }
+.gp-section-title { font-size: clamp(.98rem, 2.4vw, 1.15rem); letter-spacing: .03em; }
+.gp-progress__num { font-variant-numeric: tabular-nums; }
+.gp-limit-value { font-variant-numeric: tabular-nums; }
+
+/* ══ Путь сборки ══════════════════════════════════════════════════════════
+   Единственный акцент страницы. Палитра — та же фиолетово-голубая, что у
+   всего сайта (--site-accent → sky), карточка обычная surface-card, так что
+   блок не выпадает из вёрстки. Длина яркой части линии = реальному прогрессу
+   игрока по чеклистам, поэтому это данные, а не украшение. */
+.asc__list {
+  position: relative;
+  margin: .25rem 0 0;
+  padding: 0 0 0 1.65rem;
+  list-style: none;
+}
+
+.asc__list::before,
+.asc__list::after {
+  content: '';
+  position: absolute;
+  left: .3rem;
+  top: .7rem;
+  width: 2px;
+  border-radius: 2px;
+}
+
+.asc__list::before {
+  bottom: .7rem;
+  background: rgba(148, 163, 184, .16);
+}
+
+.asc__list::after {
+  height: calc((100% - 1.4rem) * clamp(0.015, var(--asc-progress, 0), 1));
+  background: linear-gradient(180deg, #8b5cf6 0%, #a78bfa 45%, #7dd3fc 100%);
+  box-shadow: 0 0 14px rgba(139, 92, 246, .45);
+  transition: height .8s cubic-bezier(.2,.7,.2,1);
+}
+
+.asc__chapter { position: relative; }
+
+.asc__hit {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  align-items: baseline;
+  gap: 0 .85rem;
+  width: 100%;
+  padding: .42rem 0;
+  border: 0;
+  background: none;
+  text-align: left;
+  cursor: pointer;
+  border-radius: 10px;
+  transition: background .15s;
+}
+
+.asc__hit:hover { background: rgba(255,255,255,.035); }
+
+.asc__node {
+  position: absolute;
+  left: -1.65rem;
+  top: .95rem;
+  width: 7px;
+  height: 7px;
+  transform: translateX(-2.5px);
+  border-radius: 50%;
+  background: #131b2e;
+  border: 2px solid rgba(148, 163, 184, .3);
+}
+
+.is-done .asc__node {
+  background: #7dd3fc;
+  border-color: #7dd3fc;
+  box-shadow: 0 0 10px rgba(125, 211, 252, .75);
+}
+
+.asc__num {
+  font-size: .9rem;
+  font-variant-numeric: tabular-nums;
+  color: rgba(167, 139, 250, .85);
+}
+
+.is-done .asc__num { color: #7dd3fc; }
+
+.asc__body { display: block; min-width: 0; }
+
+.asc__era {
+  display: block;
+  font-size: .95rem;
+  font-weight: 700;
+  color: rgba(255,255,255,.92);
+}
+
+.asc__line {
+  display: block;
+  margin-top: .1rem;
+  max-width: 66ch;
+  font-size: .84rem;
+  line-height: 1.6;
+  color: rgba(255,255,255,.55);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .asc__list::after { transition: none; }
+}
+
+/* ══ Доводка страницы ═════════════════════════════════════════════════════
+   Акцент на странице один — линия пути выше. Здесь только дисциплина:
+   воздух, единый маркер разделов и слот предмета в родной для темы форме. */
+
+/* Разделы читаются как главы: тонкая фиолетовая засечка вместо капслока. */
+.gp-card { padding: clamp(1rem, 2.5vw, 1.5rem); }
+
+.gp-section-title {
+  display: flex;
+  align-items: center;
+  gap: .6rem;
+  color: rgba(226, 232, 240, .95);
+  margin: 0 0 1rem;
+}
+
+.gp-section-title::before {
+  content: '';
+  flex: none;
+  width: 3px;
+  height: 1.05em;
+  border-radius: 2px;
+  background: linear-gradient(180deg, #8b5cf6, #7dd3fc);
+}
+
+/* Номер этапа — пиксельная цифра, а не разрядка капслоком. */
+.gp-stage__num {
+  display: flex;
+  align-items: center;
+  gap: .5rem;
+  font-size: .82rem;
+  font-weight: 700;
+  letter-spacing: .04em;
+  text-transform: none;
+  color: rgba(167, 139, 250, .8);
+  margin-bottom: .3rem;
+}
+
+.gp-stage { padding: clamp(1rem, 2.5vw, 1.35rem); }
+.gp-stage__title { letter-spacing: -.01em; }
+
+/* Предмет-гейт: квадратный слот — форма, родная для инвентаря игры. */
+.gp-gate {
+  align-items: center;
+  gap: .85rem;
+  padding: .7rem .85rem;
+  border-radius: 16px;
+  border-color: rgba(139, 92, 246, .2);
+  background:
+    linear-gradient(180deg, rgba(139, 92, 246, .07), rgba(139, 92, 246, .02));
+}
+
+.gp-gate__icon {
+  width: 44px;
+  height: 44px;
+  padding: 5px;
+  border-radius: 12px;
+  border: 1px solid rgba(148, 163, 184, .18);
+  background: rgba(8, 12, 22, .75);
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.05);
+}
+
+.gp-gate__text code {
+  align-self: flex-start;
+  padding: .06rem .34rem;
+  border-radius: 5px;
+  background: rgba(125, 211, 252, .09);
+}
+
+/* Чипы веток и оглавление — чуть плотнее и с фокусом для клавиатуры. */
+.gp-branch:focus-visible,
+.gp-toc__item:focus-visible,
+.asc__hit:focus-visible,
+.gp-mod-search:focus-visible {
+  outline: 2px solid rgba(139, 92, 246, .65);
+  outline-offset: 2px;
+}
+
+/* Строки каталога модов: спокойная зебра вместо рамок у каждой. */
+.gp-mod-row {
+  border-radius: 10px;
+  padding-inline: .55rem;
+}
+
+.gp-mod-row:nth-child(odd) { background: rgba(255,255,255,.022); }
+.gp-mod-row:hover { background: rgba(139, 92, 246, .07); }
 </style>

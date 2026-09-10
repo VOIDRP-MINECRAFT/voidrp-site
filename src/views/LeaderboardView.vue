@@ -20,14 +20,24 @@ const loading = ref(true)
 const leaderboard = ref(null)
 const activeTier = ref(null)
 
+// Ключи должны совпадать с PROGRESSION_TIERS на бэкенде и секцией epochs.list
+// в config.yml плагина GameSync — иначе эпоха отрисуется без значка.
 const TIER_ICONS = {
-  create_age: '⚙️',
-  mekanism_age: '🔩',
-  ae2_age: '💾',
-  reactor_age: '⚛️',
-  draconic_age: '🐉',
+  // Общая линия
+  mechanisms_age: '⚙️',
+  steel_age: '🔩',
+  energy_age: '⚡',
+  automation_age: '💾',
+  industry_age: '🏭',
   quantum_age: '🌌',
-  endgame: '♾️',
+  singularity_age: '🕳️',
+  transcendence: '♾️',
+  // Ветки
+  magic_path: '✨',
+  arcane_path: '🔮',
+  hunter_path: '🗡️',
+  starlight_path: '🌠',
+  draconic_path: '⚛️',
 }
 
 function fmtDate(iso) {
