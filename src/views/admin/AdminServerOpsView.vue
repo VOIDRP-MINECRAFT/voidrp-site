@@ -9,6 +9,8 @@ import {
   getServerLogs,
   getServerHangs,
   getServerChat,
+  getWatchdogState,
+  setWatchdogState,
 } from '../../services/adminServerOpsApi.js'
 import { authState, hasPermission } from '../../stores/authStore'
 import { activeServer } from '../../stores/serverStore'
@@ -196,6 +198,12 @@ let tickTimer = null
 let hangsTimer = null
 
 // ── Formatters ──────────────────────────────────────────────────────────────
+function fmtDate(iso) {
+  if (!iso) return '—'
+  const d = new Date(iso)
+  return Number.isNaN(d.getTime()) ? '—' : d.toLocaleString('ru-RU', { dateStyle: 'short', timeStyle: 'short' })
+}
+
 function fmtBytes(n) {
   if (n == null) return '—'
   const u = ['Б', 'КБ', 'МБ', 'ГБ', 'ТБ']
@@ -234,6 +242,64 @@ const notConfigured = computed(() => !firstLoad.value && metrics.value && !metri
 // and watchdog-hang scanning don't apply. We still show ping (online/players), RCON (TPS,
 // console) and the log (which can be a URL).
 const isExternal = computed(() => !!activeServer.value?.is_external)
+
+// ── Сторож зависаний ───────────────────────────────────────────────────────
+// Ловит «процесс жив, тик мёртв» — состояние, которое systemd не видит.
+// Показываем и переключатель, и режим обслуживания: он подавляет сторожа
+// независимо от переключателя, и забытый флаг — классический способ месяцами
+// иметь «включённого» сторожа, который ничего не делает.
+const watchdog = ref(null)
+const watchdogBusy = ref(false)
+
+const watchdogError = ref('')
+
+async function loadWatchdog() {
+  // token() — как во всех остальных вызовах этой страницы; и НЕ глотаем причину:
+  // «не удалось» без объяснения отлаживать нечем.
+  try {
+    watchdog.value = await getWatchdogState(token())
+    watchdogError.value = ''
+  } catch (e) {
+    watchdog.value = null
+    watchdogError.value = e?.message || 'неизвестная ошибка'
+  }
+}
+
+async function switchWatchdog(key) {
+  if (watchdogBusy.value || !watchdog.value?.available) return
+  const next = !watchdog.value[key]
+
+  // Подтверждаем то, что снимает защиту или, наоборот, даёт ИИ волю на бою.
+  const asks = {
+    enabled: !next && {
+      title: 'Выключить сторожа зависаний?',
+      body: 'Зависшее выключение перестанет распознаваться автоматически — сервер сможет простоять недоступным, пока кто-нибудь не заметит.',
+      confirmText: 'Выключить', danger: true,
+    },
+    ai_enabled: next && {
+      title: 'Включить ИИ-автовосстановление?',
+      body: 'При крахе или зависании на боевом сервере запустится ИИ-агент с полными правами: он сможет перезапускать сервер и править файлы без спроса. Включайте осознанно.',
+      confirmText: 'Включить', danger: true,
+    },
+    maintenance: next && {
+      title: 'Включить режим обслуживания?',
+      body: 'Пока он активен, ОБА сторожа пропускают все проверки. Забытый флаг молча оставляет сервер без присмотра — здесь такой пролежал 36 суток.',
+      confirmText: 'Включить', danger: true,
+    },
+  }
+  const ask = asks[key]
+  if (ask && !(await confirmDialog(ask))) return
+
+  watchdogBusy.value = true
+  try {
+    watchdog.value = await setWatchdogState(authState.accessToken, { [key]: next })
+    toastSuccess('Сохранено')
+  } catch (e) {
+    toastError(e?.message || 'Не удалось изменить состояние')
+  } finally {
+    watchdogBusy.value = false
+  }
+}
 
 // ── Power control (start / restart / stop the systemd unit) ─────────────────
 // Buttons enable per current state: start only when the unit is down, restart /
@@ -610,6 +676,7 @@ onMounted(async () => {
   await loadLogs()
   loadChat()
   loadHangs()
+  loadWatchdog()
   if (autoRefresh.value) startTimers()
   document.addEventListener('visibilitychange', onVisibility)
 })
@@ -753,6 +820,92 @@ onBeforeUnmount(() => {
           аптайм сервера {{ fmtDuration(proc?.uptime_seconds) }} · хост {{ fmtDuration(host?.uptime_seconds) }}
         </div>
       </div>
+    </div>
+
+
+    <!-- ── Присмотр за сервером ─────────────────────────────────── -->
+    <div v-if="!isExternal" class="adm-card adm-card--pad wd-card">
+      <h3 class="adm-card__title">Присмотр за сервером</h3>
+
+      <!-- Карточку рисуем ВСЕГДА: если состояние не загрузилось, надо показать это,
+           а не исчезнуть молча — иначе раздел просто «не находится». -->
+      <div v-if="!watchdog" class="wd-row wd-row--warn">
+        Не удалось получить состояние сторожей<span v-if="watchdogError">: {{ watchdogError }}</span>.
+        <button class="adm-btn adm-btn--sm" @click="loadWatchdog">Повторить</button>
+      </div>
+
+      <div v-else-if="!watchdog.available" class="wd-row wd-row--warn">{{ watchdog.reason }}</div>
+
+      <template v-else>
+        <div v-if="watchdog.maintenance" class="wd-row wd-row--warn">
+          Режим обслуживания активен{{ watchdog.maintenance_days != null ? ` уже ${watchdog.maintenance_days} сут` : '' }} —
+          оба сторожа пропускают все проверки, сервер без присмотра.
+        </div>
+
+        <!-- Сторож зависаний -->
+        <div class="wd-item">
+          <div class="wd-item__text">
+            <div class="wd-item__title">
+              Сторож зависаний
+              <span class="adm-badge" :class="watchdog.effective ? 'adm-badge--ok' : 'adm-badge--err'">
+                {{ watchdog.effective ? 'работает' : 'не работает' }}
+              </span>
+            </div>
+            <p class="wd-sub">
+              Раз в минуту проверяет тик, диск, игровой порт и TPS. Зависшее выключение
+              устраняет сам; зависание на ходу только фиксирует — такие обычно проходят.
+            </p>
+          </div>
+          <button v-if="canPower" class="adm-btn" :class="watchdog.enabled ? 'adm-btn--danger' : 'adm-btn--ok'"
+                  :disabled="watchdogBusy" @click="switchWatchdog('enabled')">
+            {{ watchdog.enabled ? 'Выключить' : 'Включить' }}
+          </button>
+        </div>
+
+        <!-- ИИ-автовосстановление -->
+        <div class="wd-item">
+          <div class="wd-item__text">
+            <div class="wd-item__title">
+              ИИ-автовосстановление
+              <span class="adm-badge" :class="watchdog.ai_effective ? 'adm-badge--ok' : 'adm-badge--err'">
+                {{ watchdog.ai_effective ? 'работает' : 'не работает' }}
+              </span>
+            </div>
+            <p class="wd-sub">
+              При крахе или зависании запускает ИИ-агента <b>с полными правами</b>: он может
+              перезапускать сервер и править файлы без спроса. Мощно и рискованно — по умолчанию выключено.
+            </p>
+          </div>
+          <button v-if="canPower" class="adm-btn" :class="watchdog.ai_enabled ? 'adm-btn--danger' : 'adm-btn--ok'"
+                  :disabled="watchdogBusy" @click="switchWatchdog('ai_enabled')">
+            {{ watchdog.ai_enabled ? 'Выключить' : 'Включить' }}
+          </button>
+        </div>
+
+        <!-- Режим обслуживания -->
+        <div class="wd-item">
+          <div class="wd-item__text">
+            <div class="wd-item__title">
+              Режим обслуживания
+              <span class="adm-badge" :class="watchdog.maintenance ? 'adm-badge--warn' : 'adm-badge--ok'">
+                {{ watchdog.maintenance ? 'включён' : 'выключен' }}
+              </span>
+            </div>
+            <p class="wd-sub">
+              Глушит оба сторожа разом — на время ручных работ, чтобы автоматика не мешала.
+              Файл <code class="adm-mono">maintenance.flag</code> в каталоге сервера.
+            </p>
+          </div>
+          <button v-if="canPower" class="adm-btn" :class="watchdog.maintenance ? 'adm-btn--ok' : 'adm-btn--ghost'"
+                  :disabled="watchdogBusy" @click="switchWatchdog('maintenance')">
+            {{ watchdog.maintenance ? 'Снять' : 'Включить' }}
+          </button>
+        </div>
+
+        <div v-if="watchdog.updated_at" class="wd-meta">
+          изменено: {{ fmtDate(watchdog.updated_at) }}<span v-if="watchdog.updated_by"> · {{ watchdog.updated_by }}</span>
+        </div>
+      </template>
     </div>
 
     <!-- ── Консоль + игроки ─────────────────────────────────────── -->
@@ -998,4 +1151,22 @@ onBeforeUnmount(() => {
 .ops-chat__line.is-join .ops-chat__text { color: var(--adm-ok, #4ade80); font-style: italic; }
 .ops-chat__line.is-leave .ops-chat__text { color: var(--adm-faint); font-style: italic; }
 .ops-chat__line.is-system .ops-chat__text { color: var(--adm-dim); font-style: italic; }
+
+.wd-card { display: flex; flex-direction: column; gap: 10px; }
+.wd-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; }
+.wd-sub { margin: 4px 0 0; max-width: 62ch; font-size: 12.5px; line-height: 1.5; color: var(--adm-dim); }
+.wd-row { display: flex; align-items: center; gap: 10px; font-size: 13px; }
+.wd-row--warn {
+  padding: 8px 10px; border-radius: 8px; line-height: 1.5;
+  background: rgba(251, 191, 36, 0.09); border: 1px solid rgba(251, 191, 36, 0.32); color: #fbbf24;
+}
+.wd-detail { color: var(--adm-dim); }
+.wd-meta { font-size: 11.5px; color: var(--adm-dim); opacity: 0.75; }
+
+.wd-item {
+  display: flex; align-items: flex-start; justify-content: space-between; gap: 16px;
+  padding: 12px 0; border-top: 1px solid var(--adm-line);
+}
+.wd-item__title { display: flex; align-items: center; gap: 8px; font-size: 14px; font-weight: 600; }
+.wd-item__text { min-width: 0; }
 </style>

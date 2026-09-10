@@ -62,3 +62,22 @@ export function getServerChat(token, { limit = 200 } = {}) {
   const qs = new URLSearchParams({ limit: String(limit) })
   return apiRequest(`/admin/server-ops/chat?${qs.toString()}`, ah(token))
 }
+
+// ── Сторож зависаний ───────────────────────────────────────────────────────
+// Возвращает и состояние переключателя, и режим обслуживания: второй
+// подавляет сторожа независимо от первого, поэтому «включён» без этой
+// оговорки был бы враньём.
+
+export function getWatchdogState(token) {
+  return apiRequest('/admin/server-ops/watchdog', ah(token))
+}
+
+// patch — любое подмножество: { enabled }, { ai_enabled }, { maintenance }.
+// Неуказанные переключатели сервер не трогает.
+export function setWatchdogState(token, patch) {
+  return apiRequest('/admin/server-ops/watchdog', {
+    ...ah(token, { 'Content-Type': 'application/json' }),
+    method: 'POST',
+    body: JSON.stringify(patch),
+  })
+}
