@@ -12,7 +12,7 @@ import {
 } from '../../services/adminServerOpsApi.js'
 import { authState, hasPermission } from '../../stores/authStore'
 import { activeServer } from '../../stores/serverStore'
-import { toastError, toastSuccess } from '../../services/toast'
+import { toastError, toastInfo, toastSuccess } from '../../services/toast'
 import { confirmDialog } from '../../composables/useConfirm'
 
 const token = () => authState.accessToken
@@ -254,8 +254,8 @@ async function powerAction(action) {
     const ok = await confirmDialog({
       title: `${meta.verb} сервер`,
       message: action === 'stop'
-        ? `Остановить сервер «${serverName.value}»? Все игроки будут отключены, автозапуск службы не сработает.`
-        : `Перезапустить сервер «${serverName.value}»? Все игроки будут отключены на время перезапуска.`,
+        ? `Остановить сервер «${serverName.value}»? Игроки получат предупреждение в чат, мир сохранится, через 10 секунд служба остановится. Автозапуск не сработает.`
+        : `Перезапустить сервер «${serverName.value}»? Игроки получат предупреждение в чат, мир сохранится, через 10 секунд начнётся перезапуск.`,
       confirmLabel: meta.verb,
       danger: meta.danger,
     })
@@ -263,6 +263,7 @@ async function powerAction(action) {
   }
   powerBusy.value = true
   try {
+    if (action !== 'start') toastInfo('Предупредили игроков и сохраняем мир — 10 секунд…')
     await serverPowerAction(token(), action)
     toastSuccess(`${meta.verb}: команда отправлена`)
     // The job is queued (--no-block); poll a couple of times to catch the flip.

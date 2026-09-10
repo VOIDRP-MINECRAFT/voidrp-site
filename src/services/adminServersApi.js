@@ -60,3 +60,19 @@ export function uploadServerImage(token, serverId, kind, file) {
     body: formData,
   })
 }
+
+// ── Login timeouts ─────────────────────────────────────────────────────────
+// Returns { settings, defaults, bounds } — bounds/defaults come from the backend
+// so the form never hardcodes limits that could drift from the model.
+
+export function getAuthSettings(token, serverId) {
+  return apiRequest(`/admin/servers/${serverId}/auth-settings`, ah(token))
+}
+
+export function updateAuthSettings(token, serverId, payload) {
+  return apiRequest(`/admin/servers/${serverId}/auth-settings`, {
+    ...ah(token, { 'Content-Type': 'application/json' }),
+    method: 'PUT',
+    body: JSON.stringify(payload),
+  })
+}

@@ -146,6 +146,7 @@ const navGroups = computed(() => {
       items: [
         { to: '/admin/monitoring', label: 'Мониторинг', icon: icons.monitoring, perm: 'monitoring.view' },
         { to: '/admin/mods', label: 'Моды', icon: icons.mods, perm: 'mods.view' },
+        { to: '/admin/auth', label: 'Авторизация', icon: icons.servers, perm: 'servers.manage' },
         { to: '/admin/market', label: 'Рынок', icon: icons.market, perm: 'market.view' },
         { to: '/admin/upgrader', label: 'Апгрейдер', icon: icons.market, perm: 'upgrader.view' },
         { to: '/admin/nations', label: 'Государства', icon: icons.nations, perm: 'nations.view' },

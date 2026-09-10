@@ -6,12 +6,17 @@ import {
   adminGrantBattlePassPremium,
   adminRevokeBattlePassPremium,
 } from '../../services/battlepassAdminApi'
-import { authState } from '../../stores/authStore'
+import { authState, hasPermission } from '../../stores/authStore'
 import { toastError, toastSuccess } from '../../services/toast'
 import { confirmDialog } from '../../composables/useConfirm'
 import AdminBattlePassRewards from './AdminBattlePassRewards.vue'
 
 const token = () => authState.accessToken
+// battlepass.view даёт только просмотр. Выдача и снятие Premium требуют
+// battlepass.manage — бэкенд это и так проверяет, но без этой проверки
+// смотрящий видел рабочие на вид кнопки и получал 403 только после клика.
+const canManagePremium = hasPermission('battlepass.manage')
+
 const tab = ref('premium')   // 'premium' | 'rewards'
 
 // Stats
@@ -166,7 +171,7 @@ onMounted(loadAll)
     </div>
 
     <!-- Grant form -->
-    <div class="adm-card adm-card--pad">
+    <div v-if="canManagePremium" class="adm-card adm-card--pad">
       <div class="adm-label">Выдать Premium</div>
       <div class="grant-form">
         <input v-model="grantForm.minecraft_uuid" class="adm-input adm-mono grant-form__uuid" placeholder="Minecraft UUID" spellcheck="false" />
@@ -204,7 +209,7 @@ onMounted(loadAll)
               <th>Выдал</th>
               <th>Примечание</th>
               <th>Статус</th>
-              <th>Действия</th>
+              <th v-if="canManagePremium">Действия</th>
             </tr>
           </thead>
           <tbody>
@@ -223,7 +228,7 @@ onMounted(loadAll)
                   {{ entry.is_active ? 'Активен' : 'Истёк' }}
                 </span>
               </td>
-              <td>
+              <td v-if="canManagePremium">
                 <button
                   class="adm-btn adm-btn--danger adm-btn--sm"
                   :disabled="revokeLoading === entry.minecraft_uuid || !entry.is_active"
