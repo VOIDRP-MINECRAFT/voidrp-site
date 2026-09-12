@@ -745,6 +745,9 @@ export default {
     followed: 'Followed.',
   },
   editProfile: {
+    linksKicker: 'Socials',
+    linksTitle: 'Channel links',
+    linksHint: 'Twitch, YouTube, TikTok and more — shown as buttons on your public profile. Leave a field empty to remove the link.',
     kicker: 'Profile editor',
     title: 'Profile appearance',
     subtitle: 'The banner only affects the top cover. The background changes the whole canvas of the public page. The accent colour should be visible in both the preview and the real profile.',

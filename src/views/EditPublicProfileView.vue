@@ -2,6 +2,7 @@
 import {computed, onMounted, reactive, ref, watch} from 'vue'
 import { RouterLink } from 'vue-router'
 import { useI18n } from 'vue-i18n'
+import { SOCIAL_PLATFORMS } from '../utils/socialLinks.js'
 import ProfileMediaSlotCard from '../features/profile/components/ProfileMediaSlotCard.vue'
 import PublicProfileStudioPreview from '../features/profile/components/PublicProfileStudioPreview.vue'
 import {
@@ -48,6 +49,7 @@ const form = reactive({
   is_public: true,
   allow_followers_list_public: true,
   allow_friends_list_public: true,
+  social_links: Object.fromEntries(SOCIAL_PLATFORMS.map((p) => [p.key, ''])),
 })
 
 const colorPresets = ['#8b5cf6', '#7c3aed', '#3b82f6', '#14b8a6', '#ef4444', '#f59e0b', '#ec4899']
@@ -97,6 +99,7 @@ function hydrateForm(payload) {
   form.is_public = Boolean(payload?.is_public)
   form.allow_followers_list_public = Boolean(payload?.allow_followers_list_public)
   form.allow_friends_list_public = Boolean(payload?.allow_friends_list_public)
+  for (const p of SOCIAL_PLATFORMS) form.social_links[p.key] = payload?.social_links?.[p.key] || ''
 }
 
 async function loadProfile() {
@@ -130,6 +133,7 @@ async function saveProfile() {
       is_public: form.is_public,
       allow_followers_list_public: form.allow_followers_list_public,
       allow_friends_list_public: form.allow_friends_list_public,
+      social_links: Object.fromEntries(SOCIAL_PLATFORMS.map((p) => [p.key, form.social_links[p.key]?.trim() || null])),
     })
 
     hydrateForm(payload)
@@ -395,6 +399,22 @@ watch(success, (value) => { if (value) toastSuccess(value) })
                 <label class="form-control">
                   <span class="mb-2 text-sm font-semibold text-slate-300">{{ t('editProfile.bioLabel') }}</span>
                   <textarea v-model="form.bio" rows="5" maxlength="1200" class="textarea rounded-2xl" :placeholder="t('editProfile.bioPlaceholder')"></textarea>
+                </label>
+              </div>
+            </section>
+
+            <section class="surface-card p-5 md:p-6">
+              <div class="section-kicker !mb-2">{{ t('editProfile.linksKicker') }}</div>
+              <h2 class="text-xl font-black text-slate-50 md:text-2xl">{{ t('editProfile.linksTitle') }}</h2>
+              <p class="mt-2 text-sm leading-6 text-slate-400">{{ t('editProfile.linksHint') }}</p>
+
+              <div class="mt-5 grid gap-4 md:grid-cols-2">
+                <label v-for="p in SOCIAL_PLATFORMS" :key="p.key" class="form-control">
+                  <span class="mb-2 flex items-center gap-2 text-sm font-semibold text-slate-300">
+                    <span class="inline-block h-2.5 w-2.5 rounded-full" :style="{ background: p.color }"></span>
+                    {{ p.label }}
+                  </span>
+                  <input v-model="form.social_links[p.key]" type="url" maxlength="200" class="input rounded-2xl" :placeholder="p.placeholder" />
                 </label>
               </div>
             </section>

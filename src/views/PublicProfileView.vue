@@ -7,6 +7,7 @@ import { followProfile, unfollowProfile } from '../services/socialApi'
 import { useAuthStore } from '../stores/authStore'
 import { getBattlePassProfileByNick } from '../services/battlepassApi'
 import { serverFeatureEnabled } from '../stores/serverStore'
+import { filledSocialLinks } from '../utils/socialLinks.js'
 
 const { t } = useI18n()
 const route = useRoute()
@@ -70,6 +71,7 @@ const accent = computed(() => profile.value?.accent_color || '#8b5cf6')
 const avatarUrl = computed(() => profile.value?.assets?.avatar_url || profile.value?.assets?.avatar_preview_url || '')
 const bannerUrl = computed(() => profile.value?.assets?.banner_url || profile.value?.assets?.banner_preview_url || '')
 const backgroundUrl = computed(() => profile.value?.assets?.background_url || profile.value?.assets?.background_preview_url || '')
+const socialLinks = computed(() => filledSocialLinks(profile.value?.social_links))
 const nationLink = computed(() => (publicNation.value?.slug ? `/nation/${publicNation.value.slug}` : ''))
 
 const routeBackground = computed(() => {
@@ -350,6 +352,20 @@ onBeforeUnmount(() => {
                     <p class="mt-3 whitespace-pre-line text-sm leading-6 text-slate-300 md:text-[15px]">
                       {{ profile.bio || t('publicProfile.noBio') }}
                     </p>
+                    <div v-if="socialLinks.length" class="mt-4 flex flex-wrap gap-2">
+                      <a
+                        v-for="link in socialLinks"
+                        :key="link.key"
+                        :href="link.url"
+                        target="_blank"
+                        rel="noopener noreferrer nofollow"
+                        class="social-link-chip"
+                        :style="{ '--chip': link.color }"
+                      >
+                        <span class="social-link-dot"></span>
+                        {{ link.label }}
+                      </a>
+                    </div>
                   </div>
 
                   <div class="grid min-w-0 grid-cols-3 gap-3 md:w-[360px]">
@@ -415,3 +431,16 @@ onBeforeUnmount(() => {
     </div>
   </section>
 </template>
+
+<style scoped>
+.social-link-chip {
+  display: inline-flex; align-items: center; gap: .45rem;
+  padding: .4rem .8rem; border-radius: 999px;
+  font-size: .82rem; font-weight: 700; color: #e8ecf4; text-decoration: none;
+  border: 1px solid color-mix(in srgb, var(--chip) 45%, transparent);
+  background: color-mix(in srgb, var(--chip) 12%, transparent);
+  transition: background-color .15s, transform .15s;
+}
+.social-link-chip:hover { background: color-mix(in srgb, var(--chip) 24%, transparent); transform: translateY(-1px); }
+.social-link-dot { width: .55rem; height: .55rem; border-radius: 999px; background: var(--chip); }
+</style>
