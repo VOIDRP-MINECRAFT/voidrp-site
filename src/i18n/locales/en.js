@@ -239,6 +239,18 @@ export default {
     title: 'Our donors',
     sub: 'Players who help the project live and grow',
   },
+  helpers: {
+    kicker: 'Thanks board',
+    title: 'They helped VoidRP',
+    openProfile: 'Open profile',
+    sub: 'People without whom the server would be different. Thank you!',
+    items: {
+      stoshok: {
+        what: 'Donated the NVMe SSD the server runs on',
+        detail: 'The world used to live on an HDD and the server stalled on every save. On this drive world pre-generation is many times faster, and terrain keeps up even during fast flight.',
+      },
+    },
+  },
   faq: {
     kicker: 'Questions',
     title: 'Frequently asked',

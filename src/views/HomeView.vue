@@ -9,7 +9,7 @@ import { getServerStats, getNationRankings } from '../services/nationStatsApi.js
 import { getKillfeed } from '../services/killfeedApi.js'
 import { getPlayersTop } from '../services/playerStatsApi.js'
 import { getDonateProducts, getTopDonors } from '../services/donateApi.js'
-import { apiRequest } from '../services/apiBase.js'
+import { apiRequest, API_BASE_URL } from '../services/apiBase.js'
 import { serverState, activeServer, fetchServers, setActiveServer } from '../stores/serverStore'
 
 function getLandingScreenshots() { return apiRequest('/landing/screenshots') }
@@ -356,6 +356,13 @@ function cleanDesc(html) {
     .trim()
   return text.length > 96 ? text.slice(0, 96).trim() + '…' : text
 }
+
+// ── Thanks board: people who helped the project with more than money ─────────
+// Hand-curated: each entry's text lives in i18n under helpers.items.<key>.
+const HELPERS = [
+  { key: 'stoshok', nickname: 'Stoshok', profileSlug: 'stoshok', icon: '💾' },
+]
+const helperHead = (nick) => `${API_BASE_URL}/public/player-head/${encodeURIComponent(nick)}`
 
 // ── Top donors wall (PII-free) ──────────────────────────────────────────────
 const topDonors = ref([])
@@ -1486,6 +1493,35 @@ function nationAccent(nation) {
           <span class="donor-nick">{{ d.nickname }}</span>
           <span class="donor-total">{{ d.total.toLocaleString('ru') }} ₽</span>
         </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ═══════════════════════ THANKS BOARD ═══════════════════════ -->
+  <section id="helpers" class="helpers-section">
+    <div class="container-shell">
+      <div class="section-header" data-reveal>
+        <div class="kicker-wrap">
+          <span class="kicker-line"></span>
+          <p class="section-kicker">{{ t('helpers.kicker') }}</p>
+          <span class="kicker-line"></span>
+        </div>
+        <h2 class="section-h2">{{ t('helpers.title') }}</h2>
+        <p class="section-sub">{{ t('helpers.sub') }}</p>
+      </div>
+
+      <div class="helpers-board" data-reveal>
+        <article v-for="h in HELPERS" :key="h.key" class="helper-card">
+          <RouterLink :to="`/u/${h.profileSlug}`" class="helper-head" :title="t('helpers.openProfile')">
+            <img :src="helperHead(h.nickname)" :alt="h.nickname" loading="lazy" @error="$event.target.style.visibility='hidden'" />
+            <span class="helper-badge" aria-hidden="true">{{ h.icon }}</span>
+          </RouterLink>
+          <div class="helper-body">
+            <RouterLink :to="`/u/${h.profileSlug}`" class="helper-nick">{{ h.nickname }}</RouterLink>
+            <p class="helper-what">{{ t(`helpers.items.${h.key}.what`) }}</p>
+            <p class="helper-detail">{{ t(`helpers.items.${h.key}.detail`) }}</p>
+          </div>
+        </article>
       </div>
     </div>
   </section>
@@ -3282,6 +3318,39 @@ function nationAccent(nation) {
 .donor-nick { font-weight: 700; color: #e8ecf4; font-size: .88rem; }
 .donor-total { font-size: .78rem; font-weight: 800; color: var(--srv-pale, #a78bfa); }
 .donor-chip--1 { border-color: rgba(251,191,36,.3); background: rgba(251,191,36,.06); }
+
+/* ════════════════════════════════════
+   THANKS BOARD
+════════════════════════════════════ */
+.helpers-section { padding: 0 0 5rem; }
+.helpers-board {
+  margin: 2rem auto 0; max-width: 760px;
+  display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 320px), 1fr)); gap: 1rem;
+}
+.helper-card {
+  display: flex; gap: 1rem; align-items: flex-start;
+  padding: 1.15rem 1.25rem; border-radius: 16px;
+  border: 1px solid rgba(251,191,36,.28);
+  background: linear-gradient(135deg, rgba(251,191,36,.07), rgba(255,255,255,.02));
+  transition: transform .15s, border-color .15s;
+}
+.helper-card:hover { transform: translateY(-2px); border-color: rgba(251,191,36,.45); }
+.helper-head {
+  position: relative; width: 3.5rem; height: 3.5rem; flex-shrink: 0;
+  border-radius: 12px; background: rgba(251,191,36,.12);
+  border: 1px solid rgba(251,191,36,.3);
+}
+.helper-head img { width: 100%; height: 100%; border-radius: 11px; image-rendering: pixelated; display: block; }
+.helper-badge {
+  position: absolute; right: -.45rem; bottom: -.45rem;
+  width: 1.6rem; height: 1.6rem; display: flex; align-items: center; justify-content: center;
+  border-radius: 999px; font-size: .9rem; background: #1a1625; border: 1px solid rgba(251,191,36,.35);
+}
+.helper-body { min-width: 0; }
+.helper-nick { display: inline-block; font-size: 1.05rem; font-weight: 800; color: #fcd34d; text-decoration: none; }
+.helper-nick:hover { text-decoration: underline; }
+.helper-what { margin: .15rem 0 0; font-size: .92rem; font-weight: 700; color: #e8ecf4; }
+.helper-detail { margin: .4rem 0 0; font-size: .85rem; line-height: 1.55; color: #94a0b8; }
 
 /* ════════════════════════════════════
    FAQ
