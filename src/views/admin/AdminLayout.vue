@@ -174,6 +174,7 @@ const navGroups = computed(() => {
         { to: '/admin/mod-suggestions', label: 'Предложения модов', icon: icons.suggestions, perm: 'mod_suggestions.view' },
         { to: '/admin/feedback', label: 'Обращения', icon: icons.feedback, perm: 'feedback.view' },
         { to: '/admin/launcher-crashes', label: 'Краши лаунчера', icon: icons.crashes, perm: 'crashes.view' },
+        { to: '/admin/launcher-crash-rules', label: 'Правила крашей', icon: icons.crashes, perm: 'crashes.view' },
       ],
     },
     {

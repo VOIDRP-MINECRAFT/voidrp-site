@@ -14,7 +14,10 @@ const items = ref([])
 const loading = ref(true)
 const deletingId = ref(null)
 const canManage = hasPermission('crashes.manage')
-const search = ref('')
+const canManageRules = hasPermission('crashes.rules.manage')
+// ?player= comes from the «Правила крашей» page (unrecognized crash links).
+const search = ref(route.query.player ? String(route.query.player) : '')
+const recognizedFilter = ref('')
 const expandedId = ref(null)
 // Optional server-side filter by launcher version (e.g. arriving from the
 // «Лаунчер» tab's crash-by-version widget: /admin/launcher-crashes?version=…).
@@ -24,7 +27,7 @@ async function load() {
   loading.value = true
   selected.value = []
   try {
-    const data = await adminListCrashes(token(), { version: versionFilter.value || '' })
+    const data = await adminListCrashes(token(), { version: versionFilter.value || '', recognized: recognizedFilter.value })
     items.value = data?.items || []
   } catch {
     items.value = []
@@ -148,6 +151,29 @@ function crashLog(item) {
   if (item.log_tail) return { text: item.log_tail, source: 'log-tail' }
   return null
 }
+// Launchers before 4.0.41 don't report which rule matched, so "not recognized" only means something from there on.
+function reportsAdvice(version) {
+  const parts = String(version || '').split('.').map((n) => parseInt(n, 10) || 0)
+  const [a = 0, b = 0, c = 0] = parts
+  return a > 4 || (a === 4 && (b > 0 || c >= 41))
+}
+
+// «Создать правило»: take the first exception-looking line of the log as a literal regex.
+function suggestPattern(item) {
+  const text = item.crash_report || item.log_tail || ''
+  const line = text.split('\n').find((l) => /marked game for crash|Caused by:|Exception:|Error:/.test(l)) || ''
+  const core = line
+    .replace(/^\s*(?:\[[^\]]*\]\s*)+/, '')
+    .replace(/^(?:Caused by:|at)\s*/, '')
+    .trim()
+    .slice(0, 120)
+  return core.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+}
+
+function createRuleFrom(item) {
+  router.push({ path: '/admin/launcher-crash-rules', query: { pattern: suggestPattern(item) } })
+}
+
 function fmtRam(mb) {
   if (!mb) return null
   return mb >= 1024 ? `${(mb / 1024).toFixed(mb % 1024 ? 1 : 0)} ГБ ОЗУ` : `${mb} МБ ОЗУ`
@@ -171,6 +197,12 @@ onMounted(load)
 
     <div style="display:flex;flex-wrap:wrap;align-items:center;gap:0.6rem">
       <input v-model="search" class="adm-input" style="max-width: 320px" placeholder="Ник игрока..." />
+      <select v-model="recognizedFilter" class="adm-select" style="width: auto" @change="load">
+        <option value="">Все краши</option>
+        <option value="yes">Лаунчер дал подсказку</option>
+        <option value="no">Без подсказки</option>
+      </select>
+      <router-link to="/admin/launcher-crash-rules" class="adm-btn adm-btn--sm">Правила крашей</router-link>
       <span v-if="versionFilter" class="adm-badge adm-badge--acc" style="display:inline-flex;align-items:center;gap:0.4rem">
         Версия: <span class="adm-mono">{{ versionFilter }}</span>
         <button class="ver-x" title="Сбросить фильтр версии" @click="clearVersion">✕</button>
@@ -219,6 +251,12 @@ onMounted(load)
           </div>
           <div class="card__actions">
             <button
+              v-if="canManageRules && crashLog(item) && !item.advice_rule_key"
+              class="adm-btn adm-btn--sm"
+              title="Открыть редактор правил с шаблоном из этого лога"
+              @click="createRuleFrom(item)"
+            >Создать правило</button>
+            <button
               v-if="crashLog(item)"
               class="adm-btn adm-btn--sm"
               @click="expandedId = expandedId === item.id ? null : item.id"
@@ -235,6 +273,8 @@ onMounted(load)
         <div v-if="exitCodeHint(item.exit_code)" class="exit-hint">💡 {{ exitCodeHint(item.exit_code) }}</div>
 
         <div class="env-chips">
+          <span v-if="item.advice_rule_key" class="chip chip--ok" title="Правило, по которому лаунчер показал подсказку">💬 {{ item.advice_rule_key }}</span>
+          <span v-else-if="reportsAdvice(item.launcher_version)" class="chip chip--warn">💬 без подсказки</span>
           <span v-if="item.server_slug" class="chip">🖥 {{ item.server_slug }}</span>
           <span v-if="item.os_name" class="chip" :title="item.os_name">🪟 {{ item.os_name }}</span>
           <span v-if="item.java_version" class="chip">☕ Java {{ item.java_version }}</span>
@@ -293,6 +333,8 @@ onMounted(load)
   font-size: 0.7rem; color: var(--adm-mut); font-weight: 600;
   max-width: 260px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
 }
+.chip--ok { color: var(--adm-ok, #34d399); border-color: currentColor; }
+.chip--warn { color: var(--adm-warn); border-color: currentColor; }
 .log-source { margin: 0.75rem 0 0.25rem; font-size: 0.7rem; color: var(--adm-faint); font-weight: 600; }
 
 .crash-log {
