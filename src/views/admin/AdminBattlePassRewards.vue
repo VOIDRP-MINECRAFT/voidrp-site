@@ -146,14 +146,25 @@ const saving = ref(false)
 const form = ref(null)   // { id?, level, track, reward_type, command, material, item_key, count, amount, display_name, icon }
 
 function blank(level, track) {
-  return { id: null, level, track, reward_type: 'command', command: '', material: '', item_key: '', count: 1, amount: 1000, display_name: '', icon: '' }
+  return { id: null, level, track, reward_type: 'command', command: '', material: '', item_key: '', count: 1, count_max: null, amount: 1000, amount_max: null, display_name: '', icon: '', options: [] }
 }
+function blankOption() {
+  return { type: 'command', command: '', material: '', count: 1, count_max: null, amount: 1000, amount_max: null, display_name: '', icon: '' }
+}
+function addOption() { form.value.options.push(blankOption()) }
+function removeOption(i) { form.value.options.splice(i, 1) }
 
 function openCell(level, track) {
   const existing = byLevel.value[level]?.[track]
   form.value = existing
-    ? { ...existing, command: existing.command || '', material: existing.material || '', display_name: existing.display_name || '', icon: existing.icon || '', count: existing.count || 1, amount: existing.amount || 0 }
+    ? {
+        ...existing, command: existing.command || '', material: existing.material || '', display_name: existing.display_name || '',
+        icon: existing.icon || '', count: existing.count || 1, amount: existing.amount || 0,
+        count_max: existing.count_max ?? null, amount_max: existing.amount_max ?? null,
+        options: (existing.options || []).map(o => ({ ...blankOption(), ...o })),
+      }
     : blank(level, track)
+  pickerTarget.value = null
   pickerQ.value = ''
   pickerOpen.value = !existing
   modalOpen.value = true
@@ -161,22 +172,60 @@ function openCell(level, track) {
 
 function closeModal() { modalOpen.value = false; form.value = null; pickerOpen.value = false }
 
-// picking an item: vanilla → ITEM, modded → COMMAND (mirrors rewards.yml conventions)
+// picking an item: vanilla → ITEM, modded → COMMAND (mirrors rewards.yml conventions).
+// pickerTarget: null = the slot itself, a number = that choice option.
+const pickerTarget = ref(null)
+function openPickerFor(target) {
+  pickerTarget.value = target
+  pickerQ.value = ''
+  pickerOpen.value = true
+}
 function pickItem(it) {
   const id = it.id
-  form.value.icon = id
-  form.value.item_key = id
+  const isOpt = pickerTarget.value != null
+  const t = isOpt ? form.value.options[pickerTarget.value] : form.value
+  const typeKey = isOpt ? 'type' : 'reward_type'
+  t.icon = id
+  if (!isOpt) t.item_key = id
   const nm = names.value[id] || id.split(':').pop().replace(/_/g, ' ')
-  if (!form.value.display_name) form.value.display_name = nm
-  if (id.startsWith('minecraft:')) {
-    form.value.reward_type = 'item'
-    form.value.material = id.split(':')[1].toUpperCase()
-    form.value.count = form.value.count || 1
+  if (!t.display_name) t.display_name = nm
+  if (id.startsWith('minecraft:') && !t.count_max) {
+    t[typeKey] = 'item'
+    t.material = id.split(':')[1].toUpperCase()
+    t.count = t.count || 1
   } else {
-    form.value.reward_type = 'command'
-    form.value.command = `/minecraft:give {player} ${id} ${form.value.count || 1}`
+    // modded items (and any random count) go through /give with a {count} placeholder
+    t[typeKey] = 'command'
+    t.command = `/minecraft:give {player} ${id} ${t.count_max ? '{count}' : (t.count || 1)}`
   }
   pickerOpen.value = false
+}
+
+// Fields of one plain reward (slot or choice option) → API body; returns an error text or null.
+function plainBody(kind, f, out) {
+  if (kind === 'money' || kind === 'voidcoin' || kind === 'exp') {
+    out.amount = Number(f.amount) || 0
+    if (out.amount <= 0) return 'Укажите количество > 0'
+    if (f.amount_max) {
+      out.amount_max = Number(f.amount_max)
+      if (out.amount_max < out.amount) return '«До» меньше «от»'
+    }
+  } else if (kind === 'item') {
+    out.material = (f.material || '').trim().toUpperCase()
+    out.count = Number(f.count) || 1
+    if (f.count_max) out.count_max = Number(f.count_max)
+    if (!out.material) return 'Укажите material'
+  } else if (kind === 'command') {
+    out.command = (f.command || '').trim()
+    if (!out.command) return 'Укажите команду'
+    out.count = Number(f.count) || 1
+    if (f.count_max) {
+      out.count_max = Number(f.count_max)
+      if (!out.command.includes('{count}')) return 'Для случайного количества в команде нужен {count}'
+    }
+  }
+  if (out.count_max && out.count_max < out.count) return '«До» меньше «от»'
+  return null
 }
 
 async function save() {
@@ -186,17 +235,19 @@ async function save() {
     display_name: (f.display_name || '').trim() || null,
     icon: (f.icon || '').trim() || null,
   }
-  if (f.reward_type === 'money' || f.reward_type === 'voidcoin') {
-    body.amount = Number(f.amount) || 0
-    if (body.amount <= 0) { toastError('Укажите количество > 0'); return }
-  } else if (f.reward_type === 'item') {
-    body.material = (f.material || '').trim().toUpperCase()
-    body.count = Number(f.count) || 1
-    if (!body.material) { toastError('Укажите material'); return }
-  } else if (f.reward_type === 'command') {
-    body.command = (f.command || '').trim()
-    if (!body.command) { toastError('Укажите команду'); return }
-    body.item_key = body.icon
+  if (f.reward_type === 'choice') {
+    if ((f.options || []).length < 2) { toastError('Нужно минимум 2 варианта'); return }
+    body.options = []
+    for (const [i, o] of f.options.entries()) {
+      const ob = { type: o.type, display_name: (o.display_name || '').trim() || null, icon: (o.icon || '').trim() || null }
+      const err = plainBody(o.type, o, ob)
+      if (err) { toastError(`Вариант ${i + 1}: ${err}`); return }
+      body.options.push(ob)
+    }
+  } else {
+    const err = plainBody(f.reward_type, f, body)
+    if (err) { toastError(err); return }
+    if (f.reward_type === 'command') body.item_key = body.icon
   }
   saving.value = true
   try {
@@ -246,7 +297,10 @@ function openEditSeason() {
   const s = curSeason.value
   if (!s) return
   seasonMode.value = 'edit'
-  seasonForm.value = { season_key: s.season_key, name: s.name, start_date: s.start_date, end_date: s.end_date, max_level: s.max_level, is_active: s.is_active }
+  seasonForm.value = {
+    season_key: s.season_key, name: s.name, start_date: s.start_date, end_date: s.end_date, max_level: s.max_level, is_active: s.is_active,
+    gates: (s.gates || []).map(g => ({ ...g })),
+  }
   seasonModalOpen.value = true
 }
 function closeSeasonModal() { seasonModalOpen.value = false; seasonForm.value = null }
@@ -270,8 +324,10 @@ async function saveSeason() {
       toastSuccess(`Сезон создан${res.reward_count ? ` (скопировано ${res.reward_count} наград)` : ''}`)
       season.value = res.season_key
     } else {
+      const gates = (f.gates || []).filter(g => g.level && g.tier)
+        .map(g => ({ level: Number(g.level), tier: g.tier, label: (g.label || '').trim() || null }))
       await adminBpUpdateSeason(token(), f.season_key, {
-        name: f.name.trim(), start_date: f.start_date, end_date: f.end_date, max_level: Number(f.max_level) || 100,
+        name: f.name.trim(), start_date: f.start_date, end_date: f.end_date, max_level: Number(f.max_level) || 100, gates,
       })
       toastSuccess('Сезон обновлён')
     }
@@ -305,18 +361,35 @@ async function deleteSeason(s) {
   } catch (e) { toastError(e.message || 'Не удалось удалить') }
 }
 
+// Progression tiers a zone gate can require (keys = backend PROGRESSION_TIERS).
+const TIERS = [
+  ['mechanisms_age', 'Эпоха механизмов'], ['steel_age', 'Эпоха стали'], ['energy_age', 'Эпоха энергии'],
+  ['automation_age', 'Эпоха автоматизации'], ['industry_age', 'Индустриальная эпоха'], ['quantum_age', 'Квантовая эпоха'],
+  ['singularity_age', 'Эпоха сингулярности'], ['transcendence', 'Трансцендентство'],
+  ['magic_path', 'Путь магии'], ['arcane_path', 'Тайные искусства'], ['hunter_path', 'Путь охотника'],
+  ['starlight_path', 'Вечный Звездосвет'], ['draconic_path', 'Дракониевая энергетика'],
+]
+function addGate() { seasonForm.value.gates.push({ level: 100, tier: 'steel_age', label: '' }) }
+function removeGate(i) { seasonForm.value.gates.splice(i, 1) }
+
 function fmtDate(d) { return d ? new Date(d).toLocaleDateString('ru', { day: '2-digit', month: '2-digit', year: 'numeric' }) : '—' }
 
 // ── cell rendering helpers ──────────────────────────────────────────────────
 function summary(r) {
   if (!r) return ''
-  if (r.reward_type === 'money') return `${fmtNum(r.amount)} 🪙`
-  if (r.reward_type === 'voidcoin') return `${fmtNum(r.amount)} VC`
-  if (r.reward_type === 'item') return `${r.display_name || r.material} ×${r.count || 1}`
-  return r.display_name || (r.command || '').split(' ').find(t => t.includes(':')) || 'Команда'
+  const amt = (x) => x.amount_max ? `${fmtNum(x.amount)}–${fmtNum(x.amount_max)}` : fmtNum(x.amount)
+  const cnt = (x) => x.count_max ? `${x.count}–${x.count_max}` : (x.count || 1)
+  if (r.reward_type === 'choice') return `🎲 ${r.display_name || 'На выбор'} (${(r.options || []).length})`
+  if (r.reward_type === 'money') return `${amt(r)} 🪙`
+  if (r.reward_type === 'voidcoin') return `${amt(r)} VC`
+  if (r.reward_type === 'exp') return `${amt(r)} XP`
+  if (r.reward_type === 'item') return `${r.display_name || r.material} ×${cnt(r)}`
+  const nm = r.display_name || (r.command || '').split(' ').find(t => t.includes(':')) || 'Команда'
+  return r.count_max ? `${nm.replace(/\s*×\s*[\d–-]+$/, '')} ×${cnt(r)}` : nm
 }
 function fmtNum(n) { return Number(n || 0).toLocaleString('ru') }
-const typeLabel = { command: 'Команда', item: 'Предмет', money: 'Деньги', voidcoin: 'Void Coins' }
+const typeLabel = { command: 'Команда', item: 'Предмет', money: 'Деньги', voidcoin: 'Void Coins', exp: 'Опыт', choice: 'На выбор' }
+const plainTypeLabel = { command: 'Команда', item: 'Предмет', money: 'Деньги', voidcoin: 'Void Coins', exp: 'Опыт' }
 </script>
 
 <template>
@@ -347,6 +420,7 @@ const typeLabel = { command: 'Команда', item: 'Предмет', money: '�
         <span>📅 {{ fmtDate(curSeason.start_date) }} → {{ fmtDate(curSeason.end_date) }}</span>
         <span>🎚 Уровней: <b>{{ curSeason.max_level }}</b></span>
         <span>🎁 Наград: <b>{{ curSeason.reward_count }}</b></span>
+        <span v-if="curSeason.gates?.length">🔒 Зоны: <b>{{ curSeason.gates.map(g => g.level).join(' / ') }}</b></span>
       </div>
       <div v-if="canManage" class="bpr-seasonmeta__actions">
         <button class="adm-btn adm-btn--ghost adm-btn--sm" @click="openEditSeason">✏ Даты / уровни / название</button>
@@ -370,6 +444,8 @@ const typeLabel = { command: 'Команда', item: 'Предмет', money: '�
         <option value="item">Предмет</option>
         <option value="money">Деньги</option>
         <option value="voidcoin">Void Coins</option>
+        <option value="exp">Опыт</option>
+        <option value="choice">На выбор</option>
       </select>
       <select class="adm-select bpr-flt-sel" v-model="fltTrack">
         <option value="both">Оба трека</option>
@@ -448,9 +524,10 @@ const typeLabel = { command: 'Команда', item: 'Предмет', money: '�
           <div class="bpr-sel__meta">
             <div class="adm-mono" style="font-size:.72rem;color:var(--adm-dim)">{{ form.icon || 'нет иконки' }}</div>
           </div>
-          <button class="adm-btn adm-btn--ghost adm-btn--sm" @click="pickerOpen = !pickerOpen">{{ pickerOpen ? 'Скрыть' : 'Выбрать предмет' }}</button>
+          <button class="adm-btn adm-btn--ghost adm-btn--sm" @click="pickerOpen && pickerTarget == null ? (pickerOpen = false) : openPickerFor(null)">{{ pickerOpen && pickerTarget == null ? 'Скрыть' : 'Выбрать предмет' }}</button>
         </div>
-        <div v-if="pickerOpen && (form.reward_type === 'item' || form.reward_type === 'command')" class="up-picker">
+        <div v-if="pickerOpen && (pickerTarget != null || form.reward_type === 'item' || form.reward_type === 'command')" class="up-picker">
+          <div v-if="pickerTarget != null" class="adm-sub" style="margin-bottom:4px">Предмет для варианта {{ pickerTarget + 1 }}</div>
           <input class="adm-input" v-model="pickerQ" :placeholder="catalogReady ? 'Поиск: алмаз, netherite, ...' : 'Загрузка каталога…'" />
           <div class="up-picker-grid">
             <button v-for="it in pickerResults" :key="it.id" class="up-pick" :class="{ sel: form.icon === it.id }" @click="pickItem(it)" :title="(names[it.id] || '') + ' ' + it.id">
@@ -461,9 +538,46 @@ const typeLabel = { command: 'Команда', item: 'Предмет', money: '�
 
         <!-- type-specific fields -->
         <div class="bpr-fields">
-          <template v-if="form.reward_type === 'money' || form.reward_type === 'voidcoin'">
-            <label class="adm-label">Количество ({{ form.reward_type === 'voidcoin' ? 'Void Coins' : 'монет' }})</label>
-            <input class="adm-input" type="number" min="1" v-model.number="form.amount" />
+          <template v-if="form.reward_type === 'money' || form.reward_type === 'voidcoin' || form.reward_type === 'exp'">
+            <div class="bpr-grid2">
+              <div>
+                <label class="adm-label">{{ form.reward_type === 'voidcoin' ? 'Void Coins' : form.reward_type === 'exp' ? 'Опыт (очки)' : 'Монеты' }} — от</label>
+                <input class="adm-input" type="number" min="1" v-model.number="form.amount" />
+              </div>
+              <div>
+                <label class="adm-label">до <span style="color:var(--adm-faint)">(пусто = ровно)</span></label>
+                <input class="adm-input" type="number" min="1" v-model.number="form.amount_max" />
+              </div>
+            </div>
+          </template>
+          <template v-else-if="form.reward_type === 'choice'">
+            <p class="bpr-hint" style="margin:0 0 6px">Игрок выбирает один вариант. У каждого варианта свой тип и количество.</p>
+            <div v-for="(o, i) in form.options" :key="i" class="bpr-opt">
+              <div class="bpr-opt__head">
+                <div class="up-ic"><ItemIcon v-if="o.icon" :itemKey="o.icon" :size="26" /></div>
+                <b>Вариант {{ i + 1 }}</b>
+                <select class="adm-select bpr-flt-sel" v-model="o.type">
+                  <option v-for="(lab, tk) in plainTypeLabel" :key="tk" :value="tk">{{ lab }}</option>
+                </select>
+                <div style="flex:1"></div>
+                <button v-if="o.type === 'item' || o.type === 'command'" class="adm-btn adm-btn--ghost adm-btn--sm" @click="openPickerFor(i)">Предмет</button>
+                <button class="adm-btn adm-btn--danger adm-btn--sm" @click="removeOption(i)">✕</button>
+              </div>
+              <div class="bpr-grid2">
+                <template v-if="o.type === 'money' || o.type === 'voidcoin' || o.type === 'exp'">
+                  <div><label class="adm-label">от</label><input class="adm-input" type="number" min="1" v-model.number="o.amount" /></div>
+                  <div><label class="adm-label">до</label><input class="adm-input" type="number" min="1" v-model.number="o.amount_max" /></div>
+                </template>
+                <template v-else>
+                  <div><label class="adm-label">Кол-во от</label><input class="adm-input" type="number" min="1" v-model.number="o.count" /></div>
+                  <div><label class="adm-label">до</label><input class="adm-input" type="number" min="1" v-model.number="o.count_max" /></div>
+                </template>
+              </div>
+              <input v-if="o.type === 'command'" class="adm-input adm-mono" style="margin-top:6px" v-model="o.command" placeholder="/minecraft:give {player} create:brass_ingot {count}" />
+              <input v-if="o.type === 'item'" class="adm-input adm-mono" style="margin-top:6px" v-model="o.material" placeholder="IRON_INGOT" />
+              <input class="adm-input" style="margin-top:6px" v-model="o.display_name" placeholder="Название варианта" />
+            </div>
+            <button class="adm-btn adm-btn--ghost adm-btn--sm" :disabled="form.options.length >= 9" @click="addOption">+ Вариант</button>
           </template>
           <template v-else-if="form.reward_type === 'item'">
             <div class="bpr-grid2">
@@ -472,14 +586,21 @@ const typeLabel = { command: 'Команда', item: 'Предмет', money: '�
                 <input class="adm-input adm-mono" v-model="form.material" placeholder="DIAMOND" />
               </div>
               <div>
-                <label class="adm-label">Кол-во</label>
-                <input class="adm-input" type="number" min="1" max="6400" v-model.number="form.count" />
+                <label class="adm-label">Кол-во от / до</label>
+                <div style="display:flex;gap:6px">
+                  <input class="adm-input" type="number" min="1" max="6400" v-model.number="form.count" />
+                  <input class="adm-input" type="number" min="1" max="6400" v-model.number="form.count_max" placeholder="—" />
+                </div>
               </div>
             </div>
           </template>
           <template v-else-if="form.reward_type === 'command'">
-            <label class="adm-label">Команда <span style="color:var(--adm-faint)">({player} = ник)</span></label>
+            <label class="adm-label">Команда <span style="color:var(--adm-faint)">({player} = ник, {count} = выпавшее количество)</span></label>
             <input class="adm-input adm-mono" v-model="form.command" placeholder="/minecraft:give {player} ae2:drive 1" />
+            <div class="bpr-grid2" style="margin-top:8px">
+              <div><label class="adm-label">Кол-во от</label><input class="adm-input" type="number" min="1" v-model.number="form.count" /></div>
+              <div><label class="adm-label">до <span style="color:var(--adm-faint)">(нужен {count})</span></label><input class="adm-input" type="number" min="1" v-model.number="form.count_max" /></div>
+            </div>
             <label class="adm-label" style="margin-top:8px">Иконка (item id для WebGUI)</label>
             <input class="adm-input adm-mono" v-model="form.icon" placeholder="ae2:drive" />
           </template>
@@ -532,6 +653,20 @@ const typeLabel = { command: 'Команда', item: 'Предмет', money: '�
         <label class="adm-label" style="margin-top:8px">Количество уровней (кап)</label>
         <input class="adm-input" type="number" min="1" max="500" v-model.number="seasonForm.max_level" />
 
+        <template v-if="seasonMode === 'edit'">
+          <label class="adm-label" style="margin-top:10px">Границы зон</label>
+          <p class="bpr-hint" style="margin:0 0 6px">После уровня N опыт не копится и награды не выдаются, пока игрок не откроет эпоху.</p>
+          <div v-for="(g, i) in seasonForm.gates" :key="i" class="bpr-gate">
+            <span>после ур.</span>
+            <input class="adm-input" type="number" min="1" :max="seasonForm.max_level" v-model.number="g.level" style="width:80px" />
+            <select class="adm-select" v-model="g.tier">
+              <option v-for="[k, lab] in TIERS" :key="k" :value="k">{{ lab }}</option>
+            </select>
+            <button class="adm-btn adm-btn--danger adm-btn--sm" @click="removeGate(i)">✕</button>
+          </div>
+          <button class="adm-btn adm-btn--ghost adm-btn--sm" @click="addGate">+ Граница</button>
+        </template>
+
         <template v-if="seasonMode === 'create'">
           <label class="adm-label" style="margin-top:8px">Скопировать награды из сезона</label>
           <select class="adm-select" v-model="seasonForm.copy_rewards_from">
@@ -555,6 +690,9 @@ const typeLabel = { command: 'Команда', item: 'Предмет', money: '�
 </template>
 
 <style scoped>
+.bpr-opt { padding: 8px 10px; margin-bottom: 8px; border-radius: 10px; background: rgba(255,255,255,.03); border: 1px solid rgba(255,255,255,.07); }
+.bpr-opt__head { display: flex; align-items: center; gap: 8px; margin-bottom: 6px; }
+.bpr-gate { display: flex; align-items: center; gap: 6px; margin-bottom: 6px; font-size: .8rem; }
 .bpr-bar { display: flex; flex-wrap: wrap; gap: 10px; align-items: flex-end; justify-content: space-between; margin-bottom: 6px; }
 .bpr-bar__left { display: flex; gap: 8px; align-items: center; }
 .bpr-seasonmeta { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; justify-content: space-between; padding: 8px 12px; margin: 4px 0 2px; border-radius: 10px; background: rgba(255,255,255,.03); border: 1px solid rgba(255,255,255,.06); }

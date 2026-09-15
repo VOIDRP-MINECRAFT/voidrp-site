@@ -89,6 +89,18 @@ function onTrackWheel(e) {
 }
 
 function money(v) { return Number(v || 0).toLocaleString('ru-RU', { maximumFractionDigits: 0 }) }
+// Random amounts come as a lower bound + *_max; show "от–до".
+function amountRange(r) { return r.amount_max ? `${money(r.amount)}–${money(r.amount_max)}` : money(r.amount) }
+function countRange(r) { return r.count_max ? `${r.count}–${r.count_max}` : String(r.count) }
+function isChoice(r) { return r && r.type === 'choice' }
+
+// Zone gates: levels past a closed gate wait for the epoch.
+const firstClosedGate = computed(() => {
+  const gates = [...(track.value?.gates || [])].sort((a, b) => a.level - b.level)
+  return gates.find((g) => !g.unlocked) || null
+})
+function gateAfter(level) { return (track.value?.gates || []).find((g) => g.level === level) || null }
+function isGated(tier) { return !!firstClosedGate.value && tier.level > firstClosedGate.value.level }
 function itemIcon(r) {
   if (!r || r.type !== 'item' || !r.material) return null
   const id = String(r.material).toLowerCase().replace('minecraft:', '')
@@ -103,26 +115,30 @@ function rewardIcon(r) {
 }
 function rewardAmount(r) {
   if (!r) return ''
-  if (r.type === 'money') return money(r.amount)
-  if (r.type === 'voidcoin') return money(r.amount)
-  if (r.type === 'exp') return `${money(r.amount)} XP`
-  return r.count > 1 ? `×${r.count}` : ''
+  if (isChoice(r)) return t('gameUiBattlepass.choiceShort', { n: r.options?.length || 0 })
+  if (r.type === 'money') return amountRange(r)
+  if (r.type === 'voidcoin') return amountRange(r)
+  if (r.type === 'exp') return `${amountRange(r)} XP`
+  return r.count_max ? `×${countRange(r)}` : (r.count > 1 ? `×${r.count}` : '')
 }
 function isVoidReward(r) { return r && r.type === 'voidcoin' }
 // Item texture (vanilla + modded) for item/command rewards; null → use a GuiIcon glyph.
 function rewardItemIcon(r) {
   if (!r) return null
-  if (r.icon && (r.type === 'item' || r.type === 'command')) return r.icon
+  if (r.icon && (r.type === 'item' || r.type === 'command' || r.type === 'choice')) return r.icon
   if (r.type === 'item' && r.material) return `minecraft:${String(r.material).toLowerCase()}`
   return null
 }
 // Hover tooltip: what the reward gives.
 function rewardTip(r) {
   if (!r) return ''
-  if (r.type === 'money') return `${money(r.amount)} монет`
-  if (r.type === 'voidcoin') return `${money(r.amount)} Void Coin`
-  if (r.type === 'exp') return `${money(r.amount)} XP`
-  return r.display_name || (r.count > 1 ? `×${r.count}` : 'Награда')
+  if (isChoice(r)) return `${r.display_name || t('gameUiBattlepass.choice')}: ${(r.options || []).map(rewardTip).join(' / ')}`
+  if (r.type === 'money') return `${amountRange(r)} ${t('gameUiBattlepass.coins')}`
+  if (r.type === 'voidcoin') return `${amountRange(r)} Void Coin`
+  if (r.type === 'exp') return `${amountRange(r)} XP`
+  const name = (r.display_name || t('gameUiBattlepass.reward')).replace(/\s*×\s*[\d–-]+$/, '')
+  if (r.count_max) return `${name} ×${countRange(r)}`
+  return r.display_name || (r.count > 1 ? `×${r.count}` : t('gameUiBattlepass.reward'))
 }
 const tip = ref({ show: false, x: 0, y: 0, text: '', void: false })
 function showTip(e, r) {
@@ -136,18 +152,29 @@ function cellState(tier, premiumTrack) {
   if (!r) return 'empty'
   const claimed = premiumTrack ? tier.premium_claimed : tier.free_claimed
   if (claimed) return 'claimed'
+  if (isGated(tier)) return 'gated'
   const reached = tier.level <= (track.value?.level || 0)
   if (premiumTrack && !track.value?.has_premium) return 'premlock'
   if (reached) return 'ready'
   return 'locked'
 }
 
-async function claim(tier, premiumTrack) {
+// Choice rewards: pick a variant first, then claim with its index.
+const picker = ref(null)
+function closePicker() { picker.value = null }
+
+async function claim(tier, premiumTrack, option = null) {
+  const reward = premiumTrack ? tier.premium : tier.free
+  if (isChoice(reward) && option == null) {
+    picker.value = { tier, premiumTrack, reward }
+    return
+  }
+  picker.value = null
   const key = `${premiumTrack ? 'p' : 'f'}${tier.level}`
   if (claiming.value) return
   claiming.value = key
   try {
-    await runGameCommand(`bp claim ${premiumTrack ? 'premium' : 'free'} ${tier.level}`)
+    await runGameCommand(`bp claim ${premiumTrack ? 'premium' : 'free'} ${tier.level}${option != null ? ' ' + option : ''}`)
     show(t('gameUiBattlepass.claimed'), true)
     setTimeout(load, 1600)
   } catch (e) {
@@ -240,7 +267,8 @@ async function claim(tier, premiumTrack) {
             </div>
 
             <div class="track-scroll" @wheel="onTrackWheel">
-              <div v-for="tier in track.levels" :key="tier.level" class="tier">
+              <template v-for="tier in track.levels" :key="tier.level">
+              <div class="tier">
                 <div class="cell" :class="cellState(tier, false)" @mouseenter="showTip($event, tier.free)" @mouseleave="hideTip">
                   <template v-if="tier.free">
                     <div class="cell-ico">
@@ -250,9 +278,9 @@ async function claim(tier, premiumTrack) {
                     <div class="cell-amt gp-num">{{ rewardAmount(tier.free) }}</div>
                     <div class="cell-foot">
                       <span v-if="cellState(tier,false)==='claimed'" class="ok"><GuiIcon name="check" :size="14" /></span>
-                      <span v-else-if="cellState(tier,false)==='locked'" class="lock"><GuiIcon name="lock" :size="13" /></span>
+                      <span v-else-if="cellState(tier,false)==='locked' || cellState(tier,false)==='gated'" class="lock"><GuiIcon name="lock" :size="13" /></span>
                       <button v-else-if="cellState(tier,false)==='ready'" class="claim-btn" :disabled="claiming===`f${tier.level}`" @click="claim(tier,false)">
-                        {{ claiming===`f${tier.level}` ? '…' : t('gameUiBattlepass.take') }}
+                        {{ claiming===`f${tier.level}` ? '…' : (isChoice(tier.free) ? t('gameUiBattlepass.pick') : t('gameUiBattlepass.take')) }}
                       </button>
                     </div>
                   </template>
@@ -269,14 +297,20 @@ async function claim(tier, premiumTrack) {
                     <div class="cell-amt gp-num">{{ rewardAmount(tier.premium) }}</div>
                     <div class="cell-foot">
                       <span v-if="cellState(tier,true)==='claimed'" class="ok"><GuiIcon name="check" :size="14" /></span>
-                      <span v-else-if="cellState(tier,true)==='premlock' || cellState(tier,true)==='locked'" class="lock"><GuiIcon name="lock" :size="13" /></span>
+                      <span v-else-if="cellState(tier,true)==='premlock' || cellState(tier,true)==='locked' || cellState(tier,true)==='gated'" class="lock"><GuiIcon name="lock" :size="13" /></span>
                       <button v-else-if="cellState(tier,true)==='ready'" class="claim-btn gold" :disabled="claiming===`p${tier.level}`" @click="claim(tier,true)">
-                        {{ claiming===`p${tier.level}` ? '…' : t('gameUiBattlepass.take') }}
+                        {{ claiming===`p${tier.level}` ? '…' : (isChoice(tier.premium) ? t('gameUiBattlepass.pick') : t('gameUiBattlepass.take')) }}
                       </button>
                     </div>
                   </template>
                 </div>
               </div>
+              <div v-if="gateAfter(tier.level) && tier.level < track.levels[track.levels.length - 1].level" class="zone-gate" :class="{ open: gateAfter(tier.level).unlocked }">
+                <GuiIcon :name="gateAfter(tier.level).unlocked ? 'check' : 'lock'" :size="16" />
+                <span class="zone-gate-lbl">{{ gateAfter(tier.level).unlocked ? t('gameUiBattlepass.zoneOpen') : t('gameUiBattlepass.zoneNeeds') }}</span>
+                <span class="zone-gate-tier">{{ gateAfter(tier.level).label }}</span>
+              </div>
+              </template>
             </div>
           </div>
           <div class="track-note"><GuiIcon name="sparkles" :size="14" />{{ t('gameUiBattlepass.premiumNote') }}</div>
@@ -287,6 +321,29 @@ async function claim(tier, premiumTrack) {
     <transition name="gp-toast">
       <div v-if="toast" class="gp-toast" :class="toast.ok ? 'gp-toast--ok' : 'gp-toast--err'">
         <GuiIcon :name="toast.ok ? 'check' : 'alert'" :size="16" /><span>{{ toast.text }}</span>
+      </div>
+    </transition>
+
+    <!-- choice picker -->
+    <transition name="gp-toast">
+      <div v-if="picker" class="bp-pick-back" @click.self="closePicker">
+        <div class="bp-pick gp-card">
+          <div class="bp-pick-head">
+            <span class="bp-pick-title">{{ picker.reward.display_name || t('gameUiBattlepass.choice') }}</span>
+            <span class="bp-pick-lvl">{{ t('gameUiBattlepass.level') }} {{ picker.tier.level }}</span>
+          </div>
+          <div class="bp-pick-hint">{{ t('gameUiBattlepass.pickHint') }}</div>
+          <div class="bp-pick-grid">
+            <button v-for="(o, i) in picker.reward.options" :key="i" class="bp-pick-opt" :class="{ gold: picker.premiumTrack }" @click="claim(picker.tier, picker.premiumTrack, i)">
+              <span class="cell-ico">
+                <ItemIcon v-if="rewardItemIcon(o)" :itemKey="rewardItemIcon(o)" :size="34" />
+                <GuiIcon v-else :name="rewardIcon(o)" :size="30" class="cell-gi" />
+              </span>
+              <span class="bp-pick-name">{{ rewardTip(o) }}</span>
+            </button>
+          </div>
+          <button class="gp-btn gp-btn--ghost gp-btn--sm" @click="closePicker">{{ t('gameUiBattlepass.cancel') }}</button>
+        </div>
       </div>
     </transition>
 
@@ -403,6 +460,37 @@ async function claim(tier, premiumTrack) {
 
 .track-note { display: flex; align-items: center; gap: 7px; margin-top: 12px; font-size: 0.76rem; color: var(--gp-ink-dim); }
 .track-note svg { color: var(--gp-gold); }
+
+/* ── zone gates ── */
+.cell.gated { opacity: 0.42; filter: grayscale(0.6); }
+.zone-gate {
+  flex-shrink: 0; width: 86px; align-self: stretch; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 6px;
+  border-radius: 14px; padding: 8px; text-align: center; scroll-snap-align: start;
+  border: 1px dashed rgba(251,191,36,0.55); background: repeating-linear-gradient(135deg, rgba(251,191,36,0.08) 0 8px, transparent 8px 16px);
+  color: #fbbf24;
+}
+.zone-gate.open { border-color: rgba(52,211,153,0.5); background: rgba(52,211,153,0.06); color: var(--gp-green); }
+.zone-gate-lbl { font-size: 0.6rem; font-weight: 800; letter-spacing: 0.06em; text-transform: uppercase; color: var(--gp-ink-soft); }
+.zone-gate-tier { font-size: 0.72rem; font-weight: 800; line-height: 1.15; }
+
+/* ── choice picker ── */
+.bp-pick-back { position: fixed; inset: 0; z-index: 80; display: grid; place-items: center; padding: 16px; background: rgba(6,8,16,0.72); }
+.bp-pick { width: min(560px, 100%); display: flex; flex-direction: column; gap: 12px; padding: 18px; }
+.bp-pick-head { display: flex; align-items: baseline; justify-content: space-between; gap: 10px; }
+.bp-pick-title { font-size: 1.05rem; font-weight: 900; color: #f4f7ff; }
+.bp-pick-lvl { font-size: 0.74rem; font-weight: 800; color: var(--gp-ink-soft); }
+.bp-pick-hint { font-size: 0.76rem; color: var(--gp-ink-dim); }
+.bp-pick-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 10px; }
+.bp-pick-opt {
+  display: flex; flex-direction: column; align-items: center; gap: 6px; padding: 12px 10px; border-radius: 12px; cursor: pointer;
+  font-family: inherit; color: #eef2ff; border: 1px solid rgba(52,211,153,0.35); background: rgba(52,211,153,0.06);
+  transition: border-color .15s, background .15s, transform .1s;
+}
+.bp-pick-opt:hover { border-color: rgba(52,211,153,0.7); background: rgba(52,211,153,0.12); }
+.bp-pick-opt.gold { border-color: rgba(251,191,36,0.35); background: rgba(251,191,36,0.06); }
+.bp-pick-opt.gold:hover { border-color: rgba(251,191,36,0.7); background: rgba(251,191,36,0.12); }
+.bp-pick-opt:active { transform: scale(0.97); }
+.bp-pick-name { font-size: 0.76rem; font-weight: 700; text-align: center; line-height: 1.25; }
 
 /* ── season finale banner ── */
 .bp-finale { display: flex; align-items: center; gap: 12px; margin-bottom: 14px; padding: 12px 16px; border-radius: 14px;
