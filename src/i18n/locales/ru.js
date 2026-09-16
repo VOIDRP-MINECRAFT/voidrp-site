@@ -707,6 +707,10 @@ emailDomainNotice: 'Только российские почтовые серв�
     bpNoData: 'Войди на сервер чтобы появился прогресс',
   },
   publicProfile: {
+    youFollow: 'Вы подписаны',
+    relFriend: 'Друг',
+    relFollowsYou: 'Подписан на вас',
+    level: 'Уровень',
     player: 'Игрок',
     inGameAs: 'в игре',
     copyLink: 'Скопировать ссылку',

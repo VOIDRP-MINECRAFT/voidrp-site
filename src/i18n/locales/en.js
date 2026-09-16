@@ -707,6 +707,10 @@ export default {
     bpNoData: 'Join the server to see your progress',
   },
   publicProfile: {
+    youFollow: 'Following',
+    relFriend: 'Friend',
+    relFollowsYou: 'Follows you',
+    level: 'Level',
     player: 'Player',
     inGameAs: 'in game',
     copyLink: 'Copy link',
