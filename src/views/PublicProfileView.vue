@@ -8,6 +8,7 @@ import { useAuthStore } from '../stores/authStore'
 import { getBattlePassProfileByNick } from '../services/battlepassApi'
 import { serverFeatureEnabled } from '../stores/serverStore'
 import { filledSocialLinks } from '../utils/socialLinks.js'
+import { accentVars } from '../utils/accentColor.js'
 
 const { t, locale } = useI18n()
 const route = useRoute()
@@ -44,22 +45,6 @@ const socialLinks = computed(() => filledSocialLinks(profile.value?.social_links
 const nation = computed(() => profile.value?.nation || null)
 const nationLink = computed(() => (nation.value?.slug ? `/nation/${nation.value.slug}` : ''))
 
-function hexToRgb(hex) {
-  const v = String(hex || '').replace('#', '')
-  const n = v.length === 3 ? v.split('').map((x) => x + x).join('') : v
-  if (!/^[0-9a-f]{6}$/i.test(n)) return [139, 92, 246]
-  const i = Number.parseInt(n, 16)
-  return [(i >> 16) & 255, (i >> 8) & 255, i & 255]
-}
-// WCAG relative luminance: decides text colour on the accent and keeps near-black accents visible.
-function luminance([r, g, b]) {
-  const c = [r, g, b].map((x) => { const v = x / 255; return v <= 0.03928 ? v / 12.92 : ((v + 0.055) / 1.055) ** 2.4 })
-  return 0.2126 * c[0] + 0.7152 * c[1] + 0.0722 * c[2]
-}
-function mix([r, g, b], [r2, g2, b2], t) {
-  return [r + (r2 - r) * t, g + (g2 - g) * t, b + (b2 - b) * t].map(Math.round)
-}
-
 function hexToRgba(hex, alpha) {
   const v = String(hex || '').replace('#', '')
   const n = v.length === 3 ? v.split('').map((x) => x + x).join('') : v
@@ -68,22 +53,7 @@ function hexToRgba(hex, alpha) {
   return `rgba(${(i >> 16) & 255}, ${(i >> 8) & 255}, ${i & 255}, ${alpha})`
 }
 
-// Players pick any accent, from pure white to pure black. Buttons get readable ink either way,
-// and an accent too dark to see on the dark page is lifted towards white for lines and glows.
-const pageVars = computed(() => {
-  const rgb = hexToRgb(accent.value)
-  const lum = luminance(rgb)
-  const ui = lum < 0.06 ? mix(rgb, [255, 255, 255], 0.45) : rgb
-  const css = (c, a = 1) => `rgba(${c[0]}, ${c[1]}, ${c[2]}, ${a})`
-  return {
-    '--pp-accent': css(rgb),
-    '--pp-accent-ui': css(ui),
-    '--pp-on-accent': lum > 0.45 ? '#0e0c18' : '#ffffff',
-    '--pp-accent-soft': css(ui, 0.14),
-    '--pp-accent-line': css(ui, 0.4),
-    '--pp-accent-glow': css(ui, 0.28),
-  }
-})
+const pageVars = computed(() => accentVars(accent.value, '--pp'))
 
 const bannerStyle = computed(() => (bannerUrl.value
   ? { backgroundImage: `url(${bannerUrl.value})` }
@@ -135,15 +105,6 @@ const statTiles = computed(() => {
     { key: 'streak', value: num(s.best_kill_streak), label: t('publicProfile.stat.streak') },
   ]
 })
-// Simplified brand glyphs, filled, 24px grid.
-const SOCIAL_ICONS = {
-  twitch: 'M4.5 2 3 5.8V20h4.8v2.5h2.7L13 20h3.8L21 15.8V2Zm14.8 12.9-2.7 2.7h-4.3l-2.3 2.3v-2.3H6.3V3.7h13Zm-3.4-7.6h-1.7v5h1.7Zm-4.6 0H9.6v5h1.7Z',
-  youtube: 'M22 8.1a3 3 0 0 0-2.1-2.1C18 5.5 12 5.5 12 5.5s-6 0-7.9.5A3 3 0 0 0 2 8.1 31 31 0 0 0 1.5 12a31 31 0 0 0 .5 3.9 3 3 0 0 0 2.1 2.1c1.9.5 7.9.5 7.9.5s6 0 7.9-.5a3 3 0 0 0 2.1-2.1 31 31 0 0 0 .5-3.9 31 31 0 0 0-.5-3.9ZM10 15.2V8.8l5.2 3.2Z',
-  tiktok: 'M16.6 2h-3.3v13.3a2.9 2.9 0 1 1-2-2.8V9.1a6.3 6.3 0 1 0 5.3 6.2V8.6A7.9 7.9 0 0 0 21 10V6.7a4.4 4.4 0 0 1-4.4-4.4Z',
-  telegram: 'M21.4 3.6 2.9 10.7c-1.3.5-1.2 1.2-.2 1.5l4.7 1.5 1.8 5.6c.2.6.1.9.8.9.5 0 .7-.2 1-.5l2.3-2.2 4.8 3.5c.9.5 1.5.2 1.7-.8l3.2-15c.3-1.3-.5-1.9-1.6-1.1ZM9.6 14.1l-.4 4 -1.4-4.6 10.9-6.9Z',
-  discord: 'M19.3 5.3A16.5 16.5 0 0 0 15.2 4l-.5 1a15.3 15.3 0 0 0-5.4 0l-.5-1a16.4 16.4 0 0 0-4.1 1.3C2.1 9.2 1.4 13 1.7 16.7a16.6 16.6 0 0 0 5 2.5l1.1-1.7a10.7 10.7 0 0 1-1.7-.8l.4-.3a11.8 11.8 0 0 0 11 0l.4.3-1.7.8 1.1 1.7a16.5 16.5 0 0 0 5-2.5c.4-4.3-.7-8.1-3-11.4ZM8.5 14.4c-1 0-1.8-.9-1.8-2s.8-2 1.8-2 1.8.9 1.8 2-.8 2-1.8 2Zm7 0c-1 0-1.8-.9-1.8-2s.8-2 1.8-2 1.8.9 1.8 2-.8 2-1.8 2Z',
-  vk: 'M13.2 18.5C6.4 18.5 2.5 13.8 2.3 6h3.4c.1 5.7 2.6 8.2 4.6 8.7V6h3.2v4.9c2-.2 4-2.5 4.8-4.9h3.2a9.4 9.4 0 0 1-4.4 6.2 9.9 9.9 0 0 1 5.1 6.3h-3.5a6.2 6.2 0 0 0-5.2-4.5v4.5Z',
-}
 
 const achievements = computed(() => (gameStats.value?.achievements || []).filter((a) => a.unlocked))
 const hasGameData = computed(() => {
@@ -319,7 +280,7 @@ onBeforeUnmount(() => document.documentElement.style.removeProperty('--route-bg'
             <div v-if="socialLinks.length" class="pp-links">
               <a v-for="link in socialLinks" :key="link.key" :href="link.url" target="_blank" rel="noopener noreferrer nofollow"
                  class="pp-link" :style="{ '--chip': link.color }">
-                <svg class="pp-link__ico" viewBox="0 0 24 24" aria-hidden="true"><path :d="SOCIAL_ICONS[link.key]" /></svg>
+                <svg class="pp-link__ico" viewBox="0 0 24 24" aria-hidden="true"><path :d="link.icon" /></svg>
                 {{ link.label }}
               </a>
             </div>
