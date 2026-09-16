@@ -1754,6 +1754,7 @@ emailDomainNotice: 'Только российские почтовые серв�
       weekly_challenge: 'Челленджи недели',
       login_streak: 'Серия входов',
       battlepass: 'Уровни пропуска',
+      tip: 'Подсказки для новичков',
     },
   },
   gameUiNotifications: {

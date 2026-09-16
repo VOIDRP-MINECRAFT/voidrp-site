@@ -1754,6 +1754,7 @@ export default {
       weekly_challenge: 'Weekly challenges',
       login_streak: 'Login streak',
       battlepass: 'Battle pass levels',
+      tip: 'Tips for newcomers',
     },
   },
   gameUiNotifications: {

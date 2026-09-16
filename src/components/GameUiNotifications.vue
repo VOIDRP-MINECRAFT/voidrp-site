@@ -12,7 +12,7 @@ const guiSettings = useGameUiSettings()
 const webguiToken = useWebGuiToken()
 
 // Known page keys → route path; toast route-actions open the interactive GUI here.
-const PAGES = new Set(['menu','market','nmarket','treasury','research','alliance','battlepass','quests','leaderboards','notifications'])
+const PAGES = new Set(['menu','market','nmarket','treasury','research','alliance','battlepass','quests','leaderboards','notifications','welcome'])
 // Tolerate old producers that sent "game-ui-battlepass" instead of the "battlepass" key.
 function pageKey(payload) {
   if (!payload) return null
@@ -32,7 +32,7 @@ const AUTO_MS = 12000
 const MAX = 4
 
 // Known GuiIcon names; anything else is treated as a Minecraft item texture.
-const ICONS = new Set(['battlepass','crown','coins','alliance','quest','treasury','tech','users','gift','trophy','shield','bell','market','star','sparkles'])
+const ICONS = new Set(['battlepass','crown','coins','alliance','quest','treasury','tech','users','gift','trophy','shield','bell','market','star','sparkles','grid','flame','pickaxe','skull','globe'])
 
 function isItemIcon(n) { return n.icon && !ICONS.has(n.icon) }
 function itemUrl(id) { return `/item-icons/minecraft/${String(id).toLowerCase().replace('minecraft:','')}.png` }
