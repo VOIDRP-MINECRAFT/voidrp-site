@@ -1537,6 +1537,62 @@ export default {
     notifications: 'Alerts',
     settings: 'Settings',
     close: 'Close',
+    guide: 'Guide',
+  },
+  gameUiWelcome: {
+    "kicker": "Newcomer guide",
+    "stepOf": "Step {n} of {total}",
+    "back": "Back",
+    "next": "Next",
+    "done": "Got it, let's play!",
+    "foot": "You can reopen this guide any time: the Guide button in the left menu, the menu opens with F6.",
+    "steps": {
+      "dark": {
+        "title": "Welcome to VoidRP",
+        "l1": "It is truly dark here: without light you see nothing at night or in caves.",
+        "l2": "Your inventory already has a starter kit — torches and food. Light up wherever you build.",
+        "l3": "Hunger and mobs are dangerous from the first minutes, don't wander far without food."
+      },
+      "place": {
+        "title": "Find a place for your base",
+        "l1": "[[/rtp]] — teleport to a random spot far from spawn.",
+        "l2": "[[/sethome name]] — save a point, [[/home name]] — return to it.",
+        "l3": "[[/spawn]] — back to spawn if you get lost."
+      },
+      "team": {
+        "title": "Build a team",
+        "l1": "[[/ftbteams party create name]] — create your team.",
+        "l2": "[[/ftbteams party invite nick]] — invite a friend, they accept in chat.",
+        "l3": "[[/ftbteams party allies add nick]] — let an ally into your land without a shared team."
+      },
+      "claim": {
+        "title": "Claim your land",
+        "l1": "Open the big map — the [[M]] key.",
+        "l2": "Hold the left mouse button and select chunks — they become yours, others can't break blocks or open chests.",
+        "l3": "Claims are shared by the whole team, so create a team first."
+      },
+      "battlepass": {
+        "title": "Battle pass",
+        "l1": "Pass XP comes from mining, crafting, bosses and daily quests. Open it with [[/bp]] or the button below.",
+        "l2": "500 levels: money, resources, Void Coin and often a reward of your choice. Level 1 gives a pistol.",
+        "l3": "Every 100 levels is a new zone, unlocked by the next progression epoch.",
+        "open": "Open battle pass"
+      },
+      "epochs": {
+        "title": "Progression epochs",
+        "l1": "Mechanisms → Steel → Energy → Automation → Industry → Quantum and beyond.",
+        "l2": "An epoch unlocks by itself the first time its key item lands in your inventory.",
+        "l3": "Epochs show up in the server rankings and unlock battle pass zones.",
+        "open": "Open rankings"
+      },
+      "menu": {
+        "title": "Server menu",
+        "l1": "[[F6]] — main menu: market, nations, treasury, quests, upgrader, settings.",
+        "l2": "Join a nation or found your own — nations share a treasury, research and alliances.",
+        "l3": "Questions — ask in chat, players and staff will help. Good luck!",
+        "open": "Open menu"
+      }
+    }
   },
   gameUiCosmetics: {
     cancel: 'Cancel',

@@ -56,6 +56,7 @@ const items = [
   { key: 'nmarket',    icon: 'globe',      route: 'game-ui-nmarket' },
   { key: 'battlepass', icon: 'battlepass', route: 'game-ui-battlepass' },
   { key: 'cosmetics',  icon: 'user',       route: 'game-ui-cosmetics' },
+  { key: 'guide',      icon: 'clipboard',  route: 'game-ui-welcome' },
   { key: 'settings',   icon: 'settings',   route: 'game-ui-settings' },
 ]
 

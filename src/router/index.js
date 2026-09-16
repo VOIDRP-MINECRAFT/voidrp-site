@@ -29,6 +29,7 @@ const routes = [
   { path: '/game-ui/leaderboards', name: 'game-ui-leaderboards', component: () => import('../views/GameUiLeaderboardsView.vue'), meta: { title: 'Лидерборды', hidePublicShell: true } },
   { path: '/game-ui/upgrader', name: 'game-ui-upgrader', component: () => import('../views/GameUiUpgraderView.vue'), meta: { title: 'Апгрейдер', hidePublicShell: true } },
   { path: '/game-ui/notifications', name: 'game-ui-notifications', component: () => import('../views/GameUiNotificationsView.vue'), meta: { title: 'Уведомления', hidePublicShell: true } },
+  { path: '/game-ui/welcome', name: 'game-ui-welcome', component: () => import('../views/GameUiWelcomeView.vue'), meta: { title: 'Гайд новичка', hidePublicShell: true } },
   { path: '/game-ui/settings', name: 'game-ui-settings', component: () => import('../views/GameUiSettingsView.vue'), meta: { title: 'Настройки', hidePublicShell: true } },
   { path: '/game-ui/voxel-editor', name: 'game-ui-voxel-editor', component: () => import('../views/GameUiVoxelEditorView.vue'), meta: { title: 'Voxel Engine — редактор', hidePublicShell: true } },
   { path: '/game-ui/voxel-hud', name: 'game-ui-voxel-hud', component: () => import('../views/GameUiVoxelHudView.vue'), meta: { title: 'Voxel HUD', hidePublicShell: true } },
