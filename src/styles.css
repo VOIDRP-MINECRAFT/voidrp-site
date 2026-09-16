@@ -1026,6 +1026,13 @@ footer,
   max-width: 1400px;
 }
 
+/* The shell is capped at 1400px, so a wide screen adds no room: the version/IP line
+   squeezed the brand down to "Void…". Drop that line on desktop and keep the name whole. */
+@media (min-width: 1500px) {
+  .site-navbar__meta { display: none; }
+  .site-navbar__brand { flex-shrink: 0; }
+}
+
 /* Progressively trim non-essential chrome so the desktop bar never overflows. */
 @media (min-width: 1120px) and (max-width: 1499px) {
   .site-navbar__meta { display: none; }
@@ -1033,7 +1040,7 @@ footer,
 
 /* When every feature tab is enabled the nav is at its widest — drop the
    brand text entirely (logo stays) so links can never overlap it. */
-@media (min-width: 1120px) and (max-width: 1399px) {
+@media (min-width: 1120px) and (max-width: 1499px) {
   .site-navbar__brand-text { display: none; }
   .site-navbar__brand { gap: 0; }
 }
