@@ -1558,7 +1558,7 @@ export default {
     "back": "Back",
     "next": "Next",
     "done": "Got it, let's play!",
-    "foot": "You can reopen this guide any time: the Guide button in the left menu, the menu opens with F6.",
+    "foot": "Reopen this guide any time: the /guide command or the Guide button in the menu (F6).",
     "steps": {
       "dark": {
         "title": "Welcome to VoidRP",
