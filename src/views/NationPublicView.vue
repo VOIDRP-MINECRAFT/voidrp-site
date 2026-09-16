@@ -2,8 +2,9 @@
 import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { RouterLink, useRoute } from 'vue-router'
 import { useI18n } from 'vue-i18n'
-import { siteConfig } from '../config.site'
 import NationActivityFeed from '../features/nations/components/NationActivityFeed.vue'
+import NationTerritoryCard from '../features/nations/components/NationTerritoryCard.vue'
+import { useNationTerritory } from '../features/nations/composables/useNationTerritory.js'
 import {
   approveNationRequest,
   getMyNation,
@@ -41,8 +42,6 @@ const stats = ref(null)
 const activity = ref([])
 const transactions = ref([])
 const donors = ref([])
-const territory = ref(null)     // summary from the FTB claims export, null = no claims
-const liveMap = ref(false)
 
 // ── look ────────────────────────────────────────────────────
 function hexToRgba(hex, alpha) {
@@ -109,36 +108,7 @@ function txLabel(item) {
 }
 
 // ── territory & map ─────────────────────────────────────────
-function bluemapUrl(x, z, world, distance = 300) {
-  return `${siteConfig.bluemapUrl}/#${world || 'world'}:${Math.round(x)}:64:${Math.round(z)}:${Math.round(distance)}:0:0:0:0:flat`
-}
-const mainArea = computed(() => territory.value?.areas?.[0] || null)
-// Claims win over the manually entered capital: they are where the nation really is.
-const mapTarget = computed(() => {
-  const a = mainArea.value
-  if (a) {
-    const [x0, z0, x1, z1] = a.main_bbox || a.bbox
-    return { x: a.center.x, z: a.center.z, world: a.map, distance: Math.min(3000, Math.max(220, Math.max(x1 - x0, z1 - z0) * 1.6)), auto: true }
-  }
-  const n = nation.value
-  if (n?.capital_x != null && n?.capital_z != null) return { x: n.capital_x, z: n.capital_z, world: n.capital_world, distance: 400, auto: false }
-  return null
-})
-const mapUrl = computed(() => (mapTarget.value ? bluemapUrl(mapTarget.value.x, mapTarget.value.z, mapTarget.value.world, mapTarget.value.distance) : siteConfig.bluemapUrl))
-
-// Mini map: outline of the main piece of land, framed with a margin and a chunk grid.
-const miniMap = computed(() => {
-  const a = mainArea.value
-  if (!a) return null
-  const [x0, z0, x1, z1] = a.main_bbox || a.bbox
-  const pad = Math.max(48, Math.max(x1 - x0, z1 - z0) * 0.18)
-  let vx = x0 - pad, vz = z0 - pad, vw = x1 - x0 + pad * 2, vh = z1 - z0 + pad * 2
-  // Keep a 16:10 frame so the card doesn't jump in height between nations.
-  const ratio = 16 / 10
-  if (vw / vh < ratio) { const nw = vh * ratio; vx -= (nw - vw) / 2; vw = nw } else { const nh = vw / ratio; vz -= (nh - vh) / 2; vh = nh }
-  const path = a.loops.map((loop) => `M${loop.map(([x, z]) => `${x},${z}`).join('L')}Z`).join('')
-  return { viewBox: `${vx} ${vz} ${vw} ${vh}`, path, cx: a.center.x, cz: a.center.z, r: Math.max(vw, vh) * 0.012, stroke: Math.max(vw, vh) * 0.004, grid: 16 * Math.max(1, Math.round(vw / 16 / 40)) }
-})
+const { territory, mainArea, mapTarget, mapUrl, miniMap, load: loadTerritory } = useNationTerritory(() => route.params.slug, nation)
 
 // ── viewer state ────────────────────────────────────────────
 const isAuthenticated = computed(() => auth.isAuthenticated.value)
@@ -204,16 +174,6 @@ async function loadDonors() {
   donorsLoading.value = true
   try { donors.value = (await getNationTopDonors(route.params.slug, auth.accessToken || null))?.items || [] } catch { donors.value = [] } finally { donorsLoading.value = false }
 }
-// Written every 5 minutes by scripts/update_bluemap_ftb_claims.py next to the BlueMap web app.
-async function loadTerritory() {
-  try {
-    const res = await fetch(`${siteConfig.bluemapUrl}/ftb-claims/nations.json`, { cache: 'no-cache' })
-    const data = res.ok ? await res.json() : null
-    territory.value = data?.nations?.[route.params.slug] || null
-  } catch {
-    territory.value = null
-  }
-}
 
 async function handleJoin() {
   if (!nation.value || !auth.accessToken || !(canJoinDirectly.value || canRequestJoin.value)) return
@@ -253,7 +213,6 @@ async function handleReject(requestId) {
 }
 
 async function loadPage() {
-  liveMap.value = false
   await Promise.all([loadNation(), loadCurrentNation(), loadStats(), loadActivity(), loadTreasury(), loadDonors(), loadTerritory()])
 }
 
@@ -332,43 +291,7 @@ onBeforeUnmount(() => document.documentElement.style.removeProperty('--route-bg'
               <p class="na-desc">{{ nation.description }}</p>
             </section>
 
-            <!-- territory -->
-            <section class="na-card na-terr">
-              <div class="na-card__top">
-                <div>
-                  <h2 class="na-h">{{ t('nationPublic.territoryTitle') }}</h2>
-                  <p class="na-muted">{{ territory ? t('nationPublic.territoryAuto') : t('nationPublic.territoryNone') }}</p>
-                </div>
-                <a :href="mapUrl" target="_blank" rel="noopener" class="na-btn na-btn--sm">{{ t('nationPublic.openMap') }}</a>
-              </div>
-
-              <div v-if="miniMap || liveMap" class="na-terr__body">
-                <div class="na-mini">
-                  <iframe v-if="liveMap" :src="mapUrl" class="na-mini__frame" :title="t('nationPublic.territoryTitle')" loading="lazy" referrerpolicy="no-referrer"></iframe>
-                  <template v-else-if="miniMap">
-                    <svg class="na-mini__svg" :viewBox="miniMap.viewBox" preserveAspectRatio="xMidYMid meet" role="img" :aria-label="t('nationPublic.territoryTitle')">
-                      <defs>
-                        <pattern :id="`na-grid-${nation.slug}`" :width="miniMap.grid" :height="miniMap.grid" patternUnits="userSpaceOnUse">
-                          <path :d="`M${miniMap.grid} 0H0V${miniMap.grid}`" fill="none" stroke="rgba(255,255,255,0.05)" :stroke-width="miniMap.stroke * 0.5" />
-                        </pattern>
-                      </defs>
-                      <rect x="-100000" y="-100000" width="200000" height="200000" :fill="`url(#na-grid-${nation.slug})`" />
-                      <path :d="miniMap.path" fill-rule="evenodd" class="na-mini__land" :stroke-width="miniMap.stroke" />
-                      <circle :cx="miniMap.cx" :cy="miniMap.cz" :r="miniMap.r * 2.2" class="na-mini__halo" />
-                      <circle :cx="miniMap.cx" :cy="miniMap.cz" :r="miniMap.r" class="na-mini__dot" />
-                    </svg>
-                    <button type="button" class="na-mini__live" @click="liveMap = true">{{ t('nationPublic.liveMap') }}</button>
-                  </template>
-                </div>
-                <dl v-if="mainArea" class="na-terr__facts">
-                  <div><dt>{{ t('nationPublic.terrSize') }}</dt><dd>{{ t('nationPublic.chunks', { n: formatNumber(territory.chunks) }) }}</dd></div>
-                  <div><dt>{{ t('nationPublic.terrArea') }}</dt><dd>{{ t('nationPublic.blocks', { n: formatNumber(territory.chunks * 256) }) }}</dd></div>
-                  <div><dt>{{ t('nationPublic.terrCenter') }}</dt><dd class="na-mono na-coords"><span>X {{ mainArea.center.x }}</span><span>Z {{ mainArea.center.z }}</span></dd></div>
-                  <div v-if="mainArea.parts > 1"><dt>{{ t('nationPublic.terrParts') }}</dt><dd>{{ mainArea.parts }}</dd></div>
-                </dl>
-              </div>
-              <p v-else-if="mapTarget" class="na-muted na-terr__capital">{{ t('nationPublic.capitalAt', { x: mapTarget.x, z: mapTarget.z }) }}</p>
-            </section>
+            <NationTerritoryCard :slug="nation.slug" :territory="territory" :main-area="mainArea" :mini-map="miniMap" :map-url="mapUrl" :map-target="mapTarget" />
 
             <!-- members -->
             <section class="na-card">
@@ -582,7 +505,7 @@ a.na-chip:hover { border-color: var(--na-accent-line); background: var(--na-acce
 .na-btn--primary { min-width: 150px; color: var(--na-on-accent); background: var(--na-accent); border-color: transparent; box-shadow: 0 10px 30px -10px var(--na-accent-glow), 0 0 0 1px rgba(255, 255, 255, 0.12) inset; }
 .na-btn--primary:hover { background: var(--na-accent); filter: brightness(1.08); }
 .na-btn--sm { height: 36px; padding: 0 14px; font-size: 0.86rem; border-radius: 10px; min-width: 0; }
-.na-btn:focus-visible, .na-chip:focus-visible, .na-member:focus-visible, .na-ally:focus-visible, .na-link:focus-visible, .na-mini__live:focus-visible { outline: 2px solid var(--na-accent-ui); outline-offset: 2px; }
+.na-btn:focus-visible, .na-chip:focus-visible, .na-member:focus-visible, .na-ally:focus-visible, .na-link:focus-visible { outline: 2px solid var(--na-accent-ui); outline-offset: 2px; }
 
 .na-stats { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); margin: 0; border-top: 1px solid var(--n-line); background: rgba(0, 0, 0, 0.14); }
 .na-stat { display: flex; flex-direction: column-reverse; gap: 4px; padding: 16px 24px; border-left: 1px solid var(--n-line); min-width: 0; }
@@ -609,27 +532,6 @@ a.na-chip:hover { border-color: var(--na-accent-line); background: var(--na-acce
 .na-stack { display: flex; flex-direction: column; gap: 8px; margin-top: 14px; }
 .na-row { display: flex; gap: 8px; margin-top: 10px; }
 .na-mono { font-variant-numeric: tabular-nums; }
-
-/* territory */
-.na-terr__body { display: grid; grid-template-columns: minmax(0, 1fr) 210px; gap: 18px; align-items: stretch; }
-.na-mini { position: relative; aspect-ratio: 16 / 10; border-radius: 14px; overflow: hidden; background: radial-gradient(120% 100% at 50% 50%, rgba(255, 255, 255, 0.03), transparent 70%), #0b0916; border: 1px solid var(--n-line); }
-.na-mini__svg, .na-mini__frame { position: absolute; inset: 0; width: 100%; height: 100%; border: 0; display: block; }
-.na-mini__land { fill: var(--na-accent-soft); stroke: var(--na-accent-ui); stroke-linejoin: round; }
-.na-mini__halo { fill: var(--na-accent-glow); }
-.na-mini__dot { fill: var(--na-accent-ui); stroke: #0b0916; stroke-width: 0; }
-.na-mini__live {
-  position: absolute; right: 12px; bottom: 12px; height: 34px; padding: 0 12px; border-radius: 10px; cursor: pointer;
-  font: inherit; font-size: 0.84rem; font-weight: 700; color: #fff; background: rgba(10, 8, 18, 0.75); border: 1px solid rgba(255, 255, 255, 0.18); backdrop-filter: blur(8px);
-}
-.na-mini__live:hover { background: rgba(10, 8, 18, 0.9); }
-.na-terr__facts { margin: 0; display: flex; flex-direction: column; justify-content: center; }
-.na-terr__facts > div { padding: 10px 0; border-top: 1px solid var(--n-line); }
-.na-terr__facts > div:first-child { border-top: 0; }
-.na-terr__facts dt { font-size: 0.84rem; color: var(--n-muted); }
-.na-terr__facts dd { margin: 2px 0 0; font-size: 1.05rem; font-weight: 800; }
-.na-terr__capital { margin-top: 0; }
-.na-coords { display: flex; flex-wrap: wrap; gap: 0 12px; }
-.na-coords span { white-space: nowrap; }
 
 /* members */
 .na-members { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(auto-fill, minmax(190px, 1fr)); gap: 8px; }
@@ -725,9 +627,6 @@ a.na-chip:hover { border-color: var(--na-accent-line); background: var(--na-acce
   .na-stat:nth-child(n + 3) { border-top: 1px solid var(--n-line); }
   .na-stat dd { font-size: 1.2rem; }
   .na-card { padding: 18px; }
-  .na-terr__body { grid-template-columns: minmax(0, 1fr); }
-  .na-terr__facts { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0 14px; }
-  .na-terr__facts > div:nth-child(2) { border-top: 0; }
   .na-card__top { flex-wrap: wrap; }
   .na-since { margin-left: 0; flex-basis: 100%; }
 }
