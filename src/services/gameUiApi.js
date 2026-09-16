@@ -106,6 +106,14 @@ export function getTreasurySummary() {
 
 // ── Battle Pass reward track ──────────────────────────────────────────────────
 
+// In-game roadmap: static stages + what this player has reached (epochs + key items).
+export function getGuideRoadmap() {
+  return req('/game-ui/guide/roadmap')
+}
+export function getGuideProgress() {
+  return req('/game-ui/guide/progress')
+}
+
 export function getBpTrack() {
   return req('/game-ui/battlepass/track')
 }

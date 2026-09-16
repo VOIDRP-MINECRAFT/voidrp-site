@@ -20,12 +20,13 @@ const items = ref([])
 const loading = ref(true)
 const error = ref(null)
 
-const ICONS = new Set(['battlepass','crown','coins','alliance','quest','treasury','tech','users','gift','trophy','shield','bell','market','star','sparkles','grid','flame','pickaxe','skull','globe'])
+const ICONS = new Set(['battlepass','crown','coins','alliance','quest','treasury','tech','users','gift','trophy','shield','bell','market','star','sparkles','grid','flame','pickaxe','skull','globe','map'])
 const PAGE_ROUTES = {
   menu: 'game-ui-menu', market: 'game-ui-market', nmarket: 'game-ui-nmarket',
   treasury: 'game-ui-treasury', research: 'game-ui-research', alliance: 'game-ui-alliance',
   battlepass: 'game-ui-battlepass', quests: 'game-ui-quests', leaderboards: 'game-ui-leaderboards',
   welcome: 'game-ui-welcome',
+  roadmap: 'game-ui-roadmap',
 }
 
 function isItemIcon(n) { return n.icon && !ICONS.has(n.icon) }

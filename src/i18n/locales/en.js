@@ -1551,6 +1551,24 @@ export default {
     settings: 'Settings',
     close: 'Close',
     guide: 'Guide',
+    roadmap: 'Roadmap',
+  },
+  gameUiRoadmap: {
+    title: 'Server roadmap',
+    stageOf: 'Stage {n} of {total}',
+    allDone: 'The whole path is complete',
+    nextStep: 'Next step',
+    noToken: 'Open the roadmap in game to see your progress.',
+    loadError: 'Could not load the roadmap',
+    stagesAria: 'Progression stages',
+    branch: 'Optional branch',
+    stageDone: 'Completed',
+    youAreHere: 'You are here',
+    ahead: 'Ahead',
+    gate: 'Unlocks an epoch',
+    now: 'Now',
+    branches: 'Side branches',
+    branchesSub: 'Take them in any order. They make you stronger but are not required for the main path.',
   },
   gameUiWelcome: {
     "kicker": "Newcomer guide",
@@ -1596,7 +1614,8 @@ export default {
         "l1": "Mechanisms → Steel → Energy → Automation → Industry → Quantum and beyond.",
         "l2": "An epoch unlocks by itself the first time its key item lands in your inventory.",
         "l3": "Epochs show up in the server rankings and unlock battle pass zones.",
-        "open": "Open rankings"
+        "l4": "The roadmap shows where to go next: [[/roadmap]] or the menu entry.",
+        "open": "Open the roadmap"
       },
       "menu": {
         "title": "Server menu",

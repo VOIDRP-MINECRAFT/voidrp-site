@@ -25,7 +25,7 @@ const STEPS = [
   { key: 'team', icon: 'users' },
   { key: 'claim', icon: 'shield' },
   { key: 'battlepass', icon: 'battlepass', page: 'game-ui-battlepass' },
-  { key: 'epochs', icon: 'trophy', page: 'game-ui-leaderboards' },
+  { key: 'epochs', icon: 'map', page: 'game-ui-roadmap' },
   { key: 'menu', icon: 'home', page: 'game-ui-menu' },
 ]
 
