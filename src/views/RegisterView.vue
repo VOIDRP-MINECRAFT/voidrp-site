@@ -23,6 +23,8 @@ const isSubmitting = ref(false)
 const agreedToTerms = ref(false)
 // Consent to personal data processing is a separate checkbox, apart from the offer (152-FZ art. 9).
 const agreedToConsent = ref(false)
+// Consent to make data public (152-FZ art. 10.1): optional, each category chosen explicitly.
+const distribution = reactive({ profile: false, map: false, purchases: false })
 const isCheckingReferral = ref(false)
 const showPassword = ref(false)
 const showPasswordRepeat = ref(false)
@@ -110,6 +112,11 @@ async function submit() {
       password: form.password,
       password_repeat: form.password_repeat,
       referral_code: form.referral_code.trim() || null,
+      accept_offer: agreedToTerms.value,
+      accept_personal_data: agreedToConsent.value,
+      distribution_profile: distribution.profile,
+      distribution_map: distribution.map,
+      distribution_purchases: distribution.purchases,
     })
 
     await router.push({
@@ -270,6 +277,17 @@ watch(referralMessage, (value) => { if (value) toastInfo(value, t('register.refe
                   <RouterLink to="/privacy" target="_blank" class="font-bold text-violet-300 transition hover:text-violet-200">{{ t('register.privacy') }}</RouterLink>
                 </span>
               </label>
+              <fieldset class="rounded-[1.1rem] border border-white/10 bg-slate-950/45 px-4 py-3">
+                <legend class="px-1 text-xs font-bold text-slate-300">{{ t('register.distributionTitle') }}</legend>
+                <p class="text-xs leading-5 text-slate-500">
+                  {{ t('register.distributionHint') }}
+                  <RouterLink to="/distribution" target="_blank" class="font-bold text-violet-300 transition hover:text-violet-200">{{ t('register.distributionDoc') }}</RouterLink>
+                </p>
+                <label v-for="key in ['profile', 'map', 'purchases']" :key="key" class="mt-2 flex cursor-pointer items-start gap-3">
+                  <input v-model="distribution[key]" type="checkbox" class="mt-0.5 h-4 w-4 shrink-0 cursor-pointer accent-violet-500" />
+                  <span class="text-xs leading-5 text-slate-400">{{ t(`register.distribution.${key}`) }}</span>
+                </label>
+              </fieldset>
             </div>
 
             <div class="md:col-span-2 flex flex-col gap-3 pt-1 sm:flex-row sm:items-center sm:justify-between">

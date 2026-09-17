@@ -322,9 +322,10 @@ onBeforeUnmount(() => {
             <h2 class="sh-h">{{ t('shop.recentTitle') }}</h2>
             <ul class="sh-recent__list">
               <li v-for="pay in lastPayments" :key="pay.id">
-                <img :src="`/api/v1/public/player-head/${encodeURIComponent(pay.customer || '')}`" alt="" class="sh-recent__head" loading="lazy" @error="(e) => { e.currentTarget.style.visibility = 'hidden' }" />
+                <img v-if="pay.customer" :src="`/api/v1/public/player-head/${encodeURIComponent(pay.customer)}`" alt="" class="sh-recent__head" loading="lazy" @error="(e) => { e.currentTarget.style.visibility = 'hidden' }" />
+                <span v-else class="sh-recent__head sh-recent__head--anon" aria-hidden="true">?</span>
                 <span class="sh-recent__text">
-                  <b>{{ pay.customer }}</b>
+                  <b :class="{ 'sh-anon': !pay.customer }">{{ pay.customer || t('shop.hiddenBuyer') }}</b>
                   <span>{{ (pay.products || []).map((p) => p.name).join(', ') }}</span>
                 </span>
                 <span class="sh-recent__meta">
@@ -490,6 +491,8 @@ onBeforeUnmount(() => {
 .sh-recent__list { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
 .sh-recent__list li { display: grid; grid-template-columns: 34px minmax(0, 1fr) auto; gap: 10px; align-items: center; padding: 10px 12px; border-radius: 14px; border: 1px solid var(--s-line); background: rgba(19, 16, 33, 0.6); }
 .sh-recent__head { width: 34px; height: 34px; border-radius: 8px; image-rendering: pixelated; background: #1a1530; }
+.sh-recent__head--anon { display: grid; place-items: center; font-weight: 800; color: rgba(255, 255, 255, 0.35); }
+.sh-anon { color: var(--s-muted); font-weight: 600; }
 .sh-recent__text, .sh-recent__meta { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
 .sh-recent__text b { font-size: 0.9rem; }
 .sh-recent__text span { font-size: 0.8rem; color: var(--s-muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }

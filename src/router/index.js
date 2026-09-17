@@ -42,6 +42,7 @@ const routes = [
   { path: '/links', name: 'links', component: () => import('../views/LinksView.vue'), meta: { title: 'Ссылки' } },
   { path: '/privacy', name: 'privacy-policy', component: () => import('../views/PrivacyPolicyView.vue'), meta: { title: 'Политика конфиденциальности' } },
   { path: '/offer', name: 'offer-agreement', component: () => import('../views/OfferAgreementView.vue'), meta: { title: 'Договор оферты' } },
+  { path: '/distribution', name: 'distribution-consent', component: () => import('../views/DistributionConsentView.vue'), meta: { title: 'Согласие на распространение персональных данных' } },
   { path: '/consent', name: 'personal-data-consent', component: () => import('../views/PersonalDataConsentView.vue'), meta: { title: 'Согласие на обработку персональных данных' } },
   { path: '/login', name: 'login', component: () => import('../views/LoginView.vue'), meta: { title: 'Вход', guestOnly: true } },
   { path: '/register', name: 'register', component: () => import('../views/RegisterView.vue'), meta: { title: 'Регистрация', guestOnly: true } },

@@ -16,6 +16,7 @@ import {
   uploadBanner,
 } from '../services/profileApi'
 import { toastError, toastSuccess } from '../services/toast'
+import { getMyConsents, updateMyConsents } from '../services/consentApi'
 import { useAuthStore } from '../stores/authStore'
 
 const { t } = useI18n()
@@ -39,6 +40,30 @@ const profile = ref(null)
 const busy = reactive({ avatar: false, banner: false, background: false })
 const fileInputs = { avatar: ref(null), banner: ref(null), background: ref(null) }
 const snapshot = ref('')
+const distribution = reactive({ profile: false, map: false, purchases: false })
+const distributionSaving = ref(false)
+
+async function loadDistribution() {
+  try {
+    Object.assign(distribution, (await getMyConsents(authStore.accessToken)).distribution || {})
+  } catch { /* the block stays with everything off */ }
+}
+
+async function toggleDistribution(key, value) {
+  const previous = distribution[key]
+  distribution[key] = value
+  distributionSaving.value = true
+  try {
+    const status = await updateMyConsents(authStore.accessToken, { distribution: { ...distribution } })
+    Object.assign(distribution, status.distribution || {})
+    toastSuccess(t('editProfile.distributionSaved'))
+  } catch (err) {
+    distribution[key] = previous
+    toastError(err.message || t('editProfile.saveError'))
+  } finally {
+    distributionSaving.value = false
+  }
+}
 
 const form = reactive({
   slug: '',
@@ -206,6 +231,7 @@ function beforeUnload(e) {
 onBeforeRouteLeave(() => (dirty.value ? window.confirm(t('editProfile.leaveConfirm')) : true))
 onMounted(() => {
   load()
+  loadDistribution()
   window.addEventListener('beforeunload', beforeUnload)
 })
 onBeforeUnmount(() => window.removeEventListener('beforeunload', beforeUnload))
@@ -374,6 +400,18 @@ onBeforeUnmount(() => window.removeEventListener('beforeunload', beforeUnload))
               <label class="ed-toggle">
                 <span><b>{{ t('editProfile.friendsList') }}</b><span>{{ t('editProfile.friendsListDesc') }}</span></span>
                 <input v-model="form.allow_friends_list_public" type="checkbox" class="ed-switch" />
+              </label>
+            </div>
+          </section>
+
+          <!-- consent to publication (152-FZ art. 10.1), saved on toggle -->
+          <section class="ed-card">
+            <h2 class="ed-h">{{ t('editProfile.distributionTitle') }}</h2>
+            <p class="ed-hint">{{ t('editProfile.distributionHint') }} <RouterLink to="/distribution" class="ed-link">{{ t('register.distributionDoc') }}</RouterLink></p>
+            <div class="ed-toggles">
+              <label v-for="key in ['profile', 'map', 'purchases']" :key="key" class="ed-toggle">
+                <span><b>{{ t(`editProfile.distribution.${key}.title`) }}</b><span>{{ t(`editProfile.distribution.${key}.desc`) }}</span></span>
+                <input type="checkbox" class="ed-switch" :checked="distribution[key]" :disabled="distributionSaving" @change="toggleDistribution(key, $event.target.checked)" />
               </label>
             </div>
           </section>
@@ -565,6 +603,7 @@ onBeforeUnmount(() => window.removeEventListener('beforeunload', beforeUnload))
 
 /* privacy */
 .ed-toggles { display: flex; flex-direction: column; margin-top: 8px; }
+.ed-link { color: #c4b5fd; font-weight: 700; text-decoration: underline; text-underline-offset: 3px; }
 .ed-toggle { display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 14px 0; border-top: 1px solid var(--e-line); cursor: pointer; }
 .ed-toggle:first-child { border-top: 0; }
 .ed-toggle > span { display: flex; flex-direction: column; gap: 3px; }
