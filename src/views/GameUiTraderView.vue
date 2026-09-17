@@ -225,7 +225,7 @@ const itemName = (key) => (state.value?.stock || []).find((s) => s.item_key === 
                   <ItemIcon :itemKey="tx.item_key" :size="22" />
                   <span class="tr-recent__name">{{ itemName(tx.item_key) }}</span>
                   <span class="tr-recent__qty">{{ tx.status === 'done' ? tx.qty_done : tx.qty_requested }} ×</span>
-                  <span class="tr-recent__sum" :class="tx.side">{{ tx.status === 'done' ? (tx.side === 'buy' ? '+' : '−') + fmt(tx.total) : t(`gameUiTrader.status.${tx.status}`) }}</span>
+                  <span class="tr-recent__sum" :class="tx.status === 'done' ? tx.side : 'muted'">{{ tx.status === 'done' ? (tx.side === 'buy' ? '+' : '−') + fmt(tx.total) : t(`gameUiTrader.status.${tx.status}`) }}</span>
                 </li>
               </ul>
             </section>
@@ -263,7 +263,7 @@ const itemName = (key) => (state.value?.stock || []).find((s) => s.item_key === 
                     <button type="button" class="gp-btn gp-btn--ghost gp-btn--sm" :disabled="busy || qty >= maxQty" @click="setQty(qty + 1)">+</button>
                   </span>
                   <span class="tr-qty__presets">
-                    <button v-for="n in [16, 64, 256]" :key="n" type="button" class="gp-btn gp-btn--ghost gp-btn--sm" :disabled="busy || maxQty < 1" @click="setQty(n)">{{ n }}</button>
+                    <button v-for="n in [16, 64, 256].filter((x) => x < maxQty)" :key="n" type="button" class="gp-btn gp-btn--ghost gp-btn--sm" :disabled="busy || maxQty < 1" @click="setQty(n)">{{ n }}</button>
                     <button type="button" class="gp-btn gp-btn--ghost gp-btn--sm" :disabled="busy || maxQty < 1" @click="setQty(maxQty)">{{ t('gameUiTrader.max') }} {{ fmt(maxQty) }}</button>
                   </span>
                 </label>
@@ -346,6 +346,7 @@ const itemName = (key) => (state.value?.stock || []).find((s) => s.item_key === 
 .tr-recent__sum { font-weight: 800; font-variant-numeric: tabular-nums; }
 .tr-recent__sum.buy { color: var(--gp-green); }
 .tr-recent__sum.sell { color: var(--gp-red); }
+.tr-recent__sum.muted { font-weight: 600; color: var(--gp-ink-dim); }
 
 /* Selected lot. */
 .tr-panel { position: sticky; top: 12px; padding: 18px; border-top: 3px solid var(--tr-accent); }
