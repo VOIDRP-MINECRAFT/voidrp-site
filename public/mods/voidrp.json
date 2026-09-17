@@ -882,6 +882,13 @@
   "description_ru": "Поддержка Create Aeronautics/Sable для телепортеров, стабилизаторов, передатчиков, ветрогенераторов и других машин Mekanism на движущихся конструкциях."
  },
  {
+  "id": "aeronautics_utility_objects",
+  "name": "Create Aeronautics: Transmission & Linkage",
+  "description": "Adds universal joints, hydraulic links and kinetic converters for connecting and transmitting motion between Aeronautics structures.",
+  "version": "0.2.8",
+  "description_ru": "Карданные шарниры, гидравлические тяги и кинетические преобразователи: соединяют конструкции Create Aeronautics и передают между ними вращение."
+ },
+ {
   "id": "createbigcannons",
   "name": "Create Big Cannons",
   "description": "Artillery engineering comes to Create Attributions: Logo by Milkyfur Textures by rbasamoyai, Milkyfur, and LopyLuna",
