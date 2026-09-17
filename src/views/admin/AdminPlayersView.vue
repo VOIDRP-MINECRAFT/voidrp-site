@@ -169,6 +169,37 @@ async function patchPlayer(playerAccountId, payload) {
   }
 }
 
+// Через что игрок обычно заходит: считаем входы по всем серверам.
+function clientTotals(item) {
+  return (item.servers || []).reduce(
+    (acc, srv) => ({
+      launcher: acc.launcher + (srv.launcher_logins || 0),
+      external: acc.external + (srv.external_logins || 0),
+    }),
+    { launcher: 0, external: 0 },
+  )
+}
+
+function clientLabel(item) {
+  const { launcher, external } = clientTotals(item)
+  if (launcher && external) return 'смешанно'
+  if (launcher) return 'лаунчер'
+  if (external) return 'сторонний'
+  return '—'
+}
+
+function clientBadge(item) {
+  const { launcher, external } = clientTotals(item)
+  if (launcher && !external) return 'adm-badge--ok'
+  if (external && !launcher) return 'adm-badge--warn'
+  return 'adm-badge--acc'
+}
+
+function clientTitle(item) {
+  const { launcher, external } = clientTotals(item)
+  return `Через лаунчер: ${launcher}, через сторонний клиент: ${external}`
+}
+
 function formatDate(iso) {
   if (!iso) return '—'
   return new Date(iso).toLocaleString('ru-RU', {
@@ -221,7 +252,9 @@ onMounted(load)
               <th>Ник</th>
               <th>Почта</th>
               <th>Почта ✓</th>
-              <th>Сессии</th>
+              <th>Серверы</th>
+              <th>Вход</th>
+              <th>Регистрация</th>
               <th>Legacy</th>
               <th>Статус</th>
               <th>Создан</th>
@@ -238,7 +271,26 @@ onMounted(load)
                   {{ item.user.email_verified ? 'Да' : 'Нет' }}
                 </span>
               </td>
-              <td class="adm-num" style="text-align: center">{{ item.diagnostics.refresh_sessions_active }}</td>
+              <td class="cell-servers">
+                <span v-if="!item.servers.length" class="cell-dim">—</span>
+                <span
+                  v-for="srv in item.servers"
+                  :key="srv.server_slug"
+                  class="adm-badge"
+                  :title="`${srv.server_name} · последний вход ${formatDate(srv.last_seen_at)}`"
+                >{{ srv.server_slug }}</span>
+              </td>
+              <td>
+                <span v-if="!item.servers.length" class="cell-dim">—</span>
+                <span v-else class="adm-badge" :class="clientBadge(item)" :title="clientTitle(item)">
+                  {{ clientLabel(item) }}
+                </span>
+              </td>
+              <td>
+                <span class="adm-badge" :class="item.registration_source === 'game' ? 'adm-badge--acc' : ''">
+                  {{ item.registration_source === 'game' ? ('в игре' + (item.registration_server_slug ? ' · ' + item.registration_server_slug : '')) : 'сайт' }}
+                </span>
+              </td>
               <td>
                 <span class="adm-badge" :class="item.player_account.legacy_auth_enabled ? 'adm-badge--acc' : ''">
                   {{ item.player_account.legacy_auth_enabled ? 'Вкл' : 'Выкл' }}
