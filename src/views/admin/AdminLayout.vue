@@ -122,8 +122,12 @@ const isAdmin = computed(() => !!authState.user?.is_admin)
 // nav item visible if: adminOnly→full admin; else no perm→any staff; else holds perm.
 // item.feature → opt-in per-server: shown only when the active server explicitly
 // has features[feature] === true (unlike serverFeatureEnabled which is opt-out).
+// item.serverFeature → opt-out per-server: hidden only when the active server has
+// features[serverFeature] === false, so a section can be switched off for one server
+// and brought back from the server card without touching other servers.
 function canSee(item) {
   if (item.feature && activeServer.value?.features?.[item.feature] !== true) return false
+  if (item.serverFeature && activeServer.value?.features?.[item.serverFeature] === false) return false
   if (item.adminOnly) return isAdmin.value
   if (Array.isArray(item.anyPerm)) return item.anyPerm.some((p) => hasPermission(p))
   if (!item.perm) return true
@@ -145,13 +149,13 @@ const navGroups = computed(() => {
       scoped: true,
       items: [
         { to: '/admin/monitoring', label: 'Мониторинг', icon: icons.monitoring, perm: 'monitoring.view' },
-        { to: '/admin/mods', label: 'Моды', icon: icons.mods, perm: 'mods.view' },
+        { to: '/admin/mods', label: 'Моды', icon: icons.mods, perm: 'mods.view', serverFeature: 'mods' },
         { to: '/admin/auth', label: 'Авторизация', icon: icons.servers, perm: 'servers.manage' },
-        { to: '/admin/market', label: 'Рынок', icon: icons.market, perm: 'market.view' },
-        { to: '/admin/upgrader', label: 'Апгрейдер', icon: icons.market, perm: 'upgrader.view' },
-        { to: '/admin/trader', label: 'Скупщик', icon: icons.market, perm: 'trader.view' },
-        { to: '/admin/nations', label: 'Государства', icon: icons.nations, perm: 'nations.view' },
-        { to: '/admin/battlepass', label: 'Battle Pass', icon: icons.battlepass, perm: 'battlepass.view' },
+        { to: '/admin/market', label: 'Рынок', icon: icons.market, perm: 'market.view', serverFeature: 'economy' },
+        { to: '/admin/upgrader', label: 'Апгрейдер', icon: icons.market, perm: 'upgrader.view', serverFeature: 'upgrader' },
+        { to: '/admin/trader', label: 'Скупщик', icon: icons.market, perm: 'trader.view', serverFeature: 'trader' },
+        { to: '/admin/nations', label: 'Государства', icon: icons.nations, perm: 'nations.view', serverFeature: 'nations' },
+        { to: '/admin/battlepass', label: 'Battle Pass', icon: icons.battlepass, perm: 'battlepass.view', serverFeature: 'battlepass' },
         { to: '/admin/anticheat', label: 'Античит', icon: icons.anticheat, perm: 'anticheat.view' },
         { to: '/admin/punishments', label: 'Наказания', icon: icons.anticheat, perm: 'punishments.view' },
         { to: '/admin/voxel', label: 'Voxel Engine', icon: icons.voxel, perm: 'voxel.view', feature: 'voxel' },
