@@ -33,9 +33,18 @@ export function openCookieSettings() {
   cookieState.visible = true
 }
 
+// "accepted" turns on analytics (Yandex.Metrika, Google Analytics) right away; "declined" keeps
+// them off. Turning consent off takes effect on the next page load, since loaded counters can't
+// be unloaded from a running page.
 export function setCookieChoice(value) {
+  const previous = read()
   write(value)
   cookieState.visible = false
+  if (value === 'accepted') {
+    window.voidrpLoadAnalytics?.()
+  } else if (previous === 'accepted') {
+    window.location.reload()
+  }
 }
 
 export function getCookieChoice() {

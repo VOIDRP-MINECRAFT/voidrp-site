@@ -145,7 +145,7 @@ export default {
   },
   cookie: {
     title: 'We use cookies',
-    text: 'Cookies help the site work correctly and remember your preferences.',
+    text: 'Essential cookies keep you signed in and remember your settings. Analytics (Yandex.Metrika, Google Analytics) are turned on only if you press Accept.',
     more: 'Learn more',
     accept: 'Accept',
     decline: 'Essential only',
