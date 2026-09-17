@@ -3386,4 +3386,36 @@ function nationAccent(nation) {
 .faq-item--open .faq-a-wrap { grid-template-rows: 1fr; }
 .faq-a { overflow: hidden; margin: 0; padding: 0 1.25rem; font-size: .88rem; line-height: 1.6; color: #94a0b8; }
 .faq-item--open .faq-a { padding-bottom: 1.15rem; }
+
+/* ════════════════════════════════════
+   PHONES — calm rendering
+   iOS Safari re-rasterizes big blur filters, backdrop blur and animated shadows on every scroll
+   frame, and a tall card sliding in (reveal transform) moves under the finger — together the
+   blocks look like they "float". On touch screens: fade-only reveal, static gradients instead of
+   blurred layers, no backdrop blur and no infinite shadow pulse.
+════════════════════════════════════ */
+@media (max-width: 768px), (hover: none) {
+  [data-reveal] { transform: none; transition: opacity .5s ease; }
+  [data-reveal].is-revealed { transform: none; }
+
+  .launcher-card, .cta-card, .bp-card { isolation: isolate; }
+  .launcher-card { padding: 1.6rem 1.25rem; gap: 1.6rem; border-radius: 22px; }
+  .launcher-card__glow, .bp-card__glow, .cta-card__glow { filter: none; }
+  .launcher-card__glow {
+    width: 100%; height: 70%; top: 0; left: 0; border-radius: 0;
+    background: radial-gradient(ellipse at 20% 0%, rgba(var(--srv-deep-rgb),.22), transparent 70%);
+  }
+  .bp-card__glow {
+    width: 100%; height: 70%; top: 0; left: 0; border-radius: 0;
+    background: radial-gradient(ellipse at 20% 0%, rgba(251,191,36,.08), transparent 70%);
+  }
+  .cta-card__glow {
+    width: 100%; height: 60%; top: 0; left: 0; transform: none; border-radius: 0;
+    background: radial-gradient(ellipse at 50% 0%, rgba(var(--srv-deep-rgb),.2), transparent 70%);
+  }
+  .cta-card__orb, .cta-card__beam { display: none; }
+
+  .launcher-download-box { backdrop-filter: none; -webkit-backdrop-filter: none; background: rgba(255,255,255,.05); padding: 1.35rem 1.1rem; }
+  .ldb-btn { animation: none; box-shadow: 0 0 32px rgba(var(--srv-deep-rgb),.45); }
+}
 </style>
