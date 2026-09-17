@@ -312,7 +312,7 @@ onBeforeUnmount(() => {
               {{ t('shop.receiptTo', { email: auth.state.user?.email || '—' }) }}
             </p>
             <p class="sh-cart__fine">
-              {{ t('shop.payAgreePre') }}<RouterLink to="/offer">{{ t('shop.payAgreeOffer') }}</RouterLink>{{ t('shop.payAgreePost') }}
+              {{ t('shop.payAgreePre') }}<RouterLink to="/offer">{{ t('shop.payAgreeOffer') }}</RouterLink>{{ t('shop.payAgreeMid') }}<RouterLink to="/paid-terms">{{ t('shop.payAgreePaid') }}</RouterLink>{{ t('shop.payAgreePost') }}
             </p>
           </div>
         </aside>

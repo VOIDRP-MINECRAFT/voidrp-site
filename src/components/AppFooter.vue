@@ -45,6 +45,8 @@ function switchLang(lang) {
         <span class="footer-sep">·</span>
         <RouterLink to="/offer" class="footer-policy-link">{{ t('footer.offer') }}</RouterLink>
         <span class="footer-sep">·</span>
+        <RouterLink to="/paid-terms" class="footer-policy-link">{{ t('footer.paidTerms') }}</RouterLink>
+        <span class="footer-sep">·</span>
         <button type="button" class="footer-policy-link footer-policy-btn" @click="openCookieSettings">
           {{ t('footer.cookieSettings') }}
         </button>

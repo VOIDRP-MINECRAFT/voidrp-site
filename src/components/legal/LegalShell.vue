@@ -1,5 +1,5 @@
 <script setup>
-import { onBeforeUnmount, onMounted, ref } from 'vue'
+import { computed, onBeforeUnmount, onMounted, ref } from 'vue'
 
 // Shared frame for the legal documents (offer, privacy policy): header, a table of contents that
 // follows the reader, a collapsible contents list on phones, and the typography of the sections.
@@ -8,12 +8,19 @@ const props = defineProps({
   title: { type: String, required: true },
   lead: { type: String, default: '' },
   updatedAt: { type: String, required: true },
+  effectiveFrom: { type: String, default: '' },
   email: { type: String, required: true },
-  toc: { type: Array, required: true },            // [{ id, label }]
+  toc: { type: Array, required: true },            // [{ id, label, num? }]; num overrides the position number
   otherDoc: { type: Object, required: true },      // { to, label }
 })
 
 const active = ref(props.toc[0]?.id || '')
+
+// Unnumbered entries (like a short summary) don't shift the numbers of the sections after them.
+const numbered = computed(() => {
+  let n = 0
+  return props.toc.map((item) => ({ ...item, num: item.num ?? String(++n) }))
+})
 let observer = null
 
 onMounted(() => {
@@ -46,6 +53,7 @@ function print() {
         <p v-if="lead" class="lg-lead">{{ lead }}</p>
         <dl class="lg-meta">
           <div><dt>Редакция от</dt><dd>{{ updatedAt }}</dd></div>
+          <div v-if="effectiveFrom"><dt>Действует с</dt><dd>{{ effectiveFrom }}</dd></div>
           <div><dt>Связь</dt><dd><a :href="`mailto:${email}`">{{ email }}</a></dd></div>
           <div class="lg-meta__actions">
             <RouterLink :to="otherDoc.to" class="lg-btn">{{ otherDoc.label }}</RouterLink>
@@ -57,7 +65,7 @@ function print() {
       <details class="lg-toc-mobile">
         <summary>Содержание</summary>
         <ol>
-          <li v-for="(item, i) in toc" :key="item.id"><a :href="`#${item.id}`">{{ i + 1 }}. {{ item.label }}</a></li>
+          <li v-for="item in numbered" :key="item.id"><a :href="`#${item.id}`">{{ item.num ? `${item.num}. ` : '' }}{{ item.label }}</a></li>
         </ol>
       </details>
 
@@ -65,9 +73,9 @@ function print() {
         <nav class="lg-toc" aria-label="Содержание">
           <p class="lg-toc__title">Содержание</p>
           <ol>
-            <li v-for="(item, i) in toc" :key="item.id">
+            <li v-for="item in numbered" :key="item.id">
               <a :href="`#${item.id}`" :class="{ on: active === item.id }" :aria-current="active === item.id ? 'true' : undefined">
-                <span class="lg-toc__num">{{ i + 1 }}</span>{{ item.label }}
+                <span class="lg-toc__num">{{ item.num }}</span>{{ item.label }}
               </a>
             </li>
           </ol>
