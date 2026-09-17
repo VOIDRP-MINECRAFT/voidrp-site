@@ -54,6 +54,20 @@ const bpPct = computed(() => {
   return Math.min(100, Math.round((d.bp_xp % 10000) / 100))
 })
 
+// Minutes to the trader's departure or arrival; recomputed with the HUD clock.
+const traderChip = computed(() => {
+  const tr = data.value?.trader
+  if (!tr) return null
+  void clock.value
+  const at = new Date(tr.status === 'active' ? tr.ends_at : tr.starts_at).getTime()
+  const minutes = Math.max(1, Math.round((at - Date.now()) / 60000))
+  if (tr.status === 'active') {
+    const key = tr.kind === 'elite' ? 'gameUiHud.traderElite' : 'gameUiHud.traderHere'
+    return { status: 'active', kind: tr.kind, text: t(key, { m: minutes }) }
+  }
+  return { status: 'soon', kind: '', text: t('gameUiHud.traderSoon', { m: minutes }) }
+})
+
 function tickClock() {
   clock.value = new Date().toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' })
 }
@@ -155,6 +169,12 @@ function openQuests() { runGameCommand('dailyquest').catch(() => {}) }
       <div v-if="data && data.bp_level" class="hud-bp" :class="{ prem: data.bp_has_premium }">
         <span class="hud-bp-lvl"><GuiIcon :name="data.bp_has_premium ? 'crown' : 'battlepass'" :size="12" />LVL {{ data.bp_level }}</span>
         <span class="hud-bp-track"><i :style="{ width: bpPct + '%' }"></i></span>
+      </div>
+
+      <!-- travelling trader: at spawn now / arriving soon -->
+      <div v-if="traderChip" class="hud-trader" :class="[traderChip.status, traderChip.kind]">
+        <GuiIcon name="market" :size="12" />
+        <span>{{ traderChip.text }}</span>
       </div>
 
       <!-- position -->
@@ -323,6 +343,11 @@ function openQuests() { runGameCommand('dailyquest').catch(() => {}) }
 .hud-flash-leave-to { opacity: 0; transform: translateY(-10px); }
 
 /* battle pass mini-bar */
+.hud-trader { display: flex; align-items: center; gap: 6px; padding: 4px 8px; border-radius: 8px; font-size: 0.62rem; font-weight: 800; color: #fcd77a; background: rgba(251, 191, 36, 0.1); border: 1px solid rgba(251, 191, 36, 0.3); }
+.hud-trader svg { color: #fbbf24; flex-shrink: 0; }
+.hud-trader.soon { color: #cbd5e1; background: rgba(148, 163, 184, 0.08); border-color: rgba(148, 163, 184, 0.25); }
+.hud-trader.elite { color: #f5d0fe; background: rgba(232, 121, 249, 0.12); border-color: rgba(232, 121, 249, 0.4); }
+.hud-trader.elite svg { color: #e879f9; }
 .hud-bp { display: flex; align-items: center; gap: 8px; }
 .hud-bp-lvl { display: flex; align-items: center; gap: 4px; font-size: 0.62rem; font-weight: 800; color: #c9beff; flex-shrink: 0; }
 .hud-bp-lvl svg { color: #a78bfa; }

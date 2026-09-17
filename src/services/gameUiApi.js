@@ -295,3 +295,14 @@ export function patchAccountSettings(body) {
 export function dismissNotification(id) {
   return req(`/game-ui/notifications/${id}/dismiss`, { method: 'POST' })
 }
+
+// ── Travelling trader (opened only by right-clicking the NPC at spawn) ─────────
+export function getTraderState() {
+  return req('/game-ui/trader/state')
+}
+export function traderTrade(stockId, qty) {
+  return req('/game-ui/trader/trade', { method: 'POST', body: JSON.stringify({ stock_id: stockId, qty }) })
+}
+export function getTraderTransaction(txId) {
+  return req(`/game-ui/trader/transactions/${encodeURIComponent(txId)}`)
+}
