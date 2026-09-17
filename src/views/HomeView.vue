@@ -835,7 +835,7 @@ function nationAccent(nation) {
         <span class="hero__badge-dot"></span>
         <Transition name="srv-swap" mode="out-in">
           <span :key="activeServer?.slug || 'default'" class="hero__badge-text">
-            <template v-if="activeServer">VoidRP · {{ activeServer.name }} · MC {{ activeServer.mc_version }}</template>
+            <template v-if="activeServer">{{ /^voidrp/i.test(activeServer.name || '') ? '' : 'VoidRP · ' }}{{ activeServer.name }} · MC {{ activeServer.mc_version }}</template>
             <template v-else>VoidRP · Minecraft Roleplay · {{ siteConfig.serverVersion }}</template>
           </span>
         </Transition>
@@ -3129,12 +3129,12 @@ function nationAccent(nation) {
 ════════════════════════════════════ */
 .pulse-section { padding: 0 0 5rem; }
 .pulse-grid {
-  display: grid; grid-template-columns: 1.35fr 1fr; gap: 1.1rem;
+  display: grid; grid-template-columns: minmax(0, 1.35fr) minmax(0, 1fr); gap: 1.1rem;
   margin-top: 2.2rem;
 }
-@media (max-width: 860px) { .pulse-grid { grid-template-columns: 1fr; } }
+@media (max-width: 860px) { .pulse-grid { grid-template-columns: minmax(0, 1fr); } }
 .pulse-grid--single { grid-template-columns: minmax(0, 620px); justify-content: center; }
-.pulse-grid--solo { grid-template-columns: 1fr; }
+.pulse-grid--solo { grid-template-columns: minmax(0, 1fr); }
 .pulse-card--wide { padding: 1.25rem 1.5rem 1.5rem; }
 
 .pulse-card {
@@ -3143,6 +3143,7 @@ function nationAccent(nation) {
   border-radius: 18px;
   padding: 1.1rem 1.25rem 1.25rem;
   backdrop-filter: blur(6px);
+  min-width: 0;
 }
 .pulse-card__head {
   display: flex; align-items: center; justify-content: space-between; gap: .75rem;
@@ -3178,7 +3179,7 @@ function nationAccent(nation) {
 
 /* Podium (solo, full-width) */
 .tp-podium {
-  display: grid; grid-template-columns: 1fr 1fr 1fr; align-items: end;
+  display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); align-items: end;
   gap: .8rem; max-width: 560px; margin: 1.4rem auto .4rem;
 }
 .tp-pod {
@@ -3193,7 +3194,7 @@ function nationAccent(nation) {
 .tp-pod__medal { font-size: 1.5rem; line-height: 1; }
 .tp-pod--1 .tp-pod__medal { font-size: 1.9rem; }
 .tp-pod__nick { font-weight: 800; color: #e8ecf4; font-size: .86rem; text-align: center; max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.tp-pod__value { font-size: .8rem; font-weight: 800; color: var(--srv-pale, #c5a9f5); }
+.tp-pod__value { font-size: .8rem; font-weight: 800; color: var(--srv-pale, #c5a9f5); text-align: center; line-height: 1.3; }
 .tp-pod__base {
   margin-top: .4rem; width: 100%; text-align: center;
   font-size: .8rem; font-weight: 900; color: rgba(255,255,255,.35);
@@ -3202,11 +3203,18 @@ function nationAccent(nation) {
 /* Places 4+ span the full card width in two balanced columns */
 .tp-list--rest {
   max-width: none; margin: .5rem 0 0;
-  display: grid; grid-template-columns: 1fr 1fr; gap: 0 1.5rem;
+  display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0 1.5rem;
   border-top: 1px solid rgba(255,255,255,.06); padding-top: .5rem;
 }
 .tp-list--rest .tp-row { padding: .5rem .5rem; border-radius: 8px; }
-@media (max-width: 620px) { .tp-list--rest { grid-template-columns: 1fr; gap: 0; } }
+@media (max-width: 620px) {
+  .tp-list--rest { grid-template-columns: minmax(0, 1fr); gap: 0; }
+  .pulse-card--wide { padding: 1rem .9rem 1.1rem; }
+  .tp-podium { gap: .45rem; }
+  .tp-pod { padding-inline: .3rem; }
+  .tp-pod__nick { font-size: .78rem; }
+  .tp-pod__value { font-size: .74rem; }
+}
 
 
 .tp-tab {
