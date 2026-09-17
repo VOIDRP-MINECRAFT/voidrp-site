@@ -1,5 +1,5 @@
 <script setup>
-import { computed, onMounted, ref } from 'vue'
+import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { RouterLink, useRoute, useRouter } from 'vue-router'
 import { useI18n } from 'vue-i18n'
 import { createPayment, getDonateProducts, getLastPayments } from '../services/donateApi'
@@ -8,7 +8,7 @@ import { useAuthStore } from '../stores/authStore'
 import { activeServer, fetchServers } from '../stores/serverStore'
 import { usePageAccent } from '../composables/usePageAccent'
 
-const { t } = useI18n()
+const { t, locale } = useI18n()
 const { accentVars } = usePageAccent()
 const auth = useAuthStore()
 const router = useRouter()
@@ -21,15 +21,18 @@ const products = ref([])
 const lastPayments = ref([])
 const cart = ref({})
 const coupon = ref('')
+const couponOpen = ref(false)
 const serverOnline = ref(null)
 const expandedProduct = ref(null)
-const selectedCategory = ref('all')
+const brokenImages = ref(new Set())
+const cartEl = ref(null)
 
 const activeServerName = computed(() => activeServer.value?.name || t('shop.serverFallback'))
-const heroBanner = computed(() => activeServer.value?.banner_url || null)
-const serverIcon = computed(() => activeServer.value?.icon_url || null)
+const nick = computed(() => auth.state.playerAccount?.minecraft_nickname || '')
+const numLocale = computed(() => (String(locale.value).startsWith('en') ? 'en-US' : 'ru-RU'))
+const rub = (v) => `${Number(v || 0).toLocaleString(numLocale.value)} ₽`
 
-// "Хит" badge → the priciest product (best proxy for the flagship offer).
+// "Хит" → the priciest product, the closest thing to a flagship offer.
 const topProductId = computed(() => {
   let best = null
   let max = -1
@@ -37,82 +40,85 @@ const topProductId = computed(() => {
     const price = Number(p.price || 0)
     if (price > max) { max = price; best = p.id }
   }
-  return best
-})
-
-const categories = computed(() => {
-  const cats = [...new Set(products.value.map((p) => p.category).filter(Boolean))]
-  return cats
-})
-
-const filteredProducts = computed(() => {
-  if (selectedCategory.value === 'all' || !categories.value.length) return products.value
-  return products.value.filter((p) => p.category === selectedCategory.value)
+  return products.value.length > 1 ? best : null
 })
 
 const cartItems = computed(() => products.value.filter((p) => cart.value[p.id] > 0))
 const cartCount = computed(() => Object.values(cart.value).reduce((s, n) => s + n, 0))
-const cartTotal = computed(() =>
-  products.value.reduce((sum, p) => sum + (cart.value[p.id] || 0) * Number(p.price || 0), 0),
-)
+const cartTotal = computed(() => products.value.reduce((sum, p) => sum + (cart.value[p.id] || 0) * Number(p.price || 0), 0))
+const cartSaving = computed(() => products.value.reduce((sum, p) => {
+  const old = Number(p.old_price)
+  const cur = Number(p.price)
+  return old > cur ? sum + (cart.value[p.id] || 0) * (old - cur) : sum
+}, 0))
 
 function discountPct(product) {
-  const old = Number(product.old_price)
-  const cur = Number(product.price)
+  const old = Number(product?.old_price)
+  const cur = Number(product?.price)
   if (!old || old <= cur) return null
   return Math.round((1 - cur / old) * 100)
+}
+
+// EasyDonate descriptions are plain text decorated with "▎" bars and often start by repeating
+// the product name; keep the full text for the details view and a clean first sentence for cards.
+function cleanDescription(text) {
+  return String(text || '').replace(/\r/g, '').replace(/^[ \t]*▎[ \t]?/gm, '').replace(/\n{3,}/g, '\n\n').trim()
+}
+function shortDescription(product) {
+  const lines = cleanDescription(product.description).split('\n').map((l) => l.trim()).filter(Boolean)
+  const name = String(product.name || '').toLowerCase()
+  const firstWord = name.split(/[\s—(-]/)[0]
+  const useful = lines.filter((l) => !(firstWord && l.toLowerCase().startsWith(firstWord)) && !/^[•\-]/.test(l))
+  return (useful[0] || lines[0] || '').replace(/^[^\p{L}\p{N}]+/u, '')
+}
+const imageOk = (product) => Boolean(product?.image) && !brokenImages.value.has(product.id)
+function onImageError(product) {
+  brokenImages.value = new Set([...brokenImages.value, product.id])
 }
 
 function addToCart(id) {
   cart.value = { ...cart.value, [id]: (cart.value[id] || 0) + 1 }
 }
-
 function removeFromCart(id) {
   const n = cart.value[id] || 0
-  if (n <= 1) {
-    const c = { ...cart.value }
-    delete c[id]
-    cart.value = c
-  } else {
-    cart.value = { ...cart.value, [id]: n - 1 }
-  }
+  const next = { ...cart.value }
+  if (n <= 1) delete next[id]
+  else next[id] = n - 1
+  cart.value = next
 }
-
 function clearCart() {
   cart.value = {}
   coupon.value = ''
+  couponOpen.value = false
 }
 
 function openDetails(product) {
   expandedProduct.value = product
   document.body.style.overflow = 'hidden'
 }
-
 function closeDetails() {
   expandedProduct.value = null
   document.body.style.overflow = ''
 }
+function onKey(e) {
+  if (e.key === 'Escape' && expandedProduct.value) closeDetails()
+}
 
 function timeAgo(dateStr) {
   if (!dateStr) return ''
-  const date = new Date(dateStr.replace(' ', 'T') + 'Z')
+  const date = new Date(String(dateStr).replace(' ', 'T') + 'Z')
   const diff = (Date.now() - date.getTime()) / 1000
   if (diff < 60) return t('shop.agoNow')
-  if (diff < 3600) return Math.floor(diff / 60) + ' ' + t('shop.agoMin')
-  if (diff < 86400) return Math.floor(diff / 3600) + ' ' + t('shop.agoHour')
-  return Math.floor(diff / 86400) + ' ' + t('shop.agoDay')
+  if (diff < 3600) return `${Math.floor(diff / 60)} ${t('shop.agoMin')}`
+  if (diff < 86400) return `${Math.floor(diff / 3600)} ${t('shop.agoHour')}`
+  return `${Math.floor(diff / 86400)} ${t('shop.agoDay')}`
 }
-
 function pmLabel(type) {
-  return { sbp: 'СБП', card: t('shop.payCard'), qiwi: 'QIWI', yoomoney: 'ЮMoney' }[type] || (type || '').toUpperCase()
+  return { sbp: 'СБП', card: t('shop.payCard'), qiwi: 'QIWI', yoomoney: 'ЮMoney' }[type] || String(type || '').toUpperCase()
 }
 
-function pmClass(type) {
-  return {
-    sbp: 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20',
-    card: 'bg-blue-500/10 text-blue-400 border-blue-500/20',
-    yoomoney: 'bg-[rgba(var(--acc-rgb),0.1)] text-[var(--acc-pale)] border-[rgba(var(--acc-rgb),0.25)]',
-  }[type] || 'bg-slate-700/50 text-slate-400 border-slate-600/30'
+function scrollToCart() {
+  cartEl.value?.scrollIntoView({ behavior: 'smooth', block: 'start' })
 }
 
 async function checkout() {
@@ -123,7 +129,7 @@ async function checkout() {
   if (!cartCount.value) return
   paying.value = true
   try {
-    const result = await createPayment(auth.accessToken, cart.value, coupon.value || null)
+    const result = await createPayment(auth.accessToken, cart.value, coupon.value.trim() || null)
     if (result?.url) {
       clearCart()
       window.location.href = result.url
@@ -139,20 +145,15 @@ async function loadPage() {
   loading.value = true
   error.value = ''
   try {
-    // Gate on the ACTIVE server's status: shop shown only when it's online and
-    // not under maintenance; otherwise we show a named maintenance notice.
+    // The shop sells for the active server only while it is online and not under maintenance.
     await fetchServers()
     const srv = activeServer.value
     serverOnline.value = srv ? (!!srv.status?.online && !srv.maintenance) : true
     if (!serverOnline.value) return
-
-    const [prods, pays] = await Promise.all([
-      getDonateProducts(),
-      getLastPayments().catch(() => []),
-    ])
+    const [prods, pays] = await Promise.all([getDonateProducts(), getLastPayments().catch(() => [])])
     products.value = Array.isArray(prods) ? prods : []
     const paysArr = Array.isArray(pays) ? pays : (pays?.data ?? [])
-    lastPayments.value = paysArr.slice(0, 10)
+    lastPayments.value = paysArr.slice(0, 8)
   } catch (err) {
     error.value = err.message || t('shop.loadError')
   } finally {
@@ -160,426 +161,399 @@ async function loadPage() {
   }
 }
 
+// Keep the cart across a page reload or a trip to the login page.
+const CART_KEY = 'voidrp_shop_cart_v1'
+watch(cart, (value) => {
+  try { sessionStorage.setItem(CART_KEY, JSON.stringify(value)) } catch { /* storage unavailable */ }
+}, { deep: true })
+
 onMounted(() => {
+  try { cart.value = JSON.parse(sessionStorage.getItem(CART_KEY) || '{}') || {} } catch { cart.value = {} }
+  window.addEventListener('keydown', onKey)
   loadPage()
   if (route.query.success) {
     toastSuccess(t('shop.paySuccess'))
+    clearCart()
     router.replace({ path: '/shop' })
   }
+})
+onBeforeUnmount(() => {
+  window.removeEventListener('keydown', onKey)
+  document.body.style.overflow = ''
 })
 </script>
 
 <template>
-  <section class="py-8 md:py-10 auth-page" :style="accentVars">
-    <div class="container-shell space-y-6 page-entry">
-
-      <!-- Hero header -->
-      <div class="relative overflow-hidden rounded-[20px] bg-gradient-to-br from-slate-900 via-slate-900 to-slate-800 p-6 md:p-8 ring-1 ring-slate-700/50">
-        <!-- server banner background (tinted, faded into the card) -->
-        <div v-if="heroBanner" class="shop-hero-banner" :style="{ backgroundImage: `url(${heroBanner})` }" aria-hidden="true" />
-        <div class="shop-hero-veil" aria-hidden="true" />
-        <div class="pointer-events-none absolute -top-10 -right-10 h-56 w-56 rounded-full bg-[rgba(var(--acc-rgb),0.16)] blur-3xl" />
-        <div class="pointer-events-none absolute -bottom-8 left-8 h-40 w-40 rounded-full bg-[rgba(var(--acc-rgb),0.1)] blur-2xl" />
-        <div class="relative">
-          <div class="section-kicker mb-2">{{ t('shop.kicker') }}</div>
-          <h1 class="text-3xl font-black tracking-tight text-slate-50 md:text-4xl">{{ t('shop.title') }}</h1>
-          <p class="mt-2 max-w-xl text-sm leading-relaxed text-slate-400">{{ t('shop.desc') }}</p>
-          <div class="mt-4 flex flex-wrap gap-2">
-            <span class="flex items-center gap-1.5 rounded-full bg-slate-800 px-3 py-1 text-xs font-medium text-slate-400 ring-1 ring-slate-700/60">
-              <svg class="h-3 w-3 text-emerald-400" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M10 1a4.5 4.5 0 00-4.5 4.5V9H5a2 2 0 00-2 2v6a2 2 0 002 2h10a2 2 0 002-2v-6a2 2 0 00-2-2h-.5V5.5A4.5 4.5 0 0010 1zm3 8V5.5a3 3 0 10-6 0V9h6z" clip-rule="evenodd"/></svg>
-              {{ t('shop.trustSafe') }}
-            </span>
-            <span class="flex items-center gap-1.5 rounded-full bg-slate-800 px-3 py-1 text-xs font-medium text-slate-400 ring-1 ring-slate-700/60">
-              <svg class="h-3 w-3 text-[var(--acc-pale)]" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
-              {{ t('shop.trustInstant') }}
-            </span>
-            <span class="flex items-center gap-1.5 rounded-full bg-slate-800 px-3 py-1 text-xs font-medium text-slate-400 ring-1 ring-slate-700/60">
-              <svg class="h-3 w-3 text-amber-400" fill="currentColor" viewBox="0 0 20 20"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"/></svg>
-              {{ t('shop.trustReal') }}
-            </span>
-          </div>
+  <section class="sh-page" :style="accentVars">
+    <div class="container-shell sh">
+      <header class="sh-head">
+        <div>
+          <h1 class="sh-title">{{ t('shop.title') }}</h1>
+          <p class="sh-sub">{{ t('shop.subtitle', { server: activeServerName }) }}</p>
+          <ul class="sh-trust">
+            <li><svg viewBox="0 0 20 20" aria-hidden="true"><path fill-rule="evenodd" d="M10 1a4.5 4.5 0 00-4.5 4.5V9H5a2 2 0 00-2 2v6a2 2 0 002 2h10a2 2 0 002-2v-6a2 2 0 00-2-2h-.5V5.5A4.5 4.5 0 0010 1zm3 8V5.5a3 3 0 10-6 0V9h6z" clip-rule="evenodd"/></svg>{{ t('shop.trustSafe') }}</li>
+            <li><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>{{ t('shop.trustInstant') }}</li>
+            <li><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 21s-7-4.35-7-10a4 4 0 017-2.65A4 4 0 0119 11c0 5.65-7 10-7 10z"/></svg>{{ t('shop.trustSupport') }}</li>
+          </ul>
         </div>
+        <div v-if="nick" class="sh-deliver">
+          <img :src="`/api/v1/public/player-head/${encodeURIComponent(nick)}`" alt="" class="sh-deliver__head" @error="(e) => { e.currentTarget.style.visibility = 'hidden' }" />
+          <span>
+            <span class="sh-deliver__label">{{ t('shop.deliverTo') }}</span>
+            <b>{{ nick }}</b>
+          </span>
+        </div>
+      </header>
+
+      <div v-if="error" class="sh-note sh-note--err">
+        <p>{{ error }}</p>
+        <button type="button" class="sh-btn" @click="loadPage">{{ t('shop.serverOfflineRetry') }}</button>
       </div>
 
-      <div v-if="error" class="alert alert-error">{{ error }}</div>
-
-      <!-- Server offline -->
-      <div v-if="serverOnline === false" class="relative overflow-hidden rounded-[20px] bg-gradient-to-br from-slate-900 via-slate-900 to-slate-800 ring-1 ring-slate-700/50 p-8 flex flex-col items-center gap-5 text-center">
-        <div class="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_at_center,rgba(239,68,68,0.06)_0%,transparent_70%)]" />
-        <div class="relative flex h-20 w-20 items-center justify-center rounded-2xl bg-slate-800 ring-1 ring-red-500/20">
-          <svg class="h-10 w-10 text-red-500/70" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
-            <rect x="2" y="2" width="20" height="8" rx="2"/><rect x="2" y="14" width="20" height="8" rx="2"/>
-            <line x1="6" y1="6" x2="6.01" y2="6"/><line x1="6" y1="18" x2="6.01" y2="18"/>
-            <line x1="17" y1="5" x2="7" y2="19"/>
-          </svg>
-        </div>
-        <div class="relative space-y-1.5">
-          <p class="text-xl font-black text-slate-100">{{ t('shop.serverMaintenanceNamed', { server: activeServerName }) }}</p>
-          <p class="max-w-sm text-sm leading-relaxed text-slate-500">{{ t('shop.serverOfflineDesc') }}</p>
-        </div>
-        <button class="relative flex items-center gap-2 rounded-xl bg-slate-800 px-5 py-2.5 text-sm font-bold text-slate-300 ring-1 ring-slate-700 transition hover:bg-slate-700 hover:text-slate-100 active:scale-95" :disabled="loading" @click="loadPage">
-          <svg class="h-4 w-4" :class="loading ? 'animate-spin' : ''" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg>
-          {{ t('shop.serverOfflineRetry') }}
-        </button>
+      <div v-if="serverOnline === false" class="sh-note">
+        <p class="sh-note__title">{{ t('shop.serverMaintenanceNamed', { server: activeServerName }) }}</p>
+        <p>{{ t('shop.serverOfflineDesc') }}</p>
+        <button type="button" class="sh-btn" :disabled="loading" @click="loadPage">{{ t('shop.serverOfflineRetry') }}</button>
       </div>
 
-      <!-- Main layout -->
-      <div v-if="serverOnline !== false" class="flex flex-col gap-5 lg:flex-row lg:items-start">
-
-        <!-- Product section -->
-        <div class="min-w-0 flex-1">
-
-          <!-- Skeleton -->
-          <div v-if="loading" class="grid gap-4 sm:grid-cols-2">
-            <div v-for="i in 2" :key="i" class="skeleton h-72 rounded-[20px]" />
+      <div v-else class="sh-layout">
+        <div class="sh-main">
+          <div v-if="loading" class="sh-grid">
+            <div v-for="i in 3" :key="i" class="skeleton sh-skel"></div>
           </div>
 
-          <!-- Empty -->
-          <div v-else-if="!products.length" class="surface-card flex flex-col items-center gap-3 p-12 text-center">
-            <div class="flex h-16 w-16 items-center justify-center rounded-2xl bg-slate-800 ring-1 ring-slate-700">
-              <svg class="h-8 w-8 text-slate-600" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4"><path stroke-linecap="round" stroke-linejoin="round" d="M13.5 21v-7.5a.75.75 0 01.75-.75h3a.75.75 0 01.75.75V21m-4.5 0H2.36m11.14 0H18m0 0h3.64m-1.39 0V9.349m-16.5 11.65V9.35m0 0a3.001 3.001 0 003.75-.615A2.993 2.993 0 009.75 9.75c.896 0 1.7-.393 2.25-1.016a2.993 2.993 0 002.25 1.016c.896 0 1.7-.393 2.25-1.016a3.001 3.001 0 003.75.614m-16.5 0a3.004 3.004 0 01-.621-4.72L4.318 3.44A1.5 1.5 0 015.378 3h13.243a1.5 1.5 0 011.06.44l1.19 2.189a3 3 0 01-.621 4.72m-13.5 8.65h3.75a.75.75 0 00.75-.75V13.5a.75.75 0 00-.75-.75H6.75a.75.75 0 00-.75.75v3.75c0 .415.336.75.75.75z" /></svg>
-            </div>
-            <p class="text-base font-bold text-slate-200">{{ t('shop.comingSoon') }}</p>
-            <p class="text-sm text-slate-500">{{ t('shop.comingSoonDesc') }}</p>
+          <div v-else-if="!products.length && !error" class="sh-note">
+            <p class="sh-note__title">{{ t('shop.comingSoon') }}</p>
+            <p>{{ t('shop.comingSoonDesc') }}</p>
           </div>
 
-          <template v-else>
-            <!-- Category tabs -->
-            <div v-if="categories.length > 1" class="mb-4 flex flex-wrap gap-2">
-              <button
-                class="rounded-full px-4 py-1.5 text-xs font-bold transition"
-                :class="selectedCategory === 'all'
-                  ? 'bg-[var(--acc)] text-white shadow-lg shadow-[rgba(var(--acc-rgb),0.28)]'
-                  : 'bg-slate-800 text-slate-400 ring-1 ring-slate-700 hover:text-slate-200 hover:bg-slate-700'"
-                @click="selectedCategory = 'all'"
-              >{{ t('shop.categoryAll') }}</button>
-              <button
-                v-for="cat in categories"
-                :key="cat"
-                class="rounded-full px-4 py-1.5 text-xs font-bold transition"
-                :class="selectedCategory === cat
-                  ? 'bg-[var(--acc)] text-white shadow-lg shadow-[rgba(var(--acc-rgb),0.28)]'
-                  : 'bg-slate-800 text-slate-400 ring-1 ring-slate-700 hover:text-slate-200 hover:bg-slate-700'"
-                @click="selectedCategory = cat"
-              >{{ cat }}</button>
-            </div>
-
-            <!-- Featured card (single product) -->
-            <template v-if="filteredProducts.length === 1">
-              <article
-                v-for="product in filteredProducts"
-                :key="product.id"
-                class="group relative overflow-hidden rounded-[20px] bg-gradient-to-br from-slate-800 to-slate-900 ring-1 transition-all duration-300"
-                :class="cart[product.id] ? 'ring-[rgba(var(--acc-rgb),0.6)] shadow-lg shadow-[rgba(var(--acc-rgb),0.15)]' : 'ring-slate-700/50 hover:ring-slate-600/70'"
-              >
-                <div class="flex flex-col md:flex-row">
-                  <!-- Image -->
-                  <div class="relative w-full overflow-hidden md:w-64 md:shrink-0">
-                    <div class="aspect-square md:aspect-auto md:h-full">
-                      <img v-if="product.image" :src="product.image" :alt="product.name" class="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105" />
-                      <div v-else class="flex h-full w-full min-h-[200px] items-center justify-center bg-slate-900">
-                        <svg class="h-16 w-16 text-slate-700" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1"><path stroke-linecap="round" stroke-linejoin="round" d="M20.25 7.5l-.625 10.632a2.25 2.25 0 01-2.247 2.118H6.622a2.25 2.25 0 01-2.247-2.118L3.75 7.5M10 11.25h4M3.375 7.5h17.25c.621 0 1.125-.504 1.125-1.125v-1.5c0-.621-.504-1.125-1.125-1.125H3.375c-.621 0-1.125.504-1.125 1.125v1.5c0 .621.504 1.125 1.125 1.125z"/></svg>
-                      </div>
-                    </div>
-                    <div class="pointer-events-none absolute inset-0 bg-gradient-to-t from-slate-900/60 via-transparent to-transparent md:bg-gradient-to-r md:from-transparent md:to-slate-900/30" />
-                    <div class="absolute left-3 top-3 flex flex-col items-start gap-1.5">
-                      <span v-if="product.id === topProductId" class="flex items-center gap-1 rounded-full bg-[var(--acc)] px-2.5 py-1 text-xs font-black text-[var(--acc-contrast)] shadow-lg shadow-[rgba(var(--acc-rgb),0.35)]">🔥 {{ t('shop.hit') }}</span>
-                      <span v-if="discountPct(product)" class="flex items-center gap-1 rounded-full bg-amber-400 px-2.5 py-1 text-xs font-black text-amber-950 shadow-lg shadow-amber-400/20">{{ t('shop.off', { n: discountPct(product) }) }}</span>
-                    </div>
-                    <span v-if="cart[product.id]" class="absolute right-3 top-3 flex h-7 w-7 items-center justify-center rounded-full bg-[var(--acc)] text-xs font-black text-[var(--acc-contrast)] shadow-lg">{{ cart[product.id] }}</span>
-                  </div>
-
-                  <!-- Info -->
-                  <div class="flex flex-1 flex-col justify-between gap-4 p-5 md:p-6">
-                    <div class="space-y-2">
-                      <div class="flex items-start justify-between gap-3">
-                        <p class="text-xl font-black leading-tight text-slate-50 md:text-2xl">{{ product.name }}</p>
-                        <span v-if="product.category" class="shrink-0 rounded-full bg-[rgba(var(--acc-rgb),0.15)] px-2.5 py-0.5 text-xs font-bold text-[var(--acc-pale)] ring-1 ring-[rgba(var(--acc-rgb),0.25)]">{{ product.category }}</span>
-                      </div>
-                      <p v-if="product.description" class="text-sm leading-relaxed text-slate-400 line-clamp-3">{{ product.description }}</p>
-                      <button
-                        v-if="product.description"
-                        class="flex items-center gap-1 text-xs font-semibold text-[var(--acc-pale)] hover:text-[var(--acc-pale)] transition"
-                        @click="openDetails(product)"
-                      >
-                        {{ t('shop.details') }}
-                        <svg class="h-3.5 w-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7"/></svg>
-                      </button>
-                    </div>
-
-                    <div class="flex flex-wrap items-end justify-between gap-4">
-                      <div class="space-y-0.5">
-                        <div v-if="discountPct(product)" class="flex items-center gap-2">
-                          <span class="text-sm text-slate-600 line-through">{{ Number(product.old_price).toLocaleString('ru') }} ₽</span>
-                          <span class="rounded bg-amber-400/10 px-1.5 py-0.5 text-xs font-bold text-amber-400">{{ t('shop.discountBadge') }}</span>
-                        </div>
-                        <div class="text-3xl font-black tracking-tight text-slate-50">{{ Number(product.price).toLocaleString('ru') }} <span class="text-xl text-slate-400">₽</span></div>
-                      </div>
-                      <div class="flex items-center gap-2">
-                        <button v-if="cart[product.id]" class="flex h-10 w-10 items-center justify-center rounded-xl bg-slate-700 text-lg font-bold text-slate-200 transition hover:bg-slate-600 active:scale-95" @click="removeFromCart(product.id)">−</button>
-                        <span v-if="cart[product.id]" class="w-8 text-center text-sm font-black text-slate-100">{{ cart[product.id] }}</span>
-                        <button class="shop-cta px-5 py-2.5" @click="addToCart(product.id)">
-                          <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5h-15"/></svg>
-                          {{ t('shop.buyBtn') }}
-                        </button>
-                      </div>
-                    </div>
-                  </div>
+          <div v-else class="sh-grid">
+            <article v-for="product in products" :key="product.id" class="sh-card" :class="{ 'in-cart': cart[product.id] }">
+              <button type="button" class="sh-card__media" :aria-label="t('shop.details')" @click="openDetails(product)">
+                <img v-if="imageOk(product)" :src="product.image" alt="" loading="lazy" @error="onImageError(product)" />
+                <span v-else class="sh-card__ph" aria-hidden="true">{{ product.name.slice(0, 1) }}</span>
+                <span class="sh-badges">
+                  <span v-if="product.id === topProductId" class="sh-badge sh-badge--hit">{{ t('shop.hit') }}</span>
+                  <span v-if="discountPct(product)" class="sh-badge sh-badge--sale">−{{ discountPct(product) }}%</span>
+                </span>
+              </button>
+              <div class="sh-card__body">
+                <h2 class="sh-card__name">{{ product.name }}</h2>
+                <p v-if="shortDescription(product)" class="sh-card__desc">{{ shortDescription(product) }}</p>
+                <button v-if="product.description" type="button" class="sh-link" @click="openDetails(product)">{{ t('shop.whatsInside') }}</button>
+                <div class="sh-card__foot">
+                  <span class="sh-price">
+                    <s v-if="discountPct(product)">{{ rub(product.old_price) }}</s>
+                    <b>{{ rub(product.price) }}</b>
+                  </span>
+                  <span v-if="cart[product.id]" class="sh-stepper">
+                    <button type="button" :aria-label="t('shop.decrease')" @click="removeFromCart(product.id)">−</button>
+                    <span>{{ cart[product.id] }}</span>
+                    <button type="button" :aria-label="t('shop.increase')" @click="addToCart(product.id)">+</button>
+                  </span>
+                  <button v-else type="button" class="sh-btn sh-btn--primary sh-btn--sm" @click="addToCart(product.id)">{{ t('shop.addToCart') }}</button>
                 </div>
-              </article>
+              </div>
+            </article>
+          </div>
+
+        </div>
+
+        <!-- cart -->
+        <aside v-if="products.length" ref="cartEl" class="sh-cart-wrap">
+          <div class="sh-cart">
+            <div class="sh-cart__head">
+              <h2 class="sh-h">{{ t('shop.cartTitle') }}</h2>
+              <span v-if="cartCount" class="sh-count">{{ cartCount }}</span>
+            </div>
+
+            <div v-if="!cartCount" class="sh-cart__empty">
+              <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M2.25 3h1.386c.51 0 .955.343 1.087.835l.383 1.437M7.5 14.25a3 3 0 00-3 3h15.75m-12.75-3h11.218c1.121-2.3 2.1-4.684 2.924-7.138a60.114 60.114 0 00-16.536-1.84M7.5 14.25L5.106 5.272M6 20.25a.75.75 0 11-1.5 0 .75.75 0 011.5 0zm12.75 0a.75.75 0 11-1.5 0 .75.75 0 011.5 0z"/></svg>
+              <p>{{ t('shop.cartEmptyHint') }}</p>
+            </div>
+
+            <template v-else>
+              <ul class="sh-cart__items">
+                <li v-for="product in cartItems" :key="product.id">
+                  <span class="sh-cart__thumb">
+                    <img v-if="imageOk(product)" :src="product.image" alt="" @error="onImageError(product)" />
+                    <template v-else>{{ product.name.slice(0, 1) }}</template>
+                  </span>
+                  <span class="sh-cart__info">
+                    <b>{{ product.name }}</b>
+                    <span class="sh-stepper sh-stepper--sm">
+                      <button type="button" :aria-label="t('shop.decrease')" @click="removeFromCart(product.id)">−</button>
+                      <span>{{ cart[product.id] }}</span>
+                      <button type="button" :aria-label="t('shop.increase')" @click="addToCart(product.id)">+</button>
+                    </span>
+                  </span>
+                  <span class="sh-cart__sum">{{ rub(cart[product.id] * Number(product.price)) }}</span>
+                </li>
+              </ul>
+
+              <button v-if="!couponOpen && !coupon" type="button" class="sh-link sh-link--small" @click="couponOpen = true">{{ t('shop.haveCoupon') }}</button>
+              <input v-else v-model="coupon" class="sh-input" :placeholder="t('shop.couponPlaceholder')" autocapitalize="characters" spellcheck="false" />
+
+              <div class="sh-total">
+                <span>{{ t('shop.total') }}</span>
+                <b>{{ rub(cartTotal) }}</b>
+              </div>
+              <p v-if="cartSaving" class="sh-saving">{{ t('shop.youSave', { n: rub(cartSaving) }) }}</p>
             </template>
 
-            <!-- Grid (multiple products) -->
-            <div v-else class="grid gap-4 grid-cols-2 sm:grid-cols-3">
-              <article
-                v-for="product in filteredProducts"
-                :key="product.id"
-                class="group relative flex flex-col overflow-hidden rounded-[20px] bg-slate-800/60 ring-1 transition-all duration-200"
-                :class="cart[product.id] ? 'ring-[rgba(var(--acc-rgb),0.6)] shadow-lg shadow-[rgba(var(--acc-rgb),0.15)]' : 'ring-slate-700/50 hover:ring-slate-600/60 hover:-translate-y-0.5'"
-              >
-                <!-- Image -->
-                <div class="relative aspect-square w-full overflow-hidden bg-slate-900">
-                  <img v-if="product.image" :src="product.image" :alt="product.name" class="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105" />
-                  <div v-else class="flex h-full items-center justify-center">
-                    <svg class="h-10 w-10 text-slate-700" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4"><path stroke-linecap="round" stroke-linejoin="round" d="M20.25 7.5l-.625 10.632a2.25 2.25 0 01-2.247 2.118H6.622a2.25 2.25 0 01-2.247-2.118L3.75 7.5M10 11.25h4M3.375 7.5h17.25c.621 0 1.125-.504 1.125-1.125v-1.5c0-.621-.504-1.125-1.125-1.125H3.375c-.621 0-1.125.504-1.125 1.125v1.5c0 .621.504 1.125 1.125 1.125z"/></svg>
-                  </div>
-                  <div class="absolute left-2 top-2 flex flex-col items-start gap-1">
-                    <span v-if="product.id === topProductId" class="rounded-full bg-[var(--acc)] px-2 py-0.5 text-xs font-black text-[var(--acc-contrast)] shadow-lg shadow-[rgba(var(--acc-rgb),0.3)]">🔥 {{ t('shop.hit') }}</span>
-                    <span v-if="discountPct(product)" class="rounded-full bg-amber-400 px-2 py-0.5 text-xs font-black text-amber-950">{{ t('shop.off', { n: discountPct(product) }) }}</span>
-                  </div>
-                  <span v-if="cart[product.id]" class="absolute right-2 top-2 flex h-5 w-5 items-center justify-center rounded-full bg-[var(--acc)] text-xs font-black text-[var(--acc-contrast)]">{{ cart[product.id] }}</span>
-                  <span v-if="product.category" class="absolute bottom-2 left-2 rounded-full bg-black/50 px-2 py-0.5 text-xs font-bold text-[var(--acc-pale)] backdrop-blur-sm">{{ product.category }}</span>
-                </div>
-
-                <!-- Info -->
-                <div class="flex flex-1 flex-col gap-2 p-3">
-                  <p class="flex-1 text-sm font-bold leading-snug text-slate-100">{{ product.name }}</p>
-                  <p v-if="product.description" class="text-xs leading-relaxed text-slate-500 line-clamp-2">{{ product.description }}</p>
-                  <button
-                    v-if="product.description"
-                    class="self-start text-xs font-semibold text-[var(--acc-pale)] hover:text-[var(--acc-pale)] transition"
-                    @click="openDetails(product)"
-                  >{{ t('shop.details') }} →</button>
-                  <div class="flex items-end justify-between gap-2 border-t border-slate-700/40 pt-2">
-                    <div>
-                      <div v-if="discountPct(product)" class="text-xs text-slate-600 line-through">{{ Number(product.old_price).toLocaleString('ru') }} ₽</div>
-                      <span class="text-sm font-black text-slate-100">{{ Number(product.price).toLocaleString('ru') }} ₽</span>
-                    </div>
-                    <div class="flex items-center gap-1">
-                      <button v-if="cart[product.id]" class="flex h-6 w-6 items-center justify-center rounded-lg bg-slate-700 text-sm font-bold text-slate-200 transition hover:bg-slate-600" @click="removeFromCart(product.id)">−</button>
-                      <button class="shop-cta shop-cta--sm px-2.5 py-1" @click="addToCart(product.id)">{{ cart[product.id] ? '+' : t('shop.buyBtn') }}</button>
-                    </div>
-                  </div>
-                </div>
-              </article>
-            </div>
-          </template>
-        </div>
-
-        <!-- Cart sidebar -->
-        <div v-if="products.length" class="w-full shrink-0 lg:w-72">
-          <div class="sticky top-20 overflow-hidden rounded-[20px] bg-slate-800/60 ring-1 ring-slate-700/50">
-            <div class="flex items-center gap-2 border-b border-slate-700/40 px-4 py-3.5">
-              <svg class="h-4 w-4 text-slate-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M2.25 3h1.386c.51 0 .955.343 1.087.835l.383 1.437M7.5 14.25a3 3 0 00-3 3h15.75m-12.75-3h11.218c1.121-2.3 2.1-4.684 2.924-7.138a60.114 60.114 0 00-16.536-1.84M7.5 14.25L5.106 5.272M6 20.25a.75.75 0 11-1.5 0 .75.75 0 011.5 0zm12.75 0a.75.75 0 11-1.5 0 .75.75 0 011.5 0z"/></svg>
-              <h2 class="text-sm font-black text-slate-100">{{ t('shop.cartTitle') }}</h2>
-              <span v-if="cartCount" class="ml-auto rounded-full bg-[var(--acc)] px-2 py-0.5 text-xs font-black text-white">{{ cartCount }}</span>
-            </div>
-            <div class="p-4 space-y-4">
-              <p v-if="!cartCount" class="py-4 text-center text-xs text-slate-500">{{ t('shop.cartEmpty') }}</p>
-              <div v-else class="space-y-0 divide-y divide-slate-700/30">
-                <div v-for="product in cartItems" :key="product.id" class="flex flex-col gap-1.5 py-2.5">
-                  <p class="text-xs font-semibold leading-snug text-slate-200">{{ product.name }}</p>
-                  <div class="flex items-center justify-between">
-                    <div class="flex items-center gap-1.5">
-                      <button class="flex h-6 w-6 items-center justify-center rounded-lg bg-slate-700 text-xs font-bold text-slate-300 transition hover:bg-slate-600" @click="removeFromCart(product.id)">−</button>
-                      <span class="w-5 text-center text-xs font-black text-slate-100">{{ cart[product.id] }}</span>
-                      <button class="flex h-6 w-6 items-center justify-center rounded-lg bg-slate-700 text-xs font-bold text-slate-300 transition hover:bg-slate-600" @click="addToCart(product.id)">+</button>
-                    </div>
-                    <span class="text-xs font-bold text-slate-100">{{ (cart[product.id] * Number(product.price)).toLocaleString('ru') }} ₽</span>
-                  </div>
-                </div>
-              </div>
-              <input v-if="cartCount" v-model="coupon" class="w-full rounded-xl border border-slate-700 bg-slate-900 px-3 py-2 text-xs text-slate-200 outline-none placeholder:text-slate-600 focus:border-[var(--acc)] transition" :placeholder="t('shop.couponPlaceholder')" />
-              <div v-if="cartCount" class="flex items-center justify-between rounded-xl bg-slate-900/60 px-3 py-2.5">
-                <span class="text-xs font-medium text-slate-400">{{ t('shop.total') }}</span>
-                <span class="text-lg font-black text-slate-50">{{ cartTotal.toLocaleString('ru') }} ₽</span>
-              </div>
-              <button v-if="!auth.isAuthenticated.value" class="shop-cta w-full py-2.5" @click="router.push({ path: '/login', query: { redirect: '/shop' } })">{{ t('shop.loginToBuy') }}</button>
-              <button v-else class="shop-cta w-full py-2.5" :disabled="!cartCount || paying" @click="checkout">
-                <span v-if="paying" class="flex items-center justify-center gap-2">
-                  <svg class="h-4 w-4 animate-spin" viewBox="0 0 24 24" fill="none"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/></svg>
-                  {{ t('shop.paying') }}
-                </span>
-                <span v-else-if="!cartCount">{{ t('shop.cartEmpty') }}</span>
-                <span v-else>{{ t('shop.payFor', { n: cartTotal.toLocaleString('ru') }) }}</span>
-              </button>
-              <button v-if="cartCount" class="w-full text-xs text-slate-600 transition hover:text-slate-400" @click="clearCart">{{ t('shop.clearCart') }}</button>
-              <div v-if="auth.isAuthenticated.value" class="rounded-xl border border-slate-700/40 bg-slate-900/60 p-3 text-xs space-y-1.5">
-                <p class="font-medium text-slate-400">{{ t('shop.deliverTo') }}</p>
-                <div class="flex items-center gap-2">
-                  <div class="flex h-6 w-6 shrink-0 items-center justify-center rounded-lg bg-[rgba(var(--acc-rgb),0.2)] text-xs font-black text-[var(--acc-pale)]">{{ (auth.state.playerAccount?.minecraft_nickname || '?')[0].toUpperCase() }}</div>
-                  <span class="font-bold text-slate-200">{{ auth.state.playerAccount?.minecraft_nickname || '—' }}</span>
-                </div>
-                <p class="text-slate-600">{{ t('shop.receipt') }} {{ auth.state.user?.email || '—' }}</p>
-              </div>
-              <p class="border-t border-slate-700/40 pt-3 text-xs leading-relaxed text-slate-600">
-                {{ t('shop.payAgreePre') }}<RouterLink to="/offer" class="prose-link">{{ t('shop.payAgreeOffer') }}</RouterLink>{{ t('shop.payAgreePost') }}
-              </p>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <!-- Last payments -->
-      <div v-if="lastPayments.length">
-        <h2 class="mb-3 flex items-center gap-2 text-xs font-black uppercase tracking-widest text-slate-500">
-          <span class="h-px flex-1 bg-slate-800" />{{ t('shop.recentTitle') }}<span class="h-px flex-1 bg-slate-800" />
-        </h2>
-        <div class="surface-card overflow-hidden p-0">
-          <div class="divide-y divide-slate-700/30">
-            <div v-for="pay in lastPayments" :key="pay.id" class="flex items-center gap-3 px-4 py-3 transition hover:bg-slate-800/40">
-              <div class="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-[rgba(var(--acc-rgb),0.3)] to-[rgba(var(--acc-rgb),0.2)] ring-1 ring-slate-700 text-xs font-black text-[var(--acc-pale)]">{{ (pay.customer || '?')[0].toUpperCase() }}</div>
-              <div class="min-w-0 flex-1">
-                <p class="truncate text-sm font-bold text-slate-100">{{ pay.customer }}</p>
-                <p class="truncate text-xs text-slate-500">{{ (pay.products || []).map((p) => p.name).join(', ') }}</p>
-              </div>
-              <div class="flex shrink-0 flex-col items-end gap-1">
-                <span class="text-sm font-black text-[var(--acc-pale)]">{{ Number(pay.cost).toLocaleString('ru') }} ₽</span>
-                <div class="flex items-center gap-1.5">
-                  <span v-if="pay.payment_type" class="rounded-full border px-1.5 py-0.5 text-xs font-bold" :class="pmClass(pay.payment_type)">{{ pmLabel(pay.payment_type) }}</span>
-                  <span class="text-xs text-slate-600">{{ timeAgo(pay.created_at) }}</span>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <!-- Legal footer -->
-      <div class="surface-card flex items-start gap-3 p-4 text-xs leading-relaxed text-slate-500">
-        <svg class="mt-px h-4 w-4 shrink-0 opacity-40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M11.25 11.25l.041-.02a.75.75 0 011.063.852l-.708 2.836a.75.75 0 001.063.853l.041-.021M21 12a9 9 0 11-18 0 9 9 0 0118 0zm-9-3.75h.008v.008H12V8.25z"/></svg>
-        <p>{{ t('shop.legalPre') }} <a href="https://easydonate.ru" target="_blank" rel="noreferrer" class="prose-link">EasyDonate</a>{{ t('shop.legalMid') }} <RouterLink to="/offer" class="prose-link">{{ t('shop.legalOffer') }}</RouterLink>.</p>
-      </div>
-
-    </div>
-  </section>
-
-  <!-- Product details modal -->
-  <Teleport to="body">
-    <Transition name="modal">
-      <div v-if="expandedProduct" class="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4" @keydown.esc="closeDetails">
-        <!-- Backdrop -->
-        <div class="absolute inset-0 bg-black/70 backdrop-blur-sm" @click="closeDetails" />
-
-        <!-- Modal -->
-        <div class="relative w-full max-w-lg max-h-[92dvh] overflow-y-auto rounded-t-3xl sm:rounded-[20px] bg-slate-900 ring-1 ring-slate-700/60 shadow-2xl">
-
-          <!-- Image header -->
-          <div v-if="expandedProduct.image" class="relative h-48 w-full overflow-hidden rounded-t-3xl sm:rounded-t-[20px]">
-            <img :src="expandedProduct.image" :alt="expandedProduct.name" class="h-full w-full object-cover" />
-            <div class="absolute inset-0 bg-gradient-to-t from-slate-900 via-slate-900/40 to-transparent" />
-            <button class="absolute right-4 top-4 flex h-8 w-8 items-center justify-center rounded-full bg-black/50 text-white backdrop-blur-sm hover:bg-black/70 transition" @click="closeDetails">
-              <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/></svg>
+            <button v-if="!auth.isAuthenticated.value" type="button" class="sh-btn sh-btn--primary sh-btn--wide" @click="router.push({ path: '/login', query: { redirect: '/shop' } })">{{ t('shop.loginToBuy') }}</button>
+            <button v-else-if="cartCount" type="button" class="sh-btn sh-btn--primary sh-btn--wide" :disabled="paying" @click="checkout">
+              <span v-if="paying" class="spinner"></span>
+              {{ paying ? t('shop.paying') : t('shop.payFor', { n: cartTotal.toLocaleString(numLocale) }) }}
             </button>
+            <button v-if="cartCount" type="button" class="sh-link sh-link--muted" @click="clearCart">{{ t('shop.clearCart') }}</button>
+
+            <p v-if="auth.isAuthenticated.value && cartCount" class="sh-cart__fine">
+              {{ t('shop.receiptTo', { email: auth.state.user?.email || '—' }) }}
+            </p>
+            <p class="sh-cart__fine">
+              {{ t('shop.payAgreePre') }}<RouterLink to="/offer">{{ t('shop.payAgreeOffer') }}</RouterLink>{{ t('shop.payAgreePost') }}
+            </p>
           </div>
+        </aside>
 
-          <div class="p-5 sm:p-6 space-y-4">
-            <!-- Close if no image -->
-            <div v-if="!expandedProduct.image" class="flex items-center justify-between">
-              <span />
-              <button class="flex h-8 w-8 items-center justify-center rounded-full bg-slate-800 text-slate-400 hover:bg-slate-700 hover:text-slate-200 transition" @click="closeDetails">
-                <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/></svg>
-              </button>
-            </div>
+        <div class="sh-after">
+          <section v-if="lastPayments.length" class="sh-recent">
+            <h2 class="sh-h">{{ t('shop.recentTitle') }}</h2>
+            <ul class="sh-recent__list">
+              <li v-for="pay in lastPayments" :key="pay.id">
+                <img :src="`/api/v1/public/player-head/${encodeURIComponent(pay.customer || '')}`" alt="" class="sh-recent__head" loading="lazy" @error="(e) => { e.currentTarget.style.visibility = 'hidden' }" />
+                <span class="sh-recent__text">
+                  <b>{{ pay.customer }}</b>
+                  <span>{{ (pay.products || []).map((p) => p.name).join(', ') }}</span>
+                </span>
+                <span class="sh-recent__meta">
+                  <b>{{ rub(pay.cost) }}</b>
+                  <span>{{ pmLabel(pay.payment_type) }} · {{ timeAgo(pay.created_at) }}</span>
+                </span>
+              </li>
+            </ul>
+          </section>
 
-            <!-- Title + category -->
-            <div class="flex items-start gap-3">
-              <h2 class="flex-1 text-xl font-black text-slate-50">{{ expandedProduct.name }}</h2>
-              <span v-if="expandedProduct.category" class="shrink-0 rounded-full bg-[rgba(var(--acc-rgb),0.15)] px-2.5 py-0.5 text-xs font-bold text-[var(--acc-pale)] ring-1 ring-[rgba(var(--acc-rgb),0.25)]">{{ expandedProduct.category }}</span>
-            </div>
-
-            <!-- Full description -->
-            <div v-if="expandedProduct.description" class="text-sm leading-relaxed text-slate-300 whitespace-pre-line">{{ expandedProduct.description }}</div>
-
-            <!-- Price + buy -->
-            <div class="flex items-center justify-between border-t border-slate-700/40 pt-4">
-              <div>
-                <div v-if="discountPct(expandedProduct)" class="flex items-center gap-2 mb-0.5">
-                  <span class="text-sm text-slate-600 line-through">{{ Number(expandedProduct.old_price).toLocaleString('ru') }} ₽</span>
-                  <span class="rounded bg-amber-400/10 px-1.5 py-0.5 text-xs font-bold text-amber-400">{{ t('shop.discountBadge') }}</span>
-                </div>
-                <span class="text-2xl font-black text-slate-50">{{ Number(expandedProduct.price).toLocaleString('ru') }} <span class="text-base text-slate-400">₽</span></span>
-              </div>
-              <div class="flex items-center gap-2">
-                <button v-if="cart[expandedProduct.id]" class="flex h-10 w-10 items-center justify-center rounded-xl bg-slate-700 text-lg font-bold text-slate-200 transition hover:bg-slate-600" @click="removeFromCart(expandedProduct.id)">−</button>
-                <span v-if="cart[expandedProduct.id]" class="w-7 text-center text-sm font-black text-slate-100">{{ cart[expandedProduct.id] }}</span>
-                <button
-                  class="flex items-center gap-2 rounded-xl px-5 py-2.5 text-sm font-bold text-white transition active:scale-95"
-                  :class="cart[expandedProduct.id] ? 'bg-[var(--acc-deep)] hover:bg-[var(--acc)]' : 'bg-[var(--acc)] hover:bg-[var(--acc-pale)] shadow-lg shadow-[rgba(var(--acc-rgb),0.28)]'"
-                  @click="addToCart(expandedProduct.id)"
-                >
-                  <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5h-15"/></svg>
-                  {{ t('shop.buyBtn') }}
-                </button>
-              </div>
-            </div>
-          </div>
+          <p class="sh-legal">
+            {{ t('shop.legalPre') }} <a href="https://easydonate.ru" target="_blank" rel="noreferrer">EasyDonate</a>{{ t('shop.legalMid') }} <RouterLink to="/offer">{{ t('shop.legalOffer') }}</RouterLink>.
+          </p>
         </div>
+      </div>
+    </div>
+
+    <!-- phone: the cart is below the products, so keep the total and the way to it in reach -->
+    <Transition name="sh-bar">
+      <div v-if="cartCount && !expandedProduct" class="sh-mobilebar">
+        <button type="button" class="sh-mobilebar__inner" @click="scrollToCart">
+          <span>{{ t('shop.itemsInCart', { n: cartCount }) }}</span>
+          <b>{{ rub(cartTotal) }}</b>
+          <span class="sh-mobilebar__go">{{ t('shop.toCart') }}</span>
+        </button>
       </div>
     </Transition>
-  </Teleport>
+
+    <Teleport to="body">
+      <Transition name="sh-modal">
+        <div v-if="expandedProduct" class="sh-modal" role="dialog" aria-modal="true" :aria-label="expandedProduct.name" :style="accentVars">
+          <div class="sh-modal__backdrop" @click="closeDetails"></div>
+          <div class="sh-modal__panel">
+            <button type="button" class="sh-modal__close" :aria-label="t('shop.close')" @click="closeDetails">×</button>
+            <div class="sh-modal__top">
+              <span class="sh-modal__img">
+                <img v-if="imageOk(expandedProduct)" :src="expandedProduct.image" alt="" @error="onImageError(expandedProduct)" />
+                <template v-else>{{ expandedProduct.name.slice(0, 1) }}</template>
+              </span>
+              <div>
+                <h2 class="sh-modal__title">{{ expandedProduct.name }}</h2>
+                <span class="sh-price sh-price--big">
+                  <s v-if="discountPct(expandedProduct)">{{ rub(expandedProduct.old_price) }}</s>
+                  <b>{{ rub(expandedProduct.price) }}</b>
+                  <span v-if="discountPct(expandedProduct)" class="sh-badge sh-badge--sale">−{{ discountPct(expandedProduct) }}%</span>
+                </span>
+              </div>
+            </div>
+            <div class="sh-modal__desc">{{ cleanDescription(expandedProduct.description) }}</div>
+            <div class="sh-modal__foot">
+              <span v-if="cart[expandedProduct.id]" class="sh-stepper">
+                <button type="button" :aria-label="t('shop.decrease')" @click="removeFromCart(expandedProduct.id)">−</button>
+                <span>{{ cart[expandedProduct.id] }}</span>
+                <button type="button" :aria-label="t('shop.increase')" @click="addToCart(expandedProduct.id)">+</button>
+              </span>
+              <button v-else type="button" class="sh-btn sh-btn--primary" @click="addToCart(expandedProduct.id)">{{ t('shop.addToCart') }}</button>
+              <button v-if="cart[expandedProduct.id]" type="button" class="sh-btn" @click="closeDetails(); scrollToCart()">{{ t('shop.toCart') }}</button>
+            </div>
+          </div>
+        </div>
+      </Transition>
+    </Teleport>
+  </section>
 </template>
 
 <style scoped>
-/* Hero: server banner background, tinted with the server accent */
-.shop-hero-banner {
-  position: absolute; inset: 0;
-  background-size: cover; background-position: center;
-  opacity: 0.28;
-  -webkit-mask-image: linear-gradient(to right, #000 0%, transparent 78%);
-  mask-image: linear-gradient(to right, #000 0%, transparent 78%);
-}
-.shop-hero-veil {
-  position: absolute; inset: 0; pointer-events: none;
-  background:
-    linear-gradient(120deg, rgba(9,13,24,0.55) 0%, rgba(9,13,24,0.15) 60%, rgba(9,13,24,0.4) 100%),
-    linear-gradient(0deg, rgba(var(--acc-rgb), 0.10), transparent 55%);
-}
+.sh-page { padding-block: 28px 96px; }
+.sh { --s-surface: rgba(19, 16, 33, 0.8); --s-line: rgba(255, 255, 255, 0.08); --s-line-2: rgba(255, 255, 255, 0.14); --s-text: #eeecf7; --s-muted: #9d99b6; color: var(--s-text); display: flex; flex-direction: column; gap: 20px; }
 
-/* Unified CTA — matches the site's .btn-hero-primary (radius/weight/gradient/glow) */
-.shop-cta {
-  display: inline-flex; align-items: center; justify-content: center; gap: 0.45rem;
-  border: none; cursor: pointer;
-  border-radius: 14px;
-  font-weight: 800; font-size: 0.9rem; letter-spacing: -0.01em;
-  color: var(--acc-contrast);
-  background: linear-gradient(135deg, var(--acc), var(--acc-deep));
-  box-shadow: 0 6px 22px rgba(var(--acc-rgb), 0.32);
-  transition: box-shadow 0.25s, transform 0.16s, filter 0.16s;
-}
-.shop-cta:hover { filter: brightness(1.08); box-shadow: 0 9px 28px rgba(var(--acc-rgb), 0.42); transform: translateY(-1px); }
-.shop-cta:active { transform: translateY(0) scale(0.98); }
-.shop-cta:disabled { opacity: 0.5; cursor: default; filter: none; box-shadow: none; transform: none; }
-.shop-cta--sm { border-radius: 10px; font-size: 0.78rem; gap: 0.25rem; }
+.sh-head { display: flex; align-items: flex-end; justify-content: space-between; gap: 16px 24px; flex-wrap: wrap; }
+.sh-title { margin: 0; font-size: clamp(1.9rem, 1.3rem + 1.5vw, 2.7rem); font-weight: 900; letter-spacing: -0.025em; line-height: 1.05; }
+.sh-sub { margin: 8px 0 0; max-width: 60ch; font-size: 1rem; line-height: 1.5; color: var(--s-muted); }
+.sh-trust { list-style: none; margin: 14px 0 0; padding: 0; display: flex; flex-wrap: wrap; gap: 6px 16px; }
+.sh-trust li { display: inline-flex; align-items: center; gap: 6px; font-size: 0.86rem; color: #cfcbe3; }
+.sh-trust svg { width: 15px; height: 15px; fill: var(--acc-pale, #c4b5fd); }
+.sh-trust li:nth-child(2) svg { fill: none; stroke: var(--acc-pale, #c4b5fd); stroke-width: 2; stroke-linejoin: round; }
+.sh-trust li:nth-child(3) svg { fill: none; stroke: var(--acc-pale, #c4b5fd); stroke-width: 2; stroke-linejoin: round; }
+.sh-deliver { display: flex; align-items: center; gap: 10px; padding: 8px 14px 8px 8px; border-radius: 14px; border: 1px solid var(--s-line); background: var(--s-surface); }
+.sh-deliver__head { width: 36px; height: 36px; border-radius: 9px; image-rendering: pixelated; background: #1a1530; }
+.sh-deliver > span { display: flex; flex-direction: column; }
+.sh-deliver__label { font-size: 0.78rem; color: var(--s-muted); }
 
-.modal-enter-active,
-.modal-leave-active {
-  transition: opacity 0.2s ease;
+.sh-layout { display: grid; grid-template-columns: minmax(0, 1fr) 320px; grid-template-areas: 'main cart' 'after cart'; gap: 24px 20px; align-items: start; }
+.sh-main { grid-area: main; }
+.sh-cart-wrap { grid-area: cart; align-self: start; }
+.sh-after { grid-area: after; display: flex; flex-direction: column; gap: 24px; min-width: 0; }
+.sh-main { display: flex; flex-direction: column; gap: 24px; min-width: 0; }
+.sh-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 240px), 1fr)); gap: 14px; }
+.sh-skel { height: 420px; border-radius: 18px; }
+
+.sh-card { display: flex; flex-direction: column; border-radius: 18px; overflow: hidden; border: 1px solid var(--s-line); background: var(--s-surface); transition: border-color 0.2s, box-shadow 0.2s; }
+.sh-card:hover { border-color: var(--s-line-2); }
+.sh-card.in-cart { border-color: rgba(var(--acc-rgb, 139, 92, 246), 0.55); box-shadow: 0 16px 40px -24px rgba(var(--acc-rgb, 139, 92, 246), 0.8); }
+.sh-card__media { position: relative; aspect-ratio: 1 / 1; padding: 0; border: 0; cursor: pointer; overflow: hidden; background: radial-gradient(90% 90% at 30% 20%, rgba(var(--acc-rgb, 139, 92, 246), 0.3), transparent 70%), #120f22; display: grid; place-items: center; }
+.sh-card__media img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; transition: transform 0.4s; }
+.sh-card:hover .sh-card__media img { transform: scale(1.04); }
+.sh-card__ph { font-size: 4rem; font-weight: 900; color: rgba(255, 255, 255, 0.14); }
+.sh-badges { position: absolute; top: 10px; left: 10px; display: flex; gap: 6px; }
+.sh-badge { display: inline-flex; align-items: center; height: 24px; padding: 0 9px; border-radius: 999px; font-size: 0.78rem; font-weight: 800; }
+.sh-badge--hit { color: var(--acc-contrast, #fff); background: var(--acc, #8b5cf6); }
+.sh-badge--sale { color: #1b1405; background: #f2c14e; }
+.sh-card__body { display: flex; flex-direction: column; gap: 8px; padding: 14px 16px 16px; flex: 1; }
+.sh-card__name { margin: 0; font-size: 1.04rem; font-weight: 800; line-height: 1.3; }
+.sh-card__desc { margin: 0; font-size: 0.88rem; line-height: 1.5; color: var(--s-muted); display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
+.sh-card__foot { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-top: auto; padding-top: 12px; border-top: 1px solid var(--s-line); }
+
+.sh-price { display: inline-flex; align-items: baseline; flex-wrap: wrap; gap: 2px 8px; }
+.sh-price s { font-size: 0.84rem; color: var(--s-muted); }
+.sh-price b { font-size: 1.25rem; font-weight: 900; font-variant-numeric: tabular-nums; }
+.sh-price--big b { font-size: 1.7rem; }
+
+.sh-link { align-self: flex-start; padding: 0; border: 0; background: none; font: inherit; font-size: 0.86rem; font-weight: 700; color: var(--acc-pale, #c4b5fd); cursor: pointer; }
+.sh-link:hover { text-decoration: underline; text-underline-offset: 3px; }
+.sh-link--small { font-size: 0.84rem; }
+.sh-link--muted { align-self: center; color: var(--s-muted); font-weight: 600; font-size: 0.84rem; }
+
+.sh-btn { display: inline-flex; align-items: center; justify-content: center; gap: 8px; height: 42px; padding: 0 16px; border-radius: 12px; font: inherit; font-size: 0.92rem; font-weight: 700; color: var(--s-text); background: rgba(255, 255, 255, 0.06); border: 1px solid var(--s-line-2); cursor: pointer; white-space: nowrap; transition: background-color 0.15s, filter 0.15s; }
+.sh-btn:hover { background: rgba(255, 255, 255, 0.1); }
+.sh-btn:disabled { opacity: 0.55; cursor: default; }
+.sh-btn--primary { color: var(--acc-contrast, #fff); background: linear-gradient(135deg, var(--acc, #8b5cf6), var(--acc-deep, #6d28d9)); border-color: transparent; box-shadow: 0 8px 24px -10px rgba(var(--acc-rgb, 139, 92, 246), 0.7); }
+.sh-btn--primary:hover { background: linear-gradient(135deg, var(--acc, #8b5cf6), var(--acc-deep, #6d28d9)); filter: brightness(1.08); }
+.sh-btn--sm { height: 36px; padding: 0 14px; font-size: 0.86rem; border-radius: 10px; }
+.sh-btn--wide { width: 100%; height: 48px; font-size: 1rem; }
+.sh-btn:focus-visible, .sh-link:focus-visible, .sh-card__media:focus-visible, .sh-stepper button:focus-visible, .sh-modal__close:focus-visible, .sh-mobilebar__inner:focus-visible { outline: 2px solid var(--acc-pale, #c4b5fd); outline-offset: 2px; }
+
+.sh-stepper { display: inline-flex; align-items: center; height: 36px; border-radius: 10px; border: 1px solid rgba(var(--acc-rgb, 139, 92, 246), 0.5); background: rgba(var(--acc-rgb, 139, 92, 246), 0.12); overflow: hidden; }
+.sh-stepper button { width: 34px; height: 100%; border: 0; background: transparent; font: inherit; font-size: 1.1rem; font-weight: 800; color: var(--s-text); cursor: pointer; }
+.sh-stepper button:hover { background: rgba(255, 255, 255, 0.08); }
+.sh-stepper > span { min-width: 22px; text-align: center; font-weight: 800; font-variant-numeric: tabular-nums; }
+.sh-stepper--sm { height: 28px; border-radius: 8px; }
+.sh-stepper--sm button { width: 26px; font-size: 0.95rem; }
+
+.sh-h { margin: 0; font-size: 1.1rem; font-weight: 800; letter-spacing: -0.01em; }
+
+/* cart */
+.sh-cart-wrap { position: sticky; top: 96px; min-width: 0; }
+.sh-cart { display: flex; flex-direction: column; gap: 12px; padding: 18px; border-radius: 18px; border: 1px solid var(--s-line); background: var(--s-surface); backdrop-filter: blur(18px); }
+.sh-cart__head { display: flex; align-items: center; justify-content: space-between; }
+.sh-count { min-width: 24px; height: 24px; padding: 0 7px; border-radius: 999px; display: grid; place-items: center; font-size: 0.8rem; font-weight: 800; color: var(--acc-contrast, #fff); background: var(--acc, #8b5cf6); }
+.sh-cart__empty { display: flex; flex-direction: column; align-items: center; gap: 8px; padding: 18px 8px; text-align: center; }
+.sh-cart__empty svg { width: 34px; height: 34px; fill: none; stroke: var(--s-muted); stroke-width: 1.5; stroke-linecap: round; stroke-linejoin: round; opacity: 0.7; }
+.sh-cart__empty p { margin: 0; font-size: 0.9rem; line-height: 1.5; color: var(--s-muted); }
+.sh-cart__items { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; }
+.sh-cart__items li { display: grid; grid-template-columns: 44px minmax(0, 1fr) auto; gap: 10px; align-items: center; padding: 10px 0; border-top: 1px solid var(--s-line); }
+.sh-cart__items li:first-child { border-top: 0; padding-top: 0; }
+.sh-cart__thumb { width: 44px; height: 44px; border-radius: 10px; overflow: hidden; display: grid; place-items: center; font-weight: 900; color: rgba(255, 255, 255, 0.3); background: #120f22; }
+.sh-cart__thumb img { width: 100%; height: 100%; object-fit: cover; }
+.sh-cart__info { display: flex; flex-direction: column; align-items: flex-start; gap: 6px; min-width: 0; }
+.sh-cart__info b { font-size: 0.88rem; line-height: 1.3; }
+.sh-cart__sum { font-size: 0.92rem; font-weight: 800; white-space: nowrap; font-variant-numeric: tabular-nums; }
+.sh-input { width: 100%; height: 40px; padding: 0 12px; border-radius: 10px; font: inherit; font-size: 0.9rem; color: var(--s-text); background: rgba(0, 0, 0, 0.28); border: 1px solid var(--s-line-2); outline: none; text-transform: uppercase; }
+.sh-input::placeholder { text-transform: none; color: rgba(157, 153, 182, 0.6); }
+.sh-input:focus { border-color: rgba(var(--acc-rgb, 139, 92, 246), 0.6); }
+.sh-total { display: flex; align-items: baseline; justify-content: space-between; padding-top: 12px; border-top: 1px solid var(--s-line); }
+.sh-total span { color: var(--s-muted); font-size: 0.92rem; }
+.sh-total b { font-size: 1.5rem; font-weight: 900; font-variant-numeric: tabular-nums; }
+.sh-saving { margin: -6px 0 0; text-align: right; font-size: 0.84rem; font-weight: 700; color: #f2c14e; }
+.sh-cart__fine { margin: 0; font-size: 0.78rem; line-height: 1.5; color: var(--s-muted); }
+.sh-cart__fine a { color: var(--acc-pale, #c4b5fd); text-decoration: underline; text-underline-offset: 2px; }
+
+/* recent purchases */
+.sh-recent { display: flex; flex-direction: column; gap: 12px; }
+.sh-recent__list { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
+.sh-recent__list li { display: grid; grid-template-columns: 34px minmax(0, 1fr) auto; gap: 10px; align-items: center; padding: 10px 12px; border-radius: 14px; border: 1px solid var(--s-line); background: rgba(19, 16, 33, 0.6); }
+.sh-recent__head { width: 34px; height: 34px; border-radius: 8px; image-rendering: pixelated; background: #1a1530; }
+.sh-recent__text, .sh-recent__meta { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.sh-recent__text b { font-size: 0.9rem; }
+.sh-recent__text span { font-size: 0.8rem; color: var(--s-muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.sh-recent__meta { align-items: flex-end; }
+.sh-recent__meta b { font-size: 0.9rem; color: var(--acc-pale, #c4b5fd); font-variant-numeric: tabular-nums; }
+.sh-recent__meta span { font-size: 0.76rem; color: var(--s-muted); white-space: nowrap; }
+
+.sh-legal { margin: 0; font-size: 0.8rem; line-height: 1.6; color: var(--s-muted); }
+.sh-legal a { color: var(--acc-pale, #c4b5fd); text-decoration: underline; text-underline-offset: 2px; }
+
+.sh-note { display: flex; flex-direction: column; align-items: center; gap: 10px; padding: 48px 20px; text-align: center; border-radius: 20px; border: 1px solid var(--s-line); background: var(--s-surface); color: var(--s-muted); }
+.sh-note p { margin: 0; max-width: 48ch; line-height: 1.5; }
+.sh-note__title { font-size: 1.2rem; font-weight: 800; color: var(--s-text); }
+.sh-note--err { border-color: rgba(248, 113, 113, 0.3); }
+
+/* phone cart bar */
+.sh-mobilebar { display: none; }
+
+/* details */
+.sh-modal { position: fixed; inset: 0; z-index: 60; display: flex; align-items: center; justify-content: center; padding: 16px; color: #eeecf7; }
+.sh-modal__backdrop { position: absolute; inset: 0; background: rgba(4, 3, 10, 0.72); backdrop-filter: blur(4px); }
+.sh-modal__panel { position: relative; width: min(560px, 100%); max-height: min(88dvh, 760px); overflow-y: auto; padding: 24px; border-radius: 22px; background: #15122a; border: 1px solid rgba(255, 255, 255, 0.1); box-shadow: 0 30px 80px rgba(0, 0, 0, 0.6); }
+.sh-modal__close { position: absolute; top: 12px; right: 12px; width: 36px; height: 36px; border-radius: 999px; border: 0; font-size: 1.5rem; line-height: 1; color: #eeecf7; background: rgba(255, 255, 255, 0.08); cursor: pointer; }
+.sh-modal__close:hover { background: rgba(255, 255, 255, 0.14); }
+.sh-modal__top { display: grid; grid-template-columns: 96px minmax(0, 1fr); gap: 16px; align-items: center; padding-right: 36px; }
+.sh-modal__img { width: 96px; height: 96px; border-radius: 16px; overflow: hidden; display: grid; place-items: center; font-size: 2.4rem; font-weight: 900; color: rgba(255, 255, 255, 0.2); background: #0e0b1c; }
+.sh-modal__img img { width: 100%; height: 100%; object-fit: cover; }
+.sh-modal__title { margin: 0 0 6px; font-size: 1.35rem; font-weight: 900; line-height: 1.2; }
+.sh-modal__desc { margin-top: 18px; padding-top: 16px; border-top: 1px solid rgba(255, 255, 255, 0.08); white-space: pre-line; font-size: 0.95rem; line-height: 1.65; color: #d6d2ea; overflow-wrap: anywhere; }
+.sh-modal__foot { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 20px; }
+.sh-modal-enter-active, .sh-modal-leave-active { transition: opacity 0.18s; }
+.sh-modal-enter-active .sh-modal__panel, .sh-modal-leave-active .sh-modal__panel { transition: transform 0.22s cubic-bezier(0.32, 0.72, 0, 1); }
+.sh-modal-enter-from, .sh-modal-leave-to { opacity: 0; }
+.sh-modal-enter-from .sh-modal__panel { transform: translateY(16px) scale(0.98); }
+
+@media (max-width: 1024px) {
+  .sh-layout { grid-template-columns: minmax(0, 1fr); grid-template-areas: 'main' 'cart' 'after'; }
+  .sh-cart-wrap { position: static; scroll-margin-top: 90px; }
+  .sh-mobilebar { display: flex; position: fixed; left: 0; right: 0; bottom: 12px; z-index: 40; justify-content: center; padding: 0 12px; pointer-events: none; }
+  .sh-mobilebar__inner { pointer-events: auto; display: flex; align-items: center; gap: 12px; width: min(520px, 100%); height: 56px; padding: 0 8px 0 18px; border-radius: 16px; border: 1px solid rgba(var(--acc-rgb, 139, 92, 246), 0.45); background: rgba(22, 18, 40, 0.95); box-shadow: 0 16px 40px rgba(0, 0, 0, 0.5); backdrop-filter: blur(12px); font: inherit; color: #eeecf7; cursor: pointer; }
+  .sh-mobilebar__inner > span:first-child { font-size: 0.9rem; color: #cfcbe3; }
+  .sh-mobilebar__inner b { margin-left: auto; font-size: 1.1rem; font-variant-numeric: tabular-nums; }
+  .sh-mobilebar__go { height: 40px; padding: 0 14px; border-radius: 11px; display: grid; place-items: center; font-weight: 800; font-size: 0.9rem; color: var(--acc-contrast, #fff); background: var(--acc, #8b5cf6); }
+  .sh-bar-enter-active, .sh-bar-leave-active { transition: opacity 0.2s, transform 0.2s; }
+  .sh-bar-enter-from, .sh-bar-leave-to { opacity: 0; transform: translateY(16px); }
 }
-.modal-enter-active .relative,
-.modal-leave-active .relative {
-  transition: transform 0.25s cubic-bezier(0.32, 0.72, 0, 1);
+@media (max-width: 640px) {
+  .sh-page { padding-block: 16px 96px; }
+  .sh-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+  .sh-card__body { padding: 10px 12px 12px; gap: 6px; }
+  .sh-card__name { font-size: 0.92rem; }
+  .sh-card__desc { display: none; }
+  .sh-card__foot { flex-direction: column; align-items: stretch; gap: 8px; padding-top: 10px; }
+  .sh-card__foot .sh-btn, .sh-card__foot .sh-stepper { width: 100%; justify-content: space-between; }
+  .sh-card__foot .sh-btn { justify-content: center; }
+  .sh-price b { font-size: 1.1rem; }
+  .sh-recent__list { grid-template-columns: minmax(0, 1fr); }
+  .sh-deliver { width: 100%; }
+  .sh-modal { align-items: flex-end; padding: 0; }
+  .sh-modal__panel { width: 100%; border-radius: 22px 22px 0 0; max-height: 90dvh; }
+  .sh-modal__top { grid-template-columns: 72px minmax(0, 1fr); }
+  .sh-modal__img { width: 72px; height: 72px; }
 }
-.modal-enter-from,
-.modal-leave-to {
-  opacity: 0;
-}
-.modal-enter-from .relative {
-  transform: translateY(40px);
-}
-@media (min-width: 640px) {
-  .modal-enter-from .relative {
-    transform: scale(0.96) translateY(10px);
-  }
+@media (prefers-reduced-motion: reduce) {
+  .sh-card__media img, .sh-btn, .sh-card { transition: none; }
 }
 </style>
