@@ -21,6 +21,8 @@ const form = reactive({
 
 const isSubmitting = ref(false)
 const agreedToTerms = ref(false)
+// Consent to personal data processing is a separate checkbox, apart from the offer (152-FZ art. 9).
+const agreedToConsent = ref(false)
 const isCheckingReferral = ref(false)
 const showPassword = ref(false)
 const showPasswordRepeat = ref(false)
@@ -91,6 +93,7 @@ async function resolveReferralCode(code) {
 
 async function submit() {
   errorMessage.value = ''
+  if (!agreedToTerms.value || !agreedToConsent.value) return
 
   if (!isAllowedEmail(form.email)) {
     errorMessage.value = t('register.emailDomainError')
@@ -250,34 +253,27 @@ watch(referralMessage, (value) => { if (value) toastInfo(value, t('register.refe
               </p>
             </div>
 
-            <label class="md:col-span-2 flex cursor-pointer items-start gap-3 rounded-[1.1rem] border border-white/10 bg-slate-950/45 px-4 py-3">
-              <input
-                v-model="agreedToTerms"
-                type="checkbox"
-                class="mt-0.5 h-4 w-4 shrink-0 cursor-pointer accent-violet-500"
-              />
-              <span class="text-xs leading-5 text-slate-400">
-                {{ t('register.agreeText') }}
-                <RouterLink
-                  to="/privacy"
-                  target="_blank"
-                  class="font-bold text-violet-300 transition hover:text-violet-200"
-                >
-                  {{ t('register.privacy') }}
-                </RouterLink>
-                {{ t('footer.offer') !== t('register.offer') ? '' : '' }}
-                <RouterLink
-                  to="/offer"
-                  target="_blank"
-                  class="font-bold text-violet-300 transition hover:text-violet-200"
-                >
-                  {{ t('register.offer') }}
-                </RouterLink>.
-              </span>
-            </label>
+            <div class="md:col-span-2 grid gap-2">
+              <label class="flex cursor-pointer items-start gap-3 rounded-[1.1rem] border border-white/10 bg-slate-950/45 px-4 py-3">
+                <input v-model="agreedToTerms" type="checkbox" class="mt-0.5 h-4 w-4 shrink-0 cursor-pointer accent-violet-500" />
+                <span class="text-xs leading-5 text-slate-400">
+                  {{ t('register.agreeOfferPre') }}
+                  <RouterLink to="/offer" target="_blank" class="font-bold text-violet-300 transition hover:text-violet-200">{{ t('register.offerGen') }}</RouterLink>
+                </span>
+              </label>
+              <label class="flex cursor-pointer items-start gap-3 rounded-[1.1rem] border border-white/10 bg-slate-950/45 px-4 py-3">
+                <input v-model="agreedToConsent" type="checkbox" class="mt-0.5 h-4 w-4 shrink-0 cursor-pointer accent-violet-500" />
+                <span class="text-xs leading-5 text-slate-400">
+                  {{ t('register.agreeConsentPre') }}
+                  <RouterLink to="/consent" target="_blank" class="font-bold text-violet-300 transition hover:text-violet-200">{{ t('register.consentDoc') }}</RouterLink>
+                  {{ t('register.agreeConsentMid') }}
+                  <RouterLink to="/privacy" target="_blank" class="font-bold text-violet-300 transition hover:text-violet-200">{{ t('register.privacy') }}</RouterLink>
+                </span>
+              </label>
+            </div>
 
             <div class="md:col-span-2 flex flex-col gap-3 pt-1 sm:flex-row sm:items-center sm:justify-between">
-              <button type="submit" class="btn btn-primary" :disabled="isSubmitting || !agreedToTerms">
+              <button type="submit" class="btn btn-primary" :disabled="isSubmitting || !agreedToTerms || !agreedToConsent">
                 <span v-if="isSubmitting" class="spinner"></span>
                 <span>{{ isSubmitting ? t('register.submitting') : t('register.submit') }}</span>
               </button>
