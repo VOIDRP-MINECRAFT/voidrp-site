@@ -1,8 +1,6 @@
-# 🌐 VoidRP Site
+<p align="center"><img src=".github/assets/banner.jpg" alt="VoidRP Site" width="100%"></p>
 
-> Официальный сайт [void-rp.ru](https://void-rp.ru): аккаунт и профиль, серверы и гайды, нации и альянсы,
-> рынок и магазин, боевой пропуск, карта, правовые документы, админ-панель — и страницы `/game-ui/*`,
-> которые открываются прямо в игре во встроенном Chromium.
+<div align="center">
 
 ![Vue](https://img.shields.io/badge/Vue-3-42b883?logo=vuedotjs&logoColor=white)
 ![Vite](https://img.shields.io/badge/Vite-646CFF?logo=vite&logoColor=white)
@@ -11,6 +9,35 @@
 ![i18n](https://img.shields.io/badge/i18n-RU_%2F_EN-blue)
 [![Build](https://github.com/VOIDRP-MINECRAFT/voidrp-site/actions/workflows/build.yml/badge.svg)](https://github.com/VOIDRP-MINECRAFT/voidrp-site/actions/workflows/build.yml)
 ![License](https://img.shields.io/badge/license-proprietary-red)
+
+</div>
+
+> Официальный сайт [void-rp.ru](https://void-rp.ru): аккаунт и профиль, серверы и гайды, нации и альянсы,
+> рынок и магазин, боевой пропуск, карта, правовые документы, админ-панель — и страницы `/game-ui/*`,
+> которые открываются прямо в игре во встроенном Chromium.
+
+---
+
+## 📸 Как это выглядит
+
+<p align="center"><img src=".github/assets/screenshots/tour.gif" alt="Главная, серверы, рынок, государства, топ и боевой пропуск по очереди" width="100%"></p>
+
+<table>
+<tr>
+<td width="50%"><img src=".github/assets/screenshots/home.jpg" alt="Главная: миры, онлайн и быстрый старт"><br><sub>Главная: миры, онлайн и быстрый старт</sub></td>
+<td width="50%"><img src=".github/assets/screenshots/servers.jpg" alt="Выбор сервера — своя экономика у каждого мира"><br><sub>Выбор сервера — своя экономика у каждого мира</sub></td>
+</tr>
+<tr>
+<td width="50%"><img src=".github/assets/screenshots/market.jpg" alt="Рынок игроков: ордера, спред, последние сделки"><br><sub>Рынок игроков: ордера, спред, последние сделки</sub></td>
+<td width="50%"><img src=".github/assets/screenshots/nations.jpg" alt="Каталог государств"><br><sub>Каталог государств</sub></td>
+</tr>
+<tr>
+<td width="50%"><img src=".github/assets/screenshots/players-top.jpg" alt="Топ игроков по категориям"><br><sub>Топ игроков по категориям</sub></td>
+<td width="50%"><img src=".github/assets/screenshots/battlepass.jpg" alt="Боевой пропуск: рейтинг сезона"><br><sub>Боевой пропуск: рейтинг сезона</sub></td>
+</tr>
+</table>
+
+<sub>Сняты с локальной сборки (`vite dev`) на демо-данных: ники, государства и цены вымышлены.</sub>
 
 ---
 
