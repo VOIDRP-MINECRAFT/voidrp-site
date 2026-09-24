@@ -1,30 +1,39 @@
 # 🌐 VoidRP Site
 
-> Официальный сайт void-rp.ru — профили, нации, альянсы, магазин, Battle Pass, карта, а также in-game UI страницы для Chromium внутри Minecraft.
+> Официальный сайт [void-rp.ru](https://void-rp.ru): аккаунт и профиль, серверы и гайды, нации и альянсы,
+> рынок и магазин, боевой пропуск, карта, правовые документы, админ-панель — и страницы `/game-ui/*`,
+> которые открываются прямо в игре во встроенном Chromium.
 
 ![Vue](https://img.shields.io/badge/Vue-3-42b883?logo=vuedotjs&logoColor=white)
-![Vite](https://img.shields.io/badge/Vite-6-646CFF?logo=vite&logoColor=white)
+![Vite](https://img.shields.io/badge/Vite-646CFF?logo=vite&logoColor=white)
 ![Tailwind](https://img.shields.io/badge/Tailwind_CSS-v4-06B6D4?logo=tailwindcss&logoColor=white)
 ![daisyUI](https://img.shields.io/badge/daisyUI-v5-5A0EF8)
 ![i18n](https://img.shields.io/badge/i18n-RU_%2F_EN-blue)
+[![Build](https://github.com/VOIDRP-MINECRAFT/voidrp-site/actions/workflows/build.yml/badge.svg)](https://github.com/VOIDRP-MINECRAFT/voidrp-site/actions/workflows/build.yml)
 ![License](https://img.shields.io/badge/license-proprietary-red)
 
 ---
 
 ## 🗺️ Место в экосистеме
 
-```
-  Браузер игрока (обычный)          Minecraft Client (MCEF браузер)
-        │ JWT (Authorization: Bearer)       │ webgui_token (query param)
-        ▼                                   ▼
-┌─────────────────────────────────────────────────────┐
-│   voidrp-site (Vue 3)   void-rp.ru                  │
-│   ├── /profile, /nations, /market, /admin           │
-│   └── /game-ui/* ← только для MCEF, без navbar      │
-└───────────────────────────┬─────────────────────────┘
-                            │ /api/v1/*
-                            ▼
-                  minecraft-backend (FastAPI)
+```mermaid
+flowchart LR
+    BR["🧑 Браузер игрока"]
+    MC["🎮 Клиент Minecraft<br/>WebGUI · MCEF Chromium"]
+    subgraph SITE["voidrp-site · void-rp.ru"]
+        PUB["Публичный сайт<br/>профиль · нации · рынок · гайды"]
+        ADM["Админ-панель /admin"]
+        GUI["/game-ui/*<br/>без шапки и подвала"]
+    end
+    B[("minecraft-backend<br/>/api/v1")]
+    MAP["🗺️ BlueMap<br/>void-rp.ru/map"]
+
+    BR --> PUB & ADM
+    MC -- "?webgui_token" --> GUI
+    PUB -- "JWT + X-Server-Slug" --> B
+    ADM -- "JWT (права модератора)" --> B
+    GUI -- "webgui_token" --> B
+    PUB --> MAP
 ```
 
 ---
@@ -32,38 +41,79 @@
 ## ✨ Страницы и возможности
 
 ### Публичный сайт
-- **Авторизация** — регистрация, вход, сброс пароля
-- **Профиль** — никнейм Minecraft, аватар, скин, статистика, реферальная ссылка
-- **Нации** — создание, вступление, казна, члены, дипломатия, карта нации
-- **Альянсы** — предложения, голосования, список союзников
-- **Магазин** — модовые предметы с динамическими ценами
-- **Игровой рынок** — ордера на покупку/продажу между игроками
-- **Battle Pass** — сезонный прогресс, Free + Premium треки, награды
-- **Карта** — интерактивная Dynmap с нациями и игроками (iframe)
-- **Лидерборд** — топ игроков по богатству, активности
-- **Серверы** — витрина игровых серверов (`/servers`) + переключатель в навбаре
-- **Admin Panel** — игроки, античит, донат-верификация, серверы (CRUD + авто-провижининг путей/папок), **Мониторинг** (метрики/RCON/запуск-остановка службы), **Моды** (моды на клиент/сервер + пересборка манифеста), **Модераторы** (гранулярные права), новости
 
-**Мульти-сервер:** активный сервер хранится в `stores/serverStore.js`
-(persist в `localStorage voidrp_active_server`); `services/apiBase.js` централизованно
-шлёт заголовок `X-Server-Slug` на **каждый** запрос (opt-out `serverScope:false`) —
-глобальные эндпоинты его игнорируют, игровые скоупятся по нему. `App.vue` даёт
-`<RouterView>` ключ по slug, чтобы страницы перезапрашивались при смене сервера.
-`features` из `game_servers` управляют тем, какие вкладки показывать (`feat()` в
-`SiteNavbar.vue`).
+| | |
+|---|---|
+| 🔐 **Аккаунт** | Регистрация с согласиями, вход, сброс пароля, подтверждение почты, привязка Telegram |
+| 👤 **Профиль** | Скин и аватар, статистика, публичный профиль `/u/:slug` с настройкой видимости, соцсети, рефералы |
+| 🌍 **Серверы** | Витрина `/servers` и переключатель сервера в шапке; разделы показываются по флагам `features` сервера |
+| 📖 **Гайды** | `/server-guide` — гайд выбранного сервера (RU/EN); для основного сервера — подробный гайд по модпаку |
+| 🏛️ **Нации** | Список и рейтинги, страница нации, студия нации, альянсы |
+| 💹 **Экономика** | Рынок с историей цен и ордерами, магазин доната с корзиной и промокодами |
+| 🏆 **Прогресс** | Боевой пропуск, топ игроков, лидерборды |
+| 🗺️ **Карта** | BlueMap с нациями; игроки видны, только если разрешили это на сайте |
+| ⚖️ **Документы** | Оферта, политика обработки ПДн по 152-ФЗ, согласия, условия платных услуг; аналитика — только после согласия на cookie |
+| 📰 **Контент** | Новости, моды сборки, полезные ссылки, скачивание лаунчера |
 
-### 🎮 In-Game UI (`/game-ui/*`)
-Страницы, открываемые прямо в Minecraft через встроенный Chromium (MCEF). Нет навбара/футера (`hidePublicShell: true`). Авторизация через `webgui_token`.
+### Админ-панель `/admin`
 
-| Маршрут | Компонент | Статус |
-|---|---|---|
-| `/game-ui#market` | `GameUiMarketView.vue` | ✅ Готово |
-| `/game-ui/menu` | `GameUiMenuView.vue` | ✅ Готово |
-| `/game-ui/hud` | `GameUiHudView.vue` | 🔄 Запланировано |
-| `/game-ui#nation-market` | `GameUiNationMarketView.vue` | 🔄 Запланировано |
-| `/game-ui#treasury` | `GameUiTreasuryView.vue` | 🔄 Запланировано |
-| `/game-ui#battlepass` | `GameUiBattlePassView.vue` | 🔄 Запланировано |
-| `/game-ui#quests` | `GameUiQuestsView.vue` | 🔄 Запланировано |
+Игроки и наказания, античит, аудит, модераторы с гранулярными правами, серверы (CRUD и авто-провижининг),
+мониторинг и RCON, моды и пересборка манифеста, лаунчер (краши и правила краш-советника), боевой пропуск,
+косметика, торговец, апгрейдер, донат, новости, лендинг, метрика, предложения модов и обратная связь.
+
+**Мульти-сервер:** активный сервер хранится в `stores/serverStore.js` (`localStorage voidrp_active_server`);
+`services/apiBase.js` шлёт `X-Server-Slug` на **каждый** запрос (opt-out `serverScope:false`), а `App.vue`
+перерисовывает страницы при смене сервера.
+
+---
+
+## 🎮 In-game UI (`/game-ui/*`)
+
+Страницы, которые сервер открывает поверх игры через WebGUI. Без шапки и подвала (`hidePublicShell: true`),
+авторизация — `?webgui_token=`.
+
+```mermaid
+sequenceDiagram
+    participant S as Сервер (gamesync)
+    participant C as Клиент (WebGUI)
+    participant P as /game-ui/*
+    participant B as Бэкенд
+    S->>C: webgui:open_web (URL + webgui_token)
+    C->>P: открыть страницу
+    P->>B: /api/v1/game-ui/* (webgui_token)
+    B-->>P: данные игрока
+    P->>C: postToGame({ channel: "run_command", … })
+    C->>S: команда от имени игрока
+```
+
+| Маршрут | Что это |
+|---|---|
+| `/game-ui/menu` | Главное меню (клавиша F6) |
+| `/game-ui/hud` | HUD-оверлей: уведомления, подсказки, статус торговца |
+| `/game-ui/welcome` | Приветствие и гайд новичка |
+| `/game-ui/market` · `/game-ui/nmarket` | Рынок игроков · рынок наций |
+| `/game-ui/treasury` · `/game-ui/research` · `/game-ui/alliance` | Казна, исследования, альянс |
+| `/game-ui/battlepass` · `/game-ui/quests` · `/game-ui/roadmap` | Боевой пропуск, квесты, дорожная карта |
+| `/game-ui/leaderboards` · `/game-ui/notifications` · `/game-ui/settings` | Рейтинги, уведомления, настройки |
+| `/game-ui/cosmetics` | Косметика |
+| `/game-ui/trader` | Лавка странствующего торговца (открывается только у NPC) |
+| `/game-ui/upgrader` | Апгрейдер |
+
+### Composables и API
+
+```js
+import { isInMod, useWebGuiToken, useWebGuiClient, postToGame } from '@/composables/useWebGui.js'
+import { setWebguiToken, getOrderBook, createPendingAction } from '@/services/gameUiMarketApi.js'
+
+setWebguiToken(useWebGuiToken())                // строка из ?webgui_token=
+const client = useWebGuiClient()                // ref: { playerUuid, username, dimension, pos, server }
+
+if (isInMod()) {
+  const book = await getOrderBook('minecraft:iron_ingot')
+  await createPendingAction('buy', { item_key: 'minecraft:iron_ingot', amount: 64, price: 100 })
+  await postToGame({ channel: 'run_command', command: '/pm pickup' })
+}
+```
 
 ---
 
@@ -71,7 +121,7 @@
 
 | Компонент | Версия |
 |---|---|
-| Node.js | 18+ |
+| Node.js | 22 (как в CI) |
 | Yarn | 1.x |
 
 ---
@@ -79,91 +129,27 @@
 ## 🚀 Быстрый старт
 
 ```bash
-cd VOIDRP-SITE
-yarn
+yarn install --frozen-lockfile
 cp .env.example .env       # VITE_API_BASE_URL оставь пустым для dev
-yarn dev --host            # dev-сервер на порту 5175
-```
-
-В dev-режиме `/api` и `/media` автоматически проксируются на production API.
-
-```bash
-yarn build                 # продакшн-сборка → dist/
+yarn dev --host            # dev-сервер; /api и /media проксируются на прод-API
+yarn build                 # продакшн-сборка → dist/ (как в CI)
 ```
 
 ---
 
-## 🏗️ Архитектура
+## 🏗️ Структура
 
 ```
 src/
-├── stores/
-│   └── authStore.js           module-level reactive store, localStorage
-├── services/
-│   ├── apiBase.js             apiRequest() — HTTP слой, auto-refresh на 401
-│   ├── authApi.js             /auth/*
-│   ├── nationsApi.js          /nations/*
-│   ├── marketApi.js           /market/*
-│   ├── gameUiMarketApi.js     /game-ui/market/* (webgui_token)  ← WebGUI
-│   ├── battlepassAdminApi.js
-│   └── adminAnticheatApi.js
-├── composables/
-│   └── useWebGui.js           WebGUI bridge composables  ← WebGUI
-├── router/
-│   └── index.js               Vue Router 4, guard bootstrapAuth()
-├── views/
-│   ├── auth/
-│   ├── profile/
-│   ├── nations/
-│   ├── market/
-│   ├── game-ui/               ← /game-ui/* страницы для MCEF
-│   │   ├── GameUiMarketView.vue
-│   │   └── GameUiMenuView.vue
-│   └── admin/
-├── i18n/
-│   └── locales/
-│       ├── ru.js              ← все строки в обоих языках
-│       └── en.js
+├── config.site.js      адреса сайта и API, ссылки на Discord/Telegram, карта
+├── router/index.js     Vue Router 4, мета-флаги feature/hidePublicShell
+├── stores/             authStore, serverStore (активный сервер)
+├── services/           apiBase (401 → auto-refresh, X-Server-Slug) и API-модули по разделам
+├── composables/        useWebGui, usePageMeta, useGameUiSettings, …
+├── data/serverGuides.js  гайды серверов
+├── views/              публичные страницы, GameUi*View, admin/*
+├── i18n/locales/       ru.js, en.js
 └── components/
-    └── GlobalToastStack.vue
-```
-
-**Auth flow:** `bootstrapAuth()` в роутере → `apiRequest()` → на 401 auto-refresh через `setUnauthorizedHandler`.
-
----
-
-## 🎮 WebGUI Composables
-
-Composables для работы со встроенным браузером (доступны только внутри Minecraft):
-
-```js
-// src/composables/useWebGui.js
-import { useWebGuiClient, useWebGuiToken, isInMod, postToGame } from '@/composables/useWebGui.js'
-
-// Токен из ?webgui_token= (для API запросов)
-const token = useWebGuiToken()
-
-// Реактивный объект с данными игрока из JS bridge (window.webgui.client)
-const client = useWebGuiClient()
-// client.value = { playerUuid, username, dimension, pos, server }
-
-// Проверить — открыт ли сайт внутри мода
-if (isInMod()) { ... }
-
-// Управление игрой через CEF message router
-await postToGame({ channel: "run_command", command: "/pm pickup" })
-await postToGame({ channel: "open_gui", url: "https://void-rp.ru/game-ui#treasury" })
-await postToGame({ channel: "open_hud", url: "https://void-rp.ru/game-ui/hud" })
-```
-
-### gameUiMarketApi.js
-
-```js
-import { getOrderBook, getMyOrders, postPendingAction } from '@/services/gameUiMarketApi.js'
-
-// Все запросы автоматически добавляют webgui_token
-const orderBook = await getOrderBook('minecraft:iron_ingot', token)
-await postPendingAction({ action_type: 'buy', item_key: 'minecraft:iron', amount: 64, price: 100 }, token)
 ```
 
 ---
@@ -184,9 +170,9 @@ src/i18n/locales/en.js   # en.market.orderBook: "Order Book"
 | Репо | Связь |
 |---|---|
 | [minecraft-backend](https://github.com/VOIDRP-MINECRAFT/minecraft-backend) | REST API — все данные приходят отсюда |
-| [voidrp-webgui-neoforge](https://github.com/VOIDRP-MINECRAFT/voidrp-webgui-neoforge) | NeoForge мод — открывает наши `/game-ui/*` страницы в игре |
-| [voidrp-gamesync-plugin](https://github.com/VOIDRP-MINECRAFT/voidrp-gamesync-plugin) | Плагин — отправляет webgui_token клиентам |
-| [voidrp-launcher-vue](https://github.com/VOIDRP-MINECRAFT/voidrp-launcher-vue) | Лаунчер — открывает сайт для регистрации |
+| [voidrp-webgui-neoforge](https://github.com/VOIDRP-MINECRAFT/voidrp-webgui-neoforge) | Мод, который открывает `/game-ui/*` в игре |
+| [voidrp-gamesync-plugin](https://github.com/VOIDRP-MINECRAFT/voidrp-gamesync-plugin) | Подписывает URL (`webgui_token`) и открывает страницы |
+| [voidrp-launcher-vue](https://github.com/VOIDRP-MINECRAFT/voidrp-launcher-vue) | Лаунчер; скачивается со страницы `/download-launcher` |
 
 ---
 
