@@ -8,7 +8,7 @@ export const siteConfig = {
     import.meta.env.VITE_LAUNCHER_PORTABLE_URL ||
     'https://void-rp.ru/launcher/self-update/VoidRpLauncher.exe',
   bluemapUrl: 'https://void-rp.ru/map',
-  discordUrl: 'https://discord.gg/j2Dvxm8E',
+  discordUrl: 'https://discord.gg/Af855xa5wT',
   telegramUrl: 'https://t.me/voidRPminecraft',
   monitoringChartUrl: 'https://minecraftrating.ru/server_chart/396033/',
   hero: {
