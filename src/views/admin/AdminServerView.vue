@@ -58,7 +58,7 @@ const FEATURE_LABELS = {
   progression: 'Прогрессия эпох',
   map: 'Карта',
   bounties: 'Награды за головы',
-  killfeed: 'Пульс (killfeed)',
+  killfeed: 'Лента убийств (killfeed)',
   news: 'Новости',
 }
 
