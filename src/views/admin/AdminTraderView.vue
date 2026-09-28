@@ -5,7 +5,7 @@ import { activeServer } from '../../stores/serverStore'
 import { confirmDialog } from '../../composables/useConfirm'
 import { toastError, toastSuccess } from '../../services/toast'
 import {
-  traderCatalog, traderCatalogBulk, traderCatalogCreate, traderCatalogDelete, traderCatalogUpdate,
+  traderCatalog, traderCatalogBulk, traderCatalogImport, traderCatalogCreate, traderCatalogDelete, traderCatalogUpdate,
   traderEndVisit, traderForceVisit, traderPreview, traderSaveSettings, traderStatus,
   traderTransactions, traderVisit, traderVisits,
 } from '../../services/traderAdminApi'
@@ -204,6 +204,103 @@ async function removeItem(item) {
   } catch (e) { toastError(e.message || 'Ошибка') }
 }
 
+// ── import: many items at once, one per line ─────────────────────────────
+// Line: item_key; Название; редкость 1–3; ценность; [стадия]; [скупает 1/0]; [продаёт 1/0]; [кол-во от]; [до]
+const importOpen = ref(false)
+const importText = ref('')
+const importOverwrite = ref(false)
+const importing = ref(false)
+const VANILLA_PRESET = `# Ванильный стартовый набор. Цены примерные — поправьте под экономику сервера.
+# item_key; Название; редкость; ценность; стадия; скупает; продаёт
+minecraft:cobblestone; Булыжник; 1; 0.2
+minecraft:oak_log; Дубовое бревно; 1; 1
+minecraft:spruce_log; Еловое бревно; 1; 1
+minecraft:birch_log; Берёзовое бревно; 1; 1
+minecraft:coal; Уголь; 1; 2
+minecraft:raw_iron; Необработанное железо; 1; 4
+minecraft:raw_copper; Необработанная медь; 1; 1.5
+minecraft:wheat; Пшеница; 1; 0.8
+minecraft:carrot; Морковь; 1; 0.6
+minecraft:potato; Картофель; 1; 0.6
+minecraft:sugar_cane; Сахарный тростник; 1; 0.8
+minecraft:pumpkin; Тыква; 1; 1.5
+minecraft:melon_slice; Ломтик арбуза; 1; 0.3
+minecraft:rotten_flesh; Гнилая плоть; 1; 0.3
+minecraft:bone; Кость; 1; 0.8
+minecraft:string; Нить; 1; 0.8
+minecraft:gunpowder; Порох; 1; 2
+minecraft:leather; Кожа; 1; 2.5
+minecraft:white_wool; Белая шерсть; 1; 1
+minecraft:sand; Песок; 1; 0.3
+minecraft:gravel; Гравий; 1; 0.3
+minecraft:clay_ball; Глина; 1; 0.6
+minecraft:kelp; Ламинария; 1; 0.3
+minecraft:cod; Сырая треска; 1; 1.5
+minecraft:egg; Яйцо; 1; 0.5
+minecraft:iron_ingot; Железный слиток; 2; 6
+minecraft:gold_ingot; Золотой слиток; 2; 10
+minecraft:redstone; Красная пыль; 2; 2
+minecraft:lapis_lazuli; Лазурит; 2; 3
+minecraft:quartz; Кварц незера; 2; 3
+minecraft:ender_pearl; Жемчуг Края; 2; 12
+minecraft:slime_ball; Слизь; 2; 6
+minecraft:blaze_rod; Огненный стержень; 2; 15
+minecraft:honey_bottle; Бутылочка мёда; 2; 5
+minecraft:name_tag; Бирка; 2; 40; early; 0; 1
+minecraft:saddle; Седло; 2; 50; early; 0; 1
+minecraft:diamond; Алмаз; 3; 60
+minecraft:emerald; Изумруд; 3; 25
+minecraft:nautilus_shell; Раковина наутилуса; 3; 40
+minecraft:heart_of_the_sea; Сердце моря; 3; 300; early; 0; 1
+minecraft:netherite_scrap; Незеритовый лом; 3; 300
+minecraft:totem_of_undying; Тотем бессмертия; 3; 400
+minecraft:enchanted_golden_apple; Зачарованное золотое яблоко; 3; 800; early; 0; 1`
+
+const importParsed = computed(() => {
+  const items = []
+  const errors = []
+  const flag = (v, def) => (v === undefined || v === '' ? def : !['0', 'нет', 'no', 'false', '-'].includes(v.toLowerCase()))
+  importText.value.split('\n').forEach((raw, i) => {
+    const line = raw.trim()
+    if (!line || line.startsWith('#')) return
+    const f = line.split(';').map((x) => x.trim())
+    const [key, name, rarity, value, phase, canBuy, canSell, qmin, qmax] = f
+    const n = i + 1
+    if (!/^[a-z0-9_.-]+:[a-z0-9_./-]+$/.test((key || '').toLowerCase())) { errors.push(`стр. ${n}: неверный ID «${key || ''}»`); return }
+    if (!name) { errors.push(`стр. ${n}: нет названия`); return }
+    const r = Number(rarity)
+    if (![1, 2, 3].includes(r)) { errors.push(`стр. ${n}: редкость должна быть 1, 2 или 3`); return }
+    const v = Number(String(value || '').replace(',', '.'))
+    if (!(v > 0)) { errors.push(`стр. ${n}: ценность должна быть больше 0`); return }
+    const ph = phase || 'early'
+    if (!PHASE[ph]) { errors.push(`стр. ${n}: стадия — early, mid или end`); return }
+    const qn = qmin ? Number(qmin) : null
+    const qx = qmax ? Number(qmax) : null
+    if ((qn === null) !== (qx === null) || (qn !== null && !(qn >= 1 && qx >= qn))) { errors.push(`стр. ${n}: количество — оба числа, «до» не меньше «от»`); return }
+    items.push({
+      item_key: key.toLowerCase(), display_name: name, rarity: r, unit_value: v, phase: ph,
+      can_buy: flag(canBuy, true), can_sell: flag(canSell, true), qty_min: qn, qty_max: qx, enabled: true,
+    })
+  })
+  const seen = new Set()
+  for (const it of items) { if (seen.has(it.item_key)) errors.push(`${it.item_key} встречается дважды`); seen.add(it.item_key) }
+  return { items, errors }
+})
+
+function openImport() { importOpen.value = true; importOverwrite.value = false }
+async function runImport() {
+  const { items, errors } = importParsed.value
+  if (errors.length || !items.length) return
+  importing.value = true
+  try {
+    const res = await traderCatalogImport(token(), items, importOverwrite.value)
+    toastSuccess(`Добавлено ${res.created}, обновлено ${res.updated}, пропущено ${res.skipped}`)
+    importOpen.value = false
+    importText.value = ''
+    await loadCatalog(1)
+  } catch (e) { toastError(e.message || 'Не удалось импортировать') } finally { importing.value = false }
+}
+
 // ── visits & trades ──────────────────────────────────────────────────────
 const visits = ref({ items: [], total: 0, page: 1, per_page: 20 })
 async function loadVisits(page = 1) {
@@ -339,7 +436,8 @@ onUnmounted(() => { clearInterval(poll); document.removeEventListener('visibilit
         <select v-model="catPhase" class="adm-select"><option value="">Все стадии</option><option v-for="(l, k) in PHASE" :key="k" :value="k">{{ l }}</option></select>
         <select v-model="catEnabled" class="adm-select"><option value="">Вкл и выкл</option><option value="true">Включённые</option><option value="false">Выключенные</option></select>
         <span class="adm-sub">{{ cat.total }} предметов</span>
-        <button v-if="canManage" class="adm-btn adm-btn--acc adm-btn--sm" style="margin-left:auto" @click="openCreate">+ Добавить</button>
+        <button v-if="canManage" class="adm-btn adm-btn--ghost adm-btn--sm" style="margin-left:auto" @click="openImport">Импорт списком</button>
+        <button v-if="canManage" class="adm-btn adm-btn--acc adm-btn--sm" @click="openCreate">+ Добавить</button>
       </div>
       <div v-if="canManage && selectedIds.size" class="tr-bulk">
         <span>Выбрано {{ selectedIds.size }}</span>
@@ -571,6 +669,25 @@ onUnmounted(() => { clearInterval(poll); document.removeEventListener('visibilit
       </div>
     </div>
 
+    <!-- catalog import modal -->
+    <div v-if="importOpen" class="adm-modal-backdrop" @click.self="importOpen = false">
+      <div class="adm-modal" style="width:min(760px,94vw)">
+        <h2 class="adm-title">Импорт в каталог</h2>
+        <p class="adm-sub">По предмету на строку: <span class="adm-mono">item_key; Название; редкость 1–3; ценность; [стадия early|mid|end]; [скупает 1/0]; [продаёт 1/0]; [кол-во от]; [до]</span>. Строки с # — комментарии. Каталог сервера «{{ activeServer?.name || activeServer?.slug }}».</p>
+        <textarea v-model="importText" class="adm-input tr-import" spellcheck="false" placeholder="minecraft:diamond; Алмаз; 3; 60"></textarea>
+        <div class="tr-row" style="align-items:center">
+          <button class="adm-btn adm-btn--ghost adm-btn--sm" @click="importText = VANILLA_PRESET">Вставить ванильный стартовый набор</button>
+          <span class="adm-sub">Распознано: {{ importParsed.items.length }}</span>
+        </div>
+        <ul v-if="importParsed.errors.length" class="tr-errors"><li v-for="e in importParsed.errors.slice(0, 8)" :key="e">{{ e }}</li></ul>
+        <label class="adm-check"><input v-model="importOverwrite" type="checkbox" /> Перезаписать предметы, которые уже есть в каталоге (иначе они пропускаются)</label>
+        <div class="adm-head-actions" style="margin-top:14px">
+          <button class="adm-btn adm-btn--ghost" @click="importOpen = false">Отмена</button>
+          <button class="adm-btn adm-btn--acc" :disabled="importing || !importParsed.items.length || importParsed.errors.length > 0" @click="runImport">Импортировать {{ importParsed.items.length }}</button>
+        </div>
+      </div>
+    </div>
+
     <!-- visit detail modal -->
     <div v-if="visitDetail" class="adm-modal-backdrop" @click.self="visitDetail = null">
       <div class="adm-modal" style="width:min(760px,94vw)">
@@ -628,5 +745,7 @@ onUnmounted(() => { clearInterval(poll); document.removeEventListener('visibilit
 .tr-picker__grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(170px, 1fr)); gap: 4px; max-height: 240px; overflow: auto; margin-top: 8px; }
 .tr-pick { display: flex; align-items: center; gap: 6px; padding: 5px 6px; border-radius: 8px; border: 1px solid transparent; background: rgba(255, 255, 255, 0.03); color: inherit; font: inherit; font-size: 0.78rem; text-align: left; cursor: pointer; }
 .tr-pick.sel, .tr-pick:hover { border-color: rgba(139, 92, 246, 0.5); }
+.tr-import { width: 100%; min-height: 260px; font-family: ui-monospace, monospace; font-size: 0.8rem; resize: vertical; }
+.tr-errors { margin: 8px 0; padding-left: 18px; color: #fca5a5; font-size: 0.82rem; }
 .tr-pick span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 </style>

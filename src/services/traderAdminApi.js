@@ -15,6 +15,8 @@ export const traderCatalog = (token, params) => apiRequest(`/admin/trader/catalo
 export const traderCatalogCreate = (token, data) => apiRequest('/admin/trader/catalog', { method: 'POST', body: JSON.stringify(data), ...ah(token) })
 export const traderCatalogUpdate = (token, id, data) => apiRequest(`/admin/trader/catalog/${id}`, { method: 'PATCH', body: JSON.stringify(data), ...ah(token) })
 export const traderCatalogDelete = (token, id) => apiRequest(`/admin/trader/catalog/${id}`, { method: 'DELETE', ...ah(token) })
+export const traderCatalogImport = (token, items, overwrite) =>
+  apiRequest('/admin/trader/catalog/import', { method: 'POST', body: JSON.stringify({ items, overwrite }), ...ah(token) })
 export const traderCatalogBulk = (token, data) => apiRequest('/admin/trader/catalog/bulk', { method: 'POST', body: JSON.stringify(data), ...ah(token) })
 export const traderForceVisit = (token, kind) => apiRequest('/admin/trader/visits/force', { method: 'POST', body: JSON.stringify({ kind }), ...ah(token) })
 export const traderEndVisit = (token, id) => apiRequest(`/admin/trader/visits/${id}/end`, { method: 'POST', ...ah(token) })
