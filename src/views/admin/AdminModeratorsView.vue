@@ -1,5 +1,5 @@
 <script setup>
-import { computed, onMounted, ref } from 'vue'
+import { computed, onBeforeUnmount, onMounted, ref } from 'vue'
 import { RouterLink } from 'vue-router'
 import { authState } from '../../stores/authStore'
 import { serverState, fetchServers } from '../../stores/serverStore'
@@ -120,7 +120,29 @@ const limited = computed(() => scopeSlugs.value !== null)
 // Servers the person runs as admin: every per-server key there comes from that already.
 const viaAdmin = computed(() => new Set(editingRow.value?.admin_servers || []))
 const serverKeys = computed(() => new Set(catalog.value.flatMap((g) => g.permissions).filter((p) => p.scope === 'server').map((p) => p.key)))
+// Выпадающий список серверов у права: какой открыт; закрывается кликом мимо и Esc.
+const openKey = ref(null)
+function closePick(e) { if (e.type === 'click' || e.key === 'Escape') openKey.value = null }
+onMounted(() => { document.addEventListener('click', closePick); document.addEventListener('keydown', closePick) })
+onBeforeUnmount(() => { document.removeEventListener('click', closePick); document.removeEventListener('keydown', closePick) })
+function onServers(key) {
+  if (has(key)) return servers.value
+  return editorServersAll.value.filter((x) => hasOn(x.slug, key) || viaAdmin.value.has(x.slug))
+}
+function isGiven(key, scope) {
+  return scope === 'server' ? onServers(key).length > 0 : has(key)
+}
+const shortName = (name) => name.replace(/^VoidRP:\s*/, '')
+function pickLabel(key) {
+  if (has(key)) return 'Все серверы'
+  const list = onServers(key)
+  if (!list.length) return 'Не выдано'
+  if (list.length === 1) return shortName(list[0].name)
+  const n = list.length
+  return `${n} ${n % 10 >= 2 && n % 10 <= 4 && (n % 100 < 12 || n % 100 > 14) ? 'сервера' : 'серверов'}`
+}
 const adminNames = computed(() => servers.value.filter((x) => viaAdmin.value.has(x.slug)).map((x) => x.name).join(', '))
+const editorServersAll = computed(() => servers.value)
 const editorServers = computed(() => limited.value ? servers.value.filter((x) => scopeSlugs.value.includes(x.slug)) : servers.value)
 const editorCatalog = computed(() => limited.value
   ? catalog.value.map((g) => ({ ...g, permissions: g.permissions.filter((p) => p.scope === 'server') })).filter((g) => g.permissions.length)
@@ -373,13 +395,12 @@ onMounted(load)
         <span>Админ серверов <b>{{ adminNames }}</b>: все права этих серверов включены автоматически (с замком). Ниже можно добавить права на других серверах и права платформы.</span>
       </div>
       <p v-if="limited" class="md-scope-hint">
-        Ты правишь только свои серверы: отметь серверы под каждым правом. Права на других серверах
+        Ты правишь только свои серверы: выбери их в списке справа у каждого права. Права на других серверах
         и права платформы у этого человека не меняются.
       </p>
       <p v-else class="md-scope-hint">
-        Галочка — право на всех серверах. У прав «по серверам» без галочки можно отметить
-        отдельные серверы кнопками под ними: модератор получит это право только там.
-        Права с пометкой «платформа» касаются сайта, лаунчера и аккаунтов целиком и на сервер не делятся.
+        Права серверов выдаются кнопкой справа: отметь нужные серверы или «Все серверы».
+        Права с пометкой «платформа» касаются сайта, лаунчера и аккаунтов целиком — их ставит галочка слева.
       </p>
 
       <div class="md-groups">
@@ -388,27 +409,49 @@ onMounted(load)
             <span class="adm-label md-group__title">{{ g.group }}</span>
             <span class="md-group__count adm-num">{{ groupSelected(g) }}/{{ g.permissions.length }}</span>
           </button>
-          <div v-for="p in g.permissions" :key="p.key" class="md-perm-wrap">
-            <label class="md-perm" :class="{ 'md-perm--on': has(p.key) || (viaAdmin.size && p.scope === 'server') }">
-              <input v-if="!limited" type="checkbox" :checked="has(p.key)" @change="toggle(p.key)" />
-              <span class="md-perm__label">
-                {{ p.label }}
-                <span v-if="p.scope === 'server'" class="md-perm__scope">{{ has(p.key) ? 'на всех серверах' : 'по серверам' }}</span>
-                <span v-else class="md-perm__scope md-perm__scope--platform" title="Касается всей платформы (сайт, лаунчер, аккаунты) — на отдельный сервер не выдаётся">платформа</span>
-              </span>
+          <div v-for="p in g.permissions" :key="p.key" class="md-perm" :class="{ 'md-perm--on': isGiven(p.key, p.scope) }">
+            <input v-if="p.scope !== 'server'" type="checkbox" :checked="has(p.key)" :disabled="limited" @change="toggle(p.key)" />
+            <span v-else class="md-perm__dot" :class="{ 'md-perm__dot--on': isGiven(p.key, p.scope) }" />
+            <span class="md-perm__label">
+              {{ p.label }}
+              <span v-if="p.scope !== 'server'" class="md-perm__scope md-perm__scope--platform" title="Касается всей платформы (сайт, лаунчер, аккаунты) — на отдельный сервер не выдаётся">платформа</span>
               <span v-if="p.sensitive" class="md-perm__tag" title="Чувствительное право">•</span>
-            </label>
-            <div v-if="p.scope === 'server' && !has(p.key) && editorServers.length" class="md-servers" :class="{ 'md-servers--flat': limited }">
+            </span>
+            <div v-if="p.scope === 'server'" class="md-pick" @click.stop>
               <button
-                v-for="srv in editorServers"
-                :key="srv.slug"
-                type="button"
-                class="md-server"
-                :class="{ 'md-server--on': hasOn(srv.slug, p.key) || viaAdmin.has(srv.slug), 'md-server--admin': viaAdmin.has(srv.slug) }"
-                :disabled="viaAdmin.has(srv.slug)"
-                :title="viaAdmin.has(srv.slug) ? 'Входит в админство этого сервера — снимается только вместе с админством' : ''"
-                @click="toggleOn(srv.slug, p.key)"
-              ><svg v-if="viaAdmin.has(srv.slug)" class="md-server__lock" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6"><rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V7a4 4 0 018 0v4"/></svg>{{ srv.name }}</button>
+                type="button" class="md-pick__btn"
+                :class="{ 'md-pick__btn--on': onServers(p.key).length, 'md-pick__btn--all': has(p.key), 'md-pick__btn--open': openKey === p.key }"
+                @click="openKey = openKey === p.key ? null : p.key"
+              >
+                <svg v-if="onServers(p.key).length && onServers(p.key).every((x) => viaAdmin.has(x.slug)) && !has(p.key)" class="md-pick__lock" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6"><rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V7a4 4 0 018 0v4"/></svg>
+                <span>{{ pickLabel(p.key) }}</span>
+                <svg class="md-pick__chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6"><path d="M6 9l6 6 6-6"/></svg>
+              </button>
+              <div v-if="onServers(p.key).length > 1 && openKey !== p.key" class="md-pick__tip">
+                <div v-for="x in onServers(p.key)" :key="x.slug">{{ x.name }}<span v-if="viaAdmin.has(x.slug) && !has(p.key)"> — админство</span></div>
+              </div>
+              <div v-if="openKey === p.key" class="md-pick__menu">
+                <label v-if="!limited" class="md-pick__opt md-pick__opt--all">
+                  <input type="checkbox" :checked="has(p.key)" @change="toggle(p.key)" />
+                  <span><b>Все серверы</b><small>и те, что появятся потом</small></span>
+                </label>
+                <label
+                  v-for="srv in editorServers" :key="srv.slug" class="md-pick__opt"
+                  :class="{ 'md-pick__opt--locked': has(p.key) || viaAdmin.has(srv.slug) }"
+                >
+                  <input
+                    type="checkbox"
+                    :checked="has(p.key) || hasOn(srv.slug, p.key) || viaAdmin.has(srv.slug)"
+                    :disabled="has(p.key) || viaAdmin.has(srv.slug)"
+                    @change="toggleOn(srv.slug, p.key)"
+                  />
+                  <span>
+                    {{ srv.name }}
+                    <small v-if="viaAdmin.has(srv.slug)">через админство</small>
+                    <small v-else-if="has(p.key)">входит во «все серверы»</small>
+                  </span>
+                </label>
+              </div>
             </div>
           </div>
         </section>
@@ -490,6 +533,41 @@ onMounted(load)
 <style scoped>
 .md-scope-hint { margin: 0 0 0.9rem; font-size: 0.78rem; color: var(--adm-dim); line-height: 1.5; }
 .md-perm__scope { display: inline-block; margin-left: 0.35rem; font-size: 0.66rem; color: var(--adm-faint); }
+.md-perm__dot { width: 0.95rem; height: 0.95rem; flex-shrink: 0; display: flex; align-items: center; justify-content: center; }
+.md-perm__dot::before { content: ''; width: 0.42rem; height: 0.42rem; border-radius: 50%; background: var(--adm-faint); }
+.md-perm__dot--on::before { background: var(--adm-acc); box-shadow: 0 0 0 3px var(--adm-acc-soft); }
+.md-pick { position: relative; flex-shrink: 0; }
+.md-pick__btn {
+  display: inline-flex; align-items: center; gap: 0.3rem; max-width: 9.5rem; padding: 0.2rem 0.4rem 0.2rem 0.55rem;
+  border-radius: 7px; border: 1px solid var(--adm-line-strong); background: transparent; color: var(--adm-dim);
+  font-size: 0.7rem; font-weight: 700; cursor: pointer; white-space: nowrap;
+}
+.md-pick__btn span { overflow: hidden; text-overflow: ellipsis; }
+.md-pick__btn:hover, .md-pick__btn--open { border-color: var(--adm-acc-line); color: var(--adm-mut); }
+.md-pick__btn--on { color: var(--adm-text); background: var(--adm-acc-soft); border-color: var(--adm-acc-line); }
+.md-pick__btn--all { color: var(--adm-acc-text); }
+.md-pick__chev { width: 0.7rem; height: 0.7rem; flex-shrink: 0; opacity: 0.7; }
+.md-pick__lock { width: 0.62rem; height: 0.62rem; flex-shrink: 0; opacity: 0.85; }
+.md-pick__tip {
+  position: absolute; right: 0; bottom: calc(100% + 6px); z-index: 20; min-width: 10rem; padding: 0.45rem 0.6rem;
+  border-radius: 8px; background: #05070d; border: 1px solid var(--adm-line-strong); box-shadow: 0 10px 24px -8px rgba(0, 0, 0, 0.7);
+  font-size: 0.72rem; font-weight: 600; color: var(--adm-text); line-height: 1.6; white-space: nowrap;
+  opacity: 0; transform: translateY(3px); pointer-events: none; transition: opacity 0.12s, transform 0.12s;
+}
+.md-pick__tip span { color: var(--adm-dim); }
+.md-pick:hover .md-pick__tip { opacity: 1; transform: none; }
+.md-pick__menu {
+  position: absolute; right: 0; top: calc(100% + 6px); z-index: 30; width: 15.5rem; padding: 0.35rem;
+  border-radius: 10px; background: var(--adm-card); border: 1px solid var(--adm-line-strong); box-shadow: 0 16px 36px -10px rgba(0, 0, 0, 0.75);
+}
+.md-pick__opt { display: flex; align-items: center; gap: 0.55rem; padding: 0.45rem 0.5rem; border-radius: 7px; cursor: pointer; font-size: 0.78rem; font-weight: 600; color: var(--adm-mut); }
+.md-pick__opt:hover { background: rgba(148, 163, 184, 0.06); color: var(--adm-text); }
+.md-pick__opt input { accent-color: var(--adm-acc); width: 0.9rem; height: 0.9rem; flex-shrink: 0; }
+.md-pick__opt span { display: flex; flex-direction: column; min-width: 0; }
+.md-pick__opt small { font-size: 0.66rem; font-weight: 500; color: var(--adm-dim); }
+.md-pick__opt--all { border-bottom: 1px solid var(--adm-line); border-radius: 7px 7px 0 0; margin-bottom: 0.2rem; }
+.md-pick__opt--all b { color: var(--adm-text); }
+.md-pick__opt--locked { cursor: default; }
 .md-perm__scope--platform { padding: 0 0.35rem; border-radius: 999px; border: 1px solid var(--adm-line); }
 .md-servers { display: flex; flex-wrap: wrap; gap: 0.3rem; padding: 0 0 0.45rem 1.9rem; }
 .md-server {
