@@ -174,12 +174,39 @@ const configError = ref('')
 const configSaving = ref(false)
 const configSaved = ref(false)
 
+// What the server had when loaded, so only the keys actually changed are saved — saving
+// a key gives this server its own value, which it then keeps when the default moves.
+const configOriginal = ref({})
+
+// The mod's thresholds (servers on mods) and VoidRP Guard's (Paper servers) — a server
+// only reads its own kind, so they are shown apart.
+const configGroups = computed(() => [
+  {
+    title: 'Плагин VoidRP Guard',
+    sub: 'Paper-серверы (Origins): флаги GrimAC, иксрей, гриферство по журналу CoreProtect',
+    items: configs.value.filter(c => c.key.startsWith('guard_')),
+  },
+  {
+    title: 'Мод voidrp_anticheat',
+    sub: 'Серверы на модах: проверки скорости, полёта, дальности удара, CPS',
+    items: configs.value.filter(c => !c.key.startsWith('guard_')),
+  },
+].filter(g => g.items.length))
+
+const configDirty = computed(() =>
+  configs.value.some(c => Number(c.value) !== configOriginal.value[c.key]))
+
+function takeConfig(rows) {
+  configs.value = rows
+  configOriginal.value = Object.fromEntries(rows.map(c => [c.key, c.value]))
+}
+
 async function loadConfig() {
   if (configs.value.length) return
   configLoading.value = true
   configError.value = ''
   try {
-    configs.value = await anticheatGetConfig(token())
+    takeConfig(await anticheatGetConfig(token()))
   } catch (e) {
     configError.value = e.message || 'Ошибка загрузки'
   } finally {
@@ -187,13 +214,15 @@ async function loadConfig() {
   }
 }
 
-async function saveConfig() {
+async function saveConfig(reset = []) {
   configSaving.value = true
   configSaved.value = false
   configError.value = ''
   try {
-    const updates = configs.value.map(c => ({ key: c.key, value: Number(c.value) }))
-    configs.value = await anticheatUpdateConfig(token(), updates)
+    const updates = configs.value
+      .filter(c => !reset.includes(c.key) && Number(c.value) !== configOriginal.value[c.key])
+      .map(c => ({ key: c.key, value: Number(c.value) }))
+    takeConfig(await anticheatUpdateConfig(token(), updates, reset))
     configSaved.value = true
     setTimeout(() => { configSaved.value = false }, 3000)
   } catch (e) {
@@ -201,6 +230,10 @@ async function saveConfig() {
   } finally {
     configSaving.value = false
   }
+}
+
+function resetConfigKey(c) {
+  saveConfig([c.key])
 }
 
 // The layout keys server-scoped views by the active slug, so switching servers
@@ -388,17 +421,23 @@ onMounted(load)
 
       <div v-else-if="configs.length">
         <p class="ac-hint" style="margin-bottom: 1.25rem">
-          Пороги применяются на сервере автоматически каждые 5 минут без перезагрузки мода.
-          Локальный TOML-конфиг используется как запасной вариант при недоступности API.
-          Настройки общие для всех серверов. Ползунок ограничен рекомендуемым диапазоном —
-          в числовом поле можно вписать любое значение выше него.
+          Значения — для сервера «{{ activeServerName }}»; у других серверов свои.
+          Не менявшиеся здесь идут по стандарту, общему для всех. Мод перечитывает пороги
+          раз в 5 минут, плагин Guard — раз в минуту, без перезагрузки. Ползунок ограничен
+          рекомендуемым диапазоном — в числовом поле можно вписать и больше.
         </p>
 
+        <section v-for="g in configGroups" :key="g.title" class="ac-config-group">
+          <div class="ac-config-group-head">
+            <h3 class="ac-config-group-title">{{ g.title }}</h3>
+            <span class="ac-config-group-sub">{{ g.sub }}</span>
+          </div>
         <div class="ac-config-grid">
-          <div v-for="c in configs" :key="c.key" class="adm-card adm-card--pad ac-config-card">
+          <div v-for="c in g.items" :key="c.key" class="adm-card adm-card--pad ac-config-card">
             <div class="ac-config-header">
               <span class="ac-config-label">{{ c.label }}</span>
-              <span class="ac-config-key adm-mono">{{ c.key }}</span>
+              <span v-if="c.overridden" class="adm-badge adm-badge--warn">своё для сервера</span>
+              <span v-else class="ac-config-key">стандарт</span>
             </div>
             <p class="ac-config-desc">{{ c.description }}</p>
             <div class="ac-config-row">
@@ -419,15 +458,19 @@ onMounted(load)
               />
             </div>
             <div class="ac-config-range">ползунок: {{ c.min_value }} — {{ c.max_value }} · в поле можно ввести и больше</div>
-            <div v-if="c.updated_by" class="ac-config-range">Изменено: {{ c.updated_by }}</div>
+            <div v-if="c.overridden" class="ac-config-range ac-config-own">
+              <span>Стандарт: {{ c.default_value }}<template v-if="c.updated_by"> · изменил {{ c.updated_by }}</template></span>
+              <button v-if="canManage" class="adm-btn adm-btn--ghost adm-btn--sm" :disabled="configSaving" @click="resetConfigKey(c)">Вернуть стандарт</button>
+            </div>
           </div>
         </div>
+        </section>
 
         <div class="ac-config-actions">
-          <button v-if="canManage" class="adm-btn adm-btn--acc" :disabled="configSaving" @click="saveConfig">
-            {{ configSaving ? 'Сохранение…' : 'Сохранить' }}
+          <button v-if="canManage" class="adm-btn adm-btn--acc" :disabled="configSaving || !configDirty" @click="saveConfig()">
+            {{ configSaving ? 'Сохранение…' : 'Сохранить для «' + activeServerName + '»' }}
           </button>
-          <span v-if="configSaved" class="ac-saved-ok">✓ Сохранено. Мод обновится в течение 5 минут.</span>
+          <span v-if="configSaved" class="ac-saved-ok">✓ Сохранено. Сервер подхватит в течение нескольких минут.</span>
         </div>
       </div>
     </div>
@@ -504,6 +547,11 @@ tr.is-selected { background: var(--adm-acc-soft, rgba(99, 102, 241, 0.08)); }
 .ac-slider { flex: 1; accent-color: var(--adm-acc); cursor: pointer; }
 .ac-num-input { width: 84px; text-align: right; padding: 0.4rem 0.5rem; }
 .ac-config-range { font-size: 0.68rem; color: var(--adm-faint); }
+.ac-config-group { display: flex; flex-direction: column; gap: 0.75rem; margin-bottom: 1.5rem; }
+.ac-config-group-head { display: flex; flex-direction: column; gap: 0.15rem; }
+.ac-config-group-title { margin: 0; font-size: 0.95rem; font-weight: 800; color: var(--adm-text); }
+.ac-config-group-sub { font-size: 0.76rem; color: var(--adm-dim); }
+.ac-config-own { display: flex; align-items: center; justify-content: space-between; gap: 0.5rem; flex-wrap: wrap; }
 .ac-config-actions { display: flex; align-items: center; gap: 1rem; flex-wrap: wrap; }
 .ac-saved-ok { font-size: 0.82rem; color: #6ee7b7; font-weight: 700; }
 </style>

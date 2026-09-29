@@ -1,8 +1,13 @@
 <script setup>
-import { onMounted, ref } from 'vue'
+import { onBeforeUnmount, onMounted, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import { anticheatGetPlayer, anticheatPlayerAction, anticheatSetModVerdict, anticheatDeleteModVerdict } from '../../services/adminAnticheatApi.js'
+import {
+  anticheatGetPlayer, anticheatPlayerAction, anticheatSetModVerdict, anticheatDeleteModVerdict,
+  anticheatListActions, anticheatCreateAction,
+} from '../../services/adminAnticheatApi.js'
 import { authState, hasPermission } from '../../stores/authStore'
+import { confirmDialog } from '../../composables/useConfirm'
+import { toastError, toastSuccess } from '../../services/toast'
 
 const route = useRoute()
 const router = useRouter()
@@ -66,7 +71,90 @@ async function load() {
   }
 }
 
-onMounted(load)
+onMounted(() => { load().then(prefillPlace); loadRollbacks() })
+
+// ── Rollback through CoreProtect (Paper servers with VoidRP Guard) ───────────
+const rollbacks = ref([])
+const rbMinutes = ref(60)
+const rbRadius = ref(0)
+const rbPlace = ref({ world: '', x: null, y: null, z: null })
+const rbBusy = ref(false)
+const RB_PRESETS = [
+  { label: '15 мин', minutes: 15 },
+  { label: '1 ч', minutes: 60 },
+  { label: '3 ч', minutes: 180 },
+  { label: '12 ч', minutes: 720 },
+  { label: '1 день', minutes: 1440 },
+  { label: '3 дня', minutes: 4320 },
+]
+let rbTimer = null
+
+async function loadRollbacks() {
+  try {
+    rollbacks.value = await anticheatListActions(token(), { player_uuid: playerUuid, limit: 20 })
+  } catch {
+    rollbacks.value = []
+  }
+  // Keep watching while the server has not answered yet.
+  clearTimeout(rbTimer)
+  if (rollbacks.value.some(a => a.status === 'pending' || a.status === 'running')) {
+    rbTimer = setTimeout(loadRollbacks, 4000)
+  }
+}
+
+onBeforeUnmount(() => clearTimeout(rbTimer))
+
+// A grief record names "Последний — <world> <x> <y> <z>": the natural place to
+// roll back around.
+function prefillPlace() {
+  const grief = data.value?.violations?.find(v => v.check_type?.startsWith('GRIEF'))
+  const m = grief?.details?.match(/Последний — (\S+) (-?\d+) (-?\d+) (-?\d+)/)
+  if (m) rbPlace.value = { world: m[1], x: +m[2], y: +m[3], z: +m[4] }
+}
+
+function fmtMinutes(min) {
+  if (min % 1440 === 0) return `${min / 1440} д`
+  if (min % 60 === 0) return `${min / 60} ч`
+  return `${min} мин`
+}
+
+async function queueRollback(kind) {
+  const minutes = Number(rbMinutes.value)
+  const radius = Number(rbRadius.value) || 0
+  if (!minutes || minutes < 1) { toastError('Укажите, за сколько минут'); return }
+  const nick = data.value.player_nick
+  const where = radius
+    ? `в радиусе ${radius} блоков от ${rbPlace.value.world} ${rbPlace.value.x} ${rbPlace.value.y} ${rbPlace.value.z}`
+    : 'по всему миру'
+  const ok = await confirmDialog({
+    title: kind === 'rollback' ? 'Откатить изменения игрока?' : 'Вернуть откаченное?',
+    message: kind === 'rollback'
+      ? `CoreProtect отменит всё, что ${nick} ломал, ставил и брал из сундуков за последние ${fmtMinutes(minutes)} ${where}. Если откатили лишнее, это можно вернуть кнопкой «Восстановить».`
+      : `CoreProtect снова применит изменения ${nick} за последние ${fmtMinutes(minutes)} ${where} — это отменяет прошлый откат.`,
+    confirmLabel: kind === 'rollback' ? 'Откатить' : 'Восстановить',
+    danger: kind === 'rollback',
+  })
+  if (!ok) return
+  rbBusy.value = true
+  try {
+    const body = { kind, target_nick: nick, target_uuid: playerUuid, minutes, radius }
+    if (radius) Object.assign(body, rbPlace.value)
+    await anticheatCreateAction(token(), body)
+    toastSuccess('Отправлено на сервер — результат появится ниже через несколько секунд')
+    await loadRollbacks()
+  } catch (e) {
+    toastError(e.message || 'Не удалось отправить')
+  } finally {
+    rbBusy.value = false
+  }
+}
+
+const RB_STATUS = {
+  pending: { label: 'ждёт сервер', cls: '' },
+  running: { label: 'выполняется', cls: 'adm-badge--warn' },
+  done: { label: 'готово', cls: 'adm-badge--ok' },
+  failed: { label: 'ошибка', cls: 'adm-badge--err' },
+}
 
 async function doAction(action) {
   actionLoading.value = true
@@ -168,6 +256,56 @@ function fmtDate(iso) {
         </div>
         <div v-if="actionMsg" class="acp-action-ok">{{ actionMsg }}</div>
         <div v-if="actionErr" class="acp-action-err">{{ actionErr }}</div>
+      </div>
+
+      <!-- Rollback through CoreProtect (Paper servers running VoidRP Guard) -->
+      <div v-if="canManage" class="acp-actions-card">
+        <div class="acp-actions-title">Откат через CoreProtect</div>
+        <p class="acp-rb-hint">
+          Отменяет всё, что игрок ломал, ставил и брал из сундуков за выбранное время.
+          Работает на серверах с плагином VoidRP Guard и CoreProtect (Origins).
+        </p>
+        <div class="acp-actions-row">
+          <button
+            v-for="p in RB_PRESETS"
+            :key="p.minutes"
+            class="adm-btn adm-btn--sm"
+            :class="{ 'adm-btn--acc': rbMinutes === p.minutes }"
+            @click="rbMinutes = p.minutes"
+          >{{ p.label }}</button>
+          <label class="acp-rb-field">
+            <span>минут</span>
+            <input v-model.number="rbMinutes" type="number" min="1" max="43200" class="adm-input acp-rb-num" />
+          </label>
+        </div>
+        <div class="acp-actions-row">
+          <label class="acp-rb-field">
+            <span>радиус (0 — везде)</span>
+            <input v-model.number="rbRadius" type="number" min="0" max="1000" class="adm-input acp-rb-num" />
+          </label>
+          <template v-if="rbRadius > 0">
+            <label class="acp-rb-field"><span>мир</span><input v-model="rbPlace.world" class="adm-input acp-rb-world" placeholder="world" /></label>
+            <label class="acp-rb-field"><span>x</span><input v-model.number="rbPlace.x" type="number" class="adm-input acp-rb-num" /></label>
+            <label class="acp-rb-field"><span>y</span><input v-model.number="rbPlace.y" type="number" class="adm-input acp-rb-num" /></label>
+            <label class="acp-rb-field"><span>z</span><input v-model.number="rbPlace.z" type="number" class="adm-input acp-rb-num" /></label>
+          </template>
+        </div>
+        <div class="acp-actions-row">
+          <button class="adm-btn adm-btn--danger" :disabled="rbBusy" @click="queueRollback('rollback')">Откатить</button>
+          <button class="adm-btn" :disabled="rbBusy" @click="queueRollback('restore')">Восстановить</button>
+        </div>
+
+        <div v-if="rollbacks.length" class="acp-rb-list">
+          <div v-for="a in rollbacks" :key="a.id" class="acp-rb-row">
+            <span class="adm-badge" :class="RB_STATUS[a.status]?.cls">{{ RB_STATUS[a.status]?.label || a.status }}</span>
+            <span class="acp-rb-what">
+              {{ a.kind === 'rollback' ? 'Откат' : 'Восстановление' }} за {{ fmtMinutes(a.params.minutes) }}
+              <template v-if="a.params.radius"> · радиус {{ a.params.radius }} от {{ a.params.world }} {{ a.params.x }} {{ a.params.y }} {{ a.params.z }}</template>
+            </span>
+            <span class="acp-rb-meta">{{ a.created_by || '—' }} · {{ fmtDate(a.created_at) }}</span>
+            <div v-if="a.result" class="acp-rb-result" :class="{ 'acp-rb-result--err': a.status === 'failed' }">{{ a.result }}</div>
+          </div>
+        </div>
       </div>
 
       <div class="acp-grid">
@@ -397,6 +535,19 @@ function fmtDate(iso) {
 .acp-stat__val { font-size: 1.5rem; font-weight: 900; color: var(--adm-text); }
 .acp-stat__val--danger { color: #f87171; }
 .acp-stat__lbl { font-size: 0.7rem; color: var(--adm-faint); font-weight: 700; text-transform: uppercase; }
+
+/* Rollback */
+.acp-actions-row + .acp-actions-row { margin-top: 0.6rem; }
+.acp-rb-hint { margin: -0.25rem 0 0.75rem; font-size: 0.78rem; color: var(--adm-dim); line-height: 1.45; }
+.acp-rb-field { display: inline-flex; align-items: center; gap: 0.4rem; font-size: 0.76rem; color: var(--adm-dim); }
+.acp-rb-num { width: 6.5rem; }
+.acp-rb-world { width: 9rem; }
+.acp-rb-list { display: flex; flex-direction: column; gap: 0.5rem; margin-top: 1rem; border-top: 1px solid var(--adm-line); padding-top: 0.75rem; }
+.acp-rb-row { display: flex; flex-wrap: wrap; align-items: center; gap: 0.35rem 0.6rem; }
+.acp-rb-what { font-size: 0.82rem; color: var(--adm-text); }
+.acp-rb-meta { font-size: 0.72rem; color: var(--adm-faint); margin-left: auto; }
+.acp-rb-result { flex-basis: 100%; font-size: 0.78rem; color: var(--adm-dim); padding-left: 0.25rem; }
+.acp-rb-result--err { color: #f87171; }
 
 /* Actions card */
 .acp-actions-card {

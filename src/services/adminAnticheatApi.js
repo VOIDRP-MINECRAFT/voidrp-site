@@ -59,10 +59,30 @@ export async function anticheatGetConfig(token) {
   return apiRequest('/admin/anticheat/config', { method: 'GET', ...ah(token) })
 }
 
-export async function anticheatUpdateConfig(token, updates, updatedBy = 'admin') {
+// Values are per server: `updates` set the active server's own values, `reset` puts
+// keys back to the default every server gets.
+export async function anticheatUpdateConfig(token, updates, reset = [], updatedBy = 'admin') {
   return apiRequest('/admin/anticheat/config', {
     method: 'PUT',
-    body: JSON.stringify({ updates, updated_by: updatedBy }),
+    body: JSON.stringify({ updates, reset, updated_by: updatedBy }),
+    ...ah(token),
+  })
+}
+
+// Rollbacks (and their undo) the server's VoidRP Guard plugin carries out through CoreProtect.
+export async function anticheatListActions(token, params = {}) {
+  const q = new URLSearchParams()
+  if (params.player_uuid) q.set('player_uuid', params.player_uuid)
+  if (params.player_nick) q.set('player_nick', params.player_nick)
+  if (params.limit) q.set('limit', params.limit)
+  const qs = q.toString()
+  return apiRequest(`/admin/anticheat/actions${qs ? '?' + qs : ''}`, { method: 'GET', ...ah(token) })
+}
+
+export async function anticheatCreateAction(token, body) {
+  return apiRequest('/admin/anticheat/actions', {
+    method: 'POST',
+    body: JSON.stringify(body),
     ...ah(token),
   })
 }
