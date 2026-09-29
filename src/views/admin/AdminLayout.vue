@@ -168,6 +168,7 @@ const navGroups = computed(() => {
         { to: '/admin/market', label: 'Рынок', icon: icons.market, perm: 'market.view', serverFeature: 'economy' },
         { to: '/admin/upgrader', label: 'Апгрейдер', icon: icons.market, perm: 'upgrader.view', serverFeature: 'upgrader' },
         { to: '/admin/trader', label: 'Скупщик', icon: icons.market, perm: 'trader.view', serverFeature: 'trader' },
+        { to: '/admin/donate', label: 'Донаты', icon: icons.donate, perm: 'donate.view' },
         { to: '/admin/salary', label: 'Зарплата', icon: icons.market, perm: 'salary.view', serverFeature: 'salary' },
         { to: '/admin/nations', label: 'Государства', icon: icons.nations, perm: 'nations.view', serverFeature: 'nations' },
         { to: '/admin/battlepass', label: 'Battle Pass', icon: icons.battlepass, perm: 'battlepass.view', serverFeature: 'battlepass' },
@@ -181,7 +182,6 @@ const navGroups = computed(() => {
       items: [
         { to: '/admin/players', label: 'Игроки', icon: icons.players, perm: 'players.view' },
         { to: '/admin/cosmetics', label: 'Косметика', icon: icons.players, perm: 'figura.cosmetics.manage' },
-        { to: '/admin/donate', label: 'Донаты', icon: icons.donate, perm: 'donate.view' },
         { to: '/admin/server', label: 'Серверы', icon: icons.servers, perm: 'servers.manage' },
         { to: '/admin/launcher', label: 'Лаунчер', icon: icons.launcher, perm: 'launcher.view' },
         { to: '/admin/moderators', label: 'Модерация', icon: icons.players, adminOnly: true },
