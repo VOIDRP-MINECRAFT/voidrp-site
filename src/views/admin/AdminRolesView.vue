@@ -44,6 +44,9 @@ const selected = computed(() => roles.value.find((r) => r.id === selectedId.valu
 const realRoles = computed(() => roles.value.filter((r) => !r.is_badge))
 const badges = computed(() => roles.value.filter((r) => r.is_badge))
 const isBadge = computed(() => !!selected.value?.is_badge)
+// К каким ролям можно привязать значок: свои роли и те, которыми управляешь.
+const ownerOptions = computed(() => realRoles.value.filter((r) => r.mine || r.editable))
+const ownerRole = computed(() => roles.value.find((r) => r.id === draft.value?.owner_role_id) || selected.value?.owner_role || null)
 const readOnly = computed(() => !selected.value?.editable)
 const catalogByKey = computed(() => Object.fromEntries(catalog.value.flatMap((g) => g.permissions).map((p) => [p.key, p])))
 
@@ -82,7 +85,7 @@ const canCreateBadge = computed(() => me.value?.can_manage_badges)
 
 // ── Loading & selection ─────────────────────────────────────────────────────
 function snapshot(role) {
-  return role ? { name: role.name, color: role.color, servers: role.servers ? [...role.servers].sort() : null, permissions: [...role.permissions] } : null
+  return role ? { name: role.name, color: role.color, servers: role.servers ? [...role.servers].sort() : null, permissions: [...role.permissions], owner_role_id: role.owner_role?.id || null } : null
 }
 const dirty = computed(() => draft.value && selected.value && JSON.stringify(snapshot({ ...draft.value, permissions: [...draft.value.permissions].sort() })) !== JSON.stringify(snapshot({ ...selected.value, permissions: [...selected.value.permissions].sort() })))
 
@@ -292,8 +295,9 @@ onMounted(() => load(false))
       <!-- Список ролей -->
       <aside class="adm-card rl-list">
         <div class="rl-list__head">
-          <span class="adm-label" style="margin: 0">Роли — {{ roles.length }}</span>
+          <span class="adm-label" style="margin: 0">Роли — {{ realRoles.length }}</span>
         </div>
+        <p v-if="!realRoles.length" class="rl-list__empty">Ролей, которые ты можешь выдавать, нет.</p>
         <ul>
           <li
             v-for="r in realRoles"
@@ -333,7 +337,7 @@ onMounted(() => load(false))
               <span class="rl-item__tag">#</span>
               <span class="rl-item__main">
                 <span class="rl-item__name">{{ r.name }}</span>
-                <span class="rl-item__meta">значок · без прав</span>
+                <span class="rl-item__meta">{{ r.owner_role ? `значок роли «${r.owner_role.name}»` : 'значок · без прав' }}</span>
               </span>
               <span class="rl-item__count adm-num">{{ r.members.length }}</span>
               <svg v-if="!r.editable" class="rl-item__lock" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="4" y="11" width="16" height="10" rx="2"/><path d="M8 11V7a4 4 0 018 0v4"/></svg>
@@ -396,7 +400,16 @@ onMounted(() => load(false))
             </div>
           </div>
 
-          <div class="adm-field">
+          <label v-if="isBadge" class="adm-field">
+            <span>Принадлежит роли</span>
+            <select v-model="draft.owner_role_id" class="adm-select" :disabled="readOnly">
+              <option :value="null">— не привязан —</option>
+              <option v-if="ownerRole && !ownerOptions.some((r) => r.id === ownerRole.id)" :value="ownerRole.id">{{ ownerRole.name }}</option>
+              <option v-for="r in ownerOptions" :key="r.id" :value="r.id">{{ r.name }}</option>
+            </select>
+            <small class="rl-note">{{ draft.owner_role_id ? 'Участники роли выдают этот значок (себе и тем, кто ниже) и правят его; серверы — как у роли.' : 'Не привязан — выдают по правам «Значки» на выбранных серверах.' }}</small>
+          </label>
+          <div v-if="!(isBadge && draft.owner_role_id)" class="adm-field">
             <span>{{ isBadge ? 'Чей значок' : 'Где действует' }}</span>
             <div class="rl-scope">
               <button type="button" class="rl-scope__opt" :class="{ 'rl-scope__opt--on': draft.servers === null }" :disabled="readOnly || !canUseAllServers" @click="setScope(true)">
@@ -524,6 +537,7 @@ onMounted(() => load(false))
 .rl-item__meta { font-size: 0.68rem; color: var(--adm-dim); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .rl-item__count { font-size: 0.7rem; color: var(--adm-mut); background: rgba(148, 163, 184, 0.08); border-radius: 999px; padding: 0.05rem 0.45rem; }
 .rl-item__lock { width: 0.8rem; height: 0.8rem; color: var(--adm-dim); flex-shrink: 0; }
+.rl-list__empty { margin: 0 0.55rem 0.3rem; font-size: 0.74rem; color: var(--adm-dim); }
 .rl-list__head--badges { margin-top: 0.8rem; padding-top: 0.75rem; border-top: 1px solid var(--adm-line); }
 .rl-item__tag { width: 0.7rem; text-align: center; font-weight: 800; color: var(--rc); flex-shrink: 0; }
 .rl-pill--badge { border-style: dashed; background: transparent; }
