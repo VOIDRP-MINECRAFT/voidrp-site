@@ -61,7 +61,7 @@ async function loadAll() {
   const [statsRes, serverRes, recentRes, metrikaRes] = await Promise.allSettled([
     getDashboardStats(token()),
     getServerStatus(token()),
-    getRecentUsers(token()),
+    canPlayers.value ? getRecentUsers(token()) : Promise.resolve(null),
     // Skip the Metrika call entirely without permission (would 403).
     canMetrika.value ? getMetrikaStats(token()) : Promise.resolve(null),
   ])
@@ -82,6 +82,7 @@ onMounted(loadAll)
 const canMetrika = computed(() => hasPermission('metrika.view'))
 const canBattlepass = computed(() => hasPermission('battlepass.view'))
 const canMarket = computed(() => hasPermission('market.view'))
+const canPlayers = computed(() => hasPermission('players.view'))
 // Функция сервера включена, пока её явно не выключили в «Серверах».
 const on = (feature) => activeServer.value?.features?.[feature] !== false
 
@@ -105,7 +106,7 @@ const quickLinks = computed(() => _quickLinks.filter((l) => hasPermission(l.perm
     <div class="adm-page__head">
       <div>
         <h1 class="adm-title">Дашборд</h1>
-        <p class="adm-sub">Игровые показатели — по выбранному серверу, аккаунты — по всей платформе</p>
+        <p class="adm-sub">{{ canPlayers ? 'Игровые показатели — по выбранному серверу, аккаунты — по всей платформе' : 'Показатели выбранного сервера' }}</p>
       </div>
       <button class="adm-btn" :disabled="loading" @click="loadAll">
         <svg :class="loading ? 'animate-spin' : ''" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0l3.181 3.183a8.25 8.25 0 0013.803-3.7M4.031 9.865a8.25 8.25 0 0113.803-3.7l3.181 3.182m0-4.991v4.99"/></svg>
@@ -135,13 +136,13 @@ const quickLinks = computed(() => _quickLinks.filter((l) => hasPermission(l.perm
       <RouterLink to="/admin/monitoring" class="shrink-0 text-xs font-bold transition srv-strip__more">Подробнее →</RouterLink>
     </div>
 
-    <!-- User stats -->
-    <div>
+    <!-- User stats (platform-wide: players.view only) -->
+    <div v-if="canPlayers">
       <div class="adm-label">Пользователи · вся платформа</div>
       <div v-if="loading" class="grid grid-cols-2 gap-3 lg:grid-cols-4">
         <div v-for="i in 4" :key="i" class="adm-skel h-24" />
       </div>
-      <div v-else-if="stats" class="grid grid-cols-2 gap-3 lg:grid-cols-4">
+      <div v-else-if="stats?.users" class="grid grid-cols-2 gap-3 lg:grid-cols-4">
 
         <div class="adm-kpi">
           <div class="adm-kpi__icon bg-blue-500/10 text-blue-400">
@@ -335,7 +336,7 @@ const quickLinks = computed(() => _quickLinks.filter((l) => hasPermission(l.perm
     </div>
 
     <!-- Recent registrations -->
-    <div>
+    <div v-if="canPlayers">
       <div class="adm-label">Последние регистрации</div>
       <div v-if="loading" class="adm-skel h-48" />
       <div v-else-if="recentUsers.length" class="adm-table-wrap">
