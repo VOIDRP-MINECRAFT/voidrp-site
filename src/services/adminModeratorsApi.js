@@ -14,17 +14,19 @@ export function listModerators(token) {
   return apiRequest('/admin/moderators', opts(token))
 }
 
-export function assignModerator(token, username, permissions) {
+// permissions: on every server (and the platform-wide ones); serverPermissions:
+// { slug: [keys] } for keys given on some servers only.
+export function assignModerator(token, username, permissions, serverPermissions = {}) {
   return apiRequest('/admin/moderators', opts(token, {
     method: 'POST',
-    body: JSON.stringify({ username, permissions }),
+    body: JSON.stringify({ username, permissions, server_permissions: serverPermissions }),
   }))
 }
 
-export function updateModerator(token, userId, permissions) {
+export function updateModerator(token, userId, permissions, serverPermissions = {}) {
   return apiRequest(`/admin/moderators/${userId}`, opts(token, {
     method: 'PATCH',
-    body: JSON.stringify({ permissions }),
+    body: JSON.stringify({ permissions, server_permissions: serverPermissions }),
   }))
 }
 

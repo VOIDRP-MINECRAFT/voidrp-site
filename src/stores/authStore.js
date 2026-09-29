@@ -21,6 +21,8 @@ export const authState = reactive({
   security: null,
   avatarUrl: null,
   ready: false,
+  // The server chosen in the admin top bar (mirrored by serverStore) — for hasPermission.
+  activeServer: null,
 })
 
 let bootstrapPromise = null
@@ -90,11 +92,19 @@ export function isStaff() {
 // Permission check for admin-panel gating. Full admins bypass; moderators must
 // hold the key. Mirrors the backend require_permission logic. UI-only — the API
 // enforces the same checks server-side.
-export function hasPermission(key) {
+//
+// Per-server permissions: a moderator may hold a key on every server
+// (`permissions`) or on some only (`server_permissions[slug]`). The server asked
+// about is the one chosen in the admin top bar (serverStore mirrors it into
+// authState.activeServer), else the platform's default server — as the API does.
+export function hasPermission(key, slug) {
   const u = authState.user
   if (!u) return false
   if (u.is_admin) return true
-  return Array.isArray(u.permissions) && u.permissions.includes(key)
+  if (Array.isArray(u.permissions) && u.permissions.includes(key)) return true
+  const server = slug || authState.activeServer || u.default_server
+  const own = u.server_permissions?.[server]
+  return Array.isArray(own) && own.includes(key)
 }
 
 export async function refreshCurrentSessionSilently() {

@@ -1,6 +1,7 @@
 <script setup>
 import { computed, onMounted, ref } from 'vue'
 import { authState } from '../../stores/authStore'
+import { serverState, fetchServers } from '../../stores/serverStore'
 import { confirmDialog } from '../../composables/useConfirm'
 import { toastSuccess, toastError } from '../../services/toast'
 import {
@@ -91,7 +92,11 @@ const saving = ref(false)
 
 // Editor state: null | 'new' | moderator-id
 const editing = ref(null)
-const form = ref({ username: '', permissions: new Set() })
+// permissions — on every server (and platform-wide keys); byServer — { slug: Set } for
+// per-server keys given on some servers only.
+const form = ref({ username: '', permissions: new Set(), byServer: {} })
+const servers = computed(() =>
+  [...serverState.list].sort((a, b) => (a.sort_order ?? 0) - (b.sort_order ?? 0)))
 
 const editingName = computed(() => {
   if (editing.value === 'new') return 'Новый модератор'
@@ -104,14 +109,46 @@ const totalCount = computed(() =>
   catalog.value.reduce((n, g) => n + (g.permissions?.length || 0), 0),
 )
 
+function grantedAnywhere(key) {
+  return form.value.permissions.has(key) || Object.values(form.value.byServer).some((set) => set.has(key))
+}
+
 function groupSelected(group) {
-  return (group.permissions || []).filter((p) => form.value.permissions.has(p.key)).length
+  return (group.permissions || []).filter((p) => grantedAnywhere(p.key)).length
+}
+
+function hasOn(slug, key) {
+  return !!form.value.byServer[slug]?.has(key)
+}
+
+function toggleOn(slug, key) {
+  const byServer = { ...form.value.byServer }
+  const set = new Set(byServer[slug] || [])
+  if (set.has(key)) set.delete(key)
+  else set.add(key)
+  byServer[slug] = set
+  form.value = { ...form.value, byServer }
+}
+
+function serverPayload() {
+  const out = {}
+  for (const [slug, set] of Object.entries(form.value.byServer)) {
+    const keys = [...set].filter((k) => !form.value.permissions.has(k))
+    if (keys.length) out[slug] = keys
+  }
+  return out
+}
+
+// Where a moderator's per-server grants are, for the list: "Origins: 3".
+function serverSummary(m) {
+  const names = Object.fromEntries(servers.value.map((x) => [x.slug, x.name]))
+  return Object.entries(m.server_permissions || {}).map(([slug, keys]) => `${names[slug] || slug}: ${keys.length}`)
 }
 
 async function load() {
   loading.value = true
   try {
-    const [cat, mods] = await Promise.all([getPermissionCatalog(token()), listModerators(token())])
+    const [cat, mods] = await Promise.all([getPermissionCatalog(token()), listModerators(token()), fetchServers()])
     catalog.value = cat.catalog || []
     preset.value = cat.preset || []
     moderators.value = mods.items || []
@@ -124,12 +161,14 @@ async function load() {
 
 function startNew() {
   editing.value = 'new'
-  form.value = { username: '', permissions: new Set(preset.value) }
+  form.value = { username: '', permissions: new Set(preset.value), byServer: {} }
 }
 
 function startEdit(m) {
   editing.value = m.id
-  form.value = { username: m.site_login, permissions: new Set(m.permissions || []) }
+  const byServer = {}
+  for (const [slug, keys] of Object.entries(m.server_permissions || {})) byServer[slug] = new Set(keys)
+  form.value = { username: m.site_login, permissions: new Set(m.permissions || []), byServer }
 }
 
 function cancel() {
@@ -160,7 +199,7 @@ function applyPreset() {
   form.value = { ...form.value, permissions: new Set(preset.value) }
 }
 function clearAll() {
-  form.value = { ...form.value, permissions: new Set() }
+  form.value = { ...form.value, permissions: new Set(), byServer: {} }
 }
 
 async function save() {
@@ -169,10 +208,10 @@ async function save() {
   try {
     if (editing.value === 'new') {
       if (!form.value.username.trim()) { toastError('Укажите ник пользователя'); saving.value = false; return }
-      await assignModerator(token(), form.value.username.trim(), perms)
+      await assignModerator(token(), form.value.username.trim(), perms, serverPayload())
       toastSuccess('Модератор назначен')
     } else {
-      await updateModerator(token(), editing.value, perms)
+      await updateModerator(token(), editing.value, perms, serverPayload())
       toastSuccess('Права обновлены')
     }
     cancel()
@@ -254,22 +293,37 @@ onMounted(load)
         <input v-model="form.username" class="adm-input" placeholder="например, mironoouv" autocomplete="off" />
       </label>
 
+      <p class="md-scope-hint">
+        Галочка — право на всех серверах. У прав «по серверам» без галочки можно отметить
+        отдельные серверы кнопками под ними: модератор получит это право только там.
+      </p>
+
       <div class="md-groups">
         <section v-for="g in catalog" :key="g.group" class="md-group">
           <button type="button" class="md-group__head" @click="toggleGroup(g)">
             <span class="adm-label md-group__title">{{ g.group }}</span>
             <span class="md-group__count adm-num">{{ groupSelected(g) }}/{{ g.permissions.length }}</span>
           </button>
-          <label
-            v-for="p in g.permissions"
-            :key="p.key"
-            class="md-perm"
-            :class="{ 'md-perm--on': has(p.key) }"
-          >
-            <input type="checkbox" :checked="has(p.key)" @change="toggle(p.key)" />
-            <span class="md-perm__label">{{ p.label }}</span>
-            <span v-if="p.sensitive" class="md-perm__tag" title="Чувствительное право">•</span>
-          </label>
+          <div v-for="p in g.permissions" :key="p.key" class="md-perm-wrap">
+            <label class="md-perm" :class="{ 'md-perm--on': has(p.key) }">
+              <input type="checkbox" :checked="has(p.key)" @change="toggle(p.key)" />
+              <span class="md-perm__label">
+                {{ p.label }}
+                <span v-if="p.scope === 'server'" class="md-perm__scope">{{ has(p.key) ? 'на всех серверах' : 'по серверам' }}</span>
+              </span>
+              <span v-if="p.sensitive" class="md-perm__tag" title="Чувствительное право">•</span>
+            </label>
+            <div v-if="p.scope === 'server' && !has(p.key) && servers.length" class="md-servers">
+              <button
+                v-for="srv in servers"
+                :key="srv.slug"
+                type="button"
+                class="md-server"
+                :class="{ 'md-server--on': hasOn(srv.slug, p.key) }"
+                @click="toggleOn(srv.slug, p.key)"
+              >{{ srv.name }}</button>
+            </div>
+          </div>
         </section>
       </div>
 
@@ -316,9 +370,12 @@ onMounted(load)
               </td>
               <td>
                 <span v-if="m.role !== 'moderator'" class="md-row__all">все права</span>
-                <span v-else class="adm-badge" :class="m.permissions.length ? 'adm-badge--acc' : ''">
-                  <b class="adm-num">{{ m.permissions.length }}</b>&nbsp;из&nbsp;<span class="adm-num">{{ totalCount }}</span>
-                </span>
+                <template v-else>
+                  <span class="adm-badge" :class="m.permissions.length ? 'adm-badge--acc' : ''">
+                    <b class="adm-num">{{ m.permissions.length }}</b>&nbsp;из&nbsp;<span class="adm-num">{{ totalCount }}</span>
+                  </span>
+                  <div v-for="line in serverSummary(m)" :key="line" class="md-row__since">+ {{ line }}</div>
+                </template>
               </td>
               <td>
                 <div v-if="m.role === 'moderator'" class="md-row__actions">
@@ -339,6 +396,15 @@ onMounted(load)
 </template>
 
 <style scoped>
+.md-scope-hint { margin: 0 0 0.9rem; font-size: 0.78rem; color: var(--adm-dim); line-height: 1.5; }
+.md-perm__scope { display: inline-block; margin-left: 0.35rem; font-size: 0.66rem; color: var(--adm-faint); }
+.md-servers { display: flex; flex-wrap: wrap; gap: 0.3rem; padding: 0 0 0.45rem 1.9rem; }
+.md-server {
+  font-size: 0.7rem; padding: 0.15rem 0.5rem; border-radius: 999px; cursor: pointer;
+  border: 1px solid var(--adm-line); background: transparent; color: var(--adm-dim);
+}
+.md-server:hover { border-color: rgba(var(--adm-acc-rgb), 0.5); }
+.md-server--on { background: rgba(var(--adm-acc-rgb), 0.18); border-color: rgba(var(--adm-acc-rgb), 0.6); color: var(--adm-text); }
 .md-head-actions { display: flex; gap: 0.5rem; flex-wrap: wrap; }
 .md-admin-form { display: flex; flex-direction: column; gap: 0.75rem; margin-bottom: 1rem; }
 .md-row__since { margin-top: 0.3rem; font-size: 0.72rem; color: var(--adm-faint); }

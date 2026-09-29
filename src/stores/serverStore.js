@@ -32,6 +32,11 @@ export const serverState = reactive({
   error: null,
 })
 
+// hasPermission() (authStore) checks per-server permissions against the chosen
+// server; authStore cannot import this store (it imports authStore), so the slug is
+// mirrored into authState instead.
+watch(() => serverState.activeSlug, (slug) => { authState.activeServer = slug }, { immediate: true })
+
 export const activeServer = computed(() =>
   serverState.list.find((s) => s.slug === serverState.activeSlug) || null,
 )

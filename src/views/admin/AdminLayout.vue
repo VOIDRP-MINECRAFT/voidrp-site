@@ -1,5 +1,5 @@
 <script setup>
-import { computed, onBeforeUnmount, onMounted, ref } from 'vue'
+import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { useRoute, RouterLink } from 'vue-router'
 import { authState, hasPermission, logoutCurrentSession, useAuthStore } from '../../stores/authStore'
 import { serverState, activeServer, fetchServers, setActiveServer } from '../../stores/serverStore'
@@ -59,9 +59,19 @@ function onDocKey(e) {
   }
 }
 
-const sortedServers = computed(() =>
-  [...serverState.list].sort((a, b) => (a.sort_order ?? 0) - (b.sort_order ?? 0)),
-)
+// A moderator with permissions on some servers only sees those in the switcher (the
+// API refuses the others anyway); admins and anyone granted on every server see all.
+const sortedServers = computed(() => {
+  const allowed = authState.user?.admin_servers
+  return [...serverState.list]
+    .filter((s) => !Array.isArray(allowed) || allowed.includes(s.slug))
+    .sort((a, b) => (a.sort_order ?? 0) - (b.sort_order ?? 0))
+})
+
+// If the chosen server is not one of theirs, move them to the first that is.
+watch([sortedServers, () => serverState.activeSlug], ([list, slug]) => {
+  if (list.length && !list.some((s) => s.slug === slug)) setActiveServer(list[0].slug)
+}, { immediate: true })
 
 function pickServer(slug) {
   setActiveServer(slug)
