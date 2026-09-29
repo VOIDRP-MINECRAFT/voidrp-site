@@ -298,6 +298,7 @@ onMounted(load)
       <p class="md-scope-hint">
         Галочка — право на всех серверах. У прав «по серверам» без галочки можно отметить
         отдельные серверы кнопками под ними: модератор получит это право только там.
+        Права с пометкой «платформа» касаются сайта, лаунчера и аккаунтов целиком и на сервер не делятся.
       </p>
 
       <div class="md-groups">
@@ -312,6 +313,7 @@ onMounted(load)
               <span class="md-perm__label">
                 {{ p.label }}
                 <span v-if="p.scope === 'server'" class="md-perm__scope">{{ has(p.key) ? 'на всех серверах' : 'по серверам' }}</span>
+                <span v-else class="md-perm__scope md-perm__scope--platform" title="Касается всей платформы (сайт, лаунчер, аккаунты) — на отдельный сервер не выдаётся">платформа</span>
               </span>
               <span v-if="p.sensitive" class="md-perm__tag" title="Чувствительное право">•</span>
             </label>
@@ -400,6 +402,7 @@ onMounted(load)
 <style scoped>
 .md-scope-hint { margin: 0 0 0.9rem; font-size: 0.78rem; color: var(--adm-dim); line-height: 1.5; }
 .md-perm__scope { display: inline-block; margin-left: 0.35rem; font-size: 0.66rem; color: var(--adm-faint); }
+.md-perm__scope--platform { padding: 0 0.35rem; border-radius: 999px; border: 1px solid var(--adm-line); }
 .md-servers { display: flex; flex-wrap: wrap; gap: 0.3rem; padding: 0 0 0.45rem 1.9rem; }
 .md-server {
   font-size: 0.7rem; padding: 0.15rem 0.5rem; border-radius: 999px; cursor: pointer;
