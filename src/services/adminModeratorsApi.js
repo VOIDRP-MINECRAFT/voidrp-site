@@ -31,3 +31,15 @@ export function updateModerator(token, userId, permissions) {
 export function revokeModerator(token, userId) {
   return apiRequest(`/admin/moderators/${userId}`, opts(token, { method: 'DELETE' }))
 }
+
+// Full admins — only the owner may appoint or remove them (the backend enforces it).
+export function appointAdmin(token, username) {
+  return apiRequest('/admin/moderators/admins', opts(token, {
+    method: 'POST',
+    body: JSON.stringify({ username }),
+  }))
+}
+
+export function removeAdmin(token, userId) {
+  return apiRequest(`/admin/moderators/admins/${userId}`, opts(token, { method: 'DELETE' }))
+}

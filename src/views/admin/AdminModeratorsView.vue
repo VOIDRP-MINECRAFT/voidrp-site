@@ -9,9 +9,79 @@ import {
   assignModerator,
   updateModerator,
   revokeModerator,
+  appointAdmin,
+  removeAdmin,
 } from '../../services/adminModeratorsApi'
 
 const token = () => authState.accessToken
+// Only the owner appoints and removes full admins; the backend refuses anyone else.
+const isOwner = computed(() => !!authState.user?.is_owner)
+const ROLE = {
+  owner: { label: 'Владелец', cls: 'adm-badge--acc' },
+  admin: { label: 'Админ', cls: 'adm-badge--warn' },
+  moderator: { label: 'Модератор', cls: '' },
+}
+const fmtDate = (v) => (v ? new Date(v).toLocaleDateString('ru-RU', { day: '2-digit', month: '2-digit', year: 'numeric' }) : '')
+
+// «Новый админ»: a nickname and a confirmation.
+const adminForm = ref(null)
+const adminBusy = ref(false)
+async function submitAdmin() {
+  const name = (adminForm.value || '').trim()
+  if (!name) { toastError('Укажите ник пользователя'); return }
+  const ok = await confirmDialog({
+    title: `Сделать «${name}» админом?`,
+    message: 'Админ получает все права на всех серверах и может назначать модераторов. Снять его сможешь только ты.',
+    confirmLabel: 'Сделать админом',
+    danger: true,
+  })
+  if (!ok) return
+  adminBusy.value = true
+  try {
+    await appointAdmin(token(), name)
+    toastSuccess(`${name} теперь админ`)
+    adminForm.value = null
+    await load()
+  } catch (e) {
+    toastError(e?.message || 'Не удалось назначить')
+  } finally {
+    adminBusy.value = false
+  }
+}
+
+async function promote(m) {
+  const ok = await confirmDialog({
+    title: `Сделать «${m.site_login}» админом?`,
+    message: 'Вместо отмеченных прав модератора он получит все права на всех серверах и сможет назначать модераторов.',
+    confirmLabel: 'Сделать админом',
+    danger: true,
+  })
+  if (!ok) return
+  try {
+    await appointAdmin(token(), m.site_login)
+    toastSuccess(`${m.site_login} теперь админ`)
+    await load()
+  } catch (e) {
+    toastError(e?.message || 'Не удалось назначить')
+  }
+}
+
+async function demote(m) {
+  const ok = await confirmDialog({
+    title: `Снять админа «${m.site_login}»?`,
+    message: 'Он сразу потеряет доступ к админ-панели. Если нужно оставить ему часть разделов — после снятия назначь его модератором.',
+    confirmLabel: 'Снять',
+    danger: true,
+  })
+  if (!ok) return
+  try {
+    await removeAdmin(token(), m.id)
+    toastSuccess('Админ снят')
+    await load()
+  } catch (e) {
+    toastError(e?.message || 'Не удалось снять')
+  }
+}
 
 const catalog = ref([])
 const preset = ref([])
@@ -139,11 +209,26 @@ onMounted(load)
     <div class="adm-page__head">
       <div>
         <h1 class="adm-title">Модерация</h1>
-        <p class="adm-sub">Назначай модераторов по нику и выбирай, что им доступно в панели</p>
+        <p class="adm-sub">Сотрудники панели: админы видят всё, модераторам доступно только отмеченное</p>
       </div>
-      <button class="adm-btn adm-btn--acc" :disabled="editing === 'new'" @click="startNew">
-        Новый модератор
-      </button>
+      <div class="md-head-actions">
+        <button v-if="isOwner" class="adm-btn" :disabled="adminForm !== null" @click="adminForm = ''">Новый админ</button>
+        <button class="adm-btn adm-btn--acc" :disabled="editing === 'new'" @click="startNew">
+          Новый модератор
+        </button>
+      </div>
+    </div>
+
+    <!-- Новый админ (только владелец) -->
+    <div v-if="isOwner && adminForm !== null" class="adm-card adm-card--pad md-admin-form">
+      <label class="adm-field md-username">
+        <span>Ник пользователя — станет админом: все права на всех серверах</span>
+        <input v-model="adminForm" class="adm-input" placeholder="ник на сайте" autocomplete="off" @keyup.enter="submitAdmin" />
+      </label>
+      <div class="md-editor__actions">
+        <button class="adm-btn" :disabled="adminBusy" @click="adminForm = null">Отмена</button>
+        <button class="adm-btn adm-btn--danger" :disabled="adminBusy" @click="submitAdmin">Сделать админом</button>
+      </div>
     </div>
 
     <!-- Editor -->
@@ -202,7 +287,7 @@ onMounted(load)
     </div>
 
     <div v-else-if="!moderators.length" class="adm-empty">
-      <div class="adm-empty__title">Модераторов пока нет</div>
+      <div class="adm-empty__title">Сотрудников пока нет</div>
       <div class="adm-empty__sub">Назначь первого — он получит доступ только к тем разделам, которые ты отметишь.</div>
     </div>
 
@@ -210,7 +295,7 @@ onMounted(load)
       <div class="adm-table-scroll">
         <table class="adm-table">
           <thead>
-            <tr><th>Модератор</th><th>Права</th><th /></tr>
+            <tr><th>Сотрудник</th><th>Роль</th><th>Права</th><th /></tr>
           </thead>
           <tbody>
             <tr v-for="m in moderators" :key="m.id">
@@ -224,14 +309,25 @@ onMounted(load)
                 </div>
               </td>
               <td>
-                <span class="adm-badge" :class="m.permissions.length ? 'adm-badge--acc' : ''">
+                <span class="adm-badge" :class="ROLE[m.role]?.cls">{{ ROLE[m.role]?.label || m.role }}</span>
+                <div v-if="m.staff_since" class="md-row__since">
+                  с {{ fmtDate(m.staff_since) }}<template v-if="m.granted_by"> · назначил {{ m.granted_by }}</template>
+                </div>
+              </td>
+              <td>
+                <span v-if="m.role !== 'moderator'" class="md-row__all">все права</span>
+                <span v-else class="adm-badge" :class="m.permissions.length ? 'adm-badge--acc' : ''">
                   <b class="adm-num">{{ m.permissions.length }}</b>&nbsp;из&nbsp;<span class="adm-num">{{ totalCount }}</span>
                 </span>
               </td>
               <td>
-                <div class="md-row__actions">
+                <div v-if="m.role === 'moderator'" class="md-row__actions">
                   <button class="adm-btn adm-btn--sm" @click="startEdit(m)">Изменить</button>
+                  <button v-if="isOwner" class="adm-btn adm-btn--sm" @click="promote(m)">Сделать админом</button>
                   <button class="adm-btn adm-btn--sm adm-btn--danger" @click="revoke(m)">Снять</button>
+                </div>
+                <div v-else-if="m.role === 'admin' && isOwner" class="md-row__actions">
+                  <button class="adm-btn adm-btn--sm adm-btn--danger" @click="demote(m)">Снять админа</button>
                 </div>
               </td>
             </tr>
@@ -243,6 +339,10 @@ onMounted(load)
 </template>
 
 <style scoped>
+.md-head-actions { display: flex; gap: 0.5rem; flex-wrap: wrap; }
+.md-admin-form { display: flex; flex-direction: column; gap: 0.75rem; margin-bottom: 1rem; }
+.md-row__since { margin-top: 0.3rem; font-size: 0.72rem; color: var(--adm-faint); }
+.md-row__all { font-size: 0.82rem; color: var(--adm-dim); }
 /* Цвета — только из токенов admin.css, чтобы страница перекрашивалась
    вместе с панелью при смене активного сервера. */
 
