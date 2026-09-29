@@ -119,6 +119,8 @@ const scopeSlugs = computed(() => {
 const limited = computed(() => scopeSlugs.value !== null)
 // Servers the person runs as admin: every per-server key there comes from that already.
 const viaAdmin = computed(() => new Set(editingRow.value?.admin_servers || []))
+const serverKeys = computed(() => new Set(catalog.value.flatMap((g) => g.permissions).filter((p) => p.scope === 'server').map((p) => p.key)))
+const adminNames = computed(() => servers.value.filter((x) => viaAdmin.value.has(x.slug)).map((x) => x.name).join(', '))
 const editorServers = computed(() => limited.value ? servers.value.filter((x) => scopeSlugs.value.includes(x.slug)) : servers.value)
 const editorCatalog = computed(() => limited.value
   ? catalog.value.map((g) => ({ ...g, permissions: g.permissions.filter((p) => p.scope === 'server') })).filter((g) => g.permissions.length)
@@ -138,6 +140,7 @@ const totalCount = computed(() =>
 )
 
 function grantedAnywhere(key) {
+  if (viaAdmin.value.size && serverKeys.value.has(key)) return true
   return form.value.permissions.has(key) || Object.values(form.value.byServer).some((set) => set.has(key))
 }
 
@@ -365,6 +368,10 @@ onMounted(load)
         <input v-model="form.username" class="adm-input" placeholder="например, mironoouv" autocomplete="off" />
       </label>
 
+      <div v-if="viaAdmin.size" class="md-adminnote">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V7a4 4 0 018 0v4"/></svg>
+        <span>Админ серверов <b>{{ adminNames }}</b>: все права этих серверов включены автоматически (с замком). Ниже можно добавить права на других серверах и права платформы.</span>
+      </div>
       <p v-if="limited" class="md-scope-hint">
         Ты правишь только свои серверы: отметь серверы под каждым правом. Права на других серверах
         и права платформы у этого человека не меняются.
@@ -382,7 +389,7 @@ onMounted(load)
             <span class="md-group__count adm-num">{{ groupSelected(g) }}/{{ g.permissions.length }}</span>
           </button>
           <div v-for="p in g.permissions" :key="p.key" class="md-perm-wrap">
-            <label class="md-perm" :class="{ 'md-perm--on': has(p.key) }">
+            <label class="md-perm" :class="{ 'md-perm--on': has(p.key) || (viaAdmin.size && p.scope === 'server') }">
               <input v-if="!limited" type="checkbox" :checked="has(p.key)" @change="toggle(p.key)" />
               <span class="md-perm__label">
                 {{ p.label }}
@@ -397,11 +404,11 @@ onMounted(load)
                 :key="srv.slug"
                 type="button"
                 class="md-server"
-                :class="{ 'md-server--on': hasOn(srv.slug, p.key), 'md-server--admin': viaAdmin.has(srv.slug) }"
+                :class="{ 'md-server--on': hasOn(srv.slug, p.key) || viaAdmin.has(srv.slug), 'md-server--admin': viaAdmin.has(srv.slug) }"
                 :disabled="viaAdmin.has(srv.slug)"
-                :title="viaAdmin.has(srv.slug) ? 'Есть через админство этого сервера' : ''"
+                :title="viaAdmin.has(srv.slug) ? 'Входит в админство этого сервера — снимается только вместе с админством' : ''"
                 @click="toggleOn(srv.slug, p.key)"
-              >{{ srv.name }}<template v-if="viaAdmin.has(srv.slug)"> · админ</template></button>
+              ><svg v-if="viaAdmin.has(srv.slug)" class="md-server__lock" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6"><rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V7a4 4 0 018 0v4"/></svg>{{ srv.name }}</button>
             </div>
           </div>
         </section>
@@ -490,7 +497,12 @@ onMounted(load)
   border: 1px solid var(--adm-line); background: transparent; color: var(--adm-dim);
 }
 .md-server:hover { border-color: rgba(var(--adm-acc-rgb), 0.5); }
-.md-server--admin, .md-server--admin:hover { cursor: default; color: var(--adm-info); border-color: rgba(56, 189, 248, 0.35); background: rgba(56, 189, 248, 0.08); }
+.md-server--admin, .md-server--admin:hover { cursor: default; }
+.md-server { display: inline-flex; align-items: center; gap: 0.25rem; white-space: nowrap; }
+.md-server__lock { width: 0.62rem; height: 0.62rem; flex-shrink: 0; opacity: 0.8; }
+.md-adminnote { display: flex; align-items: center; gap: 0.5rem; margin: 0 0 0.9rem; padding: 0.55rem 0.8rem; border-radius: 9px; font-size: 0.78rem; color: var(--adm-mut); background: var(--adm-acc-soft); border: 1px solid var(--adm-acc-line); }
+.md-adminnote b { color: var(--adm-text); }
+.md-adminnote svg { width: 0.9rem; height: 0.9rem; flex-shrink: 0; color: var(--adm-acc-text); }
 .md-server--on { background: rgba(var(--adm-acc-rgb), 0.18); border-color: rgba(var(--adm-acc-rgb), 0.6); color: var(--adm-text); }
 .md-head-actions { display: flex; gap: 0.5rem; flex-wrap: wrap; }
 .md-admin-form { display: flex; flex-direction: column; gap: 0.75rem; margin-bottom: 1rem; }
