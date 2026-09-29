@@ -453,7 +453,7 @@ onMounted(load)
                   <span v-if="m.permissions.length || serverSummary(m).length" class="adm-badge" :class="m.permissions.length ? 'adm-badge--acc' : ''">
                     <b class="adm-num">{{ m.permissions.length }}</b>&nbsp;на всех
                   </span>
-                  <span v-else class="md-row__none">только роли</span>
+                  <span v-else class="md-row__none">{{ m.role === 'server_admin' ? 'все права своих серверов' : (m.roles.length ? 'только роли' : 'нет') }}</span>
                   <div v-for="line in serverSummary(m)" :key="line" class="md-row__since">+ {{ line }}</div>
                 </template>
               </td>
