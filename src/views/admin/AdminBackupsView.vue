@@ -25,6 +25,8 @@ const KIND = { manual: 'Вручную', scheduled: 'По расписанию',
 const KIND_CLS = { manual: '', scheduled: 'adm-badge--ok', pre_restore: 'adm-badge--warn' }
 const WARN_SECONDS = 30
 
+// A backup holds the world as it was when it was made, not when it was queued.
+const madeAt = (b) => b?.finished_at || b?.created_at
 const dt = (v) => (v ? new Date(v).toLocaleString('ru-RU', { day: '2-digit', month: '2-digit', year: '2-digit', hour: '2-digit', minute: '2-digit' }) : '—')
 function size(bytes) {
   if (bytes == null) return '—'
@@ -110,7 +112,7 @@ async function create() {
 async function restore(b) {
   const ok = await confirmDialog({
     title: 'Откатить мир на этот бэкап?',
-    message: `Мир сервера «${serverName.value}» станет таким, каким был ${dt(b.created_at)}. `
+    message: `Мир сервера «${serverName.value}» станет таким, каким был ${dt(madeAt(b))}. `
       + `Сначала будет сделан бэкап текущего мира — откат можно будет отменить, откатившись на него. `
       + `Игроков предупредят в чате за ${WARN_SECONDS} с, затем сервер перезапустится (основной сервер загружается ~10 минут).`,
     confirmLabel: 'Откатить',
@@ -132,7 +134,7 @@ async function restore(b) {
 async function remove(b) {
   const ok = await confirmDialog({
     title: 'Удалить бэкап?',
-    message: `Бэкап от ${dt(b.created_at)} (${size(b.size_bytes)}) будет удалён с диска насовсем.`,
+    message: `Бэкап от ${dt(madeAt(b))} (${size(b.size_bytes)}) будет удалён с диска насовсем.`,
     confirmLabel: 'Удалить',
     danger: true,
   })
@@ -213,7 +215,7 @@ const RESTORE_STATUS = {
       <div v-if="activeRestore" class="adm-card adm-card--pad bk-live">
         <div class="bk-live__pulse" />
         <div>
-          <div class="bk-live__title">Идёт откат на бэкап от {{ dt(byId[activeRestore.backup_id]?.created_at) }}</div>
+          <div class="bk-live__title">Идёт откат на бэкап от {{ dt(madeAt(byId[activeRestore.backup_id])) }}</div>
           <div class="bk-live__step">{{ activeRestore.step || 'Ждёт исполнителя' }}</div>
           <div class="bk-live__meta">Запустил {{ activeRestore.requested_by || '—' }} · {{ dt(activeRestore.created_at) }}</div>
         </div>
@@ -287,8 +289,8 @@ const RESTORE_STATUS = {
               <tbody>
                 <tr v-for="b in items" :key="b.id">
                   <td class="bk-when">
-                    <div>{{ dt(b.created_at) }}</div>
-                    <div class="bk-meta">{{ ago(b.created_at) }}</div>
+                    <div>{{ dt(madeAt(b)) }}</div>
+                    <div class="bk-meta">{{ ago(madeAt(b)) }}</div>
                   </td>
                   <td><span class="adm-badge" :class="KIND_CLS[b.kind]">{{ KIND[b.kind] || b.kind }}</span></td>
                   <td class="bk-note-cell">{{ b.note || '—' }}</td>
@@ -331,7 +333,7 @@ const RESTORE_STATUS = {
         <div class="bk-card-title">Откаты</div>
         <div v-for="r in restores" :key="r.id" class="bk-restore">
           <span class="adm-badge" :class="RESTORE_STATUS[r.status]?.cls">{{ RESTORE_STATUS[r.status]?.label || r.status }}</span>
-          <span class="bk-restore__what">на бэкап от {{ dt(byId[r.backup_id]?.created_at) }}</span>
+          <span class="bk-restore__what">на бэкап от {{ dt(madeAt(byId[r.backup_id])) }}</span>
           <span class="bk-meta">{{ r.requested_by || '—' }} · {{ dt(r.created_at) }}</span>
           <div class="bk-restore__detail" :class="{ 'bk-err': r.status === 'failed' }">{{ r.error || r.step }}</div>
         </div>
