@@ -320,8 +320,10 @@ onMounted(load)
             :class="{ 'md-srvcard--on': adminDlg.servers.has(srv.slug) }"
             @click="toggleAdminServer(srv.slug)"
           >
-            <img v-if="srv.icon_url" :src="srv.icon_url" alt="" class="md-srvcard__icon" />
-            <span v-else class="md-srvcard__icon md-srvcard__icon--none">{{ srv.name.charAt(0) }}</span>
+            <span class="md-srvcard__icon md-srvcard__icon--none" :style="srv.accent_color ? { background: srv.accent_color + '2e', color: srv.accent_color } : null">
+              <img v-if="srv.icon_url" :src="srv.icon_url" alt="" @error="$event.target.remove()" />
+              {{ srv.name.replace(/^VoidRP:\s*/, '').charAt(0) }}
+            </span>
             <span class="md-srvcard__name">{{ srv.name }}</span>
             <span class="md-srvcard__check" aria-hidden="true">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg>
@@ -508,11 +510,12 @@ onMounted(load)
 .md-admin__opt small { font-size: 0.7rem; color: var(--adm-dim); line-height: 1.4; }
 .md-admin__opt--on { border-color: var(--adm-acc); background: var(--adm-acc-soft); }
 .md-admin__opt:disabled { opacity: 0.45; cursor: not-allowed; }
-.md-admin__servers { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 0.45rem; }
+.md-admin__servers { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 0.45rem; }
 .md-srvcard { display: flex; align-items: center; gap: 0.55rem; padding: 0.55rem 0.6rem; border-radius: 10px; border: 1px solid var(--adm-line-strong); background: var(--adm-bg-soft); cursor: pointer; text-align: left; }
-.md-srvcard__icon { width: 1.7rem; height: 1.7rem; border-radius: 7px; object-fit: cover; flex-shrink: 0; }
-.md-srvcard__icon--none { display: flex; align-items: center; justify-content: center; background: var(--adm-acc-soft); color: var(--adm-acc-text); font-weight: 800; font-size: 0.8rem; }
-.md-srvcard__name { flex: 1; min-width: 0; font-size: 0.8rem; font-weight: 700; color: var(--adm-mut); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.md-srvcard__icon { width: 1.9rem; height: 1.9rem; border-radius: 8px; flex-shrink: 0; position: relative; overflow: hidden; }
+.md-srvcard__icon img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
+.md-srvcard__icon--none { display: flex; align-items: center; justify-content: center; background: var(--adm-acc-soft); color: var(--adm-acc-text); font-weight: 800; font-size: 0.85rem; }
+.md-srvcard__name { flex: 1; min-width: 0; font-size: 0.8rem; font-weight: 700; color: var(--adm-mut); line-height: 1.25; overflow-wrap: anywhere; }
 .md-srvcard__check { width: 1.1rem; height: 1.1rem; border-radius: 6px; border: 1.5px solid var(--adm-line-strong); display: flex; align-items: center; justify-content: center; color: transparent; flex-shrink: 0; }
 .md-srvcard__check svg { width: 0.75rem; height: 0.75rem; }
 .md-srvcard--on { border-color: var(--adm-acc); background: var(--adm-acc-soft); }
