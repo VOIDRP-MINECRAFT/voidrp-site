@@ -2,6 +2,7 @@
 import { computed, onBeforeUnmount, onMounted, ref } from 'vue'
 import { RouterLink } from 'vue-router'
 import NickSuggest from '../../components/admin/NickSuggest.vue'
+import { staffDevices, staffEndSessions, staffMfaReset } from '../../services/securityApi'
 import { authState } from '../../stores/authStore'
 import { serverState, fetchServers } from '../../stores/serverStore'
 import { confirmDialog } from '../../composables/useConfirm'
@@ -43,6 +44,44 @@ const ROLE = {
 // Цвет ника — по старшей настоящей роли (значки не в счёт).
 const topRole = (m) => (m.roles || []).find((r) => !r.is_badge) || null
 const fmtDate = (v) => (v ? new Date(v).toLocaleDateString('ru-RU', { day: '2-digit', month: '2-digit', year: 'numeric' }) : '')
+
+// ── Входы сотрудника: устройства, «Завершить все входы», сброс 2FA ──
+const devicesOf = ref(null)   // { user, items, mfa_enabled } | null
+async function openDevices(m) {
+  try {
+    const res = await staffDevices(token(), m.id)
+    devicesOf.value = { user: m, ...res }
+  } catch (e) { toastError(e?.message || 'Не удалось загрузить входы') }
+}
+async function endAll() {
+  const m = devicesOf.value.user
+  const ok = await confirmDialog({ title: `Завершить все входы ${m.site_login}?`, message: 'Он выйдет на сайте, в лаунчере и в админке на всех устройствах.', confirmLabel: 'Завершить', danger: true })
+  if (!ok) return
+  try {
+    const res = await staffEndSessions(token(), m.id)
+    toastSuccess(`Завершено входов: ${res.ended}`)
+    devicesOf.value = null
+    await load()
+  } catch (e) { toastError(e?.message || 'Не удалось') }
+}
+async function resetMfa() {
+  const m = devicesOf.value.user
+  const ok = await confirmDialog({ title: `Сбросить 2FA у ${m.site_login}?`, message: 'Например, если он потерял телефон. Все его входы завершатся, при следующем входе в админку он подключит 2FA заново.', confirmLabel: 'Сбросить', danger: true })
+  if (!ok) return
+  try {
+    await staffMfaReset(token(), m.id)
+    toastSuccess('2FA сброшена')
+    devicesOf.value = null
+    await load()
+  } catch (e) { if (!e?.securityCode) toastError(e?.message || 'Не удалось') }
+}
+const ago = (iso) => {
+  const s = (Date.now() - new Date(iso).getTime()) / 1000
+  if (s < 60) return 'только что'
+  if (s < 3600) return `${Math.round(s / 60)} мин назад`
+  if (s < 86400) return `${Math.round(s / 3600)} ч назад`
+  return `${Math.round(s / 86400)} дн назад`
+}
 
 // ── Назначение админа: всей платформы (только владелец) или отдельных серверов ──
 // adminDlg: null | { user: row|null, name, scope: 'platform'|'servers', servers: Set }
@@ -478,6 +517,31 @@ onMounted(load)
       </div>
     </div>
 
+    <!-- Входы сотрудника -->
+    <div v-if="devicesOf" class="adm-modal-backdrop" @click.self="devicesOf = null">
+      <div class="adm-modal md-devs">
+        <div class="md-devs__head">
+          <div>
+            <div class="md-admin__title">Входы · {{ devicesOf.user.site_login }}</div>
+            <div class="md-devs__sub">2FA: {{ devicesOf.mfa_enabled ? 'подключена' : 'не подключена' }}</div>
+          </div>
+          <button class="adm-btn adm-btn--sm" @click="devicesOf = null">Закрыть</button>
+        </div>
+        <ul v-if="devicesOf.items.length" class="md-devs__list">
+          <li v-for="d in devicesOf.items" :key="d.id">
+            <b>{{ d.title }}</b>
+            <span>{{ d.location || 'место неизвестно' }}<template v-if="d.ip"> · {{ d.ip }}</template></span>
+            <span>активен {{ ago(d.last_seen_at) }} · вход {{ ago(d.created_at) }}<template v-if="d.mfa"> · <em>админка открыта</em></template></span>
+          </li>
+        </ul>
+        <p v-else class="md-devs__sub">Активных входов нет.</p>
+        <div class="md-editor__actions">
+          <button v-if="isPlatform && devicesOf.mfa_enabled" class="adm-btn" @click="resetMfa">Сбросить 2FA</button>
+          <button class="adm-btn adm-btn--danger" :disabled="!devicesOf.items.length" @click="endAll">Завершить все входы</button>
+        </div>
+      </div>
+    </div>
+
     <!-- List -->
     <div v-if="loading" class="md-skels">
       <div v-for="n in 3" :key="n" class="adm-skel md-skel" />
@@ -500,7 +564,10 @@ onMounted(load)
                 <div class="md-row__who">
                   <span class="adm-avatar md-row__ava" :style="topRole(m) ? { background: topRole(m).color + '26', color: topRole(m).color } : null">{{ m.site_login.charAt(0).toUpperCase() }}</span>
                   <div class="md-row__ident">
-                    <div class="md-row__login" :style="topRole(m) ? { color: topRole(m).color } : null">{{ m.site_login }}</div>
+                    <div class="md-row__login" :style="topRole(m) ? { color: topRole(m).color } : null">
+                      {{ m.site_login }}
+                      <span class="md-2fa" :class="m.mfa_enabled ? 'md-2fa--on' : 'md-2fa--off'" :title="m.mfa_enabled ? '2FA подключена' : '2FA не подключена — админка ему не откроется'">2FA</span>
+                    </div>
                     <div class="md-row__email adm-mono">{{ m.email }}</div>
                   </div>
                 </div>
@@ -527,6 +594,7 @@ onMounted(load)
               </td>
               <td>
                 <div v-if="m.editable" class="md-row__actions">
+                  <button class="adm-btn adm-btn--sm" @click="openDevices(m)">Входы · {{ m.devices }}</button>
                   <template v-if="m.role !== 'admin'">
                     <button v-if="canPersonal" class="adm-btn adm-btn--sm" @click="startEdit(m)">Права</button>
                     <button v-if="isPlatform" class="adm-btn adm-btn--sm" @click="openAdmin(m)">{{ m.role === 'server_admin' ? 'Админство' : 'Сделать админом' }}</button>
@@ -606,6 +674,16 @@ onMounted(load)
   font-size: 0.7rem; font-weight: 700; color: var(--adm-text);
   background: color-mix(in srgb, var(--rc) 15%, transparent); border: 1px solid color-mix(in srgb, var(--rc) 42%, transparent);
 }
+.md-2fa { display: inline-block; margin-left: 0.3rem; padding: 0 0.3rem; border-radius: 5px; font-size: 0.58rem; font-weight: 800; letter-spacing: 0.04em; vertical-align: 1px; }
+.md-2fa--on { color: var(--adm-ok); background: rgba(52, 211, 153, 0.12); }
+.md-2fa--off { color: var(--adm-warn); background: rgba(251, 191, 36, 0.12); }
+.md-devs { width: min(560px, calc(100vw - 2rem)); display: flex; flex-direction: column; gap: 0.9rem; padding: 1.3rem; }
+.md-devs__head { display: flex; justify-content: space-between; align-items: flex-start; gap: 1rem; }
+.md-devs__sub { font-size: 0.78rem; color: var(--adm-dim); margin-top: 0.2rem; }
+.md-devs__list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 0.45rem; max-height: 50vh; overflow-y: auto; }
+.md-devs__list li { display: flex; flex-direction: column; gap: 0.1rem; padding: 0.6rem 0.75rem; border-radius: 10px; background: var(--adm-bg-soft); border: 1px solid var(--adm-line); font-size: 0.78rem; color: var(--adm-mut); }
+.md-devs__list b { color: var(--adm-text); font-size: 0.84rem; }
+.md-devs__list em { font-style: normal; color: var(--adm-ok); }
 .md-rolepill--badge { border-style: dashed; background: transparent; }
 .md-rolepill--badge i { display: none; }
 .md-rolepill i { width: 0.45rem; height: 0.45rem; border-radius: 50%; background: var(--rc); }

@@ -3,6 +3,27 @@ import { toastError } from './toast'
 const DEFAULT_REMOTE_API_BASE_URL = 'https://api.void-rp.ru/api/v1'
 
 let unauthorizedHandler = null
+// The current access token (after a silent refresh the retry must not reuse the old one).
+let tokenProvider = null
+// 2FA / password re-confirmation: ({ code, path }) → Promise<boolean> (true = retry).
+let securityHandler = null
+const SECURITY_CODES = new Set(['mfa_required', 'mfa_setup_required', 'reauth_required'])
+
+export function setTokenProvider(fn) {
+  tokenProvider = typeof fn === 'function' ? fn : null
+}
+
+export function setSecurityHandler(fn) {
+  securityHandler = typeof fn === 'function' ? fn : null
+}
+
+function withFreshToken(options) {
+  const token = tokenProvider?.()
+  const headers = { ...(options.headers || {}) }
+  const key = Object.keys(headers).find((k) => k.toLowerCase() === 'authorization')
+  if (token && key) headers[key] = `Bearer ${token}`
+  return { ...options, headers }
+}
 
 export function setUnauthorizedHandler(handler) {
   unauthorizedHandler = typeof handler === 'function' ? handler : null
@@ -340,11 +361,31 @@ export async function apiRequest(path, options = {}) {
       try {
         const handled = await unauthorizedHandler({ path, response, body, options })
         if (handled === true || handled?.retry === true) {
-          return await apiRequest(path, { ...options, _retried: true })
+          return await apiRequest(path, withFreshToken({ ...options, _retried: true }))
         }
       } catch {
         // continue to normal error below
       }
+    }
+
+    const code = typeof body?.detail === 'string' ? body.detail : null
+    if (response.status === 403 && SECURITY_CODES.has(code) && securityHandler) {
+      // 2FA screen / password dialog instead of an error toast; after a confirmed
+      // password the request goes again once.
+      let retry = false
+      try {
+        retry = await securityHandler({ code, path })
+      } catch {
+        retry = false
+      }
+      if (retry && code === 'reauth_required' && !options._reauthed) {
+        return await apiRequest(path, withFreshToken({ ...options, _reauthed: true }))
+      }
+      const error = new Error(code === 'reauth_required' ? 'Действие отменено — нужен пароль' : 'Нужна двухфакторная защита')
+      error.status = 403
+      error.body = body
+      error.securityCode = code
+      throw error
     }
 
     const error = new Error(buildErrorMessage(response, body))

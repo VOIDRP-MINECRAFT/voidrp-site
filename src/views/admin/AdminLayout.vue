@@ -1,6 +1,9 @@
 <script setup>
 import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { useRoute, RouterLink } from 'vue-router'
+import MfaGate from '../../components/security/MfaGate.vue'
+import { clearMfaGate, securityState, showMfaGate } from '../../stores/securityStore'
+import { getMfaStatus } from '../../services/securityApi'
 import { authState, canManageStaff, canSeeStaffTab, hasPermission, logoutCurrentSession, reloadMe, useAuthStore } from '../../stores/authStore'
 import { serverState, activeServer, fetchServers, setActiveServer } from '../../stores/serverStore'
 import { useAdminNotifications } from '../../composables/useAdminNotifications'
@@ -36,6 +39,7 @@ onMounted(() => {
   // Права могли поменяться с прошлого входа (роли, админство серверов) — берём свежие,
   // иначе меню и переключатель серверов строятся по сохранённому в браузере профилю.
   reloadMe().catch(() => {})
+  checkMfa()
   fetchServers()
   startNotifs()
   document.addEventListener('click', onDocClick)
@@ -46,6 +50,23 @@ onBeforeUnmount(() => {
   document.removeEventListener('click', onDocClick)
   document.removeEventListener('keydown', onDocKey)
 })
+
+// 2FA: без неё админка не открывается; код на устройстве спрашивается раз в 12 часов.
+// Если отметка истечёт посреди работы, API ответит mfa_required — экран появится сам.
+const gateKey = ref(0)
+async function checkMfa() {
+  try {
+    const st = await getMfaStatus(authState.accessToken)
+    if (!st.enforced) return
+    if (!st.enabled) showMfaGate('mfa_setup_required')
+    else if (!st.device_verified) showMfaGate('mfa_required')
+  } catch { /* the API answers the pages the same way */ }
+}
+function onMfaDone() {
+  clearMfaGate()
+  gateKey.value++
+  reloadMe().catch(() => {})
+}
 
 function onDocClick(e) {
   if (serverMenuOpen.value && serverMenuRef.value && !serverMenuRef.value.contains(e.target)) {
@@ -397,7 +418,8 @@ async function handleLogout() {
       </header>
 
       <div class="adm-content">
-        <RouterView :key="routeScopeKey" />
+        <MfaGate v-if="securityState.gate" :key="securityState.gate" :mode="securityState.gate" @done="onMfaDone" />
+        <RouterView v-else :key="`${routeScopeKey}:${gateKey}`" />
       </div>
     </div>
 

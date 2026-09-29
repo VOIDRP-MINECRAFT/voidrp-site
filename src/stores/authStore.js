@@ -1,5 +1,6 @@
 import { computed, reactive } from 'vue'
-import { setUnauthorizedHandler } from '../services/apiBase'
+import { requestReauth, showMfaGate } from './securityStore'
+import { setUnauthorizedHandler, setTokenProvider, setSecurityHandler } from '../services/apiBase'
 import {
   getMe,
   loginAccount,
@@ -158,6 +159,12 @@ export async function refreshCurrentSessionSilently() {
 }
 
 export function installAuthApiHooks() {
+  setTokenProvider(() => authState.accessToken)
+  setSecurityHandler(async ({ code }) => {
+    if (code === 'reauth_required') return await requestReauth()
+    showMfaGate(code)
+    return false
+  })
   setUnauthorizedHandler(async () => {
     const refreshed = await refreshCurrentSessionSilently()
     if (refreshed) {

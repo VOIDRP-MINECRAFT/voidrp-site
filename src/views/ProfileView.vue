@@ -240,6 +240,10 @@ onMounted(loadData)
             <svg class="cab-ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M2.5 12S6 5 12 5s9.5 7 9.5 7-3.5 7-9.5 7-9.5-7-9.5-7Z"/><circle cx="12" cy="12" r="3"/></svg>
             {{ t('profile.openPublic') }}
           </RouterLink>
+          <RouterLink to="/profile/security" class="cab-btn">
+            <svg class="cab-ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2 4 5v6c0 5 3.4 9.3 8 11 4.6-1.7 8-6 8-11V5l-8-3Z"/></svg>
+            {{ t('security.open') }}
+          </RouterLink>
           <RouterLink to="/profile/public" class="cab-btn">
             <svg class="cab-ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 20h4L19 9a2.8 2.8 0 0 0-4-4L4 16Z"/><path d="m13.5 6.5 4 4"/></svg>
             {{ t('profile.appearance') }}

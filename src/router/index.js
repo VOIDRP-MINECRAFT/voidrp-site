@@ -51,6 +51,7 @@ const routes = [
   { path: '/verify-email', name: 'verify-email', component: () => import('../views/VerifyEmailView.vue'), meta: { title: 'Подтверждение почты' } },
   { path: '/download-launcher', name: 'download-launcher', component: () => import('../views/DownloadLauncherView.vue'), meta: { title: 'Скачать лаунчер' } },
   { path: '/profile', name: 'profile', component: () => import('../views/ProfileView.vue'), meta: { title: 'Профиль', requiresAuth: true } },
+  { path: '/profile/security', name: 'profile-security', component: () => import('../views/SecurityView.vue'), meta: { title: 'Безопасность', requiresAuth: true } },
   { path: '/profile/public', name: 'edit-public-profile', component: () => import('../views/EditPublicProfileView.vue'), meta: { title: 'Публичный профиль', requiresAuth: true } },
   { path: '/profile/referrals', name: 'referrals', component: () => import('../views/ReferralCenterView.vue'), meta: { title: 'Реферальный центр', requiresAuth: true } },
   { path: '/profile/social', name: 'social', component: () => import('../views/SocialHubView.vue'), meta: { title: 'Социальный центр', requiresAuth: true } },

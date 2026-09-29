@@ -7,6 +7,7 @@ import FeatureUnavailableNotice from './components/FeatureUnavailableNotice.vue'
 import CookieConsent from './components/CookieConsent.vue'
 import ConsentGate from './components/ConsentGate.vue'
 import GlobalToastStack from './components/GlobalToastStack.vue'
+import ReauthDialog from './components/security/ReauthDialog.vue'
 import SiteNavbar from './components/SiteNavbar.vue'
 import { useAuthStore } from './stores/authStore'
 import { serverState, activeServer } from './stores/serverStore'
@@ -88,6 +89,7 @@ onUnmounted(() => {
 
     <AppFooter v-if="!hidePublicShell" />
     <GlobalToastStack />
+    <ReauthDialog />
     <CookieConsent v-if="!hidePublicShell" />
     <ConsentGate v-if="!hidePublicShell && auth.ready.value" />
   </div>
