@@ -41,7 +41,7 @@ const BLANK = {
   news_channels: { update: { telegram: [], discord: [] }, media: { telegram: [], discord: [] } },
   systemd_unit: '', data_dir: '', log_path: '',
   rcon_host: '', rcon_port: null, rcon_password: '',
-  features: { nations: true, economy: true, shop: true, alliances: true, battlepass: true, quests: true, leaderboards: true, upgrader: true, trader: true, mods: true, progression: true, map: true, bounties: true, killfeed: true, news: true },
+  features: { nations: true, economy: true, shop: true, alliances: true, battlepass: true, quests: true, leaderboards: true, upgrader: true, trader: true, salary: false, mods: true, progression: true, map: true, bounties: true, killfeed: true, news: true },
 }
 
 const FEATURE_LABELS = {
@@ -54,6 +54,8 @@ const FEATURE_LABELS = {
   leaderboards: 'Топ игроков',
   upgrader: 'Апгрейдер',
   trader: 'Скупщик',
+  // Pay for playing: only servers running the VoidRP Origins plugin pay it.
+  salary: 'Зарплата за игру',
   mods: 'Моды (сборка лаунчера)',
   progression: 'Прогрессия эпох',
   map: 'Карта',

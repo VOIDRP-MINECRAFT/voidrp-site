@@ -168,7 +168,7 @@ const navGroups = computed(() => {
         { to: '/admin/market', label: 'Рынок', icon: icons.market, perm: 'market.view', serverFeature: 'economy' },
         { to: '/admin/upgrader', label: 'Апгрейдер', icon: icons.market, perm: 'upgrader.view', serverFeature: 'upgrader' },
         { to: '/admin/trader', label: 'Скупщик', icon: icons.market, perm: 'trader.view', serverFeature: 'trader' },
-        { to: '/admin/salary', label: 'Зарплата', icon: icons.market, perm: 'salary.view' },
+        { to: '/admin/salary', label: 'Зарплата', icon: icons.market, perm: 'salary.view', serverFeature: 'salary' },
         { to: '/admin/nations', label: 'Государства', icon: icons.nations, perm: 'nations.view', serverFeature: 'nations' },
         { to: '/admin/battlepass', label: 'Battle Pass', icon: icons.battlepass, perm: 'battlepass.view', serverFeature: 'battlepass' },
         { to: '/admin/anticheat', label: 'Античит', icon: icons.anticheat, perm: 'anticheat.view' },
