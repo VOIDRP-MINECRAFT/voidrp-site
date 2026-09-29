@@ -123,7 +123,9 @@ const scopeSlugs = computed(() => {
 const limited = computed(() => scopeSlugs.value !== null)
 // Servers the person runs as admin: every per-server key there comes from that already.
 const viaAdmin = computed(() => new Set(editingRow.value?.admin_servers || []))
-const serverKeys = computed(() => new Set(catalog.value.flatMap((g) => g.permissions).filter((p) => p.scope === 'server').map((p) => p.key)))
+// Права, которые админство сервера даёт само (кроме тех, что выдаются отдельно — «Серверы: настройки»).
+const serverKeys = computed(() => new Set(catalog.value.flatMap((g) => g.permissions).filter((p) => p.via_admin).map((p) => p.key)))
+const viaAdminFor = (key, slug) => serverKeys.value.has(key) && viaAdmin.value.has(slug)
 // Выпадающий список серверов у права: какой открыт; закрывается кликом мимо и Esc.
 const openKey = ref(null)
 function closePick(e) { if (e.type === 'click' || e.key === 'Escape') openKey.value = null }
@@ -131,7 +133,7 @@ onMounted(() => { document.addEventListener('click', closePick); document.addEve
 onBeforeUnmount(() => { document.removeEventListener('click', closePick); document.removeEventListener('keydown', closePick) })
 function onServers(key) {
   if (has(key)) return servers.value
-  return editorServersAll.value.filter((x) => hasOn(x.slug, key) || viaAdmin.value.has(x.slug))
+  return editorServersAll.value.filter((x) => hasOn(x.slug, key) || viaAdminFor(key, x.slug))
 }
 function isGiven(key, scope) {
   return scope === 'server' ? onServers(key).length > 0 : has(key)
@@ -190,8 +192,7 @@ function toggleOn(slug, key) {
 function serverPayload() {
   const out = {}
   for (const [slug, set] of Object.entries(form.value.byServer)) {
-    if (viaAdmin.value.has(slug)) continue
-    const keys = [...set].filter((k) => !form.value.permissions.has(k))
+    const keys = [...set].filter((k) => !form.value.permissions.has(k) && !viaAdminFor(k, slug))
     if (keys.length) out[slug] = keys
   }
   return out
@@ -397,7 +398,7 @@ onMounted(load)
 
       <div v-if="viaAdmin.size" class="md-adminnote">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V7a4 4 0 018 0v4"/></svg>
-        <span>Админ серверов <b>{{ adminNames }}</b>: все права этих серверов включены автоматически (с замком). Ниже можно добавить права на других серверах и права платформы.</span>
+        <span>Админ серверов <b>{{ adminNames }}</b>: права этих серверов включены автоматически (с замком) — кроме «Серверы: настройки сервера», его выдаёшь отдельно. Ниже можно добавить права на других серверах и права платформы.</span>
       </div>
       <p v-if="limited" class="md-scope-hint">
         Ты правишь только свои серверы: выбери их в списке справа у каждого права. Права на других серверах
@@ -428,12 +429,12 @@ onMounted(load)
                 :class="{ 'md-pick__btn--on': onServers(p.key).length, 'md-pick__btn--all': has(p.key), 'md-pick__btn--open': openKey === p.key }"
                 @click="openKey = openKey === p.key ? null : p.key"
               >
-                <svg v-if="onServers(p.key).length && onServers(p.key).every((x) => viaAdmin.has(x.slug)) && !has(p.key)" class="md-pick__lock" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6"><rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V7a4 4 0 018 0v4"/></svg>
+                <svg v-if="onServers(p.key).length && onServers(p.key).every((x) => viaAdminFor(p.key, x.slug)) && !has(p.key)" class="md-pick__lock" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6"><rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V7a4 4 0 018 0v4"/></svg>
                 <span>{{ pickLabel(p.key) }}</span>
                 <svg class="md-pick__chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6"><path d="M6 9l6 6 6-6"/></svg>
               </button>
               <div v-if="onServers(p.key).length > 1 && openKey !== p.key" class="md-pick__tip">
-                <div v-for="x in onServers(p.key)" :key="x.slug">{{ x.name }}<span v-if="viaAdmin.has(x.slug) && !has(p.key)"> — админство</span></div>
+                <div v-for="x in onServers(p.key)" :key="x.slug">{{ x.name }}<span v-if="viaAdminFor(p.key, x.slug) && !has(p.key)"> — админство</span></div>
               </div>
               <div v-if="openKey === p.key" class="md-pick__menu">
                 <label v-if="!limited" class="md-pick__opt md-pick__opt--all">
@@ -442,17 +443,17 @@ onMounted(load)
                 </label>
                 <label
                   v-for="srv in editorServers" :key="srv.slug" class="md-pick__opt"
-                  :class="{ 'md-pick__opt--locked': has(p.key) || viaAdmin.has(srv.slug) }"
+                  :class="{ 'md-pick__opt--locked': has(p.key) || viaAdminFor(p.key, srv.slug) }"
                 >
                   <input
                     type="checkbox"
-                    :checked="has(p.key) || hasOn(srv.slug, p.key) || viaAdmin.has(srv.slug)"
-                    :disabled="has(p.key) || viaAdmin.has(srv.slug)"
+                    :checked="has(p.key) || hasOn(srv.slug, p.key) || viaAdminFor(p.key, srv.slug)"
+                    :disabled="has(p.key) || viaAdminFor(p.key, srv.slug)"
                     @change="toggleOn(srv.slug, p.key)"
                   />
                   <span>
                     {{ srv.name }}
-                    <small v-if="viaAdmin.has(srv.slug)">через админство</small>
+                    <small v-if="viaAdminFor(p.key, srv.slug)">через админство</small>
                     <small v-else-if="has(p.key)">входит во «все серверы»</small>
                   </span>
                 </label>
