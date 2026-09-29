@@ -1,7 +1,7 @@
 <script setup>
 import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { useRoute, RouterLink } from 'vue-router'
-import { authState, canManageStaff, hasPermission, logoutCurrentSession, useAuthStore } from '../../stores/authStore'
+import { authState, canManageStaff, hasPermission, logoutCurrentSession, reloadMe, useAuthStore } from '../../stores/authStore'
 import { serverState, activeServer, fetchServers, setActiveServer } from '../../stores/serverStore'
 import { useAdminNotifications } from '../../composables/useAdminNotifications'
 import ConfirmDialog from '../../components/admin/ConfirmDialog.vue'
@@ -33,6 +33,9 @@ function dismissAll() {
 // Активный сервер скоупит per-server разделы (рынок, нации, БП, античит)
 // через X-Server-Slug; смена ремаунтит их страницы (RouterView :key ниже).
 onMounted(() => {
+  // Права могли поменяться с прошлого входа (роли, админство серверов) — берём свежие,
+  // иначе меню и переключатель серверов строятся по сохранённому в браузере профилю.
+  reloadMe().catch(() => {})
   fetchServers()
   startNotifs()
   document.addEventListener('click', onDocClick)
