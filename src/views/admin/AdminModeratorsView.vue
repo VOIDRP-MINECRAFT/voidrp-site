@@ -20,6 +20,8 @@ const token = () => authState.accessToken
 // Who the viewer is, as the API sees it (from the staff list): owner, platform admin,
 // admin of some servers, or someone who may only hand out roles.
 const me = ref(null)
+const serverNames = ref({})
+const srvName = (slug) => serverNames.value[slug] || servers.value.find((v) => v.slug === slug)?.name || slug
 const isOwner = computed(() => !!me.value?.owner)
 const isPlatform = computed(() => !!me.value?.platform_admin)
 const canPersonal = computed(() => isPlatform.value || (me.value?.admin_servers || []).length > 0)
@@ -209,6 +211,7 @@ async function load() {
     preset.value = cat.preset || []
     moderators.value = mods.items || []
     me.value = mods.me || null
+    serverNames.value = mods.server_names || {}
   } catch (e) {
     toastError(e?.message || 'Не удалось загрузить')
   } finally {
@@ -320,7 +323,7 @@ onMounted(load)
 
     <div v-if="me && !isPlatform" class="md-scopebar">
       <template v-if="me.admin_servers.length">
-        Ты админ серверов: <b>{{ me.admin_servers.map((x) => servers.find((v) => v.slug === x)?.name || x).join(', ') }}</b>.
+        Ты админ серверов: <b>{{ me.admin_servers.map(srvName).join(', ') }}</b>.
         Можешь выдавать права и роли только там.
       </template>
       <template v-else>Ты можешь выдавать роли ниже своей — на странице «Роли».</template>
@@ -497,7 +500,7 @@ onMounted(load)
               <td>
                 <div class="md-row__tags">
                   <span class="adm-badge" :class="ROLE[m.role]?.cls">{{ ROLE[m.role]?.label || m.role }}</span>
-                  <span v-for="slug in m.admin_servers" :key="slug" class="md-srvtag">{{ servers.find((v) => v.slug === slug)?.name || slug }}</span>
+                  <span v-for="slug in m.admin_servers" :key="slug" class="md-srvtag">{{ srvName(slug) }}</span>
                   <span v-for="r in m.roles" :key="r.id" class="md-rolepill" :class="{ 'md-rolepill--badge': r.is_badge }" :style="{ '--rc': r.color }" :title="r.is_badge ? 'Значок — без прав' : ''"><i />{{ r.name }}</span>
                 </div>
                 <div v-if="m.staff_since" class="md-row__since">
