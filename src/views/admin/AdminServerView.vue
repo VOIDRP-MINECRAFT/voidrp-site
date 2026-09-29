@@ -38,6 +38,9 @@ const BLANK = {
   map_url: '',
   accent_color: '',
   easydonate_server_id: null,
+  // Write-only: typed in to set or replace; empty = leave as it is.
+  easydonate_shop_key: '',
+  easydonate_shop_key_clear: false,
   news_channels: { update: { telegram: [], discord: [] }, media: { telegram: [], discord: [] } },
   systemd_unit: '', data_dir: '', log_path: '',
   rcon_host: '', rcon_port: null, rcon_password: '',
@@ -83,6 +86,8 @@ function startCreate() {
 
 function startEdit(server) {
   Object.assign(form, structuredClone(BLANK), server)
+  form.easydonate_shop_key = ''
+  form.easydonate_shop_key_clear = false
   // Merge features so keys the server row doesn't have yet default to enabled.
   form.features = { ...structuredClone(BLANK).features, ...(server.features || {}) }
   // Normalize per-category news channels so both categories always have arrays.
@@ -120,6 +125,11 @@ function buildPayload() {
   if (p.status_port === '' || p.status_port === undefined) p.status_port = null
   if (p.rcon_port === '' || p.rcon_port === undefined || Number.isNaN(p.rcon_port)) p.rcon_port = null
   if (p.easydonate_server_id === '' || p.easydonate_server_id === undefined || Number.isNaN(p.easydonate_server_id)) p.easydonate_server_id = null
+  // The shop key is never read back: send it only when typed in, or '' to clear it.
+  if (p.easydonate_shop_key_clear) p.easydonate_shop_key = ''
+  else if (!p.easydonate_shop_key) delete p.easydonate_shop_key
+  delete p.easydonate_shop_key_clear
+  delete p.easydonate_shop_key_set
   // News channels: per-category — drop empty rows and normalize thread_id.
   const nc = {}
   for (const cat of ['update', 'media']) {
@@ -422,8 +432,15 @@ onMounted(load)
         <div class="grid">
           <label class="fld fld--wide"><span>Ссылка на веб-карту (Bluemap/Dynmap)</span>
             <input v-model="form.map_url" placeholder="https://map.void-rp.ru" /></label>
-          <label class="fld"><span>EasyDonate server ID (магазин доната)</span>
+          <label class="fld"><span>EasyDonate: ID сервера в магазине</span>
             <input v-model.number="form.easydonate_server_id" type="number" placeholder="напр. 12345" /></label>
+          <label class="fld"><span>EasyDonate: ключ магазина (Shop-Key)</span>
+            <input v-model="form.easydonate_shop_key" type="password" autocomplete="new-password"
+                   :placeholder="editing && editing.easydonate_shop_key_set ? 'задан — впишите новый, чтобы заменить' : 'не задан — используется общий магазин'" />
+            <span v-if="editing && editing.easydonate_shop_key_set" class="fld-note">
+              <label><input v-model="form.easydonate_shop_key_clear" type="checkbox" /> убрать свой ключ (вернуться к общему магазину)</label>
+            </span>
+          </label>
           <div
             v-for="c in [{ key: 'update', label: 'Обновления' }, { key: 'media', label: 'Новости' }]"
             :key="c.key"
@@ -503,6 +520,7 @@ onMounted(load)
 </template>
 
 <style scoped>
+.fld-note { font-size: 0.72rem; color: var(--adm-faint); margin-top: 0.25rem; }
 /* Список серверов */
 .srv-list { display: flex; flex-direction: column; gap: 0.65rem; }
 .srv-card {
