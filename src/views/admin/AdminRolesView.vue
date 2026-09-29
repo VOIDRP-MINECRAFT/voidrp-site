@@ -65,15 +65,20 @@ function canGive(key) {
   if (scoped && draft.value.servers.every((s) => admin.includes(s))) return true
   return holds(key, draft.value.servers)
 }
-const canUseAllServers = computed(() => user.value.is_admin || (user.value.permissions || []).includes('roles.manage'))
-const pickableServers = computed(() => {
-  if (user.value.is_admin) return servers.value
+// Роли правит roles.manage (и админы своих серверов), значки — badges.manage по серверам.
+const scopeKey = computed(() => (isBadge.value ? 'badges.manage' : 'roles.manage'))
+const holdsAll = (key) => user.value.is_admin || (user.value.permissions || []).includes(key)
+const canUseAllServers = computed(() => holdsAll(scopeKey.value))
+function serversFor(key) {
+  if (holdsAll(key)) return servers.value
   const admin = user.value.administered_servers || []
-  const withPerms = Object.keys(user.value.server_permissions || {})
-  const everywhere = (user.value.permissions || []).includes('roles.manage')
-  return servers.value.filter((s) => everywhere || admin.includes(s.slug) || withPerms.includes(s.slug))
-})
+  const sp = user.value.server_permissions || {}
+  if (key === 'badges.manage') return servers.value.filter((s) => (sp[s.slug] || []).includes(key))
+  return servers.value.filter((s) => admin.includes(s.slug) || Object.keys(sp).includes(s.slug))
+}
+const pickableServers = computed(() => serversFor(scopeKey.value))
 const canCreate = computed(() => me.value?.can_manage_roles)
+const canCreateBadge = computed(() => me.value?.can_manage_badges)
 
 // ── Loading & selection ─────────────────────────────────────────────────────
 function snapshot(role) {
@@ -110,7 +115,8 @@ function reset() { draft.value = snapshot(selected.value) }
 
 // ── Create / save / delete ──────────────────────────────────────────────────
 async function create(tpl = null, badge = false) {
-  const scope = canUseAllServers.value ? null : pickableServers.value.slice(0, 1).map((s) => s.slug)
+  const key = badge ? 'badges.manage' : 'roles.manage'
+  const scope = holdsAll(key) ? null : serversFor(key).slice(0, 1).map((s) => s.slug)
   const body = {
     name: tpl?.name || (badge ? 'Новый значок' : 'Новая роль'),
     color: tpl?.color || (badge ? '#f1c40f' : '#99aab5'),
@@ -256,7 +262,7 @@ onMounted(() => load(false))
       </div>
       <div class="adm-head-actions">
         <RouterLink to="/admin/moderators" class="adm-btn">Сотрудники</RouterLink>
-        <button v-if="canCreate" class="adm-btn" @click="create(null, true)">Создать значок</button>
+        <button v-if="canCreateBadge" class="adm-btn" @click="create(null, true)">Создать значок</button>
         <button v-if="canCreate" class="adm-btn adm-btn--acc" @click="create()">Создать роль</button>
       </div>
     </div>
@@ -373,7 +379,7 @@ onMounted(() => load(false))
 
           <div v-if="isBadge" class="rl-badgenote">
             Значок — подпись о человеке, как шуточные роли в Discord. Прав не даёт, на старшинство не влияет.
-            Выдаётся сотрудникам; себе тоже можно.
+            Выдаётся сотрудникам; себе тоже можно. Создают и выдают — права «Значки» в «Сотрудниках».
           </div>
           <div class="adm-field">
             <span>Цвет</span>

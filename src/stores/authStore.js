@@ -114,7 +114,9 @@ export function canManageStaff() {
   if (!u) return false
   if (u.is_admin) return true
   if (Array.isArray(u.administered_servers) && u.administered_servers.length) return true
-  return Array.isArray(u.permissions) && (u.permissions.includes('roles.manage') || u.permissions.includes('roles.assign'))
+  const keys = ['roles.manage', 'roles.assign', 'badges.manage', 'badges.assign']
+  if (Array.isArray(u.permissions) && keys.some((k) => u.permissions.includes(k))) return true
+  return Object.values(u.server_permissions || {}).some((list) => keys.some((k) => list.includes(k)))
 }
 
 export async function refreshCurrentSessionSilently() {
