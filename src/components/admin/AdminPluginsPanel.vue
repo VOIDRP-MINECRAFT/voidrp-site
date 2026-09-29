@@ -247,7 +247,7 @@ function openConfig(p) {
 .pl-num { font-variant-numeric: tabular-nums; white-space: nowrap; }
 .pl-dep { display: inline-block; font-size: 0.7rem; padding: 0.05rem 0.4rem; margin: 0 0.2rem 0.2rem 0; border-radius: 999px; border: 1px solid var(--adm-line); color: var(--adm-dim); }
 .pl-dep--missing { border-color: rgba(239, 68, 68, 0.6); color: #fca5a5; }
-.pl-acts { display: flex; gap: 0.35rem; justify-content: flex-end; flex-wrap: wrap; }
+.pl-acts { display: flex; gap: 0.35rem; justify-content: flex-end; flex-wrap: nowrap; white-space: nowrap; }
 .pl-off td { opacity: 0.7; }
 .pl-updates { padding: 0 0.2rem; }
 </style>
