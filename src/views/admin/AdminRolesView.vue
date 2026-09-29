@@ -59,13 +59,13 @@ function holds(key, slugs) {
   if (!slugs) return false
   return slugs.length > 0 && slugs.every((s) => (u.server_permissions?.[s] || []).includes(key))
 }
+// Право можно положить в роль, только если оно есть у тебя на всех её серверах
+// (server_permissions из /me уже включают то, что даёт админство). Бэкенд проверяет то же.
 function canGive(key) {
   if (!draft.value) return false
   const scoped = draft.value.servers !== null
   if (scoped && catalogByKey.value[key]?.scope !== 'server') return false
   if (user.value.is_admin) return true
-  const admin = user.value.administered_servers || []
-  if (scoped && draft.value.servers.every((s) => admin.includes(s))) return true
   return holds(key, draft.value.servers)
 }
 // Роли правит roles.manage (и админы своих серверов), значки — badges.manage по серверам.
@@ -190,10 +190,12 @@ function togglePerm(key) {
   if (set.has(key)) set.delete(key); else set.add(key)
   draft.value.permissions = [...set]
 }
+// Показываем только то, что можно выдать; у роли «только просмотр» — только её права.
 const shownGroups = computed(() => {
   const q = permQuery.value.trim().toLowerCase()
+  const visible = (p) => (readOnly.value ? hasPerm(p.key) : canGive(p.key) || hasPerm(p.key))
   return catalog.value
-    .map((g) => ({ ...g, permissions: g.permissions.filter((p) => !q || p.label.toLowerCase().includes(q) || p.key.includes(q)) }))
+    .map((g) => ({ ...g, permissions: g.permissions.filter((p) => visible(p) && (!q || p.label.toLowerCase().includes(q) || p.key.includes(q))) }))
     .filter((g) => g.permissions.length)
 })
 const givenCount = computed(() => draft.value?.permissions.filter((k) => draft.value.servers === null || catalogByKey.value[k]?.scope === 'server').length || 0)
@@ -452,7 +454,7 @@ onMounted(() => load(false))
         <div v-else-if="tab === 'perms' && !isBadge" class="rl-pane">
           <div class="rl-perms-bar">
             <input v-model="permQuery" class="adm-input rl-search" placeholder="Поиск прав…" />
-            <span v-if="draft.servers !== null" class="rl-note">Роль отдельных серверов: права «платформы» в неё не входят.</span>
+            <span class="rl-note">{{ readOnly ? 'Права этой роли.' : 'Показаны только права, которые ты можешь выдать на серверах роли.' }}</span>
           </div>
           <div class="rl-groups">
             <section v-for="g in shownGroups" :key="g.group" class="rl-group">
@@ -472,7 +474,7 @@ onMounted(() => load(false))
                 <span class="rl-switch" :class="{ 'rl-switch--on': hasPerm(p.key) }"><i /></span>
               </button>
             </section>
-            <div v-if="!shownGroups.length" class="rl-note">Ничего не нашлось.</div>
+            <div v-if="!shownGroups.length" class="rl-note">{{ permQuery ? 'Ничего не нашлось.' : 'Нет прав, которые ты мог бы выдать на серверах этой роли.' }}</div>
           </div>
         </div>
 
