@@ -185,8 +185,9 @@ function toggleServer(slug) {
 }
 const hasPerm = (key) => draft.value?.permissions.includes(key)
 function togglePerm(key) {
-  if (readOnly.value || !canGive(key)) return
+  if (readOnly.value) return
   const set = new Set(draft.value.permissions)
+  if (!set.has(key) && !canGive(key)) return  // выключить можно всегда, включить — только своё
   if (set.has(key)) set.delete(key); else set.add(key)
   draft.value.permissions = [...set]
 }
@@ -461,8 +462,8 @@ onMounted(() => load(false))
               <div class="adm-label rl-group__title">{{ g.group }}</div>
               <button
                 v-for="p in g.permissions" :key="p.key" type="button" class="rl-perm"
-                :class="{ 'rl-perm--on': hasPerm(p.key), 'rl-perm--off': !canGive(p.key) }"
-                :disabled="readOnly || !canGive(p.key)"
+                :class="{ 'rl-perm--on': hasPerm(p.key), 'rl-perm--off': !canGive(p.key) && !readOnly }"
+                :disabled="readOnly || (!canGive(p.key) && !hasPerm(p.key))"
                 :title="!canGive(p.key) ? (draft.servers !== null && p.scope !== 'server' ? 'Право платформы — только для роли на всех серверах' : 'У тебя нет этого права — выдать его нельзя') : ''"
                 @click="togglePerm(p.key)"
               >
