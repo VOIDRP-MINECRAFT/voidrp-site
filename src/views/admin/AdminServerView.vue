@@ -1,5 +1,5 @@
 <script setup>
-import { onMounted, reactive, ref } from 'vue'
+import { computed, onMounted, reactive, ref } from 'vue'
 import { authState } from '../../stores/authStore'
 import { confirmDialog } from '../../composables/useConfirm'
 import { toastSuccess, toastError } from '../../services/toast'
@@ -14,6 +14,13 @@ import {
 } from '../../services/adminServersApi'
 
 const token = () => authState.accessToken
+
+// «Серверы» можно дать на один сервер: тогда правится только он, а создание, удаление
+// и поля про машину (папки, systemd, RCON, пути пака, скрипт сборки) — только с правом
+// на всю платформу. Бэкенд проверяет то же самое.
+const platform = computed(() => !!(authState.user?.is_admin || authState.user?.permissions?.includes('servers.manage')))
+const PLATFORM_FIELDS = ['is_default', 'systemd_unit', 'data_dir', 'log_path', 'rcon_host', 'rcon_port',
+  'rcon_password', 'pack_root', 'manifest_build_script']
 
 const servers = ref([])
 const loading = ref(true)
@@ -188,6 +195,7 @@ async function save() {
       const p = buildPayload()
       delete p.slug
       delete p.game_auth_secret
+      if (!platform.value) for (const k of PLATFORM_FIELDS) delete p[k]
       const updated = await updateServer(token(), editing.value.id, p)
       toastSuccess(`Сервер «${updated.name}» сохранён`)
     }
@@ -284,7 +292,7 @@ onMounted(load)
         <h1 class="adm-title">Серверы</h1>
         <p class="adm-sub">Витрина, подключение, модпак, статус, секрет — для каждого сервера платформы</p>
       </div>
-      <button v-if="!editing" class="adm-btn adm-btn--acc" @click="startCreate">+ Добавить сервер</button>
+      <button v-if="!editing && platform" class="adm-btn adm-btn--acc" @click="startCreate">+ Добавить сервер</button>
     </div>
 
     <!-- LIST -->
@@ -318,7 +326,7 @@ onMounted(load)
               {{ togglingId === s.id ? '…' : (s.staff_only ? '🔒 Только админы' : '🔓 Виден всем') }}
             </button>
             <button class="adm-btn adm-btn--sm" @click="startEdit(s)">Изменить</button>
-            <button class="adm-btn adm-btn--danger adm-btn--sm" @click="remove(s)">Удалить</button>
+            <button v-if="platform" class="adm-btn adm-btn--danger adm-btn--sm" @click="remove(s)">Удалить</button>
           </div>
         </div>
       </div>
@@ -346,7 +354,7 @@ onMounted(load)
           <label class="fld"><span>Порядок сортировки</span><input v-model.number="form.sort_order" type="number" /></label>
           <div class="fld fld--row">
             <label class="chk"><input v-model="form.is_visible" type="checkbox" /> Виден на сайте/лаунчере</label>
-            <label class="chk"><input v-model="form.is_default" type="checkbox" :disabled="form.is_external" /> Сервер по умолчанию</label>
+            <label class="chk"><input v-model="form.is_default" type="checkbox" :disabled="form.is_external || !platform" /> Сервер по умолчанию</label>
             <label class="chk"><input v-model="form.staff_only" type="checkbox" /> Только для админов</label>
             <label class="chk"><input v-model="form.is_external" type="checkbox" /> Внешний сервер (чужой хост)</label>
             <p v-if="form.is_external" class="adm-hint">Внешний сервер: игровой хост на чужой машине, но клиентский пак и лаунчер — наши (host/port укажи на их IP). RCON используется как обычно. Game-sync-плагины (нации/экономика/WebGUI) на их стороне НЕ стоят, поэтому данные с их сервера к нам не идут. systemd/data/log не заполняются — это не наша машина.</p>
@@ -398,12 +406,12 @@ onMounted(load)
         </div>
         <div v-if="editing === 'new' && runtimeNote" class="runtime-note">{{ runtimeNote }}</div>
         <div class="grid">
-          <label class="fld"><span>Pack root (на сервере)</span><input v-model="form.pack_root" placeholder="/home/…/pack/voidrp" /></label>
+          <label class="fld"><span>Pack root (на сервере)</span><input v-model="form.pack_root" :disabled="!platform" placeholder="/home/…/pack/voidrp" /></label>
           <label class="fld"><span>Pack base URL</span><input v-model="form.pack_base_url" placeholder="https://void-rp.ru/launcher/pack/voidrp" /></label>
           <label class="fld"><span>Manifest URL</span><input v-model="form.manifest_url" placeholder="https://…/manifests/voidrp.json" /></label>
           <label class="fld"><span>Runtime seed URL</span><input v-model="form.runtime_seed_url" placeholder="https://…/launcher/runtime/runtime-seed.json" /></label>
           <label class="fld"><span>Runtime manifest URL</span><input v-model="form.runtime_manifest_url" placeholder="https://…/launcher/runtime/runtime-windows.json (или base URL)" /></label>
-          <label class="fld"><span>Скрипт пересборки манифеста</span><input v-model="form.manifest_build_script" placeholder="пусто = стандартный генератор; напр. scripts/generate_abyss_manifests.sh" /></label>
+          <label class="fld"><span>Скрипт пересборки манифеста</span><input v-model="form.manifest_build_script" :disabled="!platform" placeholder="пусто = стандартный генератор; напр. scripts/generate_abyss_manifests.sh" /></label>
           <label class="fld"><span>Версия пака</span><input v-model="form.pack_version" placeholder="1.0.0" /></label>
           <label class="fld"><span>Мин. версия лаунчера</span><input v-model="form.min_launcher_version" placeholder="0.1.0" /></label>
         </div>
@@ -484,19 +492,20 @@ onMounted(load)
 
         <!-- Мониторинг и RCON -->
         <div class="sec">Мониторинг и RCON (админ-панель сервера)</div>
+        <p v-if="!platform" class="adm-hint">Эти поля и пути пака меняет только тот, у кого право «Серверы» на всю платформу.</p>
         <div class="grid">
           <label class="fld"><span>systemd-юнит</span>
-            <input v-model="form.systemd_unit" placeholder="youer.service" /></label>
+            <input v-model="form.systemd_unit" :disabled="!platform" placeholder="youer.service" /></label>
           <label class="fld"><span>RCON host</span>
-            <input v-model="form.rcon_host" placeholder="127.0.0.1" /></label>
+            <input v-model="form.rcon_host" :disabled="!platform" placeholder="127.0.0.1" /></label>
           <label class="fld"><span>RCON port</span>
-            <input v-model.number="form.rcon_port" type="number" placeholder="25575" /></label>
+            <input v-model.number="form.rcon_port" :disabled="!platform" type="number" placeholder="25575" /></label>
           <label class="fld"><span>RCON пароль</span>
-            <input v-model="form.rcon_password" type="password" placeholder="из server.properties" autocomplete="new-password" /></label>
+            <input v-model="form.rcon_password" :disabled="!platform" type="password" placeholder="из server.properties" autocomplete="new-password" /></label>
           <label class="fld"><span>Директория данных (необязательно)</span>
-            <input v-model="form.data_dir" placeholder="= WorkingDirectory юнита" /></label>
+            <input v-model="form.data_dir" :disabled="!platform" placeholder="= WorkingDirectory юнита" /></label>
           <label class="fld"><span>Путь к логу (необязательно)</span>
-            <input v-model="form.log_path" placeholder="= <data_dir>/logs/latest.log или http(s):// URL" /></label>
+            <input v-model="form.log_path" :disabled="!platform" placeholder="= <data_dir>/logs/latest.log или http(s):// URL" /></label>
           <p class="adm-hint">Локальный путь к файлу ИЛИ http(s)-ссылка. Для внешнего сервера укажи URL, по которому партнёр отдаёт latest.log — вьюер лога подтянет его по ссылке.</p>
         </div>
         <p class="hint">
