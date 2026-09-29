@@ -104,7 +104,9 @@ const editingName = computed(() => {
   return m ? m.site_login : ''
 })
 
-const selectedCount = computed(() => form.value.permissions.size)
+// Granted on every server or on at least one — what "выдано" counts.
+const selectedCount = computed(() =>
+  catalog.value.reduce((n, g) => n + (g.permissions || []).filter((p) => grantedAnywhere(p.key)).length, 0))
 const totalCount = computed(() =>
   catalog.value.reduce((n, g) => n + (g.permissions?.length || 0), 0),
 )
