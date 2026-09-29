@@ -72,12 +72,11 @@ function canGive(key) {
 const scopeKey = computed(() => (isBadge.value ? 'badges.manage' : 'roles.manage'))
 const holdsAll = (key) => user.value.is_admin || (user.value.permissions || []).includes(key)
 const canUseAllServers = computed(() => holdsAll(scopeKey.value))
+// Серверы, где у зрителя есть право (роли — roles.manage, значки — badges.manage).
 function serversFor(key) {
   if (holdsAll(key)) return servers.value
-  const admin = user.value.administered_servers || []
   const sp = user.value.server_permissions || {}
-  if (key === 'badges.manage') return servers.value.filter((s) => (sp[s.slug] || []).includes(key))
-  return servers.value.filter((s) => admin.includes(s.slug) || Object.keys(sp).includes(s.slug))
+  return servers.value.filter((s) => (sp[s.slug] || []).includes(key))
 }
 const pickableServers = computed(() => serversFor(scopeKey.value))
 const canCreate = computed(() => me.value?.can_manage_roles)
@@ -85,7 +84,7 @@ const canCreateBadge = computed(() => me.value?.can_manage_badges)
 
 // ── Loading & selection ─────────────────────────────────────────────────────
 function snapshot(role) {
-  return role ? { name: role.name, color: role.color, servers: role.servers ? [...role.servers].sort() : null, permissions: [...role.permissions], owner_role_id: role.owner_role?.id || null } : null
+  return role ? { name: role.name, color: role.color, servers: role.servers ? [...role.servers].sort() : null, permissions: [...role.permissions], owner_role_id: 'owner_role_id' in role ? (role.owner_role_id || null) : (role.owner_role?.id || null) } : null
 }
 const dirty = computed(() => draft.value && selected.value && JSON.stringify(snapshot({ ...draft.value, permissions: [...draft.value.permissions].sort() })) !== JSON.stringify(snapshot({ ...selected.value, permissions: [...selected.value.permissions].sort() })))
 
