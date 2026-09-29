@@ -1,6 +1,7 @@
 <script setup>
 import { computed, onBeforeUnmount, onMounted, ref } from 'vue'
 import { RouterLink } from 'vue-router'
+import NickSuggest from '../../components/admin/NickSuggest.vue'
 import { authState } from '../../stores/authStore'
 import { serverState, fetchServers } from '../../stores/serverStore'
 import { confirmDialog } from '../../composables/useConfirm'
@@ -341,7 +342,7 @@ onMounted(load)
         <div class="md-admin__title">{{ adminDlg.user ? `Админство: ${adminDlg.user.site_login}` : 'Назначить админа' }}</div>
         <label v-if="!adminDlg.user" class="adm-field">
           <span>Ник пользователя</span>
-          <input v-model="adminDlg.name" class="adm-input" placeholder="ник на сайте" autocomplete="off" />
+          <NickSuggest v-model="adminDlg.name" />
         </label>
         <div class="md-admin__opts">
           <button type="button" class="md-admin__opt" :class="{ 'md-admin__opt--on': adminDlg.scope === 'servers' }" @click="adminDlg.scope = 'servers'">
@@ -398,7 +399,7 @@ onMounted(load)
 
       <label v-if="editing === 'new'" class="adm-field md-username">
         <span>Ник пользователя</span>
-        <input v-model="form.username" class="adm-input" placeholder="например, mironoouv" autocomplete="off" />
+        <NickSuggest v-model="form.username" placeholder="например, mironoouv" />
       </label>
 
       <div v-if="viaAdmin.size" class="md-adminnote">

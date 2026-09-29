@@ -85,3 +85,12 @@ export function addRoleMember(token, roleId, username) {
 export function removeRoleMember(token, roleId, userId) {
   return apiRequest(`/admin/roles/${roleId}/members/${userId}`, opts(token, { method: 'DELETE' }))
 }
+
+// Nickname suggestions (site login or Minecraft nick prefix, ≤ 8). roleId: only people
+// who could get that role/badge from the caller; staffOnly: only staff.
+export function suggestPeople(token, q, { roleId = null, staffOnly = false } = {}) {
+  const params = new URLSearchParams({ q })
+  if (roleId) params.set('role_id', roleId)
+  if (staffOnly) params.set('staff_only', 'true')
+  return apiRequest(`/admin/roles/people?${params}`, opts(token))
+}

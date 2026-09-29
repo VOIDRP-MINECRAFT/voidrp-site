@@ -1,6 +1,7 @@
 <script setup>
 import { computed, onMounted, ref, watch } from 'vue'
 import { RouterLink } from 'vue-router'
+import NickSuggest from '../../components/admin/NickSuggest.vue'
 import { authState } from '../../stores/authStore'
 import { serverState, fetchServers } from '../../stores/serverStore'
 import { confirmDialog } from '../../composables/useConfirm'
@@ -482,7 +483,7 @@ onMounted(() => load(false))
         <!-- Участники -->
         <div v-else class="rl-pane">
           <form v-if="selected.assignable" class="rl-add" @submit.prevent="addMember">
-            <input v-model="memberName" class="adm-input" placeholder="Ник на сайте" autocomplete="off" />
+            <NickSuggest v-model="memberName" :role-id="selected.id" @submit="addMember" />
             <button class="adm-btn adm-btn--acc" :disabled="memberBusy || !memberName.trim()">{{ isBadge ? 'Выдать значок' : 'Выдать роль' }}</button>
           </form>
           <div v-if="!selected.members.length" class="rl-note rl-note--pad">{{ isBadge ? 'Значок пока ни у кого нет.' : 'Роль пока никому не выдана.' }}</div>
