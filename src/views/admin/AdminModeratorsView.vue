@@ -29,6 +29,8 @@ const ROLE = {
   server_admin: { label: 'Админ сервера', cls: 'adm-badge--info' },
   moderator: { label: 'Сотрудник', cls: '' },
 }
+// Цвет ника — по старшей настоящей роли (значки не в счёт).
+const topRole = (m) => (m.roles || []).find((r) => !r.is_badge) || null
 const fmtDate = (v) => (v ? new Date(v).toLocaleDateString('ru-RU', { day: '2-digit', month: '2-digit', year: 'numeric' }) : '')
 
 // ── Назначение админа: всей платформы (только владелец) или отдельных серверов ──
@@ -485,9 +487,9 @@ onMounted(load)
             <tr v-for="m in moderators" :key="m.id">
               <td>
                 <div class="md-row__who">
-                  <span class="adm-avatar md-row__ava" :style="m.roles[0] ? { background: m.roles[0].color + '26', color: m.roles[0].color } : null">{{ m.site_login.charAt(0).toUpperCase() }}</span>
+                  <span class="adm-avatar md-row__ava" :style="topRole(m) ? { background: topRole(m).color + '26', color: topRole(m).color } : null">{{ m.site_login.charAt(0).toUpperCase() }}</span>
                   <div class="md-row__ident">
-                    <div class="md-row__login" :style="m.roles[0] ? { color: m.roles[0].color } : null">{{ m.site_login }}</div>
+                    <div class="md-row__login" :style="topRole(m) ? { color: topRole(m).color } : null">{{ m.site_login }}</div>
                     <div class="md-row__email adm-mono">{{ m.email }}</div>
                   </div>
                 </div>
@@ -496,7 +498,7 @@ onMounted(load)
                 <div class="md-row__tags">
                   <span class="adm-badge" :class="ROLE[m.role]?.cls">{{ ROLE[m.role]?.label || m.role }}</span>
                   <span v-for="slug in m.admin_servers" :key="slug" class="md-srvtag">{{ servers.find((v) => v.slug === slug)?.name || slug }}</span>
-                  <span v-for="r in m.roles" :key="r.id" class="md-rolepill" :style="{ '--rc': r.color }"><i />{{ r.name }}</span>
+                  <span v-for="r in m.roles" :key="r.id" class="md-rolepill" :class="{ 'md-rolepill--badge': r.is_badge }" :style="{ '--rc': r.color }" :title="r.is_badge ? 'Значок — без прав' : ''"><i />{{ r.name }}</span>
                 </div>
                 <div v-if="m.staff_since" class="md-row__since">
                   с {{ fmtDate(m.staff_since) }}<template v-if="m.granted_by"> · назначил {{ m.granted_by }}</template>
@@ -508,7 +510,7 @@ onMounted(load)
                   <span v-if="m.permissions.length || serverSummary(m).length" class="adm-badge" :class="m.permissions.length ? 'adm-badge--acc' : ''">
                     <b class="adm-num">{{ m.permissions.length }}</b>&nbsp;на всех
                   </span>
-                  <span v-else class="md-row__none">{{ m.role === 'server_admin' ? 'все права своих серверов' : (m.roles.length ? 'только роли' : 'нет') }}</span>
+                  <span v-else class="md-row__none">{{ m.role === 'server_admin' ? 'все права своих серверов' : (m.roles.some((r) => !r.is_badge) ? 'только роли' : 'нет') }}</span>
                   <div v-for="line in serverSummary(m)" :key="line" class="md-row__since">+ {{ line }}</div>
                 </template>
               </td>
@@ -593,6 +595,8 @@ onMounted(load)
   font-size: 0.7rem; font-weight: 700; color: var(--adm-text);
   background: color-mix(in srgb, var(--rc) 15%, transparent); border: 1px solid color-mix(in srgb, var(--rc) 42%, transparent);
 }
+.md-rolepill--badge { border-style: dashed; background: transparent; }
+.md-rolepill--badge i { display: none; }
 .md-rolepill i { width: 0.45rem; height: 0.45rem; border-radius: 50%; background: var(--rc); }
 .md-scopebar { margin-bottom: 1rem; padding: 0.6rem 0.9rem; border-radius: 10px; font-size: 0.78rem; color: var(--adm-mut); background: var(--adm-acc-soft); border: 1px solid var(--adm-acc-line); }
 .md-scopebar b { color: var(--adm-text); }

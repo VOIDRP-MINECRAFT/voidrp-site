@@ -40,6 +40,10 @@ const memberBusy = ref(false)
 const servers = computed(() => [...serverState.list].sort((a, b) => (a.sort_order ?? 0) - (b.sort_order ?? 0)))
 const serverName = (slug) => servers.value.find((s) => s.slug === slug)?.name || slug
 const selected = computed(() => roles.value.find((r) => r.id === selectedId.value) || null)
+// Роли (с правами, по старшинству) и значки (без прав — просто подпись о человеке).
+const realRoles = computed(() => roles.value.filter((r) => !r.is_badge))
+const badges = computed(() => roles.value.filter((r) => r.is_badge))
+const isBadge = computed(() => !!selected.value?.is_badge)
 const readOnly = computed(() => !selected.value?.editable)
 const catalogByKey = computed(() => Object.fromEntries(catalog.value.flatMap((g) => g.permissions).map((p) => [p.key, p])))
 
@@ -100,24 +104,26 @@ async function select(id, force = false) {
   selectedId.value = id
   draft.value = snapshot(roles.value.find((r) => r.id === id))
   memberName.value = ''
+  if (roles.value.find((r) => r.id === id)?.is_badge && tab.value === 'perms') tab.value = 'main'
 }
 function reset() { draft.value = snapshot(selected.value) }
 
 // ── Create / save / delete ──────────────────────────────────────────────────
-async function create(tpl = null) {
+async function create(tpl = null, badge = false) {
   const scope = canUseAllServers.value ? null : pickableServers.value.slice(0, 1).map((s) => s.slug)
   const body = {
-    name: tpl?.name || 'Новая роль',
-    color: tpl?.color || '#99aab5',
+    name: tpl?.name || (badge ? 'Новый значок' : 'Новая роль'),
+    color: tpl?.color || (badge ? '#f1c40f' : '#99aab5'),
     servers: scope,
     permissions: tpl ? tpl.perms.filter((k) => scope === null || catalogByKey.value[k]?.scope === 'server') : [],
+    badge,
   }
   try {
     const role = await createRole(token(), body)
     await load()
     await select(role.id, true)
     tab.value = tpl ? 'perms' : 'main'
-    toastSuccess(`Роль «${role.name}» создана — внизу списка`)
+    toastSuccess(badge ? `Значок «${role.name}» создан` : `Роль «${role.name}» создана — внизу списка`)
   } catch (e) {
     toastError(e?.message || 'Не удалось создать роль')
   }
@@ -127,7 +133,7 @@ async function save() {
   if (!draft.value.name.trim()) { toastError('У роли должно быть название'); return }
   saving.value = true
   try {
-    const body = { ...draft.value, name: draft.value.name.trim() }
+    const body = { ...draft.value, name: draft.value.name.trim(), badge: isBadge.value }
     if (body.servers !== null) body.permissions = body.permissions.filter((k) => catalogByKey.value[k]?.scope === 'server')
     await updateRole(token(), selected.value.id, body)
     await load()
@@ -143,14 +149,14 @@ async function save() {
 async function remove() {
   const r = selected.value
   const ok = await confirmDialog({
-    title: `Удалить роль «${r.name}»?`,
-    message: r.members.length ? `У ${r.members.length} чел. пропадут права этой роли. Отменить нельзя.` : 'Отменить нельзя.',
+    title: r.is_badge ? `Удалить значок «${r.name}»?` : `Удалить роль «${r.name}»?`,
+    message: r.is_badge ? 'Значок пропадёт у всех, у кого он есть.' : (r.members.length ? `У ${r.members.length} чел. пропадут права этой роли. Отменить нельзя.` : 'Отменить нельзя.'),
     confirmLabel: 'Удалить', danger: true,
   })
   if (!ok) return
   try {
     await deleteRole(token(), r.id)
-    toastSuccess('Роль удалена')
+    toastSuccess(r.is_badge ? 'Значок удалён' : 'Роль удалена')
     await load(false)
   } catch (e) {
     toastError(e?.message || 'Не удалось удалить')
@@ -217,17 +223,18 @@ async function dropMember(m) {
 // ── Drag to reorder (higher = more senior) ──────────────────────────────────
 const dragId = ref(null)
 const overId = ref(null)
-const canDrag = (r) => me.value?.platform_admin || r.editable
+const canDrag = (r) => !r.is_badge && (me.value?.platform_admin || r.editable)
 function onDragStart(r, e) { dragId.value = r.id; e.dataTransfer.effectAllowed = 'move' }
 async function onDrop(target) {
   const from = dragId.value
   dragId.value = null
   overId.value = null
   if (!from || from === target.id) return
-  const ids = roles.value.map((r) => r.id).filter((id) => id !== from)
+  if (target.is_badge) return
+  const ids = realRoles.value.map((r) => r.id).filter((id) => id !== from)
   ids.splice(ids.indexOf(target.id), 0, from)
   const before = roles.value
-  roles.value = ids.map((id) => before.find((r) => r.id === id))
+  roles.value = [...ids.map((id) => before.find((r) => r.id === id)), ...badges.value]
   try {
     const res = await reorderRoles(token(), ids)
     roles.value = res.items
@@ -249,6 +256,7 @@ onMounted(() => load(false))
       </div>
       <div class="adm-head-actions">
         <RouterLink to="/admin/moderators" class="adm-btn">Сотрудники</RouterLink>
+        <button v-if="canCreate" class="adm-btn" @click="create(null, true)">Создать значок</button>
         <button v-if="canCreate" class="adm-btn adm-btn--acc" @click="create()">Создать роль</button>
       </div>
     </div>
@@ -282,7 +290,7 @@ onMounted(() => load(false))
         </div>
         <ul>
           <li
-            v-for="r in roles"
+            v-for="r in realRoles"
             :key="r.id"
             class="rl-item"
             :class="{ 'rl-item--on': r.id === selectedId, 'rl-item--over': overId === r.id && dragId && dragId !== r.id, 'rl-item--dragging': dragId === r.id }"
@@ -306,6 +314,26 @@ onMounted(() => load(false))
             <svg v-if="!r.editable" class="rl-item__lock" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="4" y="11" width="16" height="10" rx="2"/><path d="M8 11V7a4 4 0 018 0v4"/></svg>
           </li>
         </ul>
+        <template v-if="badges.length">
+          <div class="rl-list__head rl-list__head--badges">
+            <span class="adm-label" style="margin: 0">Значки — {{ badges.length }}</span>
+          </div>
+          <ul>
+            <li
+              v-for="r in badges" :key="r.id" class="rl-item rl-item--badge"
+              :class="{ 'rl-item--on': r.id === selectedId }" :style="{ '--rc': r.color }" @click="select(r.id)"
+            >
+              <span class="rl-item__grip rl-item__grip--off" aria-hidden="true" />
+              <span class="rl-item__tag">#</span>
+              <span class="rl-item__main">
+                <span class="rl-item__name">{{ r.name }}</span>
+                <span class="rl-item__meta">значок · без прав</span>
+              </span>
+              <span class="rl-item__count adm-num">{{ r.members.length }}</span>
+              <svg v-if="!r.editable" class="rl-item__lock" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="4" y="11" width="16" height="10" rx="2"/><path d="M8 11V7a4 4 0 018 0v4"/></svg>
+            </li>
+          </ul>
+        </template>
         <p class="rl-list__hint">Перетащи роль, чтобы поменять старшинство: выданные права от порядка не зависят, но менять и выдавать можно только роли ниже своей.</p>
       </aside>
 
@@ -318,14 +346,15 @@ onMounted(() => load(false))
               <div class="rl-editor__name">{{ draft.name || 'Без названия' }}</div>
               <div class="rl-editor__sub">
                 {{ selected.members.length }} {{ selected.members.length === 1 ? 'участник' : 'участников' }} ·
-                {{ givenCount }} {{ givenCount === 1 ? 'право' : 'прав' }} ·
+                <template v-if="isBadge">значок, без прав ·</template>
+                <template v-else>{{ givenCount }} {{ givenCount === 1 ? 'право' : 'прав' }} ·</template>
                 {{ draft.servers ? draft.servers.map(serverName).join(', ') : 'все серверы' }}
               </div>
             </div>
           </div>
           <div class="adm-tabs">
             <button class="adm-tab" :class="{ 'adm-tab--active': tab === 'main' }" @click="tab = 'main'">Основное</button>
-            <button class="adm-tab" :class="{ 'adm-tab--active': tab === 'perms' }" @click="tab = 'perms'">Права</button>
+            <button v-if="!isBadge" class="adm-tab" :class="{ 'adm-tab--active': tab === 'perms' }" @click="tab = 'perms'">Права</button>
             <button class="adm-tab" :class="{ 'adm-tab--active': tab === 'members' }" @click="tab = 'members'">Участники · {{ selected.members.length }}</button>
           </div>
         </header>
@@ -342,6 +371,10 @@ onMounted(() => load(false))
             <input v-model="draft.name" class="adm-input" maxlength="48" :disabled="readOnly" placeholder="например, Модератор Origins" />
           </label>
 
+          <div v-if="isBadge" class="rl-badgenote">
+            Значок — подпись о человеке, как шуточные роли в Discord. Прав не даёт, на старшинство не влияет.
+            Выдаётся сотрудникам; себе тоже можно.
+          </div>
           <div class="adm-field">
             <span>Цвет</span>
             <div class="rl-colors">
@@ -358,15 +391,15 @@ onMounted(() => load(false))
           </div>
 
           <div class="adm-field">
-            <span>Где действует</span>
+            <span>{{ isBadge ? 'Чей значок' : 'Где действует' }}</span>
             <div class="rl-scope">
               <button type="button" class="rl-scope__opt" :class="{ 'rl-scope__opt--on': draft.servers === null }" :disabled="readOnly || !canUseAllServers" @click="setScope(true)">
-                <b>На всех серверах</b>
-                <small>и права платформы: сайт, лаунчер, аккаунты</small>
+                <b>{{ isBadge ? 'Общий' : 'На всех серверах' }}</b>
+                <small>{{ isBadge ? 'выдают те, кто выдаёт роли на всей платформе' : 'и права платформы: сайт, лаунчер, аккаунты' }}</small>
               </button>
               <button type="button" class="rl-scope__opt" :class="{ 'rl-scope__opt--on': draft.servers !== null }" :disabled="readOnly" @click="setScope(false)">
-                <b>На выбранных серверах</b>
-                <small>только права серверов — там, где отмечено</small>
+                <b>{{ isBadge ? 'Для серверов' : 'На выбранных серверах' }}</b>
+                <small>{{ isBadge ? 'выдают и правят админы этих серверов' : 'только права серверов — там, где отмечено' }}</small>
               </button>
             </div>
             <div v-if="draft.servers !== null" class="rl-servers">
@@ -384,21 +417,21 @@ onMounted(() => load(false))
             <div class="rl-preview__row">
               <span class="adm-avatar rl-preview__ava">M</span>
               <span class="rl-preview__nick">mironoouv</span>
-              <span class="rl-pill" :style="{ '--rc': draft.color }"><i />{{ draft.name || 'Роль' }}</span>
+              <span class="rl-pill" :class="{ 'rl-pill--badge': isBadge }" :style="{ '--rc': draft.color }"><i />{{ draft.name || 'Роль' }}</span>
             </div>
           </div>
 
           <div v-if="!readOnly" class="rl-danger">
             <div>
-              <b>Удалить роль</b>
-              <small>Права этой роли пропадут у всех участников.</small>
+              <b>{{ isBadge ? 'Удалить значок' : 'Удалить роль' }}</b>
+              <small>{{ isBadge ? 'Значок пропадёт у всех, у кого он есть.' : 'Права этой роли пропадут у всех участников.' }}</small>
             </div>
             <button class="adm-btn adm-btn--danger adm-btn--sm" @click="remove">Удалить</button>
           </div>
         </div>
 
         <!-- Права -->
-        <div v-else-if="tab === 'perms'" class="rl-pane">
+        <div v-else-if="tab === 'perms' && !isBadge" class="rl-pane">
           <div class="rl-perms-bar">
             <input v-model="permQuery" class="adm-input rl-search" placeholder="Поиск прав…" />
             <span v-if="draft.servers !== null" class="rl-note">Роль отдельных серверов: права «платформы» в неё не входят.</span>
@@ -429,9 +462,9 @@ onMounted(() => load(false))
         <div v-else class="rl-pane">
           <form v-if="selected.assignable" class="rl-add" @submit.prevent="addMember">
             <input v-model="memberName" class="adm-input" placeholder="Ник на сайте" autocomplete="off" />
-            <button class="adm-btn adm-btn--acc" :disabled="memberBusy || !memberName.trim()">Выдать роль</button>
+            <button class="adm-btn adm-btn--acc" :disabled="memberBusy || !memberName.trim()">{{ isBadge ? 'Выдать значок' : 'Выдать роль' }}</button>
           </form>
-          <div v-if="!selected.members.length" class="rl-note rl-note--pad">Роль пока никому не выдана.</div>
+          <div v-if="!selected.members.length" class="rl-note rl-note--pad">{{ isBadge ? 'Значок пока ни у кого нет.' : 'Роль пока никому не выдана.' }}</div>
           <ul v-else class="rl-members">
             <li v-for="m in selected.members" :key="m.id" class="rl-member">
               <span class="adm-avatar rl-member__ava">{{ m.site_login.charAt(0).toUpperCase() }}</span>
@@ -485,6 +518,11 @@ onMounted(() => load(false))
 .rl-item__meta { font-size: 0.68rem; color: var(--adm-dim); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .rl-item__count { font-size: 0.7rem; color: var(--adm-mut); background: rgba(148, 163, 184, 0.08); border-radius: 999px; padding: 0.05rem 0.45rem; }
 .rl-item__lock { width: 0.8rem; height: 0.8rem; color: var(--adm-dim); flex-shrink: 0; }
+.rl-list__head--badges { margin-top: 0.8rem; padding-top: 0.75rem; border-top: 1px solid var(--adm-line); }
+.rl-item__tag { width: 0.7rem; text-align: center; font-weight: 800; color: var(--rc); flex-shrink: 0; }
+.rl-pill--badge { border-style: dashed; background: transparent; }
+.rl-pill--badge i { display: none; }
+.rl-badgenote { padding: 0.65rem 0.85rem; border-radius: 10px; font-size: 0.78rem; line-height: 1.5; color: var(--adm-mut); background: color-mix(in srgb, var(--rc) 9%, transparent); border: 1px dashed color-mix(in srgb, var(--rc) 45%, transparent); }
 .rl-list__hint { margin: 0.75rem 0.55rem 0; font-size: 0.7rem; line-height: 1.45; color: var(--adm-dim); }
 
 /* редактор */
