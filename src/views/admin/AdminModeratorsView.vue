@@ -24,7 +24,15 @@ const serverNames = ref({})
 const srvName = (slug) => serverNames.value[slug] || servers.value.find((v) => v.slug === slug)?.name || slug
 const isOwner = computed(() => !!me.value?.owner)
 const isPlatform = computed(() => !!me.value?.platform_admin)
-const canPersonal = computed(() => isPlatform.value || (me.value?.admin_servers || []).length > 0)
+const canPersonal = computed(() => !!me.value?.can_staff)
+// Что зритель может выдать лично: админ платформы — всё; остальные — только свои права
+// (на всех серверах или на этом сервере). Бэкенд проверяет то же (Authority.may_grant).
+function canGrant(key, slug = null) {
+  const u = authState.user || {}
+  if (u.is_admin) return true
+  if ((u.permissions || []).includes(key)) return true
+  return !!slug && (u.server_permissions?.[slug] || []).includes(key)
+}
 const ROLE = {
   owner: { label: 'Владелец', cls: 'adm-badge--acc' },
   admin: { label: 'Админ платформы', cls: 'adm-badge--warn' },
@@ -116,10 +124,7 @@ const servers = computed(() =>
 // Personal grants the viewer may touch: all of them (platform admin), or only the
 // per-server ones on the servers they run (admin of servers).
 const editingRow = computed(() => moderators.value.find((x) => x.id === editing.value) || null)
-const scopeSlugs = computed(() => {
-  if (isPlatform.value) return null
-  return editing.value === 'new' ? (me.value?.admin_servers || []) : (editingRow.value?.personal_scope || [])
-})
+const scopeSlugs = computed(() => null)
 const limited = computed(() => scopeSlugs.value !== null)
 // Servers the person runs as admin: every per-server key there comes from that already.
 const viaAdmin = computed(() => new Set(editingRow.value?.admin_servers || []))
@@ -249,7 +254,7 @@ function has(key) {
 }
 
 function toggleGroup(group) {
-  const keys = (group.permissions || []).map((p) => p.key)
+  const keys = (group.permissions || []).map((p) => p.key).filter((k) => canGrant(k))
   const s = new Set(form.value.permissions)
   const allOn = keys.every((k) => s.has(k))
   keys.forEach((k) => (allOn ? s.delete(k) : s.add(k)))
@@ -257,7 +262,7 @@ function toggleGroup(group) {
 }
 
 function applyPreset() {
-  form.value = { ...form.value, permissions: new Set(preset.value) }
+  form.value = { ...form.value, permissions: new Set(preset.value.filter((k) => canGrant(k))) }
 }
 function clearAll() {
   form.value = { ...form.value, permissions: new Set(), byServer: {} }
@@ -325,9 +330,9 @@ onMounted(load)
     <div v-if="me && !isPlatform" class="md-scopebar">
       <template v-if="me.admin_servers.length">
         Ты админ серверов: <b>{{ me.admin_servers.map(srvName).join(', ') }}</b>.
-        Можешь выдавать права и роли только там.
+        Выдавать можно только права, что есть у тебя, и только тем, кто ниже.
       </template>
-      <template v-else>Ты можешь выдавать роли ниже своей — на странице «Роли».</template>
+      <template v-else>Выдавать можно только те права, что есть у тебя, и только тем, кто ниже. Остальное — через «Роли».</template>
     </div>
 
     <!-- Назначение админа -->
@@ -416,7 +421,7 @@ onMounted(load)
             <span class="md-group__count adm-num">{{ groupSelected(g) }}/{{ g.permissions.length }}</span>
           </button>
           <div v-for="p in g.permissions" :key="p.key" class="md-perm" :class="{ 'md-perm--on': isGiven(p.key, p.scope) }">
-            <input v-if="p.scope !== 'server'" type="checkbox" :checked="has(p.key)" :disabled="limited" @change="toggle(p.key)" />
+            <input v-if="p.scope !== 'server'" type="checkbox" :checked="has(p.key)" :disabled="!canGrant(p.key)" :title="canGrant(p.key) ? '' : 'Этого права у тебя нет — выдать его нельзя'" @change="toggle(p.key)" />
             <span v-else class="md-perm__dot" :class="{ 'md-perm__dot--on': isGiven(p.key, p.scope) }" />
             <span class="md-perm__label">
               {{ p.label }}
@@ -437,8 +442,8 @@ onMounted(load)
                 <div v-for="x in onServers(p.key)" :key="x.slug">{{ x.name }}<span v-if="viaAdminFor(p.key, x.slug) && !has(p.key)"> — админство</span></div>
               </div>
               <div v-if="openKey === p.key" class="md-pick__menu">
-                <label v-if="!limited" class="md-pick__opt md-pick__opt--all">
-                  <input type="checkbox" :checked="has(p.key)" @change="toggle(p.key)" />
+                <label v-if="!limited" class="md-pick__opt md-pick__opt--all" :class="{ 'md-pick__opt--locked': !canGrant(p.key) }">
+                  <input type="checkbox" :checked="has(p.key)" :disabled="!canGrant(p.key)" @change="toggle(p.key)" />
                   <span><b>Все серверы</b><small>и те, что появятся потом</small></span>
                 </label>
                 <label
@@ -448,13 +453,14 @@ onMounted(load)
                   <input
                     type="checkbox"
                     :checked="has(p.key) || hasOn(srv.slug, p.key) || viaAdminFor(p.key, srv.slug)"
-                    :disabled="has(p.key) || viaAdminFor(p.key, srv.slug)"
+                    :disabled="has(p.key) || viaAdminFor(p.key, srv.slug) || !canGrant(p.key, srv.slug)"
                     @change="toggleOn(srv.slug, p.key)"
                   />
                   <span>
                     {{ srv.name }}
                     <small v-if="viaAdminFor(p.key, srv.slug)">через админство</small>
                     <small v-else-if="has(p.key)">входит во «все серверы»</small>
+                    <small v-else-if="!canGrant(p.key, srv.slug)">у тебя нет этого права здесь</small>
                   </span>
                 </label>
               </div>

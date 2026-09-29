@@ -1,7 +1,7 @@
 <script setup>
 import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { useRoute, RouterLink } from 'vue-router'
-import { authState, canManageStaff, hasPermission, logoutCurrentSession, reloadMe, useAuthStore } from '../../stores/authStore'
+import { authState, canManageStaff, canSeeStaffTab, hasPermission, logoutCurrentSession, reloadMe, useAuthStore } from '../../stores/authStore'
 import { serverState, activeServer, fetchServers, setActiveServer } from '../../stores/serverStore'
 import { useAdminNotifications } from '../../composables/useAdminNotifications'
 import ConfirmDialog from '../../components/admin/ConfirmDialog.vue'
@@ -146,6 +146,7 @@ function canSee(item) {
   if (item.serverFeature && activeServer.value?.features?.[item.serverFeature] === false) return false
   if (item.adminOnly) return isAdmin.value
   if (item.staffManager) return canManageStaff()
+  if (item.staffTab) return canSeeStaffTab()
   if (Array.isArray(item.anyPerm)) return item.anyPerm.some((p) => hasPermission(p))
   if (!item.perm) return true
   return hasPermission(item.perm)
@@ -189,7 +190,7 @@ const navGroups = computed(() => {
         { to: '/admin/cosmetics', label: 'Косметика', icon: icons.players, perm: 'figura.cosmetics.manage' },
         { to: '/admin/server', label: 'Серверы', icon: icons.servers, perm: 'servers.manage' },
         { to: '/admin/launcher', label: 'Лаунчер', icon: icons.launcher, perm: 'launcher.view' },
-        { to: '/admin/moderators', label: 'Сотрудники', icon: icons.players, staffManager: true },
+        { to: '/admin/moderators', label: 'Сотрудники', icon: icons.players, staffTab: true },
         { to: '/admin/roles', label: 'Роли', icon: icons.roles, staffManager: true },
         { to: '/admin/audit', label: 'Журнал действий', icon: icons.crashes, perm: 'audit.view' },
       ],

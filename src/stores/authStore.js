@@ -114,9 +114,15 @@ export function canManageStaff() {
   if (!u) return false
   if (u.is_admin) return true
   if (Array.isArray(u.administered_servers) && u.administered_servers.length) return true
-  const keys = ['roles.manage', 'roles.assign', 'badges.manage', 'badges.assign']
+  const keys = ['roles.manage', 'roles.assign', 'badges.manage', 'badges.assign', 'staff.manage']
   if (Array.isArray(u.permissions) && keys.some((k) => u.permissions.includes(k))) return true
   return Object.values(u.server_permissions || {}).some((list) => keys.some((k) => list.includes(k)))
+}
+
+// Вкладка «Сотрудники» (личные права): админы платформы и право staff.manage.
+export function canSeeStaffTab() {
+  const u = authState.user
+  return !!u && (u.is_admin || (Array.isArray(u.permissions) && u.permissions.includes('staff.manage')))
 }
 
 export async function refreshCurrentSessionSilently() {

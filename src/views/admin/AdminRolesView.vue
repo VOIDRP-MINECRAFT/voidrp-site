@@ -261,7 +261,7 @@ onMounted(() => load(false))
         <p class="adm-sub">Наборы прав, которые выдаются людям одной кнопкой. Выше в списке — старше.</p>
       </div>
       <div class="adm-head-actions">
-        <RouterLink to="/admin/moderators" class="adm-btn">Сотрудники</RouterLink>
+        <RouterLink v-if="me?.can_staff" to="/admin/moderators" class="adm-btn">Сотрудники</RouterLink>
         <button v-if="canCreateBadge" class="adm-btn" @click="create(null, true)">Создать значок</button>
         <button v-if="canCreate" class="adm-btn adm-btn--acc" @click="create()">Создать роль</button>
       </div>
