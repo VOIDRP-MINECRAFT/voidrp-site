@@ -32,6 +32,12 @@ function size(bytes) {
   if (gb >= 1) return `${gb.toFixed(1)} ГБ`
   return `${Math.max(1, Math.round(bytes / 1024 ** 2))} МБ`
 }
+function plural(n, one, few, many) {
+  const m10 = n % 10, m100 = n % 100
+  if (m10 === 1 && m100 !== 11) return one
+  if (m10 >= 2 && m10 <= 4 && (m100 < 12 || m100 > 14)) return few
+  return many
+}
 function ago(v) {
   if (!v) return ''
   const min = Math.round((Date.now() - new Date(v)) / 60000)
@@ -225,7 +231,7 @@ const RESTORE_STATUS = {
             <button class="adm-btn adm-btn--acc" :disabled="creating || problems.length > 0" @click="create">Создать сейчас</button>
           </div>
           <div class="bk-stats">
-            <span><b>{{ doneCount }}</b> бэкапов · {{ size(totalSize) }}</span>
+            <span><b>{{ doneCount }}</b> {{ plural(doneCount, 'бэкап', 'бэкапа', 'бэкапов') }} · {{ size(totalSize) }}</span>
             <span v-if="data.storage.free != null">на диске свободно {{ size(data.storage.free) }} из {{ size(data.storage.total) }}</span>
           </div>
         </div>
