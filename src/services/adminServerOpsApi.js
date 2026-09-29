@@ -81,3 +81,18 @@ export function setWatchdogState(token, patch) {
     body: JSON.stringify(patch),
   })
 }
+
+// Thresholds and journal of the hang watchdog for servers other than the main one
+// (apps/worker/watchdog.py). On/off stays the switch above; `own_script` marks a server
+// watched by a script of its own, which this watchdog then leaves alone.
+export function getWatchdogOverview(token) {
+  return apiRequest('/admin/watchdog', ah(token))
+}
+
+export function saveWatchdogSettings(token, settings) {
+  return apiRequest('/admin/watchdog/settings', {
+    ...ah(token, { 'Content-Type': 'application/json' }),
+    method: 'PUT',
+    body: JSON.stringify(settings),
+  })
+}

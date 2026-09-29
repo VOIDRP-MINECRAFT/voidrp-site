@@ -9,7 +9,7 @@ import {
   getServerLogs,
   getServerHangs,
   getServerChat,
-  getWatchdogState,
+  getWatchdogState, getWatchdogOverview, saveWatchdogSettings,
   setWatchdogState,
 } from '../../services/adminServerOpsApi.js'
 import { authState, hasPermission } from '../../stores/authStore'
@@ -262,6 +262,52 @@ async function loadWatchdog() {
   } catch (e) {
     watchdog.value = null
     watchdogError.value = e?.message || 'неизвестная ошибка'
+  }
+  loadWatchdogOverview()
+}
+
+// Пороги и журнал вотчдога (apps/worker/watchdog.py) — для любого сервера, кроме
+// помеченного «следит свой скрипт» (основной: minecraft_watchdog.sh / hang_guard.sh).
+const wdo = ref(null)
+const wdForm = ref(null)
+const wdSaving = ref(false)
+const wdOpen = ref({})
+const ownScript = computed(() => !!wdo.value?.settings?.own_script)
+const WD_STATUS = {
+  ok: ['отвечает', 'adm-badge--ok'], booting: ['загружается', ''], unresponsive: ['не отвечает', 'adm-badge--err'],
+  down: ['выключен', 'adm-badge--err'], maintenance: ['обслуживание', 'adm-badge--warn'],
+  restoring: ['откат из бэкапа', 'adm-badge--warn'], restarted: ['перезапущен', 'adm-badge--warn'],
+  off: ['не следит', ''], not_configured: ['не настроен', 'adm-badge--warn'],
+}
+const WD_EVENT = {
+  restart: ['перезапуск', 'adm-badge--warn'], hang: ['завис', 'adm-badge--err'], limit: ['лимит перезапусков', 'adm-badge--err'],
+  down: ['выключен', 'adm-badge--err'], recovered: ['поднялся', 'adm-badge--ok'],
+}
+async function loadWatchdogOverview() {
+  try {
+    wdo.value = await getWatchdogOverview(token())
+    if (!wdForm.value || !wdDirty.value) wdForm.value = { ...wdo.value.settings }
+  } catch {
+    wdo.value = null
+  }
+}
+const wdDirty = computed(() => wdo.value && wdForm.value && JSON.stringify(wdForm.value) !== JSON.stringify(wdo.value.settings))
+async function saveWd() {
+  wdSaving.value = true
+  try {
+    const res = await saveWatchdogSettings(token(), {
+      ...wdForm.value,
+      hang_minutes: Number(wdForm.value.hang_minutes),
+      startup_grace_minutes: Number(wdForm.value.startup_grace_minutes),
+      max_restarts_per_hour: Number(wdForm.value.max_restarts_per_hour),
+    })
+    wdo.value.settings = { ...res.settings }
+    wdForm.value = { ...res.settings }
+    toastSuccess('Сохранено — вотчдог подхватит в течение минуты')
+  } catch (e) {
+    toastError(e?.message || 'Не удалось сохранить')
+  } finally {
+    wdSaving.value = false
   }
 }
 
@@ -851,9 +897,17 @@ onBeforeUnmount(() => {
                 {{ watchdog.effective ? 'работает' : 'не работает' }}
               </span>
             </div>
-            <p class="wd-sub">
+            <p v-if="ownScript || !wdo" class="wd-sub">
               Раз в минуту проверяет тик, диск, игровой порт и TPS. Зависшее выключение
               устраняет сам; зависание на ходу только фиксирует — такие обычно проходят.
+            </p>
+            <p v-else class="wd-sub">
+              Раз в минуту спрашивает сервер по RCON. Молчит дольше
+              {{ wdo.settings.hang_minutes }} мин — снимает дамп потоков (на чём завис) и
+              {{ wdo.settings.action === 'restart' ? 'перезапускает сервер' : 'сообщает, не трогая сервер' }}.
+              <template v-if="wdo.state?.status">
+                Сейчас: <span class="adm-badge" :class="(WD_STATUS[wdo.state.status] || [])[1]">{{ (WD_STATUS[wdo.state.status] || [wdo.state.status])[0] }}</span>
+              </template>
             </p>
           </div>
           <button v-if="canPower" class="adm-btn" :class="watchdog.enabled ? 'adm-btn--danger' : 'adm-btn--ok'"
@@ -862,8 +916,8 @@ onBeforeUnmount(() => {
           </button>
         </div>
 
-        <!-- ИИ-автовосстановление -->
-        <div class="wd-item">
+        <!-- ИИ-автовосстановление — только у сервера со своими скриптами (основной). -->
+        <div v-if="ownScript || !wdo" class="wd-item">
           <div class="wd-item__text">
             <div class="wd-item__title">
               ИИ-автовосстановление
@@ -905,6 +959,46 @@ onBeforeUnmount(() => {
         <div v-if="watchdog.updated_at" class="wd-meta">
           изменено: {{ fmtDate(watchdog.updated_at) }}<span v-if="watchdog.updated_by"> · {{ watchdog.updated_by }}</span>
         </div>
+
+        <!-- Пороги и журнал вотчдога (для серверов без своего скрипта) -->
+        <template v-if="wdo && wdForm">
+          <div v-for="p in (ownScript ? [] : wdo.problems)" :key="p" class="wd-row wd-row--warn">{{ p }}</div>
+          <div v-if="canPower && !ownScript" class="wd-settings">
+            <label class="wd-field"><span>молчит дольше, мин</span>
+              <input v-model.number="wdForm.hang_minutes" type="number" min="1" max="60" class="adm-input" /></label>
+            <label class="wd-field"><span>на загрузку, мин</span>
+              <input v-model.number="wdForm.startup_grace_minutes" type="number" min="1" max="60" class="adm-input" /></label>
+            <label class="wd-field"><span>при зависании</span>
+              <select v-model="wdForm.action" class="adm-input">
+                <option value="restart">перезапускать</option>
+                <option value="notify">только сообщать</option>
+              </select></label>
+            <label class="wd-field"><span>перезапусков в час, макс.</span>
+              <input v-model.number="wdForm.max_restarts_per_hour" type="number" min="1" max="20" class="adm-input" /></label>
+          </div>
+          <label v-if="canPower" class="wd-own">
+            <input v-model="wdForm.own_script" type="checkbox" />
+            <span>За сервером следит свой скрипт — этот вотчдог его не трогает</span>
+          </label>
+          <div v-if="canPower && wdDirty" class="wd-row">
+            <button class="adm-btn adm-btn--acc adm-btn--sm" :disabled="wdSaving" @click="saveWd">Сохранить пороги</button>
+          </div>
+
+          <div v-if="!ownScript" class="wd-events">
+            <div class="wd-item__title">Журнал вотчдога</div>
+            <div v-if="!wdo.events.length" class="wd-meta">Событий пока нет — сервер ни разу не зависал и не падал при нём.</div>
+            <div v-for="e in wdo.events.slice(0, 10)" :key="e.id" class="wd-event">
+              <div class="wd-event__head" @click="wdOpen[e.id] = !wdOpen[e.id]">
+                <span class="adm-badge" :class="(WD_EVENT[e.kind] || [])[1]">{{ (WD_EVENT[e.kind] || [e.kind])[0] }}</span>
+                <span class="wd-event__line">{{ e.detail.split('\n')[0] }}</span>
+                <span class="wd-meta">{{ fmtDate(e.at) }}</span>
+              </div>
+              <pre v-if="wdOpen[e.id]" class="wd-event__detail">{{ e.detail }}<template v-if="e.dump_path">
+
+Дамп потоков: {{ e.dump_path }}</template></pre>
+            </div>
+          </div>
+        </template>
       </template>
     </div>
 
@@ -1153,6 +1247,14 @@ onBeforeUnmount(() => {
 .ops-chat__line.is-system .ops-chat__text { color: var(--adm-dim); font-style: italic; }
 
 .wd-card { display: flex; flex-direction: column; gap: 10px; }
+.wd-settings { display: grid; grid-template-columns: repeat(auto-fit, minmax(10rem, 1fr)); gap: 8px; }
+.wd-field { display: flex; flex-direction: column; gap: 4px; font-size: 12px; color: var(--adm-dim); }
+.wd-own { display: flex; align-items: center; gap: 8px; font-size: 12.5px; color: var(--adm-dim); cursor: pointer; }
+.wd-events { display: flex; flex-direction: column; gap: 6px; border-top: 1px solid var(--adm-line); padding-top: 10px; }
+.wd-event__head { display: flex; align-items: center; gap: 8px; cursor: pointer; min-width: 0; }
+.wd-event__line { flex: 1; min-width: 0; font-size: 12.5px; color: var(--adm-text); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.wd-event__detail { margin: 6px 0 0; padding: 8px 10px; font-size: 11.5px; line-height: 1.45; white-space: pre-wrap; word-break: break-word;
+  background: rgba(148, 163, 184, 0.06); border-radius: 8px; color: var(--adm-dim); max-height: 18rem; overflow: auto; }
 .wd-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; }
 .wd-sub { margin: 4px 0 0; max-width: 62ch; font-size: 12.5px; line-height: 1.5; color: var(--adm-dim); }
 .wd-row { display: flex; align-items: center; gap: 10px; font-size: 13px; }
