@@ -117,6 +117,8 @@ const scopeSlugs = computed(() => {
   return editing.value === 'new' ? (me.value?.admin_servers || []) : (editingRow.value?.personal_scope || [])
 })
 const limited = computed(() => scopeSlugs.value !== null)
+// Servers the person runs as admin: every per-server key there comes from that already.
+const viaAdmin = computed(() => new Set(editingRow.value?.admin_servers || []))
 const editorServers = computed(() => limited.value ? servers.value.filter((x) => scopeSlugs.value.includes(x.slug)) : servers.value)
 const editorCatalog = computed(() => limited.value
   ? catalog.value.map((g) => ({ ...g, permissions: g.permissions.filter((p) => p.scope === 'server') })).filter((g) => g.permissions.length)
@@ -159,6 +161,7 @@ function toggleOn(slug, key) {
 function serverPayload() {
   const out = {}
   for (const [slug, set] of Object.entries(form.value.byServer)) {
+    if (viaAdmin.value.has(slug)) continue
     const keys = [...set].filter((k) => !form.value.permissions.has(k))
     if (keys.length) out[slug] = keys
   }
@@ -394,9 +397,11 @@ onMounted(load)
                 :key="srv.slug"
                 type="button"
                 class="md-server"
-                :class="{ 'md-server--on': hasOn(srv.slug, p.key) }"
+                :class="{ 'md-server--on': hasOn(srv.slug, p.key), 'md-server--admin': viaAdmin.has(srv.slug) }"
+                :disabled="viaAdmin.has(srv.slug)"
+                :title="viaAdmin.has(srv.slug) ? 'Есть через админство этого сервера' : ''"
                 @click="toggleOn(srv.slug, p.key)"
-              >{{ srv.name }}</button>
+              >{{ srv.name }}<template v-if="viaAdmin.has(srv.slug)"> · админ</template></button>
             </div>
           </div>
         </section>
@@ -485,6 +490,7 @@ onMounted(load)
   border: 1px solid var(--adm-line); background: transparent; color: var(--adm-dim);
 }
 .md-server:hover { border-color: rgba(var(--adm-acc-rgb), 0.5); }
+.md-server--admin, .md-server--admin:hover { cursor: default; color: var(--adm-info); border-color: rgba(56, 189, 248, 0.35); background: rgba(56, 189, 248, 0.08); }
 .md-server--on { background: rgba(var(--adm-acc-rgb), 0.18); border-color: rgba(var(--adm-acc-rgb), 0.6); color: var(--adm-text); }
 .md-head-actions { display: flex; gap: 0.5rem; flex-wrap: wrap; }
 .md-admin-form { display: flex; flex-direction: column; gap: 0.75rem; margin-bottom: 1rem; }
