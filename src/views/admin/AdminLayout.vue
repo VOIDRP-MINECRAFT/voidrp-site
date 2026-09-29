@@ -1,7 +1,7 @@
 <script setup>
 import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { useRoute, RouterLink } from 'vue-router'
-import { authState, hasPermission, logoutCurrentSession, useAuthStore } from '../../stores/authStore'
+import { authState, canManageStaff, hasPermission, logoutCurrentSession, useAuthStore } from '../../stores/authStore'
 import { serverState, activeServer, fetchServers, setActiveServer } from '../../stores/serverStore'
 import { useAdminNotifications } from '../../composables/useAdminNotifications'
 import ConfirmDialog from '../../components/admin/ConfirmDialog.vue'
@@ -101,6 +101,7 @@ const srvPlayers = computed(() => activeServer.value?.status?.players_online ?? 
 
 // ── Навигация: группы кодируют скоуп данных ─────────────────────
 const icons = {
+  roles: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"/><circle cx="7" cy="7" r="1.5"/></svg>',
   dashboard: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>',
   metrika: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>',
   files: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg>',
@@ -141,6 +142,7 @@ function canSee(item) {
   if (item.feature && activeServer.value?.features?.[item.feature] !== true) return false
   if (item.serverFeature && activeServer.value?.features?.[item.serverFeature] === false) return false
   if (item.adminOnly) return isAdmin.value
+  if (item.staffManager) return canManageStaff()
   if (Array.isArray(item.anyPerm)) return item.anyPerm.some((p) => hasPermission(p))
   if (!item.perm) return true
   return hasPermission(item.perm)
@@ -184,7 +186,8 @@ const navGroups = computed(() => {
         { to: '/admin/cosmetics', label: 'Косметика', icon: icons.players, perm: 'figura.cosmetics.manage' },
         { to: '/admin/server', label: 'Серверы', icon: icons.servers, perm: 'servers.manage' },
         { to: '/admin/launcher', label: 'Лаунчер', icon: icons.launcher, perm: 'launcher.view' },
-        { to: '/admin/moderators', label: 'Модерация', icon: icons.players, adminOnly: true },
+        { to: '/admin/moderators', label: 'Сотрудники', icon: icons.players, staffManager: true },
+        { to: '/admin/roles', label: 'Роли', icon: icons.roles, staffManager: true },
         { to: '/admin/audit', label: 'Журнал действий', icon: icons.crashes, perm: 'audit.view' },
       ],
     },

@@ -107,6 +107,16 @@ export function hasPermission(key, slug) {
   return Array.isArray(own) && own.includes(key)
 }
 
+// Who may open «Сотрудники» and «Роли»: platform admins, admins of servers, and people
+// allowed to manage or hand out roles. The API decides the details of each change.
+export function canManageStaff() {
+  const u = authState.user
+  if (!u) return false
+  if (u.is_admin) return true
+  if (Array.isArray(u.administered_servers) && u.administered_servers.length) return true
+  return Array.isArray(u.permissions) && (u.permissions.includes('roles.manage') || u.permissions.includes('roles.assign'))
+}
+
 export async function refreshCurrentSessionSilently() {
   if (!authState.refreshToken) {
     return false

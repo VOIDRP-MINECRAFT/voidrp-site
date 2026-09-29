@@ -34,14 +34,54 @@ export function revokeModerator(token, userId) {
   return apiRequest(`/admin/moderators/${userId}`, opts(token, { method: 'DELETE' }))
 }
 
-// Full admins — only the owner may appoint or remove them (the backend enforces it).
-export function appointAdmin(token, username) {
+// Admins: servers = null → of the whole platform (the owner only); [slugs] → of those
+// servers (the owner and platform admins). The backend enforces who may do what.
+export function appointAdmin(token, username, servers = null) {
   return apiRequest('/admin/moderators/admins', opts(token, {
     method: 'POST',
-    body: JSON.stringify({ username }),
+    body: JSON.stringify({ username, servers }),
+  }))
+}
+
+export function setAdminServers(token, userId, servers) {
+  return apiRequest(`/admin/moderators/admins/${userId}`, opts(token, {
+    method: 'PUT',
+    body: JSON.stringify({ servers }),
   }))
 }
 
 export function removeAdmin(token, userId) {
   return apiRequest(`/admin/moderators/admins/${userId}`, opts(token, { method: 'DELETE' }))
+}
+
+// ── Roles ────────────────────────────────────────────────────────────────────
+// A role: { name, color, servers: null | [slugs], permissions: [keys] }.
+
+export function listRoles(token) {
+  return apiRequest('/admin/roles', opts(token))
+}
+
+export function createRole(token, role) {
+  return apiRequest('/admin/roles', opts(token, { method: 'POST', body: JSON.stringify(role) }))
+}
+
+export function updateRole(token, roleId, role) {
+  return apiRequest(`/admin/roles/${roleId}`, opts(token, { method: 'PATCH', body: JSON.stringify(role) }))
+}
+
+export function deleteRole(token, roleId) {
+  return apiRequest(`/admin/roles/${roleId}`, opts(token, { method: 'DELETE' }))
+}
+
+// ids: every role, most senior first.
+export function reorderRoles(token, ids) {
+  return apiRequest('/admin/roles/order', opts(token, { method: 'PUT', body: JSON.stringify({ ids }) }))
+}
+
+export function addRoleMember(token, roleId, username) {
+  return apiRequest(`/admin/roles/${roleId}/members`, opts(token, { method: 'POST', body: JSON.stringify({ username }) }))
+}
+
+export function removeRoleMember(token, roleId, userId) {
+  return apiRequest(`/admin/roles/${roleId}/members/${userId}`, opts(token, { method: 'DELETE' }))
 }

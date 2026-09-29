@@ -1,5 +1,6 @@
 <script setup>
 import { computed, onMounted, ref } from 'vue'
+import { RouterLink } from 'vue-router'
 import { authState } from '../../stores/authStore'
 import { serverState, fetchServers } from '../../stores/serverStore'
 import { confirmDialog } from '../../composables/useConfirm'
@@ -11,37 +12,62 @@ import {
   updateModerator,
   revokeModerator,
   appointAdmin,
+  setAdminServers,
   removeAdmin,
 } from '../../services/adminModeratorsApi'
 
 const token = () => authState.accessToken
-// Only the owner appoints and removes full admins; the backend refuses anyone else.
-const isOwner = computed(() => !!authState.user?.is_owner)
+// Who the viewer is, as the API sees it (from the staff list): owner, platform admin,
+// admin of some servers, or someone who may only hand out roles.
+const me = ref(null)
+const isOwner = computed(() => !!me.value?.owner)
+const isPlatform = computed(() => !!me.value?.platform_admin)
+const canPersonal = computed(() => isPlatform.value || (me.value?.admin_servers || []).length > 0)
 const ROLE = {
   owner: { label: 'Владелец', cls: 'adm-badge--acc' },
-  admin: { label: 'Админ', cls: 'adm-badge--warn' },
-  moderator: { label: 'Модератор', cls: '' },
+  admin: { label: 'Админ платформы', cls: 'adm-badge--warn' },
+  server_admin: { label: 'Админ сервера', cls: 'adm-badge--info' },
+  moderator: { label: 'Сотрудник', cls: '' },
 }
 const fmtDate = (v) => (v ? new Date(v).toLocaleDateString('ru-RU', { day: '2-digit', month: '2-digit', year: 'numeric' }) : '')
 
-// «Новый админ»: a nickname and a confirmation.
-const adminForm = ref(null)
+// ── Назначение админа: всей платформы (только владелец) или отдельных серверов ──
+// adminDlg: null | { user: row|null, name, scope: 'platform'|'servers', servers: Set }
+const adminDlg = ref(null)
 const adminBusy = ref(false)
+function openAdmin(row = null) {
+  adminDlg.value = {
+    user: row,
+    name: row?.site_login || '',
+    scope: 'servers',
+    servers: new Set(row?.admin_servers || []),
+  }
+}
+function toggleAdminServer(slug) {
+  const set = new Set(adminDlg.value.servers)
+  if (set.has(slug)) set.delete(slug); else set.add(slug)
+  adminDlg.value = { ...adminDlg.value, servers: set }
+}
 async function submitAdmin() {
-  const name = (adminForm.value || '').trim()
+  const d = adminDlg.value
+  const name = d.name.trim()
   if (!name) { toastError('Укажите ник пользователя'); return }
-  const ok = await confirmDialog({
-    title: `Сделать «${name}» админом?`,
-    message: 'Админ получает все права на всех серверах и может назначать модераторов. Снять его сможешь только ты.',
-    confirmLabel: 'Сделать админом',
-    danger: true,
-  })
+  const slugs = servers.value.map((x) => x.slug).filter((x) => d.servers.has(x))
+  if (d.scope === 'servers' && !slugs.length && !d.user?.admin_servers?.length) { toastError('Отметьте хотя бы один сервер'); return }
+  const names = slugs.map((x) => servers.value.find((v) => v.slug === x)?.name || x).join(', ')
+  const ok = await confirmDialog(d.scope === 'platform'
+    ? { title: `Сделать «${name}» админом платформы?`, message: 'Все права на всех серверах, сайте и в лаунчере, управление сотрудниками и ролями. Снять его сможешь только ты.', confirmLabel: 'Сделать админом', danger: true }
+    : slugs.length
+      ? { title: `Админ серверов: ${names}`, message: `«${name}» получит все права этих серверов и сможет управлять их сотрудниками и ролями. Другие серверы и платформа ему недоступны.`, confirmLabel: 'Назначить', danger: true }
+      : { title: `Снять «${name}» с админов серверов?`, message: 'Права админа серверов пропадут; роли и личные права останутся.', confirmLabel: 'Снять', danger: true })
   if (!ok) return
   adminBusy.value = true
   try {
-    await appointAdmin(token(), name)
-    toastSuccess(`${name} теперь админ`)
-    adminForm.value = null
+    if (d.scope === 'platform') await appointAdmin(token(), name, null)
+    else if (d.user?.admin_servers?.length || (d.user && d.user.role !== 'moderator')) await setAdminServers(token(), d.user.id, slugs)
+    else await appointAdmin(token(), name, slugs)
+    toastSuccess(d.scope === 'platform' ? `${name} теперь админ платформы` : (slugs.length ? `${name} — админ: ${names}` : `${name} больше не админ серверов`))
+    adminDlg.value = null
     await load()
   } catch (e) {
     toastError(e?.message || 'Не удалось назначить')
@@ -50,27 +76,13 @@ async function submitAdmin() {
   }
 }
 
-async function promote(m) {
-  const ok = await confirmDialog({
-    title: `Сделать «${m.site_login}» админом?`,
-    message: 'Вместо отмеченных прав модератора он получит все права на всех серверах и сможет назначать модераторов.',
-    confirmLabel: 'Сделать админом',
-    danger: true,
-  })
-  if (!ok) return
-  try {
-    await appointAdmin(token(), m.site_login)
-    toastSuccess(`${m.site_login} теперь админ`)
-    await load()
-  } catch (e) {
-    toastError(e?.message || 'Не удалось назначить')
-  }
-}
-
 async function demote(m) {
+  const platform = m.role === 'admin'
   const ok = await confirmDialog({
-    title: `Снять админа «${m.site_login}»?`,
-    message: 'Он сразу потеряет доступ к админ-панели. Если нужно оставить ему часть разделов — после снятия назначь его модератором.',
+    title: platform ? `Снять админа платформы «${m.site_login}»?` : `Снять «${m.site_login}» с админов серверов?`,
+    message: platform
+      ? 'Он сразу потеряет доступ к админ-панели. Если нужно оставить часть разделов — выдай ему роль.'
+      : 'Права админа серверов пропадут; роли и личные права останутся.',
     confirmLabel: 'Снять',
     danger: true,
   })
@@ -97,6 +109,18 @@ const editing = ref(null)
 const form = ref({ username: '', permissions: new Set(), byServer: {} })
 const servers = computed(() =>
   [...serverState.list].sort((a, b) => (a.sort_order ?? 0) - (b.sort_order ?? 0)))
+// Personal grants the viewer may touch: all of them (platform admin), or only the
+// per-server ones on the servers they run (admin of servers).
+const editingRow = computed(() => moderators.value.find((x) => x.id === editing.value) || null)
+const scopeSlugs = computed(() => {
+  if (isPlatform.value) return null
+  return editing.value === 'new' ? (me.value?.admin_servers || []) : (editingRow.value?.personal_scope || [])
+})
+const limited = computed(() => scopeSlugs.value !== null)
+const editorServers = computed(() => limited.value ? servers.value.filter((x) => scopeSlugs.value.includes(x.slug)) : servers.value)
+const editorCatalog = computed(() => limited.value
+  ? catalog.value.map((g) => ({ ...g, permissions: g.permissions.filter((p) => p.scope === 'server') })).filter((g) => g.permissions.length)
+  : catalog.value)
 
 const editingName = computed(() => {
   if (editing.value === 'new') return 'Новый модератор'
@@ -154,6 +178,7 @@ async function load() {
     catalog.value = cat.catalog || []
     preset.value = cat.preset || []
     moderators.value = mods.items || []
+    me.value = mods.me || null
   } catch (e) {
     toastError(e?.message || 'Не удалось загрузить')
   } finally {
@@ -163,7 +188,7 @@ async function load() {
 
 function startNew() {
   editing.value = 'new'
-  form.value = { username: '', permissions: new Set(preset.value), byServer: {} }
+  form.value = { username: '', permissions: new Set(limited.value ? [] : preset.value), byServer: {} }
 }
 
 function startEdit(m) {
@@ -211,7 +236,7 @@ async function save() {
     if (editing.value === 'new') {
       if (!form.value.username.trim()) { toastError('Укажите ник пользователя'); saving.value = false; return }
       await assignModerator(token(), form.value.username.trim(), perms, serverPayload())
-      toastSuccess('Модератор назначен')
+      toastSuccess('Сотрудник добавлен')
     } else {
       await updateModerator(token(), editing.value, perms, serverPayload())
       toastSuccess('Права обновлены')
@@ -227,15 +252,17 @@ async function save() {
 
 async function revoke(m) {
   const ok = await confirmDialog({
-    title: 'Снять модератора?',
-    message: `«${m.site_login}» потеряет доступ к админ-панели.`,
+    title: isPlatform.value ? 'Убрать из сотрудников?' : 'Снять с твоих серверов?',
+    message: isPlatform.value
+      ? `«${m.site_login}» потеряет доступ к админ-панели: личные права, роли и админство серверов.`
+      : `У «${m.site_login}» пропадут личные права и роли на твоих серверах. Остальное останется.`,
     confirmLabel: 'Снять',
     danger: true,
   })
   if (!ok) return
   try {
     await revokeModerator(token(), m.id)
-    toastSuccess('Модератор снят')
+    toastSuccess(isPlatform.value ? 'Убран из сотрудников' : 'Права на твоих серверах сняты')
     await load()
   } catch (e) {
     toastError(e?.message || 'Не удалось снять')
@@ -249,26 +276,64 @@ onMounted(load)
   <div class="adm-page">
     <div class="adm-page__head">
       <div>
-        <h1 class="adm-title">Модерация</h1>
-        <p class="adm-sub">Сотрудники панели: админы видят всё, модераторам доступно только отмеченное</p>
+        <h1 class="adm-title">Сотрудники</h1>
+        <p class="adm-sub">Кто работает в панели и что может: админы, роли и личные права — по серверам</p>
       </div>
       <div class="md-head-actions">
-        <button v-if="isOwner" class="adm-btn" :disabled="adminForm !== null" @click="adminForm = ''">Новый админ</button>
-        <button class="adm-btn adm-btn--acc" :disabled="editing === 'new'" @click="startNew">
-          Новый модератор
+        <RouterLink to="/admin/roles" class="adm-btn">Роли</RouterLink>
+        <button v-if="isPlatform" class="adm-btn" :disabled="adminDlg !== null" @click="openAdmin()">Назначить админа</button>
+        <button v-if="canPersonal" class="adm-btn adm-btn--acc" :disabled="editing === 'new'" @click="startNew">
+          Новый сотрудник
         </button>
       </div>
     </div>
 
-    <!-- Новый админ (только владелец) -->
-    <div v-if="isOwner && adminForm !== null" class="adm-card adm-card--pad md-admin-form">
-      <label class="adm-field md-username">
-        <span>Ник пользователя — станет админом: все права на всех серверах</span>
-        <input v-model="adminForm" class="adm-input" placeholder="ник на сайте" autocomplete="off" @keyup.enter="submitAdmin" />
-      </label>
-      <div class="md-editor__actions">
-        <button class="adm-btn" :disabled="adminBusy" @click="adminForm = null">Отмена</button>
-        <button class="adm-btn adm-btn--danger" :disabled="adminBusy" @click="submitAdmin">Сделать админом</button>
+    <div v-if="me && !isPlatform" class="md-scopebar">
+      <template v-if="me.admin_servers.length">
+        Ты админ серверов: <b>{{ me.admin_servers.map((x) => servers.find((v) => v.slug === x)?.name || x).join(', ') }}</b>.
+        Можешь выдавать права и роли только там.
+      </template>
+      <template v-else>Ты можешь выдавать роли ниже своей — на странице «Роли».</template>
+    </div>
+
+    <!-- Назначение админа -->
+    <div v-if="adminDlg" class="adm-modal-backdrop" @click.self="adminDlg = null">
+      <div class="adm-modal md-admin">
+        <div class="md-admin__title">{{ adminDlg.user ? `Админство: ${adminDlg.user.site_login}` : 'Назначить админа' }}</div>
+        <label v-if="!adminDlg.user" class="adm-field">
+          <span>Ник пользователя</span>
+          <input v-model="adminDlg.name" class="adm-input" placeholder="ник на сайте" autocomplete="off" />
+        </label>
+        <div class="md-admin__opts">
+          <button type="button" class="md-admin__opt" :class="{ 'md-admin__opt--on': adminDlg.scope === 'servers' }" @click="adminDlg.scope = 'servers'">
+            <b>Админ серверов</b>
+            <small>Все права выбранных серверов, их сотрудники и роли</small>
+          </button>
+          <button type="button" class="md-admin__opt" :class="{ 'md-admin__opt--on': adminDlg.scope === 'platform' }" :disabled="!isOwner" :title="isOwner ? '' : 'Админа платформы назначает только владелец'" @click="adminDlg.scope = 'platform'">
+            <b>Админ платформы</b>
+            <small>{{ isOwner ? 'Всё: все серверы, сайт, лаунчер, аккаунты' : 'Назначает только владелец' }}</small>
+          </button>
+        </div>
+        <div v-if="adminDlg.scope === 'servers'" class="md-admin__servers">
+          <button
+            v-for="srv in servers" :key="srv.slug" type="button" class="md-srvcard"
+            :class="{ 'md-srvcard--on': adminDlg.servers.has(srv.slug) }"
+            @click="toggleAdminServer(srv.slug)"
+          >
+            <img v-if="srv.icon_url" :src="srv.icon_url" alt="" class="md-srvcard__icon" />
+            <span v-else class="md-srvcard__icon md-srvcard__icon--none">{{ srv.name.charAt(0) }}</span>
+            <span class="md-srvcard__name">{{ srv.name }}</span>
+            <span class="md-srvcard__check" aria-hidden="true">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg>
+            </span>
+          </button>
+        </div>
+        <div class="md-editor__actions">
+          <button class="adm-btn" :disabled="adminBusy" @click="adminDlg = null">Отмена</button>
+          <button class="adm-btn adm-btn--danger" :disabled="adminBusy" @click="submitAdmin">
+            {{ adminDlg.scope === 'platform' ? 'Сделать админом платформы' : (adminDlg.servers.size ? 'Сохранить' : 'Снять с админов серверов') }}
+          </button>
+        </div>
       </div>
     </div>
 
@@ -285,7 +350,7 @@ onMounted(load)
           </div>
         </div>
         <div class="md-editor__presets">
-          <button type="button" class="adm-btn adm-btn--sm" @click="applyPreset">Стандартный набор</button>
+          <button v-if="!limited" type="button" class="adm-btn adm-btn--sm" @click="applyPreset">Стандартный набор</button>
           <button type="button" class="adm-btn adm-btn--sm" @click="clearAll">Снять все</button>
         </div>
       </div>
@@ -295,21 +360,25 @@ onMounted(load)
         <input v-model="form.username" class="adm-input" placeholder="например, mironoouv" autocomplete="off" />
       </label>
 
-      <p class="md-scope-hint">
+      <p v-if="limited" class="md-scope-hint">
+        Ты правишь только свои серверы: отметь серверы под каждым правом. Права на других серверах
+        и права платформы у этого человека не меняются.
+      </p>
+      <p v-else class="md-scope-hint">
         Галочка — право на всех серверах. У прав «по серверам» без галочки можно отметить
         отдельные серверы кнопками под ними: модератор получит это право только там.
         Права с пометкой «платформа» касаются сайта, лаунчера и аккаунтов целиком и на сервер не делятся.
       </p>
 
       <div class="md-groups">
-        <section v-for="g in catalog" :key="g.group" class="md-group">
-          <button type="button" class="md-group__head" @click="toggleGroup(g)">
+        <section v-for="g in editorCatalog" :key="g.group" class="md-group">
+          <button type="button" class="md-group__head" :disabled="limited" @click="toggleGroup(g)">
             <span class="adm-label md-group__title">{{ g.group }}</span>
             <span class="md-group__count adm-num">{{ groupSelected(g) }}/{{ g.permissions.length }}</span>
           </button>
           <div v-for="p in g.permissions" :key="p.key" class="md-perm-wrap">
             <label class="md-perm" :class="{ 'md-perm--on': has(p.key) }">
-              <input type="checkbox" :checked="has(p.key)" @change="toggle(p.key)" />
+              <input v-if="!limited" type="checkbox" :checked="has(p.key)" @change="toggle(p.key)" />
               <span class="md-perm__label">
                 {{ p.label }}
                 <span v-if="p.scope === 'server'" class="md-perm__scope">{{ has(p.key) ? 'на всех серверах' : 'по серверам' }}</span>
@@ -317,9 +386,9 @@ onMounted(load)
               </span>
               <span v-if="p.sensitive" class="md-perm__tag" title="Чувствительное право">•</span>
             </label>
-            <div v-if="p.scope === 'server' && !has(p.key) && servers.length" class="md-servers">
+            <div v-if="p.scope === 'server' && !has(p.key) && editorServers.length" class="md-servers" :class="{ 'md-servers--flat': limited }">
               <button
-                v-for="srv in servers"
+                v-for="srv in editorServers"
                 :key="srv.slug"
                 type="button"
                 class="md-server"
@@ -353,42 +422,47 @@ onMounted(load)
       <div class="adm-table-scroll">
         <table class="adm-table">
           <thead>
-            <tr><th>Сотрудник</th><th>Роль</th><th>Права</th><th /></tr>
+            <tr><th>Сотрудник</th><th>Должность и роли</th><th>Личные права</th><th /></tr>
           </thead>
           <tbody>
             <tr v-for="m in moderators" :key="m.id">
               <td>
                 <div class="md-row__who">
-                  <span class="adm-avatar md-row__ava">{{ m.site_login.charAt(0).toUpperCase() }}</span>
+                  <span class="adm-avatar md-row__ava" :style="m.roles[0] ? { background: m.roles[0].color + '26', color: m.roles[0].color } : null">{{ m.site_login.charAt(0).toUpperCase() }}</span>
                   <div class="md-row__ident">
-                    <div class="md-row__login">{{ m.site_login }}</div>
+                    <div class="md-row__login" :style="m.roles[0] ? { color: m.roles[0].color } : null">{{ m.site_login }}</div>
                     <div class="md-row__email adm-mono">{{ m.email }}</div>
                   </div>
                 </div>
               </td>
               <td>
-                <span class="adm-badge" :class="ROLE[m.role]?.cls">{{ ROLE[m.role]?.label || m.role }}</span>
+                <div class="md-row__tags">
+                  <span class="adm-badge" :class="ROLE[m.role]?.cls">{{ ROLE[m.role]?.label || m.role }}</span>
+                  <span v-for="slug in m.admin_servers" :key="slug" class="md-srvtag">{{ servers.find((v) => v.slug === slug)?.name || slug }}</span>
+                  <span v-for="r in m.roles" :key="r.id" class="md-rolepill" :style="{ '--rc': r.color }"><i />{{ r.name }}</span>
+                </div>
                 <div v-if="m.staff_since" class="md-row__since">
                   с {{ fmtDate(m.staff_since) }}<template v-if="m.granted_by"> · назначил {{ m.granted_by }}</template>
                 </div>
               </td>
               <td>
-                <span v-if="m.role !== 'moderator'" class="md-row__all">все права</span>
+                <span v-if="m.role === 'owner' || m.role === 'admin'" class="md-row__all">все права</span>
                 <template v-else>
-                  <span class="adm-badge" :class="m.permissions.length ? 'adm-badge--acc' : ''">
-                    <b class="adm-num">{{ m.permissions.length }}</b>&nbsp;из&nbsp;<span class="adm-num">{{ totalCount }}</span>
+                  <span v-if="m.permissions.length || serverSummary(m).length" class="adm-badge" :class="m.permissions.length ? 'adm-badge--acc' : ''">
+                    <b class="adm-num">{{ m.permissions.length }}</b>&nbsp;на всех
                   </span>
+                  <span v-else class="md-row__none">только роли</span>
                   <div v-for="line in serverSummary(m)" :key="line" class="md-row__since">+ {{ line }}</div>
                 </template>
               </td>
               <td>
-                <div v-if="m.role === 'moderator'" class="md-row__actions">
-                  <button class="adm-btn adm-btn--sm" @click="startEdit(m)">Изменить</button>
-                  <button v-if="isOwner" class="adm-btn adm-btn--sm" @click="promote(m)">Сделать админом</button>
-                  <button class="adm-btn adm-btn--sm adm-btn--danger" @click="revoke(m)">Снять</button>
-                </div>
-                <div v-else-if="m.role === 'admin' && isOwner" class="md-row__actions">
-                  <button class="adm-btn adm-btn--sm adm-btn--danger" @click="demote(m)">Снять админа</button>
+                <div v-if="m.editable" class="md-row__actions">
+                  <template v-if="m.role !== 'admin'">
+                    <button v-if="canPersonal" class="adm-btn adm-btn--sm" @click="startEdit(m)">Права</button>
+                    <button v-if="isPlatform" class="adm-btn adm-btn--sm" @click="openAdmin(m)">{{ m.role === 'server_admin' ? 'Админство' : 'Сделать админом' }}</button>
+                    <button v-if="canPersonal" class="adm-btn adm-btn--sm adm-btn--danger" @click="revoke(m)">Снять</button>
+                  </template>
+                  <button v-else-if="isOwner" class="adm-btn adm-btn--sm adm-btn--danger" @click="demote(m)">Снять админа</button>
                 </div>
               </td>
             </tr>
@@ -413,6 +487,37 @@ onMounted(load)
 .md-head-actions { display: flex; gap: 0.5rem; flex-wrap: wrap; }
 .md-admin-form { display: flex; flex-direction: column; gap: 0.75rem; margin-bottom: 1rem; }
 .md-row__since { margin-top: 0.3rem; font-size: 0.72rem; color: var(--adm-faint); }
+.md-row__tags { display: flex; flex-wrap: wrap; gap: 0.3rem; align-items: center; }
+.md-row__none { font-size: 0.78rem; color: var(--adm-dim); }
+.md-srvtag { font-size: 0.68rem; font-weight: 700; padding: 0.1rem 0.45rem; border-radius: 6px; color: var(--adm-info); background: rgba(56, 189, 248, 0.1); }
+.md-rolepill {
+  display: inline-flex; align-items: center; gap: 0.3rem; padding: 0.1rem 0.5rem 0.1rem 0.4rem; border-radius: 999px;
+  font-size: 0.7rem; font-weight: 700; color: var(--adm-text);
+  background: color-mix(in srgb, var(--rc) 15%, transparent); border: 1px solid color-mix(in srgb, var(--rc) 42%, transparent);
+}
+.md-rolepill i { width: 0.45rem; height: 0.45rem; border-radius: 50%; background: var(--rc); }
+.md-scopebar { margin-bottom: 1rem; padding: 0.6rem 0.9rem; border-radius: 10px; font-size: 0.78rem; color: var(--adm-mut); background: var(--adm-acc-soft); border: 1px solid var(--adm-acc-line); }
+.md-scopebar b { color: var(--adm-text); }
+.md-servers--flat { padding-left: 0.45rem; }
+.md-admin { width: min(560px, calc(100vw - 2rem)); display: flex; flex-direction: column; gap: 1rem; padding: 1.3rem; }
+.md-admin__title { font-size: 1rem; font-weight: 800; color: var(--adm-text); }
+.md-admin__opts { display: grid; grid-template-columns: 1fr 1fr; gap: 0.5rem; }
+@media (max-width: 520px) { .md-admin__opts { grid-template-columns: 1fr; } }
+.md-admin__opt { display: flex; flex-direction: column; gap: 0.2rem; text-align: left; padding: 0.75rem 0.85rem; border-radius: 11px; border: 1px solid var(--adm-line-strong); background: transparent; cursor: pointer; }
+.md-admin__opt b { font-size: 0.84rem; color: var(--adm-text); }
+.md-admin__opt small { font-size: 0.7rem; color: var(--adm-dim); line-height: 1.4; }
+.md-admin__opt--on { border-color: var(--adm-acc); background: var(--adm-acc-soft); }
+.md-admin__opt:disabled { opacity: 0.45; cursor: not-allowed; }
+.md-admin__servers { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 0.45rem; }
+.md-srvcard { display: flex; align-items: center; gap: 0.55rem; padding: 0.55rem 0.6rem; border-radius: 10px; border: 1px solid var(--adm-line-strong); background: var(--adm-bg-soft); cursor: pointer; text-align: left; }
+.md-srvcard__icon { width: 1.7rem; height: 1.7rem; border-radius: 7px; object-fit: cover; flex-shrink: 0; }
+.md-srvcard__icon--none { display: flex; align-items: center; justify-content: center; background: var(--adm-acc-soft); color: var(--adm-acc-text); font-weight: 800; font-size: 0.8rem; }
+.md-srvcard__name { flex: 1; min-width: 0; font-size: 0.8rem; font-weight: 700; color: var(--adm-mut); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.md-srvcard__check { width: 1.1rem; height: 1.1rem; border-radius: 6px; border: 1.5px solid var(--adm-line-strong); display: flex; align-items: center; justify-content: center; color: transparent; flex-shrink: 0; }
+.md-srvcard__check svg { width: 0.75rem; height: 0.75rem; }
+.md-srvcard--on { border-color: var(--adm-acc); background: var(--adm-acc-soft); }
+.md-srvcard--on .md-srvcard__name { color: var(--adm-text); }
+.md-srvcard--on .md-srvcard__check { background: var(--adm-acc); border-color: var(--adm-acc); color: #fff; }
 .md-row__all { font-size: 0.82rem; color: var(--adm-dim); }
 /* Цвета — только из токенов admin.css, чтобы страница перекрашивалась
    вместе с панелью при смене активного сервера. */

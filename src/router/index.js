@@ -1,5 +1,5 @@
 import { createRouter, createWebHistory } from 'vue-router'
-import { authState, bootstrapAuth, getIsAuthenticated, hasPermission } from '../stores/authStore'
+import { authState, bootstrapAuth, canManageStaff, getIsAuthenticated, hasPermission } from '../stores/authStore'
 import NProgress from 'nprogress'
 import 'nprogress/nprogress.css'
 
@@ -106,7 +106,8 @@ const routes = [
       { path: 'launcher-crash-rules', name: 'admin-launcher-crash-rules', component: () => import('../views/admin/AdminCrashRulesView.vue'), meta: { title: 'Правила крашей', requiresAuth: true, requiresAdmin: true, hidePublicShell: true, permission: 'crashes.view' } },
       { path: 'launcher-crashes', name: 'admin-launcher-crashes', component: () => import('../views/admin/AdminCrashReportsView.vue'), meta: { title: 'Краши лаунчера', requiresAuth: true, requiresAdmin: true, hidePublicShell: true, permission: 'crashes.view' } },
       { path: 'launcher', name: 'admin-launcher', component: () => import('../views/admin/AdminLauncherView.vue'), meta: { title: 'Лаунчер', requiresAuth: true, requiresAdmin: true, hidePublicShell: true, permission: 'launcher.view' } },
-      { path: 'moderators', name: 'admin-moderators', component: () => import('../views/admin/AdminModeratorsView.vue'), meta: { title: 'Модерация', requiresAuth: true, requiresAdmin: true, hidePublicShell: true, adminOnly: true } },
+      { path: 'moderators', name: 'admin-moderators', component: () => import('../views/admin/AdminModeratorsView.vue'), meta: { title: 'Сотрудники', requiresAuth: true, requiresAdmin: true, hidePublicShell: true, staffManager: true } },
+      { path: 'roles', name: 'admin-roles', component: () => import('../views/admin/AdminRolesView.vue'), meta: { title: 'Роли', requiresAuth: true, requiresAdmin: true, hidePublicShell: true, staffManager: true } },
     ],
   },
   { path: '/:pathMatch(.*)*', name: 'not-found', component: () => import('../views/NotFoundView.vue'), meta: { title: 'Страница не найдена' } },
@@ -135,6 +136,10 @@ router.beforeEach(async (to) => {
     return { path: '/' }
   }
   if (to.meta?.adminOnly && !authState.user?.is_admin) {
+    NProgress.done()
+    return { path: '/admin' }
+  }
+  if (to.meta?.staffManager && !canManageStaff()) {
     NProgress.done()
     return { path: '/admin' }
   }
