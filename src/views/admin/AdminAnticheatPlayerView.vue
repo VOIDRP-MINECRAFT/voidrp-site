@@ -212,7 +212,7 @@ function fmtDate(iso) {
         <div>
           <h1 class="acp-nick">{{ data.player_nick }}</h1>
           <div class="acp-uuid">{{ data.player_uuid }}</div>
-          <div class="acp-status" :class="data.account_active === false ? 'acp-status--off' : 'acp-status--on'">
+          <div class="acp-status" :class="data.account_active === false ? 'acp-status--off' : data.account_active === null ? 'acp-status--none' : 'acp-status--on'">
             <span v-if="data.account_active === null">Аккаунт: не найден на сайте</span>
             <span v-else-if="data.account_active">Аккаунт активен</span>
             <span v-else>Аккаунт заблокирован</span>
@@ -524,6 +524,8 @@ function fmtDate(iso) {
 
 .acp-status--on { background: rgba(34,197,94,0.1); color: #4ade80; }
 .acp-status--off { background: rgba(239,68,68,0.1); color: #f87171; }
+/* No site account for this nickname: neither good nor bad news. */
+.acp-status--none { background: rgba(148,163,184,0.1); color: var(--adm-dim); }
 
 .acp-stats {
   margin-left: auto;
