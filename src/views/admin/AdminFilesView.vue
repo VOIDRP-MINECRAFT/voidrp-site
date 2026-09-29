@@ -1,6 +1,6 @@
 <script setup>
 import { computed, defineAsyncComponent, onBeforeUnmount, onMounted, ref } from 'vue'
-import { onBeforeRouteLeave } from 'vue-router'
+import { onBeforeRouteLeave, useRoute } from 'vue-router'
 import { diffLines } from 'diff'
 import { authState, hasPermission } from '../../stores/authStore'
 import { activeServer } from '../../stores/serverStore'
@@ -251,7 +251,9 @@ function onDrop(e) {
 
 // ── Leaving with unsaved text ────────────────────────────────────────────
 function beforeUnload(e) { if (dirty.value) { e.preventDefault(); e.returnValue = '' } }
-onMounted(() => { openFolder(''); window.addEventListener('beforeunload', beforeUnload) })
+const route = useRoute()
+// ?path= opens a folder straight away (e.g. a plugin's settings from «Моды и плагины»).
+onMounted(() => { openFolder(typeof route.query.path === 'string' ? route.query.path : ''); window.addEventListener('beforeunload', beforeUnload) })
 onBeforeUnmount(() => window.removeEventListener('beforeunload', beforeUnload))
 onBeforeRouteLeave(() => leaveFile())
 </script>

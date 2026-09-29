@@ -1,4 +1,8 @@
 <script setup>
+// Shown inside «Моды и плагины» (embedded: no page header of its own); 'changed' lets
+// the page refresh the shared queue of jar changes.
+const props = defineProps({ embedded: { type: Boolean, default: false } })
+const emit = defineEmits(['changed'])
 import { computed, nextTick, onBeforeUnmount, onMounted, ref } from 'vue'
 import {
   getMods,
@@ -143,6 +147,7 @@ async function applyStaging() {
     staging.value = null
     if (selections.some((s) => s.on_client)) needsRegen.value = true
     await load()
+    emit('changed')
   } catch (e) {
     toastError(e?.message || 'Не удалось применить')
   } finally {
@@ -169,6 +174,7 @@ async function toggleTarget(mod, which) {
     mod.on_server = next.on_server
     if (which === 'on_client') needsRegen.value = true
     toastSuccess(`${mod.filename}: обновлено`)
+    emit('changed')
   } catch (e) {
     toastError(e?.message || 'Не удалось изменить')
   }
@@ -221,6 +227,7 @@ async function del(mod) {
     if (mod.on_client) needsRegen.value = true
     toastSuccess(`Удалено: ${mod.filename}`)
     await load()
+    emit('changed')
   } catch (e) {
     toastError(e?.message || 'Не удалось удалить')
   }
@@ -317,12 +324,13 @@ onBeforeUnmount(stopBuildPolling)
 </script>
 
 <template>
-  <div class="adm-page">
+  <div :class="props.embedded ? 'mods-embedded' : 'adm-page'">
     <div class="adm-page__head">
-      <div>
+      <div v-if="!props.embedded">
         <h1 class="adm-title">Моды · {{ serverName }}</h1>
         <p class="adm-sub">Управление модами клиента и сервера выбранного сервера</p>
       </div>
+      <div v-else class="mods-embedded__sub">Моды клиента (пак игроков) и сервера</div>
       <div class="adm-head-actions">
         <button v-if="canManage" class="adm-btn adm-btn--acc" :disabled="regenRunning" @click="regen">
           {{ regenRunning ? 'Сборка…' : 'Пересобрать манифест' }}
@@ -521,6 +529,8 @@ onBeforeUnmount(stopBuildPolling)
 </template>
 
 <style scoped>
+.mods-embedded { display: flex; flex-direction: column; gap: 1rem; }
+.mods-embedded__sub { font-size: 0.82rem; color: var(--adm-dim); }
 .mods-warn {
   padding: 0.7rem 1rem; border-radius: var(--adm-r-sm); font-size: 0.82rem;
   background: var(--adm-warn-soft, rgba(234, 179, 8, 0.1)); border: 1px solid var(--adm-warn); color: var(--adm-warn);
