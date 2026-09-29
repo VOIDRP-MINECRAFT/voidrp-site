@@ -76,7 +76,7 @@ const routes = [
     component: () => import('../views/admin/AdminLayout.vue'),
     meta: { requiresAuth: true, requiresAdmin: true, hidePublicShell: true },
     children: [
-      { path: '', name: 'admin-dashboard', component: () => import('../views/admin/AdminDashboardView.vue'), meta: { title: 'Панель управления', requiresAuth: true, requiresAdmin: true, hidePublicShell: true } },
+      { path: '', name: 'admin-dashboard', component: () => import('../views/admin/AdminDashboardView.vue'), meta: { title: 'Панель управления', requiresAuth: true, requiresAdmin: true, hidePublicShell: true, serverScoped: true } },
       { path: 'players', name: 'admin-players', component: () => import('../views/admin/AdminPlayersView.vue'), meta: { title: 'Игроки', requiresAuth: true, requiresAdmin: true, hidePublicShell: true, permission: 'players.view' } },
       { path: 'cosmetics', name: 'admin-cosmetics', component: () => import('../views/admin/AdminCosmeticsView.vue'), meta: { title: 'Косметика', requiresAuth: true, requiresAdmin: true, hidePublicShell: true, permission: 'figura.cosmetics.manage' } },
       { path: 'players/:nickname', name: 'admin-player-detail', component: () => import('../views/admin/AdminPlayerDetailView.vue'), meta: { title: 'Игрок', requiresAuth: true, requiresAdmin: true, hidePublicShell: true, permission: 'players.view', serverScoped: true } },
