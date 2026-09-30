@@ -105,6 +105,7 @@ const routes = [
       { path: 'launcher-crashes', name: 'admin-launcher-crashes', component: () => import('../views/admin/AdminCrashReportsView.vue'), meta: { title: 'Краши лаунчера', requiresAuth: true, requiresAdmin: true, hidePublicShell: true, permission: 'crashes.view' } },
       { path: 'launcher', name: 'admin-launcher', component: () => import('../views/admin/AdminLauncherView.vue'), meta: { title: 'Лаунчер', requiresAuth: true, requiresAdmin: true, hidePublicShell: true, permission: 'launcher.view' } },
       { path: 'moderators', name: 'admin-moderators', component: () => import('../views/admin/AdminModeratorsView.vue'), meta: { title: 'Сотрудники', requiresAuth: true, requiresAdmin: true, hidePublicShell: true, staffTab: true } },
+      { path: 'game-perms', name: 'admin-game-perms', component: () => import('../views/admin/AdminGamePermsView.vue'), meta: { title: 'Права в игре', requiresAuth: true, requiresAdmin: true, hidePublicShell: true, permission: 'game.view', serverScoped: true } },
       { path: 'roles', name: 'admin-roles', component: () => import('../views/admin/AdminRolesView.vue'), meta: { title: 'Роли', requiresAuth: true, requiresAdmin: true, hidePublicShell: true, staffManager: true } },
     ],
   },

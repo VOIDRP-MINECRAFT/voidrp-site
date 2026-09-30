@@ -2,6 +2,7 @@
 import { computed, onMounted, ref, watch } from 'vue'
 import { RouterLink } from 'vue-router'
 import NickSuggest from '../../components/admin/NickSuggest.vue'
+import { getGamePerms } from '../../services/gamePermsApi'
 import { authState } from '../../stores/authStore'
 import { serverState, fetchServers } from '../../stores/serverStore'
 import { confirmDialog } from '../../composables/useConfirm'
@@ -85,7 +86,7 @@ const canCreateBadge = computed(() => me.value?.can_manage_badges)
 
 // ── Loading & selection ─────────────────────────────────────────────────────
 function snapshot(role) {
-  return role ? { name: role.name, color: role.color, servers: role.servers ? [...role.servers].sort() : null, permissions: [...role.permissions], owner_role_id: 'owner_role_id' in role ? (role.owner_role_id || null) : (role.owner_role?.id || null) } : null
+  return role ? { name: role.name, color: role.color, servers: role.servers ? [...role.servers].sort() : null, permissions: [...role.permissions], owner_role_id: 'owner_role_id' in role ? (role.owner_role_id || null) : (role.owner_role?.id || null), game_groups: Object.fromEntries(Object.entries(role.game_groups || {}).filter(([, v]) => v?.length).map(([k, v]) => [k, [...v].sort()]).sort()) } : null
 }
 const dirty = computed(() => draft.value && selected.value && JSON.stringify(snapshot({ ...draft.value, permissions: [...draft.value.permissions].sort() })) !== JSON.stringify(snapshot({ ...selected.value, permissions: [...selected.value.permissions].sort() })))
 
@@ -205,6 +206,35 @@ const givenCount = computed(() => draft.value?.permissions.filter((k) => draft.v
 watch(() => draft.value?.servers, (v) => {
   if (v && draft.value && !readOnly.value) draft.value.permissions = draft.value.permissions.filter((k) => catalogByKey.value[k]?.scope === 'server')
 })
+
+// ── В игре: группы LuckPerms, которые даёт роль ──
+const gameData = ref({})   // slug → { available, groups } | { error }
+const gameServers = computed(() => {
+  if (!draft.value) return []
+  const slugs = draft.value.servers ?? servers.value.map((s) => s.slug)
+  return servers.value.filter((s) => slugs.includes(s.slug))
+})
+async function loadGame() {
+  for (const s of gameServers.value) {
+    if (gameData.value[s.slug]) continue
+    try {
+      gameData.value = { ...gameData.value, [s.slug]: await getGamePerms(token(), s.slug, { toast: false }) }
+    } catch {
+      gameData.value = { ...gameData.value, [s.slug]: { error: true } }
+    }
+  }
+}
+watch(tab, (v) => { if (v === 'game') loadGame() })
+const hasGame = (slug, g) => (draft.value?.game_groups?.[slug] || []).includes(g)
+function toggleGame(slug, g) {
+  if (readOnly.value) return
+  const gg = { ...(draft.value.game_groups || {}) }
+  const set = new Set(gg[slug] || [])
+  if (set.has(g)) set.delete(g); else set.add(g)
+  gg[slug] = [...set].sort()
+  if (!gg[slug].length) delete gg[slug]
+  draft.value.game_groups = gg
+}
 
 // ── Members ─────────────────────────────────────────────────────────────────
 async function addMember() {
@@ -368,6 +398,7 @@ onMounted(() => load(false))
           <div class="adm-tabs">
             <button class="adm-tab" :class="{ 'adm-tab--active': tab === 'main' }" @click="tab = 'main'">Основное</button>
             <button v-if="!isBadge" class="adm-tab" :class="{ 'adm-tab--active': tab === 'perms' }" @click="tab = 'perms'">Права</button>
+            <button v-if="!isBadge" class="adm-tab" :class="{ 'adm-tab--active': tab === 'game' }" @click="tab = 'game'">В игре</button>
             <button class="adm-tab" :class="{ 'adm-tab--active': tab === 'members' }" @click="tab = 'members'">Участники · {{ selected.members.length }}</button>
           </div>
         </header>
@@ -480,6 +511,26 @@ onMounted(() => load(false))
           </div>
         </div>
 
+        <!-- В игре -->
+        <div v-else-if="tab === 'game' && !isBadge" class="rl-pane">
+          <p class="rl-note rl-note--pad">Группы LuckPerms, которые участники роли получают на сервере. Выдать можно только группы легче своей; с замком — только владелец.</p>
+          <div v-for="srv in gameServers" :key="srv.slug" class="rl-game">
+            <b class="rl-game__srv">{{ srv.name }}</b>
+            <div v-if="!gameData[srv.slug]" class="rl-note">Загрузка…</div>
+            <div v-else-if="gameData[srv.slug].error" class="rl-note">Нет доступа к правам в игре на этом сервере</div>
+            <div v-else-if="!gameData[srv.slug].available" class="rl-note">На сервере нет плагина VoidRpPerms</div>
+            <div v-else class="rl-servers">
+              <button
+                v-for="g in gameData[srv.slug].groups.filter((x) => x.name !== 'default')" :key="g.name" type="button" class="rl-server"
+                :class="{ 'rl-server--on': hasGame(srv.slug, g.name) }"
+                :disabled="readOnly || !g.may_give"
+                :title="g.may_give ? `вес ${g.weight ?? 0}` : 'Эту группу выдать нельзя'"
+                @click="toggleGame(srv.slug, g.name)"
+              >{{ g.owner_only ? '🔒 ' : '' }}{{ g.name }}<small v-if="g.weight != null"> · {{ g.weight }}</small></button>
+            </div>
+          </div>
+        </div>
+
         <!-- Участники -->
         <div v-else class="rl-pane">
           <form v-if="selected.assignable" class="rl-add" @submit.prevent="addMember">
@@ -540,6 +591,9 @@ onMounted(() => load(false))
 .rl-item__meta { font-size: 0.68rem; color: var(--adm-dim); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .rl-item__count { font-size: 0.7rem; color: var(--adm-mut); background: rgba(148, 163, 184, 0.08); border-radius: 999px; padding: 0.05rem 0.45rem; }
 .rl-item__lock { width: 0.8rem; height: 0.8rem; color: var(--adm-dim); flex-shrink: 0; }
+.rl-game { display: flex; flex-direction: column; gap: 0.4rem; padding: 0.7rem 0; border-top: 1px solid var(--adm-line); }
+.rl-game__srv { font-size: 0.84rem; color: var(--adm-text); }
+.rl-server small { opacity: 0.6; }
 .rl-list__empty { margin: 0 0.55rem 0.3rem; font-size: 0.74rem; color: var(--adm-dim); }
 .rl-list__head--badges { margin-top: 0.8rem; padding-top: 0.75rem; border-top: 1px solid var(--adm-line); }
 .rl-item__tag { width: 0.7rem; text-align: center; font-weight: 800; color: var(--rc); flex-shrink: 0; }
