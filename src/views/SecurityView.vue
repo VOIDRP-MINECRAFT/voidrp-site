@@ -106,19 +106,19 @@ function onSetupDone() {
         </div>
         <ul v-else class="sec-methods">
           <li>
-            <span class="sec-m__ico">📱</span>
+            <span class="sec-m__ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="6" y="2" width="12" height="20" rx="2.5"/><path d="M11 18h2"/></svg></span>
             <span class="sec-m__txt"><b>{{ t('security.mfa.app') }}</b><small>{{ t('security.mfa.appDesc') }}</small></span>
             <button v-if="!status.totp" type="button" class="sec-btn" @click="setup = 'totp'">{{ t('security.mfa.enable') }}</button>
             <button v-else type="button" class="sec-btn sec-btn--ghost" @click="turnOff('totp')">{{ t('security.mfa.disable') }}</button>
           </li>
           <li>
-            <span class="sec-m__ico">✈️</span>
+            <span class="sec-m__ico sec-m__ico--tg"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M21.5 4.3 2.9 11.5c-1 .4-1 1.8.1 2.1l4.6 1.4 1.7 5.4c.2.7 1.1.9 1.6.4l2.6-2.4 4.7 3.4c.6.4 1.4.1 1.6-.6L22.9 5.6c.2-.9-.6-1.6-1.4-1.3Z"/></svg></span>
             <span class="sec-m__txt"><b>{{ t('security.mfa.telegram') }}</b><small>{{ status.telegram_linked ? t('security.mfa.telegramDesc') : t('security.mfa.telegramNotLinked') }}</small></span>
             <button v-if="!status.telegram" type="button" class="sec-btn" :disabled="!status.telegram_linked" @click="setup = 'telegram'">{{ t('security.mfa.enable') }}</button>
             <button v-else type="button" class="sec-btn sec-btn--ghost" @click="turnOff('telegram')">{{ t('security.mfa.disable') }}</button>
           </li>
           <li v-if="status.enabled">
-            <span class="sec-m__ico">🔑</span>
+            <span class="sec-m__ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="8" cy="15" r="4"/><path d="m10.8 12.2 8.7-8.7M17 6l2.5 2.5M14.5 8.5 16 10"/></svg></span>
             <span class="sec-m__txt"><b>{{ t('security.mfa.backup') }}</b><small>{{ t('security.mfa.backupDesc') }} · {{ t('security.mfa.backupLeft', { n: status.backup_left }) }}</small></span>
             <button type="button" class="sec-btn sec-btn--ghost" @click="regenerate">{{ t('security.mfa.regenerate') }}</button>
           </li>
@@ -181,7 +181,9 @@ function onSetupDone() {
 .sec-warn { margin: 0 0 0.9rem; padding: 0.6rem 0.8rem; border-radius: 10px; font-size: 0.8rem; color: #fcd34d; background: rgba(251, 191, 36, 0.08); border: 1px solid rgba(251, 191, 36, 0.25); }
 .sec-methods { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; }
 .sec-methods li { display: flex; align-items: center; gap: 0.8rem; padding: 0.75rem 0; border-top: 1px solid rgba(148, 163, 184, 0.08); }
-.sec-m__ico { font-size: 1.2rem; width: 1.6rem; text-align: center; }
+.sec-m__ico { width: 2.2rem; height: 2.2rem; border-radius: 10px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; background: rgba(124, 58, 237, 0.14); color: #a78bfa; }
+.sec-m__ico svg { width: 1.1rem; height: 1.1rem; }
+.sec-m__ico--tg { background: rgba(42, 171, 238, 0.14); color: #2aabee; }
 .sec-m__txt { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 0.1rem; }
 .sec-m__txt b { font-size: 0.9rem; }
 .sec-m__txt small { font-size: 0.74rem; color: #7d879c; line-height: 1.4; }
