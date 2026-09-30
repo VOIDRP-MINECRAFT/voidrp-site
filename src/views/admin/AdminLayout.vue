@@ -161,8 +161,9 @@ const isAdmin = computed(() => !!authState.user?.is_admin)
 // item.serverFeature → opt-out per-server: hidden only when the active server has
 // features[serverFeature] === false, so a section can be switched off for one server
 // and brought back from the server card without touching other servers.
-// Sections that need the server's files, process or our anticheat on THIS machine: an external
-// server (is_external — a partner's machine) cannot have them, so they are hidden there.
+// Sections that need the server's files or process on THIS machine: an external server
+// (is_external — a partner's machine) cannot have them. «Античит» shows there once VoidRpGuard
+// reports the anticheat module (activeServer.modules comes from fresh plugin heartbeats).
 const onOurMachine = (s) => !s?.is_external
 
 function canSee(item) {
@@ -206,7 +207,7 @@ const navGroups = computed(() => {
         { to: '/admin/game-perms', label: 'Права в игре', icon: icons.roles, perm: 'game.view' },
         { to: '/admin/item-bans', label: 'Бан предметов', icon: icons.anticheat, perm: 'items.bans.view', feature: 'item_bans' },
         { to: '/admin/integration', label: 'Интеграция', icon: icons.mods, perm: 'integration.view', when: (s) => !!s?.is_external },
-        { to: '/admin/anticheat', label: 'Античит', icon: icons.anticheat, perm: 'anticheat.view', when: onOurMachine },
+        { to: '/admin/anticheat', label: 'Античит', icon: icons.anticheat, perm: 'anticheat.view', when: (s) => onOurMachine(s) || (s?.modules || []).includes('anticheat') },
         { to: '/admin/punishments', label: 'Наказания', icon: icons.anticheat, perm: 'punishments.view' },
       ],
     },

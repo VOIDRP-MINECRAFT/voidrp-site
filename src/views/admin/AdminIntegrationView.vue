@@ -32,6 +32,14 @@ const moduleOf = (key) => {
   }
   return null
 }
+// Модуль, который плагин прислал выключенным, — с его объяснением почему.
+const moduleOff = (key) => {
+  for (const r of data.value?.reports || []) {
+    const m = r.modules?.[key]
+    if (r.fresh && m && !m.ok) return { plugin: r.plugin, detail: m.detail }
+  }
+  return null
+}
 
 // Чек-лист — настоящая последовательность подключения.
 const steps = computed(() => {
@@ -39,7 +47,11 @@ const steps = computed(() => {
   if (!d) return []
   const req = Object.fromEntries(d.required.map((r) => [r.key, r]))
   const perms = moduleOf('perms')
+  const chat = moduleOf('chat')
+  const chatOff = moduleOff('chat')
   const anticheat = moduleOf('anticheat')
+  const grim = moduleOf('grim')
+  const grimOff = moduleOff('grim')
   return [
     {
       title: 'Ядро сервера',
@@ -61,16 +73,26 @@ const steps = computed(() => {
       text: req.monitoring?.ok ? `Работает: ${req.monitoring.plugin} ${req.monitoring.version || ''}` : 'Поставьте VoidRpPerms 0.4.0 или новее — он присылает TPS, игроков и память.',
     },
     {
-      title: 'Права в игре и чат с префиксами',
+      title: 'Права в игре',
       ok: !!perms,
       optional: true,
-      text: perms ? `Работает: ${perms.plugin} ${perms.version || ''}` : 'Тот же VoidRpPerms и LuckPerms. Права настраиваются в разделе «Права в игре».',
+      text: perms ? `Работает: ${perms.plugin} ${perms.version || ''}. Группы и префиксы — в разделе «Права в игре».` : 'Тот же VoidRpPerms и LuckPerms. Права настраиваются в разделе «Права в игре».',
+    },
+    {
+      title: 'Чат с префиксами',
+      ok: !!chat,
+      optional: true,
+      warn: !chat && !!chatOff,
+      text: chat ? `Работает: ${chat.plugin} ${chat.version || ''}` : chatOff ? `Выключен: ${chatOff.detail || 'без пояснения'}` : 'Делает VoidRpPerms 0.3.0+, если на сервере нет другого чат-плагина.',
     },
     {
       title: 'Античит',
       ok: !!anticheat,
       optional: true,
-      text: anticheat ? `Работает: ${anticheat.plugin} ${anticheat.version || ''}` : 'По желанию: VoidRpGuard с GrimAC и CoreProtect.',
+      warn: !!anticheat && !grim,
+      text: anticheat
+        ? `Работает: ${anticheat.plugin} ${anticheat.version || ''}${grim ? ' · GrimAC подключён' : ` · GrimAC: ${grimOff?.detail || 'не подключён — флаги движения и боя не пишутся'}`}`
+        : 'По желанию: VoidRpGuard 0.2.0+ с GrimAC и CoreProtect.',
     },
   ]
 })
@@ -112,7 +134,7 @@ function ago(iso) {
 }
 const fmtSize = (b) => (b >= 1048576 ? `${(b / 1048576).toFixed(1)} МБ` : `${Math.max(1, Math.round(b / 1024))} КБ`)
 const fmtDate = (v) => (v ? new Date(v).toLocaleDateString('ru-RU', { day: '2-digit', month: '2-digit', year: 'numeric' }) : '')
-const MODULE_NAMES = { auth: 'вход', monitoring: 'мониторинг', perms: 'права', chat: 'чат', anticheat: 'античит' }
+const MODULE_NAMES = { auth: 'вход', monitoring: 'мониторинг', perms: 'права', chat: 'чат', anticheat: 'античит', grim: 'GrimAC' }
 
 let timer = null
 onMounted(() => {
@@ -149,8 +171,8 @@ onBeforeUnmount(() => clearInterval(timer))
         <section class="adm-card it-steps">
           <div class="adm-card__head"><div class="adm-card__title">Подключение</div><span class="it-muted">обновляется само</span></div>
           <ol class="it-steplist">
-            <li v-for="(s, i) in steps" :key="i" class="it-step" :class="{ 'it-step--ok': s.ok, 'it-step--opt': s.optional && !s.ok }">
-              <span class="it-step__num">{{ s.ok ? '✓' : i + 1 }}</span>
+            <li v-for="(s, i) in steps" :key="i" class="it-step" :class="{ 'it-step--ok': s.ok && !s.warn, 'it-step--warn': s.warn, 'it-step--opt': s.optional && !s.ok && !s.warn }">
+              <span class="it-step__num">{{ s.warn ? '!' : s.ok ? '✓' : i + 1 }}</span>
               <div class="it-step__body">
                 <div class="it-step__title">
                   {{ s.title }}
@@ -295,6 +317,7 @@ onBeforeUnmount(() => clearInterval(timer))
 }
 .it-step--ok .it-step__num { background: color-mix(in srgb, var(--adm-ok) 18%, transparent); color: var(--adm-ok); border-color: color-mix(in srgb, var(--adm-ok) 45%, transparent); }
 .it-step--opt { opacity: 0.8; }
+.it-step--warn .it-step__num { background: color-mix(in srgb, var(--adm-warn) 18%, transparent); color: var(--adm-warn); border-color: color-mix(in srgb, var(--adm-warn) 45%, transparent); }
 .it-step__title { display: flex; flex-wrap: wrap; align-items: center; gap: 0.4rem; font-weight: 700; color: var(--adm-text); }
 .it-step__text { margin-top: 0.15rem; font-size: 0.84rem; color: var(--adm-dim); }
 
