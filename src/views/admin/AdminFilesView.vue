@@ -1,4 +1,5 @@
 <script setup>
+import { requestReauth } from '../../stores/securityStore'
 import { computed, defineAsyncComponent, onBeforeUnmount, onMounted, ref } from 'vue'
 import { onBeforeRouteLeave, useRoute } from 'vue-router'
 import { diffLines } from 'diff'
@@ -71,6 +72,14 @@ const file = ref(null) // { path, content, etag, language, masked, size, mtime }
 const text = ref('')
 const saving = ref(false)
 const dirty = computed(() => file.value && text.value !== file.value.content)
+
+// Пароли в конфигах открываются только после ввода пароля от аккаунта (5 минут).
+async function revealSecrets() {
+  if (!(await requestReauth())) return
+  const fresh = await readFile(token(), file.value.path)
+  file.value = { ...file.value, ...fresh }
+  text.value = fresh.content
+}
 
 async function openFile(path) {
   if (!(await leaveFile())) return
@@ -342,6 +351,7 @@ onBeforeRouteLeave(() => leaveFile())
         </div>
         <div v-if="file.masked" class="fm-note">
           Скрыто секретов: {{ file.masked }} (показаны как ••••••••). Оставьте их как есть — при сохранении настоящие значения вернутся на место.
+          <button v-if="file.secrets_locked" type="button" class="adm-btn adm-btn--sm fm-reveal" @click="revealSecrets">Показать секреты</button>
         </div>
         <div v-if="file.running && /^(plugins|config|mods)\//.test(file.path)" class="fm-note fm-note--soft">
           Сервер запущен: изменения применятся после перезагрузки плагина или сервера.
@@ -417,6 +427,7 @@ onBeforeRouteLeave(() => leaveFile())
 .fm-file b { color: var(--adm-text); font-size: 0.95rem; }
 .fm-file .fm-meta { overflow: hidden; text-overflow: ellipsis; }
 .fm-file-acts { display: flex; gap: 0.4rem; flex-shrink: 0; }
+.fm-reveal { margin-left: 0.6rem; }
 .fm-note { font-size: 0.78rem; color: #fde68a; background: rgba(250, 204, 21, 0.08); border-radius: 8px; padding: 0.45rem 0.6rem; }
 .fm-note--soft { color: var(--adm-dim); background: rgba(148, 163, 184, 0.07); }
 .fm-work { display: grid; grid-template-columns: 1fr; gap: 0.8rem; min-height: 60vh; }
