@@ -199,7 +199,7 @@ const navGroups = computed(() => {
         { to: '/admin/nations', label: 'Государства', icon: icons.nations, perm: 'nations.view', serverFeature: 'nations' },
         { to: '/admin/battlepass', label: 'Battle Pass', icon: icons.battlepass, perm: 'battlepass.view', serverFeature: 'battlepass' },
         { to: '/admin/game-perms', label: 'Права в игре', icon: icons.roles, perm: 'game.view' },
-        { to: '/admin/item-bans', label: 'Бан предметов', icon: icons.anticheat, perm: 'items.bans.view' },
+        { to: '/admin/item-bans', label: 'Бан предметов', icon: icons.anticheat, perm: 'items.bans.view', feature: 'item_bans' },
         { to: '/admin/anticheat', label: 'Античит', icon: icons.anticheat, perm: 'anticheat.view' },
         { to: '/admin/punishments', label: 'Наказания', icon: icons.anticheat, perm: 'punishments.view' },
       ],

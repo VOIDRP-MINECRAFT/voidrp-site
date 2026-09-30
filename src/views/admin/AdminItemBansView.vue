@@ -7,12 +7,15 @@ import { authState, hasPermission } from '../../stores/authStore'
 import { confirmDialog } from '../../composables/useConfirm'
 import { toastError, toastSuccess } from '../../services/toast'
 import ItemIcon from '../../components/ItemIcon.vue'
+import { activeServer } from '../../stores/serverStore'
 import {
   addItemBans, deleteItemBan, getItemBans, saveItemBanSettings, searchBanItems, updateItemBan,
 } from '../../services/itemBansApi'
 
 const token = () => authState.accessToken
 const canManage = computed(() => hasPermission('items.bans.manage'))
+// Функция включается для каждого сервера отдельно («Серверы» → сервер → функции).
+const featureOff = computed(() => !!activeServer.value && activeServer.value.features?.item_bans !== true)
 
 const data = ref(null)
 const loading = ref(true)
@@ -236,6 +239,12 @@ onBeforeUnmount(() => {
       </div>
     </div>
 
+    <div v-if="featureOff" class="ib-sync ib-sync--warn">
+      <span class="adm-dot adm-dot--warn" />
+      <span>На сервере «{{ activeServer.name }}» бан предметов выключен. Включить его можно в разделе
+        <RouterLink to="/admin/server" class="ib-link">Серверы</RouterLink> → сервер → «Бан предметов», если на сервере стоит плагин VoidRpGameSync 1.5.0 или новее.</span>
+    </div>
+
     <div v-if="loading" class="adm-card adm-card--pad"><div class="adm-skel" style="height: 220px" /></div>
 
     <template v-else-if="data">
@@ -371,6 +380,7 @@ export default { directives: { focus: { mounted: (el) => el.focus() } } }
 
 <style scoped>
 .ib-muted { color: var(--adm-dim); font-weight: 500; }
+.ib-link { color: var(--adm-acc-text); text-decoration: underline; }
 .ib-sync {
   display: flex; flex-wrap: wrap; align-items: center; gap: 0.5rem 0.75rem;
   padding: 0.7rem 0.9rem; margin-bottom: 1rem; border-radius: var(--adm-r);

@@ -51,7 +51,7 @@ const BLANK = {
   news_channels: { update: { telegram: [], discord: [] }, media: { telegram: [], discord: [] } },
   systemd_unit: '', data_dir: '', log_path: '',
   rcon_host: '', rcon_port: null, rcon_password: '',
-  features: { nations: true, economy: true, shop: true, alliances: true, battlepass: true, quests: true, leaderboards: true, upgrader: true, trader: true, salary: false, mods: true, progression: true, map: true, news: true },
+  features: { nations: true, economy: true, shop: true, alliances: true, battlepass: true, quests: true, leaderboards: true, upgrader: true, trader: true, salary: false, mods: true, progression: true, map: true, news: true, item_bans: false },
 }
 
 const FEATURE_LABELS = {
@@ -70,6 +70,8 @@ const FEATURE_LABELS = {
   progression: 'Прогрессия эпох',
   map: 'Карта',
   news: 'Новости',
+  // Opt-in: the admin tab «Бан предметов» shows only where this is on.
+  item_bans: 'Бан предметов (нужен плагин VoidRpGameSync 1.5.0+)',
 }
 
 async function load() {
