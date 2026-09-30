@@ -570,7 +570,7 @@ onMounted(load)
                       {{ m.site_login }}
                       <span class="md-2fa" :class="m.mfa_enabled ? 'md-2fa--on' : 'md-2fa--off'" :title="m.mfa_enabled ? '2FA подключена' : '2FA не подключена — админка ему не откроется'">2FA</span>
                     </div>
-                    <div class="md-row__email adm-mono">{{ m.email }}</div>
+                    <div v-if="m.email" class="md-row__email adm-mono">{{ m.email }}</div>
                   </div>
                 </div>
               </td>
