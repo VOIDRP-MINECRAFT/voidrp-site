@@ -34,7 +34,7 @@ const bannerInput = ref(null)
 
 const BLANK = {
   slug: '', name: '', description: '', icon_url: '', banner_url: '',
-  sort_order: 0, is_visible: true, is_default: false, staff_only: false, is_external: false,
+  sort_order: 0, is_visible: true, is_default: false, staff_only: false, is_external: false, server_core: '',
   host: '', port: 25565, mc_version: '1.21.1', loader: 'neoforge',
   java_version: 21, neoforge_version: '',
   pack_root: '', pack_base_url: '', manifest_url: '',
@@ -126,7 +126,7 @@ function buildPayload() {
   for (const k of ['description', 'icon_url', 'banner_url', 'neoforge_version',
     'pack_root', 'pack_base_url', 'manifest_url', 'runtime_seed_url', 'runtime_manifest_url',
     'manifest_build_script', 'status_host', 'map_url', 'accent_color',
-    'systemd_unit', 'data_dir', 'log_path', 'rcon_host', 'rcon_password']) {
+    'systemd_unit', 'data_dir', 'log_path', 'rcon_host', 'rcon_password', 'server_core']) {
     if (p[k] === '') p[k] = null
   }
   if (p.status_port === '' || p.status_port === undefined) p.status_port = null
@@ -356,7 +356,16 @@ onMounted(load)
             <label class="chk"><input v-model="form.is_visible" type="checkbox" /> Виден на сайте/лаунчере</label>
             <label class="chk"><input v-model="form.is_default" type="checkbox" :disabled="form.is_external || !platform" /> Сервер по умолчанию</label>
             <label class="chk"><input v-model="form.staff_only" type="checkbox" /> Только для админов</label>
-            <label class="chk"><input v-model="form.is_external" type="checkbox" /> Внешний сервер (чужой хост)</label>
+            <label class="chk"><input v-model="form.is_external" type="checkbox" :disabled="!platform" /> Внешний сервер (чужой хост)</label>
+            <label class="fld fld--inline"><span>Ядро сервера</span>
+              <select v-model="form.server_core" class="adm-select" :disabled="!platform">
+                <option value="">не указано</option>
+                <option value="paper">Paper</option>
+                <option value="folia">Folia</option>
+                <option value="neoforge">NeoForge</option>
+                <option value="hybrid">Гибрид NeoForge + Paper (Youer, Mohist)</option>
+              </select>
+            </label>
             <p v-if="form.is_external" class="adm-hint">Внешний сервер: игровой хост на чужой машине, но клиентский пак и лаунчер — наши (host/port укажи на их IP). RCON используется как обычно. Game-sync-плагины (нации/экономика/WebGUI) на их стороне НЕ стоят, поэтому данные с их сервера к нам не идут. systemd/data/log не заполняются — это не наша машина.</p>
           </div>
         </div>

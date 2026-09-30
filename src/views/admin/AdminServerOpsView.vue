@@ -866,7 +866,10 @@ onBeforeUnmount(() => {
             {{ live?.players?.online ?? '—' }}<span v-if="live?.players?.max" class="ops-metric__val-sub">/{{ live.players.max }}</span>
           </span>
         </div>
-        <div class="ops-metric__meta adm-mono">
+        <div v-if="live?.source === 'plugin'" class="ops-metric__meta adm-mono" :title="`${live.plugin.plugin} ${live.plugin.version || ''} · ${live.plugin.core || ''}`">
+          аптайм {{ fmtDuration(live.plugin.uptime_s) }} · память {{ live.plugin.memory_used_mb ?? '—' }}/{{ live.plugin.memory_max_mb ?? '—' }} МБ · из {{ live.plugin.plugin }}
+        </div>
+        <div v-else class="ops-metric__meta adm-mono">
           аптайм сервера {{ fmtDuration(proc?.uptime_seconds) }} · хост {{ fmtDuration(host?.uptime_seconds) }}
         </div>
       </div>
