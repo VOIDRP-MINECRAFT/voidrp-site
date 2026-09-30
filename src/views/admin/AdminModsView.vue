@@ -330,7 +330,7 @@ onBeforeUnmount(stopBuildPolling)
         <h1 class="adm-title">Моды · {{ serverName }}</h1>
         <p class="adm-sub">Управление модами клиента и сервера выбранного сервера</p>
       </div>
-      <div v-else class="mods-embedded__sub">Моды клиента (пак игроков) и сервера</div>
+      <div v-else class="mods-embedded__sub">{{ isExternal ? 'Моды клиента (пак игроков)' : 'Моды клиента (пак игроков) и сервера' }}</div>
       <div class="adm-head-actions">
         <button v-if="canManage" class="adm-btn adm-btn--acc" :disabled="regenRunning" @click="regen">
           {{ regenRunning ? 'Сборка…' : 'Пересобрать манифест' }}
@@ -401,14 +401,14 @@ onBeforeUnmount(stopBuildPolling)
         <div class="mods-counts">
           <span class="adm-badge">всего {{ counts.total ?? '—' }}</span>
           <span class="adm-badge adm-badge--info">клиент {{ counts.client ?? '—' }}</span>
-          <span class="adm-badge adm-badge--acc">сервер {{ counts.server ?? '—' }}</span>
+          <span v-if="!isExternal" class="adm-badge adm-badge--acc">сервер {{ counts.server ?? '—' }}</span>
           <span class="adm-badge adm-badge--ok">опциональных {{ counts.optional ?? '—' }}</span>
         </div>
         <div class="mods-tools">
           <div class="adm-tabs">
             <button class="adm-tab" :class="{ 'adm-tab--active': showFilter === 'all' }" @click="showFilter = 'all'">Все</button>
             <button class="adm-tab" :class="{ 'adm-tab--active': showFilter === 'client' }" @click="showFilter = 'client'">Клиент</button>
-            <button class="adm-tab" :class="{ 'adm-tab--active': showFilter === 'server' }" @click="showFilter = 'server'">Сервер</button>
+            <button v-if="!isExternal" class="adm-tab" :class="{ 'adm-tab--active': showFilter === 'server' }" @click="showFilter = 'server'">Сервер</button>
             <button class="adm-tab" :class="{ 'adm-tab--active': showFilter === 'optional' }" @click="showFilter = 'optional'">Опц.</button>
           </div>
           <input v-model="filter" class="adm-input adm-input--sm" placeholder="поиск…" />
@@ -423,7 +423,7 @@ onBeforeUnmount(stopBuildPolling)
           <tr>
             <th>Файл</th>
             <th class="mods-c">Клиент</th>
-            <th class="mods-c">Сервер</th>
+            <th v-if="!isExternal" class="mods-c">Сервер</th>
             <th>Тип</th>
             <th class="mods-c">Размер</th>
             <th v-if="canManage"></th>
@@ -441,7 +441,7 @@ onBeforeUnmount(stopBuildPolling)
                 {{ m.on_client ? '✓' : '—' }}
               </button>
             </td>
-            <td class="mods-c">
+            <td v-if="!isExternal" class="mods-c">
               <button class="mods-dot" :class="m.on_server ? 'is-on' : 'is-off'"
                       :disabled="!canManage || isExternal"
                       @click="toggleTarget(m, 'on_server')"

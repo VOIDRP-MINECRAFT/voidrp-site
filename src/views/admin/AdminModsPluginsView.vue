@@ -12,6 +12,7 @@ import AdminPluginsPanel from '../../components/admin/AdminPluginsPanel.vue'
 import ServerChangesBar from '../../components/admin/ServerChangesBar.vue'
 
 const serverName = computed(() => activeServer.value?.name || 'сервер')
+const isExternal = computed(() => !!activeServer.value?.is_external)
 const hasMods = ref(false)
 const hasPlugins = ref(false)
 const ready = ref(false)
@@ -41,7 +42,8 @@ function onApplied() { plugins.value?.load() }
     <div class="adm-head">
       <div>
         <h1 class="adm-title">Моды и плагины</h1>
-        <p class="adm-sub">Сервер «{{ serverName }}» · jar никогда не меняются под работающим сервером — изменения ждут в очереди и применяются при перезапуске</p>
+        <p v-if="isExternal" class="adm-sub">Сервер «{{ serverName }}» стоит на машине партнёра: здесь только клиентский пак, который лаунчер ставит игрокам. Моды и плагины самого сервера его админ ставит у себя.</p>
+        <p v-else class="adm-sub">Сервер «{{ serverName }}» · jar никогда не меняются под работающим сервером — изменения ждут в очереди и применяются при перезапуске</p>
       </div>
       <div v-if="hasMods && hasPlugins" class="adm-tabs">
         <button class="adm-tab" :class="{ 'adm-tab--active': tab === 'mods' }" @click="tab = 'mods'">Моды</button>
@@ -49,7 +51,7 @@ function onApplied() { plugins.value?.load() }
       </div>
     </div>
 
-    <ServerChangesBar ref="bar" @applied="onApplied" />
+    <ServerChangesBar v-if="!isExternal" ref="bar" @applied="onApplied" />
 
     <div v-if="!ready" class="adm-skel" style="height: 260px" />
     <div v-else-if="!hasMods && !hasPlugins" class="adm-empty">

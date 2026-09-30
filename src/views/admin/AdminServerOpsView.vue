@@ -581,6 +581,7 @@ const logSource = ref('server')
 const logLines = ref([])
 const logPath = ref('')
 const logAvailable = ref(true)
+const logError = ref('')
 const logBusy = ref(false)
 const logAuto = ref(true)
 const logFilter = ref('')
@@ -608,6 +609,7 @@ async function loadLogs() {
     logLines.value = res.lines || []
     logPath.value = res.path || ''
     logAvailable.value = res.available !== false
+    logError.value = res.error || ''
     if (logAuto.value) {
       await nextTick()
       if (logRef.value) logRef.value.scrollTop = logRef.value.scrollHeight
@@ -626,6 +628,7 @@ function switchLogSource(s) {
 // ── In-game chat feed ───────────────────────────────────────────────────────
 const chatMsgs = ref([])
 const chatAvailable = ref(true)
+const chatError = ref('')
 const chatAuto = ref(true)
 const chatFilter = ref('')
 const chatRef = ref(null)
@@ -645,6 +648,7 @@ async function loadChat() {
     const res = await getServerChat(token(), { limit: 250 })
     chatMsgs.value = res.messages || []
     chatAvailable.value = res.available !== false
+    chatError.value = res.error || ''
     if (chatAuto.value) {
       await nextTick()
       if (chatRef.value) chatRef.value.scrollTop = chatRef.value.scrollHeight
@@ -844,7 +848,7 @@ onBeforeUnmount(() => {
           <span v-for="(v, k) in tps.windows" :key="k"><b>{{ k }}</b> {{ v }}</span>
         </div>
         <div v-else class="ops-metric__meta adm-mono">
-          {{ tps?.mspt != null ? `${tps.mspt} мс/такт` : (live?.rcon_configured ? 'нет данных' : 'RCON не настроен') }}
+          {{ tps?.mspt != null ? `${tps.mspt} мс/такт` : tps?.regions ? `регионы Folia: ${tps.regions.lowest}–${tps.regions.highest}` : (!live ? 'загрузка…' : (live.rcon_configured ? (live.rcon_error ? 'RCON не отвечает' : 'нет данных') : 'RCON не настроен')) }}
         </div>
         <div v-if="tpsDims.length" class="ops-tps-dims adm-mono">
           <div v-for="d in tpsDims" :key="d.dim" class="ops-tps-dim" :class="tpsClass(d.tps)">
@@ -1036,7 +1040,8 @@ onBeforeUnmount(() => {
           <span class="adm-badge">{{ players.length }}</span>
         </div>
         <div class="ops-players__list">
-          <div v-if="!players.length" class="ops-console__empty">Никого онлайн</div>
+          <div v-if="!live" class="ops-console__empty">Загрузка…</div>
+          <div v-else-if="!players.length" class="ops-console__empty">Никого онлайн</div>
           <div v-for="p in players" :key="p" class="ops-player">
             <span class="adm-avatar ops-player__ava">{{ p.charAt(0).toUpperCase() }}</span>
             <RouterLink class="ops-player__name adm-mono" :to="`/admin/players/${p}`" title="Открыть карточку игрока">{{ p }}</RouterLink>
@@ -1081,7 +1086,7 @@ onBeforeUnmount(() => {
         </div>
       </div>
       <div ref="chatRef" class="ops-chat__body">
-        <div v-if="!chatAvailable" class="ops-console__empty">Файл лога недоступен</div>
+        <div v-if="!chatAvailable" class="ops-console__empty">{{ chatError || 'Файл лога недоступен' }}</div>
         <div v-else-if="!filteredChat.length" class="ops-console__empty">Пока нет сообщений</div>
         <div v-for="(m, i) in filteredChat" :key="i" class="ops-chat__line" :class="`is-${m.type}`">
           <span class="ops-chat__time adm-mono">{{ m.time }}</span>
@@ -1105,7 +1110,7 @@ onBeforeUnmount(() => {
       </div>
       <div v-if="logPath" class="ops-logs__path adm-mono">{{ logPath }}</div>
       <div ref="logRef" class="ops-logs__body">
-        <div v-if="!logAvailable" class="ops-console__empty">Файл лога недоступен для этого источника</div>
+        <div v-if="!logAvailable" class="ops-console__empty">{{ logError || 'Файл лога недоступен для этого источника' }}</div>
         <div v-else-if="!filteredLog.length" class="ops-console__empty">Пусто</div>
         <div v-for="(line, i) in filteredLog" :key="i" class="ops-logs__line" :class="logLevelClass(line)">{{ line }}</div>
       </div>

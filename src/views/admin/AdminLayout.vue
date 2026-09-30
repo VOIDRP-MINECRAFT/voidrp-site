@@ -161,7 +161,12 @@ const isAdmin = computed(() => !!authState.user?.is_admin)
 // item.serverFeature → opt-out per-server: hidden only when the active server has
 // features[serverFeature] === false, so a section can be switched off for one server
 // and brought back from the server card without touching other servers.
+// Sections that need the server's files, process or our anticheat on THIS machine: an external
+// server (is_external — a partner's machine) cannot have them, so they are hidden there.
+const onOurMachine = (s) => !s?.is_external
+
 function canSee(item) {
+  if (item.when && !item.when(activeServer.value)) return false
   if (item.feature && activeServer.value?.features?.[item.feature] !== true) return false
   if (item.serverFeature && activeServer.value?.features?.[item.serverFeature] === false) return false
   if (item.adminOnly) return isAdmin.value
@@ -187,20 +192,20 @@ const navGroups = computed(() => {
       scoped: true,
       items: [
         { to: '/admin/monitoring', label: 'Мониторинг', icon: icons.monitoring, perm: 'monitoring.view' },
-        { to: '/admin/backups', label: 'Бэкапы', icon: icons.backups, perm: 'backups.view' },
-        { to: '/admin/files', label: 'Файлы', icon: icons.files, perm: 'files.view' },
+        { to: '/admin/backups', label: 'Бэкапы', icon: icons.backups, perm: 'backups.view', when: onOurMachine },
+        { to: '/admin/files', label: 'Файлы', icon: icons.files, perm: 'files.view', when: onOurMachine },
         { to: '/admin/mods', label: 'Моды и плагины', icon: icons.mods, anyPerm: ['mods.view', 'plugins.view'] },
         { to: '/admin/auth', label: 'Авторизация', icon: icons.servers, perm: 'servers.manage' },
         { to: '/admin/market', label: 'Рынок', icon: icons.market, perm: 'market.view', serverFeature: 'economy' },
         { to: '/admin/upgrader', label: 'Апгрейдер', icon: icons.market, perm: 'upgrader.view', serverFeature: 'upgrader' },
         { to: '/admin/trader', label: 'Скупщик', icon: icons.market, perm: 'trader.view', serverFeature: 'trader' },
-        { to: '/admin/donate', label: 'Донаты', icon: icons.donate, perm: 'donate.view' },
+        { to: '/admin/donate', label: 'Донаты', icon: icons.donate, perm: 'donate.view', when: (s) => !s || s.donate_enabled !== false },
         { to: '/admin/salary', label: 'Зарплата', icon: icons.market, perm: 'salary.view', serverFeature: 'salary' },
         { to: '/admin/nations', label: 'Государства', icon: icons.nations, perm: 'nations.view', serverFeature: 'nations' },
         { to: '/admin/battlepass', label: 'Battle Pass', icon: icons.battlepass, perm: 'battlepass.view', serverFeature: 'battlepass' },
         { to: '/admin/game-perms', label: 'Права в игре', icon: icons.roles, perm: 'game.view' },
         { to: '/admin/item-bans', label: 'Бан предметов', icon: icons.anticheat, perm: 'items.bans.view', feature: 'item_bans' },
-        { to: '/admin/anticheat', label: 'Античит', icon: icons.anticheat, perm: 'anticheat.view' },
+        { to: '/admin/anticheat', label: 'Античит', icon: icons.anticheat, perm: 'anticheat.view', when: onOurMachine },
         { to: '/admin/punishments', label: 'Наказания', icon: icons.anticheat, perm: 'punishments.view' },
       ],
     },
