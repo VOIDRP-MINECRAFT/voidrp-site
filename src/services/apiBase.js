@@ -49,6 +49,8 @@ function resolveApiBaseUrl() {
 const API_BASE_URL = resolveApiBaseUrl()
 
 const FIELD_LABELS = {
+  scan_period_ticks: 'период проверки',
+  item_ids: 'предметы',
   site_login: 'логин',
   minecraft_nickname: 'игровой ник',
   email: 'почта',
