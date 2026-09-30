@@ -77,7 +77,7 @@ async function logout() {
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2 4 5v6c0 5 3.4 9.3 8 11 4.6-1.7 8-6 8-11V5l-8-3Z"/><path d="m9 12 2 2 4-4"/></svg>
       </div>
       <h1 class="mg__title">{{ mode === 'setup' ? t('security.gate.setupTitle') : t('security.gate.verifyTitle') }}</h1>
-      <p class="mg__sub">{{ mode === 'setup' ? t('security.gate.setupSub') : t('security.gate.verifySub') }}</p>
+      <p class="mg__sub">{{ mode === 'setup' ? t('security.gate.setupSub') : (status?.passkey && canPasskey ? t('security.gate.verifySubKey') : t('security.gate.verifySub')) }}</p>
 
       <MfaSetup v-if="mode === 'setup'" @done="emit('done')" />
 

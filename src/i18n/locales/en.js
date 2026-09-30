@@ -2428,6 +2428,7 @@ export default {
       cancel: 'Cancel',
     },
     gate: {
+      verifySubKey: 'Use your passkey (Windows Hello, Face ID, fingerprint) or enter a code. This device will not be asked again for 12 hours.',
       usePasskey: 'Sign in with a passkey',
       or: 'or a code',
       setupTitle: 'Set up two-factor authentication',
