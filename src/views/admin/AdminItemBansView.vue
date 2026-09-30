@@ -241,16 +241,16 @@ onBeforeUnmount(() => {
 
     <div v-if="featureOff" class="ib-sync ib-sync--warn">
       <span class="adm-dot adm-dot--warn" />
-      <span>На сервере «{{ activeServer.name }}» бан предметов выключен. Включить его можно в разделе
+      <span class="ib-sync__text">На сервере «{{ activeServer.name }}» бан предметов выключен. Включить его можно в разделе
         <RouterLink to="/admin/server" class="ib-link">Серверы</RouterLink> → сервер → «Бан предметов», если на сервере стоит плагин VoidRpGameSync 1.5.0 или новее.</span>
     </div>
 
     <div v-if="loading" class="adm-card adm-card--pad"><div class="adm-skel" style="height: 220px" /></div>
 
     <template v-else-if="data">
-      <div class="ib-sync" :class="`ib-sync--${sync.tone}`">
+      <div v-if="!featureOff" class="ib-sync" :class="`ib-sync--${sync.tone}`">
         <span class="adm-dot" :class="`adm-dot--${sync.tone}`" />
-        <span>{{ sync.text }}</span>
+        <span class="ib-sync__text">{{ sync.text }}</span>
         <span v-if="data.sync.items_reported_at" class="ib-sync__meta">
           Предметов на сервере: {{ fmtNum(data.sync.registry_size) }}
         </span>
@@ -388,6 +388,7 @@ export default { directives: { focus: { mounted: (el) => el.focus() } } }
 }
 .ib-sync--err { border-color: color-mix(in srgb, var(--adm-err) 45%, transparent); }
 .ib-sync--warn { border-color: color-mix(in srgb, var(--adm-warn) 45%, transparent); }
+.ib-sync__text { flex: 1 1 18rem; min-width: 0; }
 .ib-sync__meta { margin-left: auto; color: var(--adm-dim); font-size: 0.8rem; }
 
 .ib-grid { display: grid; grid-template-columns: minmax(0, 1.25fr) minmax(0, 1fr); gap: 1rem; align-items: start; }
