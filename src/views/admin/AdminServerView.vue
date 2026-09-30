@@ -51,7 +51,7 @@ const BLANK = {
   news_channels: { update: { telegram: [], discord: [] }, media: { telegram: [], discord: [] } },
   systemd_unit: '', data_dir: '', log_path: '',
   rcon_host: '', rcon_port: null, rcon_password: '',
-  features: { nations: true, economy: true, shop: true, alliances: true, battlepass: true, quests: true, leaderboards: true, upgrader: true, trader: true, salary: false, mods: true, progression: true, map: true, bounties: true, killfeed: true, news: true },
+  features: { nations: true, economy: true, shop: true, alliances: true, battlepass: true, quests: true, leaderboards: true, upgrader: true, trader: true, salary: false, mods: true, progression: true, map: true, news: true },
 }
 
 const FEATURE_LABELS = {
@@ -69,8 +69,6 @@ const FEATURE_LABELS = {
   mods: 'Моды (сборка лаунчера)',
   progression: 'Прогрессия эпох',
   map: 'Карта',
-  bounties: 'Награды за головы',
-  killfeed: 'Лента убийств (killfeed)',
   news: 'Новости',
 }
 
@@ -411,7 +409,7 @@ onMounted(load)
           <label class="fld"><span>Manifest URL</span><input v-model="form.manifest_url" placeholder="https://…/manifests/voidrp.json" /></label>
           <label class="fld"><span>Runtime seed URL</span><input v-model="form.runtime_seed_url" placeholder="https://…/launcher/runtime/runtime-seed.json" /></label>
           <label class="fld"><span>Runtime manifest URL</span><input v-model="form.runtime_manifest_url" placeholder="https://…/launcher/runtime/runtime-windows.json (или base URL)" /></label>
-          <label class="fld"><span>Скрипт пересборки манифеста</span><input v-model="form.manifest_build_script" :disabled="!platform" placeholder="пусто = стандартный генератор; напр. scripts/generate_abyss_manifests.sh" /></label>
+          <label class="fld"><span>Скрипт пересборки манифеста</span><input v-model="form.manifest_build_script" :disabled="!platform" placeholder="пусто = стандартный генератор; напр. scripts/generate_vexvol_manifests.sh" /></label>
           <label class="fld"><span>Версия пака</span><input v-model="form.pack_version" placeholder="1.0.0" /></label>
           <label class="fld"><span>Мин. версия лаунчера</span><input v-model="form.min_launcher_version" placeholder="0.1.0" /></label>
         </div>

@@ -6,7 +6,6 @@ import { siteConfig } from '../config.site.js'
 import { useReveal } from '../composables/useReveal.js'
 import { usePageMeta } from '../composables/usePageMeta.js'
 import { getServerStats, getNationRankings } from '../services/nationStatsApi.js'
-import { getKillfeed } from '../services/killfeedApi.js'
 import { getPlayersTop } from '../services/playerStatsApi.js'
 import { getDonateProducts, getTopDonors } from '../services/donateApi.js'
 import { apiRequest, API_BASE_URL } from '../services/apiBase.js'
@@ -119,8 +118,8 @@ async function refetchScoped() {
   // Старый контент остаётся на месте до прихода новых данных — иначе блоки
   // ниже дважды прыгают (скелетон → данные). Скелетоны только при первом
   // рендере страницы.
-  const [stats, rankings, kf, tp] = await Promise.allSettled([
-    getServerStats(), getNationRankings(), getKillfeed(), getPlayersTop(),
+  const [stats, rankings, tp] = await Promise.allSettled([
+    getServerStats(), getNationRankings(), getPlayersTop(),
   ])
   if (stats.status === 'fulfilled') {
     statsData.value = stats.value
@@ -132,7 +131,7 @@ async function refetchScoped() {
   topNations.value =
     rankings.status === 'fulfilled' ? (rankings.value.items || []).slice(0, 3) : []
   nationsLoading.value = false
-  applyPulse(kf, tp)
+  applyPulse(tp)
   loadShop()
   loadDonors()
   await nextTick()
@@ -266,21 +265,18 @@ function stopGalleryRotation() {
 const topNations = ref([])
 const nationsLoading = ref(true)
 
-// ── Server pulse: live killfeed + top players (both server-scoped) ──────────
-const killfeed = ref([])
+// ── Server pulse: top players (server-scoped) ──────────────────────────────
 const pulseLoading = ref(true)
 
 // Top-players leaderboard with switchable categories. We surface a curated
 // subset (that actually has entries) as tabs, so on any server type the visitor
 // can flip between wealth, combat, streaks, playtime, etc.
-const CAT_ORDER = ['balance', 'pvp_kills', 'best_kill_streak', 'playtime', 'mob_kills', 'completed_quests']
+const CAT_ORDER = ['balance', 'playtime', 'mob_kills', 'completed_quests']
 // A category only shows when its underlying feature is enabled for the server
 // in admin (e.g. no wealth board on an anarchy server with economy off).
 const CAT_FEATURE = {
   balance: 'economy',
   completed_quests: 'quests',
-  pvp_kills: 'killfeed',       // combat boards only where PvP is tracked/showcased
-  best_kill_streak: 'killfeed',
 }
 const topCats = ref([])
 const activeCatKey = ref(null)
@@ -288,12 +284,10 @@ const activeCat = computed(() =>
   topCats.value.find((c) => c.key === activeCatKey.value) || topCats.value[0] || null,
 )
 // Card visibility respects the server's admin feature flags.
-const showKillfeed = computed(() => feat('killfeed') && killfeed.value.length > 0)
 const showTopPlayers = computed(() => feat('leaderboards') && topCats.value.length > 0)
 
-// When the top-players card is the only one in the section, it goes full-width
-// with a podium layout; when paired with the killfeed it stays a compact list.
-const soloTop = computed(() => showTopPlayers.value && !showKillfeed.value)
+// The top-players card is alone in the section: full width with a podium.
+const soloTop = computed(() => showTopPlayers.value)
 const topEntries = computed(() =>
   (activeCat.value?.entries || []).slice(0, soloTop.value ? 8 : 5),
 )
@@ -303,23 +297,6 @@ const podium = computed(() => {
   return [e[1], e[0], e[2]].filter(Boolean)
 })
 const podiumRest = computed(() => topEntries.value.slice(3))
-
-function timeAgo(iso) {
-  if (!iso) return ''
-  const then = new Date(iso).getTime()
-  const s = Math.max(0, Math.round((Date.now() - then) / 1000))
-  if (s < 60) return t('pulse.justNow')
-  const m = Math.floor(s / 60)
-  if (m < 60) return t('pulse.minAgo', { n: m })
-  const h = Math.floor(m / 60)
-  if (h < 24) return t('pulse.hAgo', { n: h })
-  return t('pulse.dAgo', { n: Math.floor(h / 24) })
-}
-
-function fmtWeapon(w) {
-  if (!w) return ''
-  return w.split(':').pop().replace(/_/g, ' ')
-}
 
 // ── FAQ accordion ───────────────────────────────────────────────────────────
 const FAQ_COUNT = 6
@@ -380,8 +357,7 @@ function fmtStatValue(entry, cat) {
   return cat?.unit ? `${v.toLocaleString('ru')} ${cat.unit}` : v.toLocaleString('ru')
 }
 
-function applyPulse(kfRes, tpRes) {
-  killfeed.value = kfRes.status === 'fulfilled' ? (kfRes.value.events || []).slice(0, 8) : []
+function applyPulse(tpRes) {
   if (tpRes.status === 'fulfilled') {
     const byKey = new Map((tpRes.value.categories || []).map((c) => [c.key, c]))
     // Keep the curated order, only categories that (a) have players and (b) whose
@@ -714,12 +690,11 @@ onMounted(async () => {
   const slugAtStart = serverState.activeSlug
 
   // Fetch all data in parallel
-  const [stats, rankings, shots, , kf, tp] = await Promise.allSettled([
+  const [stats, rankings, shots, , tp] = await Promise.allSettled([
     getServerStats(),
     getNationRankings(),
     getLandingScreenshots(),
     fetchServers(),
-    getKillfeed(),
     getPlayersTop(),
   ])
 
@@ -727,7 +702,7 @@ onMounted(async () => {
     screenshots.value = shots.value || []
     buildGalleryCells()
   }
-  applyPulse(kf, tp)
+  applyPulse(tp)
   loadShop()
   loadDonors()
 
@@ -1207,9 +1182,9 @@ function nationAccent(nation) {
     </div>
   </section>
 
-  <!-- ═══════════════════════ SERVER PULSE (killfeed + top players) ═══════════════════════ -->
+  <!-- ═══════════════════════ SERVER PULSE (top players) ═══════════════════════ -->
   <section
-    v-if="!pulseLoading && (showKillfeed || showTopPlayers)"
+    v-if="!pulseLoading && showTopPlayers"
     class="pulse-section"
   >
     <div class="container-shell">
@@ -1225,28 +1200,7 @@ function nationAccent(nation) {
         </p>
       </div>
 
-      <div class="pulse-grid" :class="soloTop ? 'pulse-grid--solo' : (!(showKillfeed && showTopPlayers) ? 'pulse-grid--single' : '')">
-        <!-- Live killfeed -->
-        <div v-if="showKillfeed" class="pulse-card" data-reveal>
-          <div class="pulse-card__head">
-            <span class="pulse-card__title">
-              <span class="pulse-live"><span class="pulse-live__dot"></span>LIVE</span>
-              {{ t('pulse.killfeed') }}
-            </span>
-            <RouterLink to="/killfeed" class="pulse-card__link">{{ t('pulse.all') }}</RouterLink>
-          </div>
-          <ul class="kf-list">
-            <li v-for="(e, i) in killfeed" :key="i" class="kf-row">
-              <svg class="kf-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14.5 17.5 3 6V3h3l11.5 11.5"/><path d="m13 19 6-6"/><path d="m16 16 4 4"/><path d="m19 21 2-2"/></svg>
-              <span class="kf-killer">{{ e.killer_nick }}</span>
-              <span class="kf-verb">{{ t('pulse.killed') }}</span>
-              <span class="kf-victim">{{ e.victim_nick }}</span>
-              <span v-if="e.weapon" class="kf-weapon">· {{ fmtWeapon(e.weapon) }}</span>
-              <span class="kf-time">{{ timeAgo(e.created_at) }}</span>
-            </li>
-          </ul>
-        </div>
-
+      <div class="pulse-grid pulse-grid--solo">
         <!-- Top players -->
         <div v-if="showTopPlayers" class="pulse-card" :class="{ 'pulse-card--wide': soloTop }" data-reveal>
           <div class="pulse-card__head">
@@ -1287,7 +1241,7 @@ function nationAccent(nation) {
             </ul>
           </template>
 
-          <!-- Compact list (paired with killfeed) -->
+          <!-- Compact list (fewer than three players) -->
           <ul v-else class="tp-list">
             <li v-for="p in topEntries" :key="p.rank" class="tp-row" :class="`tp-row--${p.rank}`">
               <span class="tp-rank">{{ p.rank }}</span>
@@ -3125,7 +3079,7 @@ function nationAccent(nation) {
 }
 
 /* ════════════════════════════════════
-   SERVER PULSE (killfeed + top players)
+   SERVER PULSE (top players)
 ════════════════════════════════════ */
 .pulse-section { padding: 0 0 5rem; }
 .pulse-grid {
@@ -3133,7 +3087,6 @@ function nationAccent(nation) {
   margin-top: 2.2rem;
 }
 @media (max-width: 860px) { .pulse-grid { grid-template-columns: minmax(0, 1fr); } }
-.pulse-grid--single { grid-template-columns: minmax(0, 620px); justify-content: center; }
 .pulse-grid--solo { grid-template-columns: minmax(0, 1fr); }
 .pulse-card--wide { padding: 1.25rem 1.5rem 1.5rem; }
 
@@ -3154,24 +3107,6 @@ function nationAccent(nation) {
 .pulse-card__cat { color: #64748b; font-weight: 600; font-size: .82rem; }
 .pulse-card__link { font-size: .74rem; font-weight: 700; color: var(--srv-pale, #a78bfa); text-decoration: none; white-space: nowrap; }
 .pulse-card__link:hover { text-decoration: underline; }
-
-.pulse-live { display: inline-flex; align-items: center; gap: .32rem; font-size: .64rem; font-weight: 900; letter-spacing: .08em; color: #f87171; }
-.pulse-live__dot { width: 6px; height: 6px; border-radius: 999px; background: #f87171; animation: pulse-dot 1.4s ease-in-out infinite; }
-
-/* Killfeed */
-.kf-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: .1rem; }
-.kf-row {
-  display: flex; align-items: center; gap: .4rem; flex-wrap: wrap;
-  padding: .45rem .3rem; border-radius: 8px; font-size: .82rem;
-  transition: background-color .12s;
-}
-.kf-row:hover { background: rgba(255,255,255,.03); }
-.kf-icon { width: 14px; height: 14px; color: #f87171; flex-shrink: 0; }
-.kf-killer { font-weight: 700; color: #e8ecf4; }
-.kf-verb { color: #64748b; font-size: .76rem; }
-.kf-victim { font-weight: 700; color: #fca5a5; }
-.kf-weapon { color: #64748b; font-size: .76rem; }
-.kf-time { margin-left: auto; color: #475569; font-size: .72rem; white-space: nowrap; }
 
 /* Top players */
 .tp-tabs { display: flex; flex-wrap: wrap; gap: .3rem; margin-bottom: .7rem; }
