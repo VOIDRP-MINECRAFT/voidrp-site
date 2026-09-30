@@ -7,6 +7,7 @@ import { authState } from '../../stores/authStore'
 import { confirmTelegram, confirmTotp, getMfaStatus, sendTelegramCode, startTotp } from '../../services/securityApi'
 import { toastSuccess } from '../../services/toast'
 import BackupCodes from './BackupCodes.vue'
+import { passkeysSupported, registerPasskey } from '../../services/passkeys'
 
 const props = defineProps({ only: { type: String, default: null } }) // 'totp' | 'telegram' | null
 const emit = defineEmits(['done', 'cancel'])
@@ -38,6 +39,27 @@ async function beginTotp() {
     const res = await startTotp(token())
     secret.value = res.secret
     qr.value = await QRCode.toDataURL(res.uri, { margin: 1, width: 220, color: { dark: '#0b0b12', light: '#ffffff' } })
+  } catch (e) {
+    error.value = e.message
+  } finally {
+    busy.value = false
+  }
+}
+
+const canPasskey = passkeysSupported()
+async function beginPasskey() {
+  busy.value = true
+  error.value = ''
+  try {
+    const res = await registerPasskey()
+    if (!res) return
+    toastSuccess(t('security.mfa.passkeyAdded'))
+    if (res.backup_codes?.length) {
+      codes.value = res.backup_codes
+      step.value = 'codes'
+    } else {
+      emit('done')
+    }
   } catch (e) {
     error.value = e.message
   } finally {
@@ -92,6 +114,12 @@ async function copySecret() {
   <div class="ms">
     <!-- Выбор способа -->
     <div v-if="step === 'choose'" class="ms-choose">
+      <button type="button" class="ms-opt ms-opt--primary" :disabled="!canPasskey || busy" @click="beginPasskey">
+        <span class="ms-opt__ico ms-opt__ico--key">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 11c0 3-1 6-3 8M8 5.5A7 7 0 0 1 19 11c0 1.3-.1 2.6-.4 3.8M5 9.5A7 7 0 0 0 5 12c0 2-.5 3.8-1.4 5.3"/><path d="M15.5 12.5c0 2.8-.7 5.3-2 7.5M12 8a3 3 0 0 0-3 3c0 1.9-.3 3.6-1 5.2"/></svg>
+        </span>
+        <span class="ms-opt__txt"><b>{{ t('security.mfa.passkey') }}</b><small>{{ canPasskey ? t('security.mfa.passkeyDesc') : t('security.mfa.passkeyUnsupported') }}</small></span>
+      </button>
       <button type="button" class="ms-opt" @click="beginTotp">
         <span class="ms-opt__ico">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="6" y="2" width="12" height="20" rx="2.5"/><path d="M11 18h2"/></svg>
@@ -105,6 +133,8 @@ async function copySecret() {
         <span class="ms-opt__txt"><b>{{ t('security.mfa.telegram') }}</b><small>{{ status && !status.telegram_linked ? t('security.mfa.telegramNotLinked') : t('security.mfa.telegramDesc') }}</small></span>
       </button>
     </div>
+
+    <p v-if="step === 'choose' && error" class="ms-err">{{ error }}</p>
 
     <!-- Приложение -->
     <div v-else-if="step === 'totp'" class="ms-totp">
@@ -153,6 +183,8 @@ async function copySecret() {
 .ms-opt:disabled { opacity: 0.55; cursor: not-allowed; }
 .ms-opt__ico { width: 2.4rem; height: 2.4rem; border-radius: 10px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; background: color-mix(in srgb, var(--ms-acc) 18%, transparent); color: var(--ms-acc); }
 .ms-opt__ico svg { width: 1.2rem; height: 1.2rem; }
+.ms-opt--primary { border-color: color-mix(in srgb, var(--ms-acc) 45%, transparent); background: color-mix(in srgb, var(--ms-acc) 7%, transparent); }
+.ms-opt__ico--key { background: color-mix(in srgb, #34d399 16%, transparent); color: #34d399; }
 .ms-opt__ico--tg { background: rgba(42, 171, 238, 0.15); color: #2aabee; }
 .ms-opt__txt { display: flex; flex-direction: column; gap: 0.15rem; min-width: 0; }
 .ms-opt__txt b { font-size: 0.92rem; }

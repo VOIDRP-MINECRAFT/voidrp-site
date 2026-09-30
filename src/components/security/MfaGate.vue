@@ -6,6 +6,7 @@ import { RouterLink } from 'vue-router'
 import { authState, logoutCurrentSession } from '../../stores/authStore'
 import { getMfaStatus, sendTelegramCode, verifyMfa } from '../../services/securityApi'
 import MfaSetup from './MfaSetup.vue'
+import { passkeysSupported, signInWithPasskey } from '../../services/passkeys'
 
 const props = defineProps({ mode: { type: String, required: true } }) // 'setup' | 'verify'
 const emit = defineEmits(['done'])
@@ -31,6 +32,20 @@ async function submit() {
   } catch (e) {
     error.value = e.message
     code.value = ''
+  } finally {
+    busy.value = false
+  }
+}
+
+const canPasskey = passkeysSupported()
+async function usePasskey() {
+  busy.value = true
+  error.value = ''
+  try {
+    const res = await signInWithPasskey()
+    if (res) emit('done')
+  } catch (e) {
+    error.value = e.message
   } finally {
     busy.value = false
   }
@@ -67,6 +82,13 @@ async function logout() {
       <MfaSetup v-if="mode === 'setup'" @done="emit('done')" />
 
       <template v-else>
+        <template v-if="status?.passkey && canPasskey">
+          <button type="button" class="mg__key" :disabled="busy" @click="usePasskey">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 11c0 3-1 6-3 8M8 5.5A7 7 0 0 1 19 11c0 1.3-.1 2.6-.4 3.8M5 9.5A7 7 0 0 0 5 12c0 2-.5 3.8-1.4 5.3"/><path d="M15.5 12.5c0 2.8-.7 5.3-2 7.5M12 8a3 3 0 0 0-3 3c0 1.9-.3 3.6-1 5.2"/></svg>
+            {{ t('security.gate.usePasskey') }}
+          </button>
+          <div class="mg__or"><span>{{ t('security.gate.or') }}</span></div>
+        </template>
         <form class="mg__form" @submit.prevent="submit">
           <input
             v-model="code" class="mg__input" autocomplete="one-time-code" maxlength="12" autofocus
@@ -108,6 +130,11 @@ async function logout() {
 .mg__input:focus { outline: none; border-color: var(--adm-acc, #7c3aed); }
 .mg__btn { padding: 0.75rem 1.1rem; border-radius: 10px; border: none; background: var(--adm-acc, #7c3aed); color: #fff; font-weight: 800; cursor: pointer; }
 .mg__btn:disabled { opacity: 0.5; cursor: not-allowed; }
+.mg__key { width: 100%; display: flex; align-items: center; justify-content: center; gap: 0.6rem; padding: 0.85rem 1rem; border-radius: 11px; border: none; background: var(--adm-acc, #7c3aed); color: #fff; font-weight: 800; font-size: 0.95rem; cursor: pointer; }
+.mg__key:disabled { opacity: 0.6; }
+.mg__key svg { width: 1.3rem; height: 1.3rem; }
+.mg__or { display: flex; align-items: center; gap: 0.7rem; margin: 1rem 0; font-size: 0.72rem; color: var(--adm-dim, #55617a); }
+.mg__or::before, .mg__or::after { content: ''; flex: 1; height: 1px; background: var(--adm-line, rgba(148, 163, 184, 0.1)); }
 .mg__err { margin: 0.6rem 0 0; font-size: 0.82rem; color: var(--adm-err, #f87171); }
 .mg__alt { display: flex; align-items: center; gap: 0.9rem; flex-wrap: wrap; margin-top: 1rem; }
 .mg__tg { display: inline-flex; align-items: center; gap: 0.45rem; padding: 0.5rem 0.8rem; border-radius: 9px; border: 1px solid rgba(42, 171, 238, 0.35); background: rgba(42, 171, 238, 0.12); color: #7cd0f7; font-weight: 700; font-size: 0.8rem; cursor: pointer; }

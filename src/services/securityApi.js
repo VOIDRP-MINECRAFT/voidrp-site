@@ -20,3 +20,10 @@ export const endOtherDevices = (token) => post(token, '/auth/devices/end-others'
 export const staffDevices = (token, userId) => apiRequest(`/admin/moderators/${userId}/devices`, opts(token))
 export const staffEndSessions = (token, userId) => post(token, `/admin/moderators/${userId}/end-sessions`)
 export const staffMfaReset = (token, userId) => post(token, `/admin/moderators/${userId}/mfa-reset`)
+
+// Passkeys (WebAuthn): the browser part is @simplewebauthn/browser.
+export const passkeyRegisterOptions = (token) => post(token, '/auth/mfa/passkey/register/options')
+export const passkeyRegisterVerify = (token, credential, name = null) => post(token, '/auth/mfa/passkey/register/verify', { credential, name })
+export const passkeyAuthOptions = (token) => post(token, '/auth/mfa/passkey/auth/options')
+export const passkeyAuthVerify = (token, credential) => post(token, '/auth/mfa/passkey/auth/verify', { credential })
+export const deletePasskey = (token, id) => apiRequest(`/auth/mfa/passkeys/${id}`, opts(token, { method: 'DELETE' }))

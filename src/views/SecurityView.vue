@@ -5,10 +5,12 @@ import { useI18n } from 'vue-i18n'
 import { RouterLink } from 'vue-router'
 import { authState } from '../stores/authStore'
 import { confirmDialog } from '../composables/useConfirm'
-import { toastSuccess } from '../services/toast'
+import { toastError, toastSuccess } from '../services/toast'
 import { disableMfa, endDevice, endOtherDevices, getMfaStatus, listDevices, newBackupCodes } from '../services/securityApi'
 import MfaSetup from '../components/security/MfaSetup.vue'
 import BackupCodes from '../components/security/BackupCodes.vue'
+import { deletePasskey } from '../services/securityApi'
+import { passkeysSupported, registerPasskey } from '../services/passkeys'
 
 const { t, locale } = useI18n()
 const token = () => authState.accessToken
@@ -67,6 +69,29 @@ async function regenerate() {
     codes.value = res.backup_codes
   } catch { /* shown already */ }
 }
+const canPasskey = passkeysSupported()
+const keyBusy = ref(false)
+async function addKey() {
+  keyBusy.value = true
+  try {
+    const res = await registerPasskey()
+    if (!res) return
+    toastSuccess(t('security.mfa.passkeyAdded'))
+    if (res.backup_codes?.length) codes.value = res.backup_codes
+    await load()
+  } catch (e) {
+    if (!e?.securityCode) toastError(e?.message || 'Error')
+  } finally {
+    keyBusy.value = false
+  }
+}
+async function removeKey(k) {
+  try {
+    status.value = await deletePasskey(token(), k.id)
+    toastSuccess(t('security.mfa.passkeyDeleted'))
+  } catch { /* shown already */ }
+}
+
 function onSetupDone() {
   setup.value = null
   load()
@@ -105,6 +130,19 @@ function onSetupDone() {
           <BackupCodes :codes="codes" @done="codes = null; load()" />
         </div>
         <ul v-else class="sec-methods">
+          <li class="sec-m--keys">
+            <span class="sec-m__ico sec-m__ico--key"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 11c0 3-1 6-3 8M8 5.5A7 7 0 0 1 19 11c0 1.3-.1 2.6-.4 3.8M5 9.5A7 7 0 0 0 5 12c0 2-.5 3.8-1.4 5.3"/><path d="M15.5 12.5c0 2.8-.7 5.3-2 7.5M12 8a3 3 0 0 0-3 3c0 1.9-.3 3.6-1 5.2"/></svg></span>
+            <span class="sec-m__txt">
+              <b>{{ t('security.mfa.passkeys') }}</b>
+              <small>{{ canPasskey ? t('security.mfa.passkeyDesc') : t('security.mfa.passkeyUnsupported') }}</small>
+              <span v-for="k in status.passkeys" :key="k.id" class="sec-key">
+                <span class="sec-key__name">{{ k.name }}</span>
+                <span class="sec-key__meta">{{ k.last_used_at ? t('security.mfa.passkeyUsed', { when: ago(k.last_used_at) }) : t('security.mfa.passkeyCreated', { when: ago(k.created_at) }) }}<template v-if="k.synced"> · {{ t('security.mfa.passkeySynced') }}</template></span>
+                <button type="button" class="sec-link sec-key__rm" @click="removeKey(k)">{{ t('security.mfa.remove') }}</button>
+              </span>
+            </span>
+            <button type="button" class="sec-btn" :disabled="!canPasskey || keyBusy" @click="addKey">{{ t('security.mfa.passkeyAdd') }}</button>
+          </li>
           <li>
             <span class="sec-m__ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="6" y="2" width="12" height="20" rx="2.5"/><path d="M11 18h2"/></svg></span>
             <span class="sec-m__txt"><b>{{ t('security.mfa.app') }}</b><small>{{ t('security.mfa.appDesc') }}</small></span>
@@ -183,6 +221,12 @@ function onSetupDone() {
 .sec-methods li { display: flex; align-items: center; gap: 0.8rem; padding: 0.75rem 0; border-top: 1px solid rgba(148, 163, 184, 0.08); }
 .sec-m__ico { width: 2.2rem; height: 2.2rem; border-radius: 10px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; background: rgba(124, 58, 237, 0.14); color: #a78bfa; }
 .sec-m__ico svg { width: 1.1rem; height: 1.1rem; }
+.sec-m__ico--key { background: rgba(52, 211, 153, 0.14); color: #34d399; }
+.sec-methods li.sec-m--keys { align-items: flex-start; }
+.sec-key { display: flex; align-items: baseline; gap: 0.5rem; flex-wrap: wrap; margin-top: 0.35rem; padding: 0.35rem 0.55rem; border-radius: 8px; background: rgba(255, 255, 255, 0.03); border: 1px solid rgba(148, 163, 184, 0.1); }
+.sec-key__name { font-size: 0.8rem; font-weight: 700; color: #e8ecf4; }
+.sec-key__meta { font-size: 0.7rem; color: #7d879c; flex: 1; }
+.sec-key__rm { font-size: 0.72rem; color: #fca5a5; }
 .sec-m__ico--tg { background: rgba(42, 171, 238, 0.14); color: #2aabee; }
 .sec-m__txt { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 0.1rem; }
 .sec-m__txt b { font-size: 0.9rem; }
