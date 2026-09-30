@@ -115,15 +115,17 @@ export function canManageStaff() {
   if (!u) return false
   if (u.is_admin) return true
   if (Array.isArray(u.administered_servers) && u.administered_servers.length) return true
-  const keys = ['roles.manage', 'roles.assign', 'badges.manage', 'badges.assign', 'staff.manage']
+  const keys = ['roles.manage', 'roles.assign', 'badges.manage', 'badges.assign', 'staff.manage', 'staff.sessions', 'staff.mfa.reset']
   if (Array.isArray(u.permissions) && keys.some((k) => u.permissions.includes(k))) return true
   return Object.values(u.server_permissions || {}).some((list) => keys.some((k) => list.includes(k)))
 }
 
-// Вкладка «Сотрудники» (личные права): админы платформы и право staff.manage.
+// Вкладка «Сотрудники»: админы платформы, право staff.manage (личные права) и права на
+// входы и 2FA сотрудников (staff.sessions, staff.mfa.reset).
 export function canSeeStaffTab() {
   const u = authState.user
-  return !!u && (u.is_admin || (Array.isArray(u.permissions) && u.permissions.includes('staff.manage')))
+  const keys = ['staff.manage', 'staff.sessions', 'staff.mfa.reset']
+  return !!u && (u.is_admin || (Array.isArray(u.permissions) && keys.some((k) => u.permissions.includes(k))))
 }
 
 export async function refreshCurrentSessionSilently() {

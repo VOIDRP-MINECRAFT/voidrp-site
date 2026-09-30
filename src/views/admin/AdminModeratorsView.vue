@@ -27,6 +27,8 @@ const srvName = (slug) => serverNames.value[slug] || servers.value.find((v) => v
 const isOwner = computed(() => !!me.value?.owner)
 const isPlatform = computed(() => !!me.value?.platform_admin)
 const canPersonal = computed(() => !!me.value?.can_staff)
+const canSessions = computed(() => !!me.value?.can_sessions)
+const canMfaReset = computed(() => !!me.value?.can_mfa_reset)
 // Что зритель может выдать лично: админ платформы — всё; остальные — только свои права
 // (на всех серверах или на этом сервере). Бэкенд проверяет то же (Authority.may_grant).
 function canGrant(key, slug = null) {
@@ -536,8 +538,8 @@ onMounted(load)
         </ul>
         <p v-else class="md-devs__sub">Активных входов нет.</p>
         <div class="md-editor__actions">
-          <button v-if="isPlatform && devicesOf.mfa_enabled" class="adm-btn" @click="resetMfa">Сбросить 2FA</button>
-          <button class="adm-btn adm-btn--danger" :disabled="!devicesOf.items.length" @click="endAll">Завершить все входы</button>
+          <button v-if="canMfaReset && devicesOf.mfa_enabled" class="adm-btn" @click="resetMfa">Сбросить 2FA</button>
+          <button v-if="canSessions" class="adm-btn adm-btn--danger" :disabled="!devicesOf.items.length" @click="endAll">Завершить все входы</button>
         </div>
       </div>
     </div>
@@ -594,7 +596,7 @@ onMounted(load)
               </td>
               <td>
                 <div v-if="m.editable" class="md-row__actions">
-                  <button class="adm-btn adm-btn--sm" @click="openDevices(m)">Входы · {{ m.devices }}</button>
+                  <button v-if="canSessions || canMfaReset" class="adm-btn adm-btn--sm" @click="openDevices(m)">Входы · {{ m.devices }}</button>
                   <template v-if="m.role !== 'admin'">
                     <button v-if="canPersonal" class="adm-btn adm-btn--sm" @click="startEdit(m)">Права</button>
                     <button v-if="isPlatform" class="adm-btn adm-btn--sm" @click="openAdmin(m)">{{ m.role === 'server_admin' ? 'Админство' : 'Сделать админом' }}</button>
