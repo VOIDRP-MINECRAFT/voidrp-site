@@ -2383,6 +2383,7 @@ export default {
     sub: 'Two-factor authentication and the devices signed in to your account',
     open: 'Security',
     mfa: {
+      rename: 'Rename',
       passkey: 'Passkey',
       passkeyDesc: 'Windows Hello, Face ID / Touch ID, Android fingerprint, a YubiKey or a password manager — one touch',
       passkeys: 'Passkeys',

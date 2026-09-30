@@ -27,3 +27,4 @@ export const passkeyRegisterVerify = (token, credential, name = null) => post(to
 export const passkeyAuthOptions = (token) => post(token, '/auth/mfa/passkey/auth/options')
 export const passkeyAuthVerify = (token, credential) => post(token, '/auth/mfa/passkey/auth/verify', { credential })
 export const deletePasskey = (token, id) => apiRequest(`/auth/mfa/passkeys/${id}`, opts(token, { method: 'DELETE' }))
+export const renamePasskey = (token, id, name) => apiRequest(`/auth/mfa/passkeys/${id}`, opts(token, { method: 'PATCH', body: JSON.stringify({ name }) }))

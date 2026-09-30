@@ -9,7 +9,7 @@ import { toastError, toastSuccess } from '../services/toast'
 import { disableMfa, endDevice, endOtherDevices, getMfaStatus, listDevices, newBackupCodes } from '../services/securityApi'
 import MfaSetup from '../components/security/MfaSetup.vue'
 import BackupCodes from '../components/security/BackupCodes.vue'
-import { deletePasskey } from '../services/securityApi'
+import { deletePasskey, renamePasskey } from '../services/securityApi'
 import { passkeysSupported, registerPasskey } from '../services/passkeys'
 
 const { t, locale } = useI18n()
@@ -85,6 +85,13 @@ async function addKey() {
     keyBusy.value = false
   }
 }
+const renaming = ref(null)   // { id, name }
+async function saveName() {
+  const r = renaming.value
+  renaming.value = null
+  if (!r || !r.name.trim()) return
+  try { status.value = await renamePasskey(token(), r.id, r.name.trim()) } catch { /* shown already */ }
+}
 async function removeKey(k) {
   try {
     status.value = await deletePasskey(token(), k.id)
@@ -136,7 +143,14 @@ function onSetupDone() {
               <b>{{ t('security.mfa.passkeys') }}</b>
               <small>{{ canPasskey ? t('security.mfa.passkeyDesc') : t('security.mfa.passkeyUnsupported') }}</small>
               <span v-for="k in status.passkeys" :key="k.id" class="sec-key">
-                <span class="sec-key__name">{{ k.name }}</span>
+                <input
+                  v-if="renaming?.id === k.id" v-model="renaming.name" class="sec-key__input" maxlength="80" autofocus
+                  @keydown.enter.prevent="saveName" @keydown.esc="renaming = null" @blur="saveName"
+                />
+                <button v-else type="button" class="sec-key__name" :title="t('security.mfa.rename')" @click="renaming = { id: k.id, name: k.name }">
+                  {{ k.name }}
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 20h4L19 9a2.8 2.8 0 0 0-4-4L4 16Z"/></svg>
+                </button>
                 <span class="sec-key__meta">{{ k.last_used_at ? t('security.mfa.passkeyUsed', { when: ago(k.last_used_at) }) : t('security.mfa.passkeyCreated', { when: ago(k.created_at) }) }}<template v-if="k.synced"> · {{ t('security.mfa.passkeySynced') }}</template></span>
                 <button type="button" class="sec-link sec-key__rm" @click="removeKey(k)">{{ t('security.mfa.remove') }}</button>
               </span>
@@ -224,7 +238,10 @@ function onSetupDone() {
 .sec-m__ico--key { background: rgba(52, 211, 153, 0.14); color: #34d399; }
 .sec-methods li.sec-m--keys { align-items: flex-start; }
 .sec-key { display: flex; align-items: baseline; gap: 0.5rem; flex-wrap: wrap; margin-top: 0.35rem; padding: 0.35rem 0.55rem; border-radius: 8px; background: rgba(255, 255, 255, 0.03); border: 1px solid rgba(148, 163, 184, 0.1); }
-.sec-key__name { font-size: 0.8rem; font-weight: 700; color: #e8ecf4; }
+.sec-key__name { display: inline-flex; align-items: center; gap: 0.3rem; padding: 0; border: none; background: none; cursor: pointer; font-size: 0.8rem; font-weight: 700; color: #e8ecf4; }
+.sec-key__name svg { width: 0.7rem; height: 0.7rem; opacity: 0.4; }
+.sec-key__name:hover svg { opacity: 0.9; }
+.sec-key__input { font-size: 0.8rem; font-weight: 700; padding: 0.15rem 0.4rem; border-radius: 6px; border: 1px solid #7c3aed; background: rgba(0, 0, 0, 0.35); color: #e8ecf4; min-width: 10rem; }
 .sec-key__meta { font-size: 0.7rem; color: #7d879c; flex: 1; }
 .sec-key__rm { font-size: 0.72rem; color: #fca5a5; }
 .sec-m__ico--tg { background: rgba(42, 171, 238, 0.14); color: #2aabee; }
