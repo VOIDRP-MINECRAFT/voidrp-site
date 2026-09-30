@@ -9,7 +9,11 @@ import { toastError, toastSuccess } from '../../services/toast'
 // the ticket TTL in the backend .env, the rest as -Dvoidrp.auth.* JVM flags in
 // youer.service. They are now per-server rows the auth-bridge mod polls, so a
 // change applies within seconds without restarting anything.
-const FIELDS = [
+// How the server logs players in decides what three of the fields mean: the auth-bridge mod
+// (modded / hybrid cores) or the VoidRpAuth plugin (Paper / Folia), which reads the same
+// settings from here since 1.3.0.
+const byPlugin = computed(() => ['paper', 'folia'].includes((activeServer.value?.server_core || '').toLowerCase()))
+const FIELDS = computed(() => [
   {
     key: 'play_ticket_expire_minutes',
     label: 'Срок жизни тикета лаунчера',
@@ -18,28 +22,48 @@ const FIELDS = [
     applies: 'Действует сразу — на все новые тикеты.',
   },
   {
-    key: 'auth_grace_seconds',
-    label: 'Время на авторизацию',
-    unit: 'сек',
-    hint: 'Сколько игрок может стоять на сервере неавторизованным, прежде чем его кикнет.',
-    applies: 'Действует сразу — в том числе на тех, кто уже ждёт.',
-    zeroMeans: 'Безлимитный вход — не кикать вообще',
+    key: 'ip_ticket_minutes',
+    label: 'Вход по нику и IP',
+    unit: 'мин',
+    hint: 'Сколько минут после выдачи сервер может сам узнать игрока по нику и IP, без пропуска от клиента. Должно хватать на запуск игры и загрузку сборки на слабом ПК.',
+    applies: 'Действует сразу.',
   },
+  byPlugin.value
+    ? {
+        key: 'auth_grace_seconds',
+        label: 'Время на ввод пароля',
+        unit: 'сек',
+        hint: 'Сколько окно входа VoidRpAuth ждёт пароль, прежде чем отключить игрока.',
+        applies: 'Плагин берёт значение раз в минуту.',
+        zeroMeans: 'Ждать час (окно не может висеть вечно)',
+      }
+    : {
+        key: 'auth_grace_seconds',
+        label: 'Время на авторизацию',
+        unit: 'сек',
+        hint: 'Сколько игрок может стоять на сервере неавторизованным, прежде чем его кикнет.',
+        applies: 'Действует сразу — в том числе на тех, кто уже ждёт.',
+        zeroMeans: 'Безлимитный вход — не кикать вообще',
+      },
   {
     key: 'request_timeout_ms',
     label: 'Таймаут запроса к бэкенду',
     unit: 'мс',
-    hint: 'Сколько мод ждёт ответа от сайта при проверке аккаунта. Мало — кики на лагах сети, много — долгий вход при недоступном бэкенде.',
-    applies: 'Действует со следующего запроса.',
+    hint: byPlugin.value
+      ? 'Сколько плагин ждёт ответа сайта при входе. Больше минуты плагин не ждёт, чтобы окно входа не зависало.'
+      : 'Сколько мод ждёт ответа от сайта при проверке аккаунта. Мало — кики на лагах сети, много — долгий вход при недоступном бэкенде.',
+    applies: byPlugin.value ? 'Плагин берёт значение раз в минуту.' : 'Действует со следующего запроса.',
   },
   {
     key: 'reconnect_grant_minutes',
-    label: 'Окно переподключения',
+    label: byPlugin.value ? 'Вход без пароля после выхода' : 'Окно переподключения',
     unit: 'мин',
-    hint: 'Сколько после вылета можно вернуться без повторного входа через лаунчер. Важно при крашах и зависаниях сохранения.',
-    applies: 'Действует сразу — на все новые вылеты.',
+    hint: byPlugin.value
+      ? 'Сколько после выхода игрок заходит снова с того же адреса без пароля (аккаунт всё равно перепроверяется).'
+      : 'Сколько после вылета можно вернуться без повторного входа через лаунчер. Важно при крашах и зависаниях сохранения.',
+    applies: byPlugin.value ? 'Плагин берёт значение раз в минуту.' : 'Действует сразу — на все новые вылеты.',
   },
-]
+])
 
 const loading = ref(false)
 const saving = ref(false)
@@ -53,11 +77,11 @@ const serverId = computed(() => activeServer.value?.id || null)
 const serverName = computed(() => activeServer.value?.name || 'сервер')
 
 const dirty = computed(() =>
-  FIELDS.some((f) => Number(form.value[f.key]) !== Number(saved.value[f.key])),
+  FIELDS.value.some((f) => Number(form.value[f.key]) !== Number(saved.value[f.key])),
 )
 
 const isDefault = computed(() =>
-  FIELDS.every((f) => Number(form.value[f.key]) === Number(defaults.value[f.key])),
+  FIELDS.value.every((f) => Number(form.value[f.key]) === Number(defaults.value[f.key])),
 )
 
 function boundsFor(key) {
@@ -75,7 +99,7 @@ function fieldError(key) {
   return ''
 }
 
-const hasErrors = computed(() => FIELDS.some((f) => fieldError(f.key)))
+const hasErrors = computed(() => FIELDS.value.some((f) => fieldError(f.key)))
 
 async function load() {
   if (!serverId.value) return
@@ -99,7 +123,7 @@ async function save() {
   saving.value = true
   try {
     const payload = {}
-    FIELDS.forEach((f) => {
+    FIELDS.value.forEach((f) => {
       payload[f.key] = Number(form.value[f.key])
     })
     const data = await updateAuthSettings(authState.accessToken, serverId.value, payload)
@@ -130,7 +154,7 @@ watch(serverId, load)
     <div class="adm-page__head">
       <div>
         <h1 class="adm-title">Авторизация</h1>
-        <p class="adm-sub">Таймауты входа для «{{ serverName }}». Применяются на лету, без перезапуска.</p>
+        <p class="adm-sub">Таймауты входа для «{{ serverName }}» · {{ byPlugin ? 'вход через плагин VoidRpAuth (1.3.0+)' : 'вход через мод voidrp-auth-bridge' }}. Применяются на лету, без перезапуска.</p>
       </div>
       <div class="adm-head-actions">
         <button class="adm-btn adm-btn--ghost" :disabled="loading || saving" @click="load">Обновить</button>
