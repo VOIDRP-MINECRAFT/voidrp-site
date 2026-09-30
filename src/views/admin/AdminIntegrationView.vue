@@ -23,6 +23,7 @@ async function load(silent = false) {
 }
 
 const server = computed(() => data.value?.server || {})
+const apiHost = computed(() => { try { return new URL(data.value?.api_url).host } catch { return 'api.void-rp.ru' } })
 const ours = computed(() => (data.value?.items || []).filter((i) => i.kind === 'ours'))
 const thirdParty = computed(() => Object.fromEntries((data.value?.items || []).filter((i) => i.kind === 'third_party').map((i) => [i.key, i])))
 const requiredOk = computed(() => (data.value?.required || []).every((r) => r.ok))
@@ -285,7 +286,7 @@ onBeforeUnmount(() => clearInterval(timer))
           <dt>Как обновить плагин?</dt>
           <dd>Скачайте новую версию, замените jar в <code>plugins</code> и перезапустите сервер. Конфиг менять не нужно.</dd>
           <dt>Пункт не становится зелёным</dt>
-          <dd>Проверьте строки плагина в логе сервера: «HTTP 401» — неверный секрет в конфиге, «ConnectException» — сервер не может достучаться до api.void-rp.ru (разрешите исходящие соединения на порт 443).</dd>
+          <dd>Проверьте строки плагина в логе сервера: «HTTP 401» — неверный секрет в конфиге, «ConnectException» — сервер не может достучаться до {{ apiHost }} (разрешите исходящие соединения на порт 443).</dd>
         </dl>
       </section>
     </template>

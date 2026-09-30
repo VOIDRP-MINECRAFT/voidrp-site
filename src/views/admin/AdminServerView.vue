@@ -34,7 +34,7 @@ const bannerInput = ref(null)
 
 const BLANK = {
   slug: '', name: '', description: '', icon_url: '', banner_url: '',
-  sort_order: 0, is_visible: true, is_default: false, staff_only: false, is_external: false, server_core: '',
+  sort_order: 0, is_visible: true, is_default: false, staff_only: false, is_external: false, server_core: '', ticket_hostname: false,
   host: '', port: 25565, mc_version: '1.21.1', loader: 'neoforge',
   java_version: 21, neoforge_version: '',
   pack_root: '', pack_base_url: '', manifest_url: '',
@@ -357,6 +357,7 @@ onMounted(load)
             <label class="chk"><input v-model="form.is_default" type="checkbox" :disabled="form.is_external || !platform" /> Сервер по умолчанию</label>
             <label class="chk"><input v-model="form.staff_only" type="checkbox" /> Только для админов</label>
             <label class="chk"><input v-model="form.is_external" type="checkbox" :disabled="!platform" /> Внешний сервер (чужой хост)</label>
+            <label class="chk" title="Лаунчер подключает игру к адресу «<пропуск>.<хост>», и плагин входа узнаёт игрока по адресу. Нужна wildcard-запись DNS для домена сервера (*.домен); без неё сервер станет недоступен. Вход по нику и IP работает и без этого."><input v-model="form.ticket_hostname" type="checkbox" /> Пропуск в адресе подключения (нужна wildcard-запись DNS)</label>
             <label class="fld fld--inline"><span>Ядро сервера</span>
               <select v-model="form.server_core" class="adm-select" :disabled="!platform">
                 <option value="">не указано</option>
