@@ -248,7 +248,7 @@ onBeforeUnmount(() => {
         <span v-else class="ib-sync__meta">Сервер ещё не прислал свои предметы, поэтому поиск идёт по всем известным</span>
       </div>
 
-      <div class="ib-grid">
+      <div class="ib-grid" :class="{ 'ib-grid--single': !canManage }">
         <!-- Список запрещённых -->
         <section class="adm-card ib-list">
           <div class="adm-card__head">
@@ -381,6 +381,7 @@ export default { directives: { focus: { mounted: (el) => el.focus() } } }
 .ib-sync__meta { margin-left: auto; color: var(--adm-dim); font-size: 0.8rem; }
 
 .ib-grid { display: grid; grid-template-columns: minmax(0, 1.25fr) minmax(0, 1fr); gap: 1rem; align-items: start; }
+.ib-grid--single { grid-template-columns: minmax(0, 1fr); }
 @media (max-width: 1100px) { .ib-grid { grid-template-columns: minmax(0, 1fr); } }
 
 .ib-listq { max-width: 220px; }
@@ -447,7 +448,7 @@ export default { directives: { focus: { mounted: (el) => el.focus() } } }
 .ib-settings__period { grid-column: 2; grid-row: 1; }
 .ib-preview {
   grid-column: 1 / -1; padding: 0.55rem 0.75rem; border-radius: var(--adm-r-sm);
-  background: rgba(0, 0, 0, 0.55); font-family: var(--adm-mono); font-size: 0.85rem; min-height: 2.2rem;
+  background: rgba(0, 0, 0, 0.55); font-size: 0.88rem; min-height: 2.2rem;
 }
 .ib-settings__actions { grid-column: 1 / -1; display: flex; gap: 0.5rem; }
 @media (max-width: 640px) {
