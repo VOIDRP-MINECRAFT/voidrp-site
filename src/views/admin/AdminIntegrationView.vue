@@ -298,7 +298,7 @@ onBeforeUnmount(() => clearInterval(timer))
 .it-step__title { display: flex; flex-wrap: wrap; align-items: center; gap: 0.4rem; font-weight: 700; color: var(--adm-text); }
 .it-step__text { margin-top: 0.15rem; font-size: 0.84rem; color: var(--adm-dim); }
 
-.it-howto__list { margin: 0; padding: 0.25rem 1.2rem 0.5rem 2.4rem; display: flex; flex-direction: column; gap: 0.45rem; font-size: 0.86rem; color: var(--adm-text); }
+.it-howto__list { list-style: decimal; margin: 0; padding: 0.25rem 1.2rem 0.5rem 2.4rem; display: flex; flex-direction: column; gap: 0.45rem; font-size: 0.86rem; color: var(--adm-text); }
 .it-howto code, .it-faq code { font-family: var(--adm-mono); font-size: 0.8em; background: var(--adm-card-2); padding: 0.05rem 0.3rem; border-radius: 4px; }
 .it-note { margin: 0 1rem 1rem; font-size: 0.8rem; color: var(--adm-dim); }
 
