@@ -53,6 +53,14 @@ const steps = computed(() => {
   const anticheat = moduleOf('anticheat')
   const grim = moduleOf('grim')
   const grimOff = moduleOff('grim')
+  const consoleM = moduleOf('console')
+  const consoleOff = moduleOff('console')
+  const logM = moduleOf('log')
+  const logOff = moduleOff('log')
+  const punish = moduleOf('punishments')
+  const punishOff = moduleOff('punishments')
+  const itemBans = moduleOf('item_bans')
+  const itemBansOff = moduleOff('item_bans')
   return [
     {
       title: 'Ядро сервера',
@@ -85,6 +93,35 @@ const steps = computed(() => {
       optional: true,
       warn: !chat && !!chatOff,
       text: chat ? `Работает: ${chat.plugin} ${chat.version || ''}` : chatOff ? `Выключен: ${chatOff.detail || 'без пояснения'}` : 'Делает VoidRpPerms 0.3.0+, если на сервере нет другого чат-плагина.',
+    },
+    {
+      title: 'Консоль, лог и чат без RCON',
+      ok: !!(consoleM && logM),
+      optional: true,
+      warn: !!(consoleOff || logOff),
+      text: consoleM && logM
+        ? `Работает: ${consoleM.plugin} ${consoleM.version || ''}. Консоль, лог и чат — в «Мониторинге»; RCON можно выключить.`
+        : consoleOff || logOff
+          ? `Выключено: ${(consoleOff || logOff).detail || 'без пояснения'}`
+          : 'VoidRpPerms 0.5.0+: команды из админки идут через него, лог и чат сервера видны в «Мониторинге».',
+    },
+    {
+      title: 'Баны и муты',
+      ok: !!punish,
+      optional: true,
+      warn: !punish && !!punishOff,
+      text: punish
+        ? `Работает: ${punish.plugin} ${punish.version || ''}. Выдаются в «Наказаниях», EssentialsX не нужен.`
+        : punishOff ? `Выключено: ${punishOff.detail || 'без пояснения'}` : 'VoidRpPerms 0.5.0+ держит баны и муты из «Наказаний» сам, без EssentialsX.',
+    },
+    {
+      title: 'Бан предметов',
+      ok: !!itemBans,
+      optional: true,
+      warn: !itemBans && !!itemBansOff,
+      text: itemBans
+        ? `Работает: ${itemBans.plugin} ${itemBans.version || ''}. ${server.value.item_bans_enabled ? 'Список — в разделе «Бан предметов».' : 'Раздел «Бан предметов» включает владелец в «Серверах».'}`
+        : itemBansOff ? `Выключено: ${itemBansOff.detail || 'без пояснения'}` : 'VoidRpPerms 0.5.0+ удаляет у игроков предметы из списка «Бан предметов».',
     },
     {
       title: 'Античит',
@@ -135,7 +172,10 @@ function ago(iso) {
 }
 const fmtSize = (b) => (b >= 1048576 ? `${(b / 1048576).toFixed(1)} МБ` : `${Math.max(1, Math.round(b / 1024))} КБ`)
 const fmtDate = (v) => (v ? new Date(v).toLocaleDateString('ru-RU', { day: '2-digit', month: '2-digit', year: 'numeric' }) : '')
-const MODULE_NAMES = { auth: 'вход', monitoring: 'мониторинг', perms: 'права', chat: 'чат', anticheat: 'античит', grim: 'GrimAC' }
+const MODULE_NAMES = {
+  auth: 'вход', monitoring: 'мониторинг', perms: 'права', chat: 'чат', anticheat: 'античит', grim: 'GrimAC',
+  console: 'консоль', log: 'лог и чат', item_bans: 'бан предметов', punishments: 'наказания',
+}
 
 let timer = null
 onMounted(() => {
@@ -195,7 +235,7 @@ onBeforeUnmount(() => clearInterval(timer))
             <li>Скачайте готовые конфиги (кнопка «Конфиг», нужен пароль) и положите по указанным путям — секрет и адрес уже вписаны.</li>
             <li>Запустите сервер. В логе должны появиться <code>[VoidRpAuth] VoidRpAuth включён</code> и <code>[VoidRpPerms] Связь с админкой включена</code>.</li>
             <li>Меньше чем через минуту пункты «Вход» и «Мониторинг» слева станут зелёными.</li>
-            <li>Закройте RCON фаерволом: мониторингу он больше не нужен.</li>
+            <li>Выключите RCON (<code>enable-rcon=false</code>): консоль, мониторинг и наказания идут через VoidRpPerms.</li>
           </ol>
           <ol v-else class="it-howto__list">
             <li>Остановите сервер.</li>

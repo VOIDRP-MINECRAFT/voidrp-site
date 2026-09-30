@@ -178,6 +178,8 @@ const serverName = computed(() => activeServer.value?.name || 'сервер')
 // ── State ───────────────────────────────────────────────────────────────────
 const metrics = ref(null)
 const live = ref(null)
+// Партнёрский сервер с VoidRpPerms 0.5.0+: команды идут очередью через плагин, не по RCON.
+const viaPlugin = computed(() => !!live.value?.console_via_plugin)
 const metricsErr = ref('')
 const firstLoad = ref(true)
 const autoRefresh = ref(true)
@@ -506,7 +508,7 @@ async function execRcon(command) {
     const res = await runRconCommand(token(), command)
     return { out: res.output || '(пусто)', error: false }
   } catch (e) {
-    return { out: e.message || 'Ошибка RCON', error: true }
+    return { out: e.message || (viaPlugin.value ? 'Сервер не выполнил команду' : 'Ошибка RCON'), error: true }
   }
 }
 
@@ -741,7 +743,7 @@ onBeforeUnmount(() => {
     <div class="adm-page__head">
       <div>
         <h1 class="adm-title">Мониторинг · {{ serverName }}</h1>
-        <p class="adm-sub">Ресурсы хоста, процесс сервера, RCON-консоль и логи выбранного сервера</p>
+        <p class="adm-sub">{{ viaPlugin ? 'Консоль, лог и чат через плагин VoidRpPerms — RCON не нужен' : 'Ресурсы хоста, процесс сервера, RCON-консоль и логи выбранного сервера' }}</p>
       </div>
       <div class="adm-head-actions">
         <span v-if="updatedAgo" class="ops-updated adm-mono">обновлено {{ updatedAgo }}</span>
@@ -1014,7 +1016,7 @@ onBeforeUnmount(() => {
       <!-- RCON console -->
       <div v-if="canRcon" class="adm-card ops-console">
         <div class="adm-card__head">
-          <h3 class="adm-card__title">RCON-консоль</h3>
+          <h3 class="adm-card__title">{{ viaPlugin ? 'Консоль' : 'RCON-консоль' }}</h3>
           <div class="ops-quick">
             <button v-for="q in quickCmds" :key="q.cmd" class="adm-btn adm-btn--sm" :disabled="rconBusy" @click="runQuick(q)">{{ q.label }}</button>
           </div>

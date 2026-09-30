@@ -124,7 +124,7 @@ onBeforeUnmount(() => { clearInterval(poll); document.removeEventListener('visib
     <div class="adm-page__head">
       <div>
         <h1 class="adm-title">Наказания</h1>
-        <p class="adm-sub">Баны и муты для «{{ activeServer?.name || 'сервера' }}» + глобальные · применяются в игре через RCON</p>
+        <p class="adm-sub">Баны и муты для «{{ activeServer?.name || 'сервера' }}» + глобальные · {{ activeServer?.modules?.includes('punishments') ? 'в игре их держит плагин VoidRpPerms' : 'применяются в игре командами на сервер' }}</p>
       </div>
       <div class="adm-head-actions">
         <button class="adm-btn" :disabled="loading" @click="load">Обновить</button>
