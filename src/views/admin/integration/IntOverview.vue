@@ -1,14 +1,22 @@
 <script setup>
 // «Обзор»: что сделать (по важности), модули сервера плитками, последние события.
-import { computed } from 'vue'
-import { ago, moduleTiles } from './util'
+import { computed, ref } from 'vue'
+import { ago, fmtDateTime, moduleTiles } from './util'
+import ConnectionMap from './ConnectionMap.vue'
+import StatusCharts from './StatusCharts.vue'
+import UptimeBars from './UptimeBars.vue'
+import DiagnosisPanel from './DiagnosisPanel.vue'
 
 const props = defineProps({
   data: { type: Object, required: true },
   todo: { type: Array, required: true },
   now: { type: Number, required: true },
+  canConfig: { type: Boolean, default: false },
 })
-const emit = defineEmits(['go'])
+const emit = defineEmits(['go', 'reload'])
+const showTiles = ref(false)
+const incidents = computed(() => props.data.incidents || [])
+const minutes = (m) => (m < 60 ? `${m} мин` : `${Math.floor(m / 60)} ч ${m % 60} мин`)
 
 const tiles = computed(() => moduleTiles(props.data))
 const history = computed(() => (props.data.history || []).slice(0, 8))
@@ -17,6 +25,12 @@ const ICON = { module_on: '▲', module_off: '▼', version: '↑', plugin_new: 
 
 <template>
   <div class="ov">
+    <section class="adm-card ov-map">
+      <div class="adm-card__head"><div class="adm-card__title">Схема подключения</div><span class="ov-muted">обновляется сама</span></div>
+      <div class="ov-pad"><ConnectionMap :data="data" :now="now" /></div>
+    </section>
+
+    <div class="ov-two">
     <!-- Что сделать -->
     <section class="adm-card ov-todo">
       <div class="adm-card__head"><div class="adm-card__title">Что сделать</div></div>
@@ -39,8 +53,34 @@ const ICON = { module_on: '▲', module_off: '▼', version: '↑', plugin_new: 
       </ul>
     </section>
 
+    <section id="ov-why" class="adm-card">
+      <div class="adm-card__head"><div class="adm-card__title">Почему? — диагностика</div></div>
+      <div class="ov-pad"><DiagnosisPanel :diagnosis="data.diagnosis || { headline: '—', findings: [] }" :can-config="canConfig" :external="!!data.server?.is_external" @reload="emit('reload')" /></div>
+    </section>
+    </div>
+
+    <section v-if="data.status" class="adm-card">
+      <div class="adm-card__head"><div class="adm-card__title">Сутки и месяц</div><span v-if="data.status.peak_24h != null" class="ov-muted">пик за сутки: {{ data.status.peak_24h }} игроков</span></div>
+      <div class="ov-pad ov-col">
+        <StatusCharts :status="data.status" :incidents="incidents" :history="data.history || []" />
+        <UptimeBars :status="data.status" />
+      </div>
+    </section>
+
+    <section v-if="incidents.length" class="adm-card">
+      <div class="adm-card__head"><div class="adm-card__title">Сбои за 30 дней</div><span class="ov-muted">{{ incidents.length }}</span></div>
+      <ul class="ov-inc">
+        <li v-for="i in incidents.slice(0, 8)" :key="i.id" class="ov-inc__row" :class="{ 'ov-inc__row--open': !i.ended_at }">
+          <span class="adm-dot" :class="i.ended_at ? (i.kind === 'down' ? 'adm-dot--err' : 'adm-dot--warn') : 'adm-dot--err'" />
+          <span class="ov-inc__what">{{ i.kind === 'down' ? 'Недоступен' : 'Тормозил' }} — {{ i.detail }}</span>
+          <span class="ov-inc__when">{{ fmtDateTime(i.started_at) }} · {{ i.ended_at ? minutes(i.minutes) : `идёт ${minutes(i.minutes)}` }}</span>
+        </li>
+      </ul>
+    </section>
+
     <!-- Модули -->
-    <section class="ov-tiles">
+    <button class="ov-toggle" @click="showTiles = !showTiles">{{ showTiles ? 'Скрыть модули подробно' : 'Модули подробно' }}</button>
+    <section v-if="showTiles" class="ov-tiles">
       <div v-for="m in tiles" :key="m.key" class="ov-tile" :class="`ov-tile--${m.state}`">
         <div class="ov-tile__head">
           <span class="adm-dot" :class="{ 'adm-dot--ok': m.state === 'ok', 'adm-dot--warn': m.state === 'warn', 'adm-dot--err': m.state === 'err' }" />
@@ -71,6 +111,16 @@ const ICON = { module_on: '▲', module_off: '▼', version: '↑', plugin_new: 
 
 <style scoped>
 .ov { display: flex; flex-direction: column; gap: 1rem; }
+.ov-two { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 1rem; align-items: start; }
+@media (max-width: 1100px) { .ov-two { grid-template-columns: minmax(0, 1fr); } }
+.ov-col { display: flex; flex-direction: column; gap: 1rem; }
+.ov-toggle { align-self: flex-start; border: 0; background: none; padding: 0; color: var(--adm-acc-text); font-size: 0.82rem; cursor: pointer; }
+.ov-inc { list-style: none; margin: 0; padding: 0 1rem 0.8rem; }
+.ov-inc__row { display: flex; gap: 0.6rem; align-items: baseline; padding: 0.4rem 0; border-bottom: 1px solid var(--adm-line); font-size: 0.83rem; color: var(--adm-text); }
+.ov-inc__row:last-child { border-bottom: 0; }
+.ov-inc__row--open .ov-inc__what { color: var(--adm-err); font-weight: 600; }
+.ov-inc__what { flex: 1; min-width: 0; }
+.ov-inc__when { color: var(--adm-faint); font-size: 0.75rem; white-space: nowrap; }
 .ov-muted { color: var(--adm-dim); font-size: 0.82rem; line-height: 1.45; }
 .ov-pad { padding: 0 1rem 1rem; }
 

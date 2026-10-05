@@ -3,7 +3,7 @@
 // состояние секрета после плавной смены.
 import { computed, ref } from 'vue'
 import { toastError, toastSuccess } from '../../../services/toast'
-import { saveIntegrationSettings, saveNotifyPrefs } from '../../../services/integrationApi'
+import { saveIntegrationSettings, saveNotifyPrefs, testDiscord } from '../../../services/integrationApi'
 import { copyText, fmtDateTime } from './util'
 
 const props = defineProps({
@@ -20,6 +20,21 @@ const permsSupports = computed(() => {
   return v[0] > 0 || v[1] >= 6
 })
 const secret = computed(() => props.data.secret || {})
+const webhook = ref(props.data.settings?.discord_webhook || '')
+const rw = ref({ ...(props.data.settings?.restart_window || { enabled: false, from: '04:00', to: '06:00' }) })
+async function saveWebhook() {
+  busy.value = 'hook'
+  try { await saveIntegrationSettings({ ...settings.value, discord_webhook: webhook.value.trim() || null }); emit('reload'); toastSuccess(webhook.value.trim() ? 'Вебхук сохранён' : 'Вебхук убран') } catch (e) { toastError(e?.message || 'Не удалось сохранить') } finally { busy.value = '' }
+}
+async function testWebhook() {
+  busy.value = 'hooktest'
+  try { await testDiscord(webhook.value.trim()); toastSuccess('Сообщение ушло — посмотрите канал') } catch (e) { toastError(e?.message || 'Discord не принял сообщение') } finally { busy.value = '' }
+}
+async function saveWindow(patch) {
+  rw.value = { ...rw.value, ...patch }
+  busy.value = 'rw'
+  try { await saveIntegrationSettings({ ...settings.value, restart_window: rw.value }); emit('reload'); toastSuccess('Сохранено') } catch (e) { toastError(e?.message || 'Не удалось сохранить') } finally { busy.value = '' }
+}
 
 const busy = ref('')
 async function setAuto(patch) {
@@ -64,6 +79,17 @@ async function setNotify(patch) {
             <span><b>Обновлять плагины VoidRP сами</b><br /><span class="up-muted">{{ settings.auto_update ? 'Включено' : 'Выключено' }}</span></span>
           </label>
           <label v-if="settings.auto_update" class="adm-check"><input type="checkbox" :checked="settings.beta" :disabled="busy === 'auto'" @change="setAuto({ beta: $event.target.checked })" /> Брать и бета-сборки</label>
+          <div v-if="settings.auto_update" class="up-window">
+            <label class="adm-check"><input type="checkbox" :checked="rw.enabled" :disabled="busy === 'rw'" @change="saveWindow({ enabled: $event.target.checked })" /> Перезапускать сервер, чтобы обновления встали сами</label>
+            <div v-if="rw.enabled" class="up-window__row">
+              <span>когда никого нет, с</span>
+              <input class="adm-input up-time" type="time" :value="rw.from" @change="saveWindow({ from: $event.target.value })" />
+              <span>до</span>
+              <input class="adm-input up-time" type="time" :value="rw.to" @change="saveWindow({ to: $event.target.value })" />
+              <span class="up-muted">МСК</span>
+            </div>
+            <p class="up-muted">Только если хостинг сам запускает остановленный сервер (у большинства панелей так и есть). VoidRpPerms 0.7.0+; не раньше чем через 10 минут после запуска.</p>
+          </div>
         </template>
         <p v-else class="up-muted">Включает тот, у кого есть право «Интеграция: скачивать готовые конфиги».</p>
       </div>
@@ -74,6 +100,22 @@ async function setNotify(patch) {
       <div class="up-pad">
         <p class="up-muted">Берёт секрет из конфига плагина — ссылка не нужна, можно поставить в cron. Добавьте <code>-s -- --dry-run</code>, чтобы только посмотреть, что обновится.</p>
         <div class="up-cmd"><code>{{ data.scripts?.update }}</code><button class="adm-btn adm-btn--sm" @click="copyText(data.scripts?.update)">Копировать</button></div>
+      </div>
+    </section>
+
+    <section class="adm-card">
+      <div class="adm-card__head"><div class="adm-card__title">Discord</div></div>
+      <div class="up-pad">
+        <p class="up-muted">Вебхук канала вашего Discord: туда придут новые версии плагинов VoidRP, сбои и восстановление сервера, смена секрета. Создаётся в настройках канала → «Интеграция» → «Вебхуки».</p>
+        <template v-if="canConfig">
+          <input v-model="webhook" class="adm-input" placeholder="https://discord.com/api/webhooks/…" />
+          <div class="up-row">
+            <button class="adm-btn adm-btn--sm adm-btn--acc" :disabled="busy === 'hook'" @click="saveWebhook">Сохранить</button>
+            <button class="adm-btn adm-btn--sm" :disabled="!webhook.trim() || busy === 'hooktest'" @click="testWebhook">Проверить</button>
+            <span v-if="settings.discord_webhook" class="up-okline up-small">подключён</span>
+          </div>
+        </template>
+        <p v-else class="up-muted">Настраивает тот, у кого есть право «Интеграция: скачивать готовые конфиги».</p>
       </div>
     </section>
 
@@ -113,6 +155,10 @@ async function setNotify(patch) {
 .up-row { display: flex; flex-wrap: wrap; align-items: center; gap: 0.6rem; }
 .up-label { font-size: 0.86rem; color: var(--adm-text); }
 
+.up-window { display: flex; flex-direction: column; gap: 0.45rem; padding-left: 0.2rem; }
+.up-window__row { display: flex; flex-wrap: wrap; gap: 0.45rem; align-items: center; font-size: 0.84rem; color: var(--adm-text); }
+.up-time { width: 7rem; }
+.up-small { font-size: 0.78rem !important; }
 .up-switch { display: flex; align-items: center; gap: 0.75rem; cursor: pointer; font-size: 0.88rem; color: var(--adm-text); }
 .up-switch input { position: absolute; opacity: 0; pointer-events: none; }
 .up-switch__track { flex-shrink: 0; width: 2.6rem; height: 1.45rem; border-radius: 999px; background: var(--adm-card-2); border: 1px solid var(--adm-line-strong); position: relative; transition: background 0.15s; }

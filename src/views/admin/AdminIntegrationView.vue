@@ -119,6 +119,12 @@ watch(data, (d) => {
 })
 
 // ── Проверка связи ──
+const health = computed(() => data.value?.health || null)
+const showHealth = ref(false)
+function why() {
+  go('overview')
+  setTimeout(() => document.getElementById('ov-why')?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 60)
+}
 const selftest = ref(null)
 const checking = ref(false)
 async function check() {
@@ -157,16 +163,31 @@ onBeforeUnmount(() => clearInterval(timer))
       <!-- Статус -->
       <section class="ig-hero" :class="`ig-hero--${state.kind}`">
         <div class="ig-hero__main">
-          <span class="ig-hero__icon">{{ state.kind === 'ok' ? '✓' : state.kind === 'new' ? '…' : '!' }}</span>
+          <button v-if="health?.grade" class="ig-grade" :class="`ig-grade--${health.grade.replace('+', 'p')}`" :title="`Оценка подключения: ${health.score} из 100`" @click="showHealth = !showHealth">
+            <span class="ig-grade__letter">{{ health.grade }}</span>
+            <span class="ig-grade__score">{{ health.score }}</span>
+          </button>
+          <span v-else class="ig-hero__icon">{{ state.kind === 'ok' ? '✓' : state.kind === 'new' ? '…' : '!' }}</span>
           <div class="ig-hero__text">
             <div class="ig-hero__title">{{ state.title }}</div>
             <div class="ig-hero__sub">{{ state.text }}</div>
             <div class="ig-hero__meta">
               <span>{{ server.core_label || 'ядро не указано' }}</span>
               <span class="adm-badge">{{ server.is_external ? 'внешний сервер' : 'наш сервер' }}</span>
+              <span v-if="data.reach" class="ig-reach" :class="data.reach.ok ? 'ig-reach--ok' : 'ig-reach--err'" :title="data.reach.ok ? data.reach.motd : data.reach.error">
+                снаружи: {{ data.reach.ok ? `доступен · ${data.reach.latency_ms} мс` : 'недоступен' }}
+              </span>
             </div>
           </div>
-          <button class="adm-btn adm-btn--sm ig-hero__check" :disabled="checking" @click="check">{{ checking ? 'Спрашиваю сервер…' : 'Проверить связь' }}</button>
+          <div class="ig-hero__acts">
+            <button v-if="data.diagnosis?.findings?.length" class="adm-btn adm-btn--sm adm-btn--acc" @click="why">Почему?</button>
+            <button class="adm-btn adm-btn--sm" :disabled="checking" @click="check">{{ checking ? 'Спрашиваю сервер…' : 'Проверить связь' }}</button>
+          </div>
+        </div>
+        <div v-if="showHealth && health" class="ig-health">
+          <div class="ig-health__title">Оценка {{ health.grade }} · {{ health.score }} из 100</div>
+          <div v-if="!health.factors.length" class="ig-health__ok">Ничего не снижает оценку.</div>
+          <div v-for="(f, i) in health.factors" :key="i" class="ig-health__row"><b>{{ f.points }}</b><span>{{ f.why }}</span></div>
         </div>
         <div class="ig-stats">
           <div class="ig-stat">
@@ -200,7 +221,7 @@ onBeforeUnmount(() => clearInterval(timer))
         </button>
       </nav>
 
-      <IntOverview v-if="tab === 'overview'" :data="data" :todo="todo" :now="now" @go="go" />
+      <IntOverview v-if="tab === 'overview'" :data="data" :todo="todo" :now="now" :can-config="canConfig" @go="go" @reload="load(true)" />
       <IntInstall v-else-if="tab === 'install'" :data="data" :now="now" :can-config="canConfig" />
       <IntPlugins v-else-if="tab === 'plugins'" :data="data" :now="now" :can-config="canConfig" />
       <IntServer v-else-if="tab === 'server'" :data="data" :now="now" />
@@ -235,7 +256,29 @@ onBeforeUnmount(() => clearInterval(timer))
 .ig-hero__title { font-size: 1.2rem; font-weight: 800; color: var(--adm-text); }
 .ig-hero__sub { font-size: 0.88rem; color: var(--adm-dim); margin-top: 0.15rem; line-height: 1.45; }
 .ig-hero__meta { display: flex; gap: 0.5rem; align-items: center; margin-top: 0.45rem; font-size: 0.78rem; color: var(--adm-dim); }
-.ig-hero__check { align-self: flex-start; }
+.ig-hero__acts { display: flex; gap: 0.4rem; align-self: flex-start; }
+.ig-grade {
+  flex-shrink: 0; width: 4.2rem; height: 4.2rem; border-radius: 1.1rem; border: 2px solid var(--adm-line-strong);
+  background: var(--adm-card-2); display: flex; flex-direction: column; align-items: center; justify-content: center; cursor: pointer;
+  transition: transform 0.15s;
+}
+.ig-grade:hover { transform: translateY(-1px); }
+.ig-grade__letter { font-size: 1.6rem; font-weight: 900; line-height: 1; color: var(--adm-text); }
+.ig-grade__score { font-size: 0.72rem; color: var(--adm-dim); font-family: var(--adm-mono); margin-top: 0.15rem; }
+.ig-grade--Ap, .ig-grade--A { border-color: var(--adm-ok); background: color-mix(in srgb, var(--adm-ok) 12%, var(--adm-card-2)); }
+.ig-grade--Ap .ig-grade__letter, .ig-grade--A .ig-grade__letter { color: var(--adm-ok); }
+.ig-grade--B, .ig-grade--C { border-color: var(--adm-warn); background: color-mix(in srgb, var(--adm-warn) 12%, var(--adm-card-2)); }
+.ig-grade--B .ig-grade__letter, .ig-grade--C .ig-grade__letter { color: var(--adm-warn); }
+.ig-grade--D, .ig-grade--F { border-color: var(--adm-err); background: color-mix(in srgb, var(--adm-err) 12%, var(--adm-card-2)); }
+.ig-grade--D .ig-grade__letter, .ig-grade--F .ig-grade__letter { color: var(--adm-err); }
+.ig-reach { font-size: 0.74rem; padding: 0.05rem 0.5rem; border-radius: 999px; border: 1px solid var(--adm-line); }
+.ig-reach--ok { color: var(--adm-ok); border-color: color-mix(in srgb, var(--adm-ok) 40%, transparent); }
+.ig-reach--err { color: var(--adm-err); border-color: color-mix(in srgb, var(--adm-err) 40%, transparent); }
+.ig-health { padding: 0.7rem 0.85rem; border-radius: var(--adm-r-sm); background: var(--adm-card-2); border: 1px solid var(--adm-line); display: flex; flex-direction: column; gap: 0.3rem; }
+.ig-health__title { font-weight: 800; color: var(--adm-text); font-size: 0.88rem; }
+.ig-health__ok { color: var(--adm-ok); font-size: 0.84rem; }
+.ig-health__row { display: flex; gap: 0.6rem; font-size: 0.83rem; color: var(--adm-text); }
+.ig-health__row b { width: 2.4rem; text-align: right; color: var(--adm-err); font-family: var(--adm-mono); }
 
 .ig-stats { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 0.6rem; }
 @media (max-width: 760px) { .ig-stats { grid-template-columns: repeat(2, minmax(0, 1fr)); } }

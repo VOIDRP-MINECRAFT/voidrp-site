@@ -92,3 +92,12 @@ export const saveIntegrationSettings = (settings) => apiRequest('/admin/integrat
 export const saveSupportPolicy = (plugin, policy) => apiRequest(`/admin/integration/support/${encodeURIComponent(plugin)}`, {
   method: 'PUT', headers: { ...headers(), 'Content-Type': 'application/json' }, body: JSON.stringify(policy),
 })
+
+// «Починить»: config | updates | reload (VoidRpPerms 0.7+) | reach (проверка снаружи заново).
+export const runFix = (action) => apiRequest('/admin/integration/fix', {
+  method: 'POST', headers: { ...headers(), 'Content-Type': 'application/json' }, body: JSON.stringify({ action }),
+})
+// Тест вебхука Discord (ещё не сохранённого).
+export const testDiscord = (url) => apiRequest('/admin/integration/discord-test', {
+  method: 'POST', headers: { ...headers(), 'Content-Type': 'application/json' }, body: JSON.stringify({ discord_webhook: url }),
+})
