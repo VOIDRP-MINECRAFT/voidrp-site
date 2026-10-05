@@ -50,3 +50,16 @@ async function download(path, fallbackName) {
 
 export const downloadRelease = (id, filename) => download(`/admin/integration/releases/${id}/download`, filename)
 export const downloadConfig = (key, filename) => download(`/admin/integration/config/${encodeURIComponent(key)}`, filename)
+
+// Мои уведомления в Telegram о серверах, которые я веду.
+export const getNotifyPrefs = () => apiRequest('/admin/integration/notify', { headers: headers() })
+export const saveNotifyPrefs = (prefs) => apiRequest('/admin/integration/notify', {
+  method: 'PUT', headers: { ...headers(), 'Content-Type': 'application/json' }, body: JSON.stringify(prefs),
+})
+
+// Релизы наших плагинов (админы платформы): рекомендовать, отозвать, пометить важным, забрать с GitHub.
+export const listReleases = () => apiRequest('/admin/integration/releases', { headers: headers() })
+export const patchRelease = (id, patch) => apiRequest(`/admin/integration/releases/${id}`, {
+  method: 'PATCH', headers: { ...headers(), 'Content-Type': 'application/json' }, body: JSON.stringify(patch),
+})
+export const syncReleases = () => apiRequest('/admin/integration/releases/sync', { method: 'POST', headers: headers() })

@@ -5,7 +5,10 @@
 import { computed, onBeforeUnmount, onMounted, ref } from 'vue'
 import { authState, hasPermission } from '../../stores/authStore'
 import { toastError, toastSuccess } from '../../services/toast'
-import { downloadConfig, downloadRelease, getIntegration } from '../../services/integrationApi'
+import {
+  downloadConfig, downloadRelease, getIntegration, getNotifyPrefs, listReleases, patchRelease, saveNotifyPrefs, syncReleases,
+} from '../../services/integrationApi'
+import { confirmDialog } from '../../composables/useConfirm'
 
 const data = ref(null)
 const loading = ref(true)
@@ -160,6 +163,52 @@ function toggleVersions(key) {
   openVersions.value = s
 }
 
+// ── Уведомления в Telegram ──
+const notify = ref(null)
+const notifyBusy = ref(false)
+async function loadNotify() {
+  try { notify.value = await getNotifyPrefs() } catch { notify.value = null }
+}
+async function setNotify(patch) {
+  if (!notify.value) return
+  const prefs = { ...notify.value.prefs, ...patch }
+  notifyBusy.value = true
+  try {
+    notify.value = { ...notify.value, ...(await saveNotifyPrefs(prefs)) }
+    toastSuccess('Сохранено')
+  } catch (e) { toastError(e?.message || 'Не удалось сохранить') } finally { notifyBusy.value = false }
+}
+
+// ── Релизы (админы платформы) ──
+const isPlatformAdmin = computed(() => !!authState.user?.is_admin)
+const rel = ref(null)
+const relBusy = ref('')
+async function loadReleases() {
+  if (!isPlatformAdmin.value) return
+  try { rel.value = await listReleases() } catch (e) { toastError(e?.message || 'Не удалось загрузить релизы') }
+}
+async function changeRelease(plugin, r, patch, ask) {
+  if (ask && !(await confirmDialog(ask))) return
+  relBusy.value = r.id
+  try {
+    await patchRelease(r.id, patch)
+    await Promise.all([loadReleases(), load(true)])
+  } catch (e) { toastError(e?.message || 'Не удалось изменить релиз') } finally { relBusy.value = '' }
+}
+const yankAsk = (plugin, r) => ({
+  title: 'Отозвать сборку',
+  message: `${plugin.name} ${r.version} пропадёт со страницы у всех серверов, и о ней никто не получит уведомлений. Вернуть можно здесь же.`,
+  confirmLabel: 'Отозвать', danger: true,
+})
+async function syncNow() {
+  relBusy.value = 'sync'
+  try {
+    const res = await syncReleases()
+    toastSuccess(res.added?.length ? `Новые сборки: ${res.added.map((a) => `${a.plugin} ${a.version}`).join(', ')}` : 'Новых релизов на GitHub нет')
+    await Promise.all([loadReleases(), load(true)])
+  } catch (e) { toastError(e?.message || 'GitHub не ответил') } finally { relBusy.value = '' }
+}
+
 // ── Вспомогательное ──
 const now = ref(Date.now())
 function ago(iso) {
@@ -180,6 +229,8 @@ const MODULE_NAMES = {
 let timer = null
 onMounted(() => {
   load()
+  loadNotify()
+  loadReleases()
   timer = setInterval(() => { if (!document.hidden) { now.value = Date.now(); load(true) } }, 15000)
 })
 onBeforeUnmount(() => clearInterval(timer))
@@ -277,15 +328,24 @@ onBeforeUnmount(() => clearInterval(timer))
             <template v-if="it.installed">
               <span class="adm-dot" :class="it.installed.fresh ? 'adm-dot--ok' : 'adm-dot--warn'" />
               <span>На сервере {{ it.installed.version }} · отчёт {{ ago(it.installed.reported_at) }}<template v-if="!it.installed.fresh"> — сервер молчит</template></span>
-              <span v-if="it.outdated" class="adm-badge adm-badge--warn">есть {{ it.latest.version }} — обновите</span>
+              <span v-if="it.outdated" class="adm-badge" :class="it.changes_since_installed?.some((c) => c.important) ? 'adm-badge--err' : 'adm-badge--warn'">есть {{ it.latest.version }} — обновите</span>
             </template>
             <template v-else>
               <span class="adm-dot" /><span class="it-muted">На сервере не найден</span>
             </template>
           </div>
 
+          <div v-if="it.outdated && it.changes_since_installed?.length" class="it-changes">
+            <div class="it-changes__title">Что изменится при обновлении до {{ it.latest.version }}</div>
+            <div v-for="c in it.changes_since_installed" :key="c.version" class="it-changes__item">
+              <b>{{ c.version }}</b> <span v-if="c.important" class="adm-badge adm-badge--err">важное</span>
+              <div v-if="c.changelog" class="it-ver__log">{{ c.changelog }}</div>
+            </div>
+          </div>
+
           <div class="it-card__paths adm-mono">
-            <span>{{ it.install_as }}</span>
+            <span v-if="it.client_side">клиентский пак: {{ it.install_as }}</span>
+            <span v-else>{{ it.install_as }}</span>
             <span v-if="it.config_path">{{ it.config_path }}</span>
           </div>
 
@@ -304,6 +364,9 @@ onBeforeUnmount(() => clearInterval(timer))
               <div class="it-ver__head">
                 <b>{{ r.version }}</b>
                 <span v-if="r.recommended" class="adm-badge adm-badge--ok">рекомендуем</span>
+                <span v-if="r.channel === 'beta'" class="adm-badge adm-badge--warn">бета</span>
+                <span v-if="r.important" class="adm-badge adm-badge--err">важное</span>
+                <a v-if="r.source_url" class="it-gh" :href="r.source_url" target="_blank" rel="noopener">GitHub</a>
                 <span class="it-muted">{{ fmtDate(r.published_at) }} · MC {{ r.mc_versions.join(', ') }} · {{ r.platforms.join(', ') }} · {{ fmtSize(r.size) }}</span>
                 <button class="adm-btn adm-btn--sm it-ver__dl" :disabled="busy === `r:${r.id}`" @click="dl(it, r)">{{ r.filename }}</button>
               </div>
@@ -315,6 +378,53 @@ onBeforeUnmount(() => clearInterval(timer))
         </article>
       </div>
 
+      <!-- Уведомления в Telegram -->
+      <section v-if="notify" class="adm-card it-notify">
+        <div class="adm-card__head"><div class="adm-card__title">Уведомления в Telegram</div></div>
+        <div class="it-notify__body">
+          <p v-if="notify.platform_admin" class="it-muted">Вы админ платформы и видите все серверы — вам приходит плашка в админке, а сообщения в Telegram получают те, кто ведёт этот сервер.</p>
+          <template v-else>
+            <p v-if="notify.telegram_linked" class="it-notify__linked"><span class="adm-dot adm-dot--ok" /> Telegram привязан<template v-if="notify.telegram_username"> (@{{ notify.telegram_username }})</template>. @voidrp_bot напишет об обновлениях наших плагинов, которые подходят серверу, и о том, что сервер перестал отвечать.</p>
+            <p v-else class="it-notify__linked"><span class="adm-dot adm-dot--warn" /> Telegram не привязан. Напишите <a href="https://t.me/voidrp_bot" target="_blank" rel="noopener">@voidrp_bot</a> команду /start и откройте ссылку из ответа — уведомления начнут приходить сами.</p>
+            <div class="it-notify__row">
+              <span>Обновления плагинов</span>
+              <div class="adm-tabs">
+                <button v-for="o in [['all', 'все'], ['important', 'только важные'], ['none', 'не присылать']]" :key="o[0]" class="adm-tab" :class="{ 'adm-tab--active': notify.prefs.releases === o[0] }" :disabled="notifyBusy" @click="setNotify({ releases: o[0] })">{{ o[1] }}</button>
+              </div>
+            </div>
+            <label class="adm-check"><input type="checkbox" :checked="notify.prefs.beta" :disabled="notifyBusy" @change="setNotify({ beta: $event.target.checked })" /> Бета-сборки тоже</label>
+            <label class="adm-check"><input type="checkbox" :checked="notify.prefs.health" :disabled="notifyBusy" @change="setNotify({ health: $event.target.checked })" /> Когда вход или мониторинг сервера перестали отвечать (и когда снова заработали)</label>
+          </template>
+        </div>
+      </section>
+
+      <!-- Релизы: админы платформы -->
+      <section v-if="isPlatformAdmin && rel" class="adm-card it-rel">
+        <div class="adm-card__head">
+          <div class="adm-card__title">Релизы плагинов <span class="adm-badge">админы платформы</span></div>
+          <button class="adm-btn adm-btn--sm" :disabled="relBusy === 'sync'" @click="syncNow">{{ relBusy === 'sync' ? 'Проверяю…' : 'Проверить GitHub сейчас' }}</button>
+        </div>
+        <p class="it-muted it-rel__hint">Новые релизы с GitHub приходят сами раз в 10 минут. Выпустить: <code>scripts/release_plugin.sh &lt;папка&gt; -m "что изменилось"</code> (с <code>--important</code> — важное). Стабильная сборка сразу становится рекомендуемой, и серверы со старой получают уведомление.</p>
+        <div v-for="p in rel.plugins" :key="p.key" class="it-rel__plugin">
+          <div class="it-rel__name">{{ p.name }} <a v-if="p.repo_url" class="it-gh" :href="p.repo_url" target="_blank" rel="noopener">{{ p.repo }}</a></div>
+          <div v-if="!p.releases.length" class="it-muted">Сборок пока нет.</div>
+          <div v-for="r in p.releases" :key="r.id" class="it-rel__row" :class="{ 'it-rel__row--yanked': r.yanked }">
+            <b>{{ r.version }}</b>
+            <span class="it-muted">MC {{ r.mc_versions.join(', ') }} · {{ r.platforms.join(', ') }} · {{ fmtDate(r.published_at) }} · {{ r.source === 'github' ? 'GitHub' : 'вручную' }}</span>
+            <span v-if="r.recommended" class="adm-badge adm-badge--ok">рекомендуем</span>
+            <span v-if="r.channel === 'beta'" class="adm-badge adm-badge--warn">бета</span>
+            <span v-if="r.important" class="adm-badge adm-badge--err">важное</span>
+            <span v-if="r.yanked" class="adm-badge">отозвана</span>
+            <span class="it-rel__acts">
+              <button v-if="!r.recommended && !r.yanked" class="adm-btn adm-btn--sm" :disabled="relBusy === r.id" @click="changeRelease(p, r, { recommended: true })">Рекомендовать</button>
+              <button class="adm-btn adm-btn--sm" :disabled="relBusy === r.id" @click="changeRelease(p, r, { important: !r.important })">{{ r.important ? 'Не важное' : 'Важное' }}</button>
+              <button v-if="!r.yanked" class="adm-btn adm-btn--sm adm-btn--danger" :disabled="relBusy === r.id" @click="changeRelease(p, r, { yanked: true }, yankAsk(p, r))">Отозвать</button>
+              <button v-else class="adm-btn adm-btn--sm" :disabled="relBusy === r.id" @click="changeRelease(p, r, { yanked: false })">Вернуть</button>
+            </span>
+          </div>
+        </div>
+      </section>
+
       <!-- Частые вопросы -->
       <section class="adm-card it-faq">
         <div class="adm-card__head"><div class="adm-card__title">Частые вопросы</div></div>
@@ -324,7 +434,7 @@ onBeforeUnmount(() => clearInterval(timer))
           <dt>Нужен ли online-mode?</dt>
           <dd>Нет: игроки VoidRP играют без лицензии, и VoidRpAuth проверяет каждого по аккаунту. Без VoidRpAuth в offline-mode любой может зайти под чужим ником.</dd>
           <dt>Как обновить плагин?</dt>
-          <dd>Скачайте новую версию, замените jar в <code>plugins</code> и перезапустите сервер. Конфиг менять не нужно.</dd>
+          <dd>Скачайте новую версию и положите её в <code>plugins/update/</code> под тем же именем, что и старый jar: Paper сам заменит его при следующем перезапуске. Конфиг менять не нужно — если в новой версии появились настройки, это будет написано в списке изменений. О новых версиях пишет @voidrp_bot, если привязан Telegram.</dd>
           <dt>Пункт не становится зелёным</dt>
           <dd>Проверьте строки плагина в логе сервера: «HTTP 401» — неверный секрет в конфиге, «ConnectException» — сервер не может достучаться до {{ apiHost }} (разрешите исходящие соединения на порт 443).</dd>
         </dl>
@@ -389,6 +499,27 @@ onBeforeUnmount(() => clearInterval(timer))
 .it-ver__dl { margin-left: auto; }
 .it-ver__log { font-size: 0.82rem; color: var(--adm-text); margin-top: 0.2rem; }
 .it-ver__sha { font-size: 0.7rem; color: var(--adm-faint); word-break: break-all; margin-top: 0.15rem; }
+
+.it-changes { border: 1px solid color-mix(in srgb, var(--adm-warn) 35%, transparent); border-radius: var(--adm-r-sm); padding: 0.55rem 0.7rem; background: var(--adm-card-2); }
+.it-changes__title { font-size: 0.8rem; font-weight: 700; color: var(--adm-text); margin-bottom: 0.3rem; }
+.it-changes__item { font-size: 0.82rem; color: var(--adm-text); margin-top: 0.35rem; }
+.it-ver__log { white-space: pre-line; }
+.it-gh { font-size: 0.74rem; color: var(--adm-acc-text); text-decoration: none; }
+.it-gh:hover { text-decoration: underline; }
+
+.it-notify, .it-rel { margin-top: 1rem; }
+.it-notify__body { padding: 0 1rem 1rem; display: flex; flex-direction: column; gap: 0.6rem; font-size: 0.86rem; color: var(--adm-text); }
+.it-notify__body p { margin: 0; }
+.it-notify__linked { display: flex; gap: 0.5rem; align-items: baseline; line-height: 1.45; }
+.it-notify__linked a { color: var(--adm-acc-text); }
+.it-notify__row { display: flex; flex-wrap: wrap; align-items: center; gap: 0.6rem; }
+.it-rel__hint { padding: 0 1rem; margin: 0 0 0.5rem; line-height: 1.45; }
+.it-rel__hint code { font-family: var(--adm-mono); font-size: 0.8em; background: var(--adm-card-2); padding: 0.05rem 0.3rem; border-radius: 4px; }
+.it-rel__plugin { padding: 0.6rem 1rem; border-top: 1px solid var(--adm-line); }
+.it-rel__name { font-weight: 800; color: var(--adm-text); display: flex; gap: 0.5rem; align-items: baseline; margin-bottom: 0.3rem; }
+.it-rel__row { display: flex; flex-wrap: wrap; align-items: center; gap: 0.45rem; padding: 0.3rem 0; font-size: 0.84rem; color: var(--adm-text); }
+.it-rel__row--yanked { opacity: 0.55; }
+.it-rel__acts { margin-left: auto; display: flex; gap: 0.35rem; flex-wrap: wrap; }
 
 .it-faq { margin-top: 1rem; }
 .it-faq dl { margin: 0; padding: 0 1rem 1rem; }
