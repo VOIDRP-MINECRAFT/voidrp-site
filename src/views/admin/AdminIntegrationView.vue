@@ -93,7 +93,10 @@ const todo = computed(() => {
   }
   for (const p of d.secret?.old_secret_plugins || []) out.push({ level: 'warn', title: `${p} ещё на старом секрете`, text: 'Перезапустите сервер, пока старый секрет действует.', tab: 'updates', action: 'Подробнее' })
   for (const x of issues.filter((i) => i.level === 'err')) out.push({ level: 'err', title: x.text, tab: 'server', action: 'Сервер' })
-  for (const it of outdated.value) {
+  for (const it of ours.value.filter((i) => i.unsupported)) {
+    out.push({ level: 'err', title: `${it.name} ${it.installed.version} больше не поддерживается`, text: `Нужна версия ${it.min_supported} или новее.${it.support_note ? ` ${it.support_note}` : ''}`, tab: 'plugins', action: 'Обновить' })
+  }
+  for (const it of outdated.value.filter((i) => !i.unsupported)) {
     const important = it.changes_since_installed?.some((c) => c.important)
     out.push({
       level: important ? 'err' : 'warn',

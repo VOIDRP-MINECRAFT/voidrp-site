@@ -3,7 +3,7 @@
 // отозвать, забрать с GitHub сейчас.
 import { onMounted, ref } from 'vue'
 import { toastError, toastSuccess } from '../../../services/toast'
-import { listReleases, patchRelease, syncReleases } from '../../../services/integrationApi'
+import { listReleases, patchRelease, saveSupportPolicy, syncReleases } from '../../../services/integrationApi'
 import { confirmDialog } from '../../../composables/useConfirm'
 import { copyText, fmtDate } from './util'
 
@@ -37,6 +37,21 @@ async function syncNow() {
     emit('reload')
   } catch (e) { toastError(e?.message || 'GitHub не ответил') } finally { busy.value = '' }
 }
+// Минимальная поддерживаемая версия: ниже неё серверу говорят «обязательно обновите».
+const minDraft = ref({})
+function minOf(p) { return minDraft.value[p.key] ?? { min: p.min_supported || '', note: p.support_note || '' } }
+function setMin(p, field, value) { minDraft.value = { ...minDraft.value, [p.key]: { ...minOf(p), [field]: value } } }
+async function saveMin(p) {
+  const d = minOf(p)
+  busy.value = `min:${p.key}`
+  try {
+    const res = await saveSupportPolicy(p.key, { min_version: d.min || null, note: d.note || null })
+    toastSuccess(res.min_version ? `Минимальная версия ${p.name}: ${res.min_version}${res.notified ? ` — сообщили серверам: ${res.notified}` : ''}` : 'Минимальная версия снята')
+    const copy = { ...minDraft.value }; delete copy[p.key]; minDraft.value = copy
+    await load()
+    emit('reload')
+  } catch (e) { toastError(e?.message || 'Не удалось сохранить') } finally { busy.value = '' }
+}
 const cmd = 'scripts/release_plugin.sh <папка репозитория> -m "что изменилось"'
 onMounted(load)
 </script>
@@ -61,6 +76,12 @@ onMounted(load)
         <div class="adm-card__title">{{ p.name }}</div>
         <a v-if="p.repo_url" class="rl-gh" :href="p.repo_url" target="_blank" rel="noopener">{{ p.repo }}</a>
       </div>
+      <div class="rl-min">
+        <span class="rl-min__label">Минимальная версия</span>
+        <input class="adm-input rl-min__ver" :value="minOf(p).min" placeholder="не задана" @input="setMin(p, 'min', $event.target.value)" />
+        <input class="adm-input rl-min__note" :value="minOf(p).note" placeholder="Почему (увидят владельцы серверов)" @input="setMin(p, 'note', $event.target.value)" />
+        <button class="adm-btn adm-btn--sm" :disabled="busy === `min:${p.key}`" @click="saveMin(p)">Сохранить</button>
+      </div>
       <div v-if="!p.releases.length" class="rl-pad rl-muted">Сборок пока нет.</div>
       <div v-else class="rl-rows">
         <div v-for="r in p.releases" :key="r.id" class="rl-row" :class="{ 'rl-row--yanked': r.yanked }">
@@ -70,7 +91,7 @@ onMounted(load)
             <span v-if="r.channel === 'beta'" class="adm-badge adm-badge--warn">бета</span>
             <span v-if="r.important" class="adm-badge adm-badge--err">важное</span>
             <span v-if="r.yanked" class="adm-badge">отозвана</span>
-            <span class="rl-muted">MC {{ r.mc_versions.join(', ') }} · {{ r.platforms.join(', ') }} · {{ fmtDate(r.published_at) }} · {{ r.source === 'github' ? 'GitHub' : 'вручную' }}</span>
+            <span class="rl-muted">MC {{ r.mc_label || r.mc_versions.join(', ') }} · {{ r.platforms.join(', ') }} · {{ fmtDate(r.published_at) }} · {{ r.source === 'github' ? 'GitHub' : 'вручную' }}</span>
           </div>
           <div class="rl-acts">
             <button v-if="!r.recommended && !r.yanked" class="adm-btn adm-btn--sm" :disabled="busy === r.id" @click="change(p, r, { recommended: true })">Рекомендовать</button>
@@ -93,6 +114,10 @@ onMounted(load)
 .rl-cmd { display: flex; gap: 0.5rem; align-items: center; }
 .rl-cmd code { flex: 1; min-width: 0; overflow-x: auto; white-space: nowrap; padding: 0.5rem 0.65rem; border-radius: var(--adm-r-sm); background: var(--adm-card-2); border: 1px solid var(--adm-line); color: var(--adm-text); }
 .rl-gh { font-size: 0.8rem; color: var(--adm-acc-text); text-decoration: none; }
+.rl-min { display: flex; flex-wrap: wrap; gap: 0.45rem; align-items: center; padding: 0 1rem 0.6rem; }
+.rl-min__label { font-size: 0.8rem; color: var(--adm-dim); }
+.rl-min__ver { width: 8rem; }
+.rl-min__note { flex: 1; min-width: 12rem; }
 .rl-rows { padding: 0 1rem 0.6rem; }
 .rl-row { display: flex; flex-wrap: wrap; align-items: center; gap: 0.5rem; padding: 0.5rem 0; border-top: 1px solid var(--adm-line); }
 .rl-row--yanked { opacity: 0.55; }

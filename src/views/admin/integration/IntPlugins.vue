@@ -19,6 +19,7 @@ function status(it) {
   if (it.client_side) return { cls: '', text: 'в пак игроков' }
   if (!it.installed) return { cls: '', text: 'не установлен' }
   if (!it.installed.fresh) return { cls: 'adm-badge--warn', text: 'сервер молчит' }
+  if (it.unsupported) return { cls: 'adm-badge--err', text: `не поддерживается — нужна ${it.min_supported}+` }
   if (it.outdated) return { cls: it.changes_since_installed?.some((c) => c.important) ? 'adm-badge--err' : 'adm-badge--warn', text: 'есть обновление' }
   return { cls: 'adm-badge--ok', text: 'актуален' }
 }
@@ -58,6 +59,9 @@ function toggle(key) {
         </div>
       </header>
       <p class="pl-sum">{{ it.summary }}</p>
+      <div v-if="it.unsupported" class="pl-unsup">
+        Версия {{ it.installed.version }} больше не поддерживается — нужна {{ it.min_supported }} или новее.<template v-if="it.support_note"> {{ it.support_note }}</template>
+      </div>
 
       <div class="pl-vers">
         <div class="pl-ver">
@@ -69,7 +73,7 @@ function toggle(key) {
         <div class="pl-ver">
           <span class="pl-ver__label">Предлагаем</span>
           <span class="pl-ver__val">{{ it.latest?.version || '—' }}</span>
-          <span v-if="it.latest" class="pl-ver__sub">{{ fmtDate(it.latest.published_at) }} · MC {{ it.latest.mc_versions.join(', ') }}</span>
+          <span v-if="it.latest" class="pl-ver__sub">{{ fmtDate(it.latest.published_at) }} · MC {{ it.latest.mc_label || it.latest.mc_versions.join(', ') }}</span>
         </div>
         <div v-if="it.modules?.length" class="pl-mods">
           <span v-for="m in it.modules" :key="m" class="pl-mod" :class="{ 'pl-mod--on': it.installed?.modules?.[m]?.ok }">{{ MODULE_NAMES[m] || m }}</span>
@@ -85,6 +89,7 @@ function toggle(key) {
       </div>
 
       <footer class="pl-foot">
+        <span v-if="it.protocol != null" class="pl-proto" title="Что плагин понимает в ответах панели">протокол {{ it.protocol }}</span>
         <span class="adm-mono pl-path">{{ it.client_side ? 'клиентский пак: ' : '' }}{{ it.install_as }}<template v-if="it.config_path"> · {{ it.config_path }}</template></span>
         <span v-if="it.needs?.length" class="pl-deps">нужны:
           <template v-for="n in it.needs" :key="n">
@@ -102,7 +107,7 @@ function toggle(key) {
             <span v-if="r.recommended" class="adm-badge adm-badge--ok">рекомендуем</span>
             <span v-if="r.channel === 'beta'" class="adm-badge adm-badge--warn">бета</span>
             <span v-if="r.important" class="adm-badge adm-badge--err">важное</span>
-            <span class="pl-muted">{{ fmtDate(r.published_at) }} · MC {{ r.mc_versions.join(', ') }} · {{ r.platforms.join(', ') }} · {{ fmtSize(r.size) }}</span>
+            <span class="pl-muted">{{ fmtDate(r.published_at) }} · MC {{ r.mc_label || r.mc_versions.join(', ') }} · {{ r.platforms.join(', ') }} · {{ fmtSize(r.size) }}</span>
             <a v-if="r.source_url" class="pl-gh" :href="r.source_url" target="_blank" rel="noopener">GitHub</a>
             <button class="adm-btn adm-btn--sm pl-rel__dl" :disabled="busy === `r:${r.id}`" @click="dl(r)">Скачать</button>
           </div>
@@ -140,6 +145,8 @@ function toggle(key) {
 .pl-change__v { font-size: 0.84rem; color: var(--adm-text); }
 .pl-log { font-size: 0.82rem; color: var(--adm-text); white-space: pre-line; line-height: 1.45; }
 
+.pl-unsup { padding: 0.55rem 0.7rem; border-radius: var(--adm-r-sm); font-size: 0.84rem; color: var(--adm-err); background: color-mix(in srgb, var(--adm-err) 10%, transparent); border: 1px solid color-mix(in srgb, var(--adm-err) 40%, transparent); }
+.pl-proto { font-size: 0.7rem; padding: 0.05rem 0.4rem; border-radius: 999px; border: 1px solid var(--adm-line); color: var(--adm-dim); }
 .pl-foot { display: flex; flex-wrap: wrap; gap: 0.4rem 0.9rem; align-items: center; font-size: 0.75rem; color: var(--adm-dim); }
 .pl-path { font-size: 0.72rem; }
 .pl-deps { display: flex; gap: 0.4rem; flex-wrap: wrap; align-items: center; }

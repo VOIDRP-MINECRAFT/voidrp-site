@@ -87,3 +87,8 @@ export const runSelftest = () => apiRequest('/admin/integration/selftest', { met
 export const saveIntegrationSettings = (settings) => apiRequest('/admin/integration/settings', {
   method: 'PUT', headers: { ...headers(), 'Content-Type': 'application/json' }, body: JSON.stringify(settings),
 })
+
+// Минимальная поддерживаемая версия плагина (админы платформы).
+export const saveSupportPolicy = (plugin, policy) => apiRequest(`/admin/integration/support/${encodeURIComponent(plugin)}`, {
+  method: 'PUT', headers: { ...headers(), 'Content-Type': 'application/json' }, body: JSON.stringify(policy),
+})
