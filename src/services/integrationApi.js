@@ -63,3 +63,20 @@ export const patchRelease = (id, patch) => apiRequest(`/admin/integration/releas
   method: 'PATCH', headers: { ...headers(), 'Content-Type': 'application/json' }, body: JSON.stringify(patch),
 })
 export const syncReleases = () => apiRequest('/admin/integration/releases/sync', { method: 'POST', headers: headers() })
+
+// Одноразовая команда install.sh (15 мин) — после пароля, как и конфиги.
+export async function issueInstallToken() {
+  for (let attempt = 0; attempt < 2; attempt++) {
+    const res = await fetch(`${API_BASE_URL}/admin/integration/install-token`, { method: 'POST', headers: headers() })
+    if (res.ok) return res.json()
+    const detail = await errorOf(res)
+    if (res.status === 403 && detail === 'reauth_required' && attempt === 0) {
+      if (await requestReauth()) continue
+      throw new Error('Отменено — нужен пароль')
+    }
+    throw new Error(typeof detail === 'string' ? detail : `Ошибка ${res.status}`)
+  }
+}
+
+// Всё одним архивом: плагины, зависимости, конфиги — для хостингов только с веб-панелью.
+export const downloadBundle = (slug) => download('/admin/integration/bundle.zip', `voidrp-${slug}.zip`)

@@ -6,7 +6,8 @@ import { computed, onBeforeUnmount, onMounted, ref } from 'vue'
 import { authState, hasPermission } from '../../stores/authStore'
 import { toastError, toastSuccess } from '../../services/toast'
 import {
-  downloadConfig, downloadRelease, getIntegration, getNotifyPrefs, listReleases, patchRelease, saveNotifyPrefs, syncReleases,
+  downloadBundle, downloadConfig, downloadRelease, getIntegration, getNotifyPrefs, issueInstallToken, listReleases,
+  patchRelease, saveNotifyPrefs, syncReleases,
 } from '../../services/integrationApi'
 import { confirmDialog } from '../../composables/useConfirm'
 
@@ -163,6 +164,25 @@ function toggleVersions(key) {
   openVersions.value = s
 }
 
+// ── Установка одной командой ──
+const install = ref(null)
+async function getInstall() {
+  busy.value = 'install'
+  try { install.value = await issueInstallToken() } catch (e) { toastError(e?.message || 'Не удалось получить команду') } finally { busy.value = '' }
+}
+const installLeft = computed(() => {
+  if (!install.value) return ''
+  const s = Math.max(0, Math.round((new Date(install.value.expires_at).getTime() - now.value) / 1000))
+  return s > 0 ? `действует ещё ${Math.ceil(s / 60)} мин` : 'устарела — получите новую'
+})
+async function copy(text) {
+  try { await navigator.clipboard.writeText(text); toastSuccess('Скопировано') } catch { toastError('Не удалось скопировать — выделите и скопируйте вручную') }
+}
+async function zip() {
+  busy.value = 'zip'
+  try { await downloadBundle(server.value.slug); toastSuccess('Архив скачан — распакуйте его в папку сервера') } catch (e) { toastError(e?.message || 'Не удалось собрать архив') } finally { busy.value = '' }
+}
+
 // ── Уведомления в Telegram ──
 const notify = ref(null)
 const notifyBusy = ref(false)
@@ -281,7 +301,7 @@ onBeforeUnmount(() => clearInterval(timer))
         <section class="adm-card it-howto">
           <div class="adm-card__head"><div class="adm-card__title">Как установить</div></div>
           <ol v-if="server.auth_method !== 'mod'" class="it-howto__list">
-            <li>Остановите сервер.</li>
+            <li>Быстрее всего — командой из блока ниже. Вручную: остановите сервер.</li>
             <li>Скачайте ниже обязательные плагины и положите их в папку <code>plugins</code>. Туда же — LuckPerms нужной версии по ссылке.</li>
             <li>Скачайте готовые конфиги (кнопка «Конфиг», нужен пароль) и положите по указанным путям — секрет и адрес уже вписаны.</li>
             <li>Запустите сервер. В логе должны появиться <code>[VoidRpAuth] VoidRpAuth включён</code> и <code>[VoidRpPerms] Связь с админкой включена</code>.</li>
@@ -298,6 +318,45 @@ onBeforeUnmount(() => clearInterval(timer))
           <p v-if="!canConfig" class="it-note">Конфиги с секретом скачивают те, у кого есть право «Интеграция: скачивать готовые конфиги». Его выдаёт владелец проекта.</p>
         </section>
       </div>
+
+      <!-- Установка одной командой -->
+      <section class="adm-card it-quick">
+        <div class="adm-card__head"><div class="adm-card__title">Установка и обслуживание из консоли Linux</div></div>
+        <div class="it-quick__body">
+          <div class="it-quick__block">
+            <div class="it-quick__label">Подключить сервер одной командой</div>
+            <p class="it-muted">Выполните в папке сервера: скрипт проверит Java и связь, поставит наши плагины и нужные им (LuckPerms и др.) с проверкой контрольных сумм, запишет конфиги с секретом и сохранит старые файлы в <code>voidrp-backup/</code>. На работающем сервере плагины встанут при перезапуске.</p>
+            <template v-if="canConfig">
+              <button v-if="!install" class="adm-btn adm-btn--acc adm-btn--sm" :disabled="busy === 'install'" @click="getInstall">Получить команду (нужен пароль)</button>
+              <template v-else>
+                <div class="it-cmd"><code>{{ install.command }}</code><button class="adm-btn adm-btn--sm" @click="copy(install.command)">Копировать</button></div>
+                <div class="it-cmd"><code>{{ install.command_all }}</code><button class="adm-btn adm-btn--sm" @click="copy(install.command_all)">Копировать</button></div>
+                <p class="it-muted">Вторая — вместе с необязательными (античит). Ссылка одноразовая, {{ installLeft }}; внутри она даёт секрет сервера, не пересылайте её.</p>
+              </template>
+            </template>
+            <p v-else class="it-muted">Команду получают те, у кого есть право «Интеграция: скачивать готовые конфиги».</p>
+          </div>
+          <div class="it-quick__block">
+            <div class="it-quick__label">Обновить наши плагины</div>
+            <p class="it-muted">Берёт секрет из конфига плагина — ссылка не нужна, можно поставить в cron. С <code>--dry-run</code> только покажет, что обновится.</p>
+            <div class="it-cmd"><code>{{ data.scripts?.update }}</code><button class="adm-btn adm-btn--sm" @click="copy(data.scripts?.update)">Копировать</button></div>
+          </div>
+          <div class="it-quick__block">
+            <div class="it-quick__label">Проверить сервер</div>
+            <p class="it-muted">Java, DNS, связь с API, часы, открытый наружу RCON, версии плагинов и мешающие плагины (AuthMe, SkinsRestorer…). С <code>--send</code> отчёт появится здесь.</p>
+            <div class="it-cmd"><code>{{ data.scripts?.doctor }}</code><button class="adm-btn adm-btn--sm" @click="copy(data.scripts?.doctor)">Копировать</button></div>
+            <details v-if="data.doctor" class="it-doctor">
+              <summary>Последний отчёт · {{ ago(data.doctor.at) }}</summary>
+              <pre>{{ data.doctor.text }}</pre>
+            </details>
+          </div>
+          <div v-if="canConfig" class="it-quick__block">
+            <div class="it-quick__label">Нет консоли, только веб-панель хостинга?</div>
+            <p class="it-muted">Скачайте всё одним архивом (плагины, зависимости, конфиги) и распакуйте его в папку сервера через файловый менеджер панели.</p>
+            <button class="adm-btn adm-btn--sm" :disabled="busy === 'zip'" @click="zip">{{ busy === 'zip' ? 'Собираю…' : 'Скачать архив' }}</button>
+          </div>
+        </div>
+      </section>
 
       <!-- Подсказки с сервера -->
       <div v-for="(t, i) in data.tips" :key="i" class="it-banner it-banner--warn">
@@ -500,6 +559,18 @@ onBeforeUnmount(() => clearInterval(timer))
 .it-ver__log { font-size: 0.82rem; color: var(--adm-text); margin-top: 0.2rem; }
 .it-ver__sha { font-size: 0.7rem; color: var(--adm-faint); word-break: break-all; margin-top: 0.15rem; }
 
+.it-quick { margin-bottom: 1rem; }
+.it-quick__body { padding: 0 1rem 1rem; display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 420px), 1fr)); gap: 1rem 1.4rem; }
+.it-quick__block { display: flex; flex-direction: column; gap: 0.45rem; align-items: flex-start; }
+.it-quick__label { font-weight: 700; color: var(--adm-text); font-size: 0.9rem; }
+.it-quick__block p { margin: 0; line-height: 1.45; }
+.it-quick code { font-family: var(--adm-mono); font-size: 0.78rem; }
+.it-quick p code { background: var(--adm-card-2); padding: 0.05rem 0.3rem; border-radius: 4px; }
+.it-cmd { display: flex; gap: 0.5rem; align-items: center; width: 100%; }
+.it-cmd code { flex: 1; min-width: 0; overflow-x: auto; white-space: nowrap; padding: 0.45rem 0.6rem; border-radius: var(--adm-r-sm); background: var(--adm-card-2); border: 1px solid var(--adm-line); color: var(--adm-text); }
+.it-doctor { width: 100%; }
+.it-doctor summary { cursor: pointer; font-size: 0.82rem; color: var(--adm-acc-text); }
+.it-doctor pre { margin: 0.4rem 0 0; padding: 0.6rem; max-height: 22rem; overflow: auto; font-family: var(--adm-mono); font-size: 0.74rem; background: var(--adm-card-2); border-radius: var(--adm-r-sm); color: var(--adm-text); white-space: pre-wrap; }
 .it-changes { border: 1px solid color-mix(in srgb, var(--adm-warn) 35%, transparent); border-radius: var(--adm-r-sm); padding: 0.55rem 0.7rem; background: var(--adm-card-2); }
 .it-changes__title { font-size: 0.8rem; font-weight: 700; color: var(--adm-text); margin-bottom: 0.3rem; }
 .it-changes__item { font-size: 0.82rem; color: var(--adm-text); margin-top: 0.35rem; }
