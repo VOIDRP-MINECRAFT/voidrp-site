@@ -134,6 +134,8 @@ async function setNotify(patch) {
           </div>
           <label class="adm-check"><input type="checkbox" :checked="notify.prefs.beta" :disabled="busy === 'notify'" @change="setNotify({ beta: $event.target.checked })" /> О бета-сборках тоже</label>
           <label class="adm-check"><input type="checkbox" :checked="notify.prefs.health" :disabled="busy === 'notify'" @change="setNotify({ health: $event.target.checked })" /> Когда вход или мониторинг перестали отвечать (и когда снова заработали)</label>
+          <label class="adm-check"><input type="checkbox" :checked="notify.prefs.digest !== false" :disabled="busy === 'notify'" @change="setNotify({ digest: $event.target.checked })" /> Сводка за неделю по понедельникам: доступность, сбои, пик онлайна, что обновить</label>
+          <p class="up-muted" style="margin:0">В боте: /servers — состояние сервера, обновления и автообновление одной кнопкой.</p>
         </template>
       </div>
     </section>
