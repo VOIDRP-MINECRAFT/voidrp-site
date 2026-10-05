@@ -44,7 +44,7 @@ const ICON = { module_on: '▲', module_off: '▼', version: '↑', plugin_new: 
     <section class="adm-card">
       <div class="adm-card__head"><div class="adm-card__title">Проверка сервера</div></div>
       <div class="sv-pad sv-col">
-        <p class="sv-muted">Java, DNS, связь с API, часы, открытый наружу RCON, версии плагинов и мешающие плагины (AuthMe, SkinsRestorer…). Выполните в папке сервера; с <code>--send</code> отчёт появится здесь.</p>
+        <p class="sv-muted">Ядро и свежесть сборки Paper, Java под версию Minecraft, память, порт, DNS, связь с API, часы, открытый наружу RCON, обновления наших плагинов и мешающие плагины (AuthMe, SkinsRestorer…). Выполните в папке сервера; с <code>--send</code> отчёт появится здесь.</p>
         <div class="sv-cmd"><code>{{ data.scripts?.doctor }} -s -- --send</code><button class="adm-btn adm-btn--sm" @click="copyText(`${data.scripts?.doctor} -s -- --send`)">Копировать</button></div>
         <details v-if="data.doctor" class="sv-doctor" open>
           <summary>Последний отчёт · {{ ago(data.doctor.at, now) }}</summary>

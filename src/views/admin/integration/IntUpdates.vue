@@ -14,6 +14,12 @@ const props = defineProps({
 const emit = defineEmits(['reload', 'notify'])
 
 const settings = computed(() => props.data.settings || {})
+const UPDATE_FLAGS = [
+  ['--dry-run', 'только показать, что обновится'],
+  ['--install-cron', 'обновлять само каждую ночь в 05:17 (по времени сервера); новые версии встанут при перезапуске'],
+  ['--remove-cron', 'убрать ночное обновление'],
+  ['--uninstall', 'снять плагины VoidRP (в voidrp-backup/), конфиги оставить; с --purge — и конфиги'],
+]
 const perms = computed(() => (props.data.reports || []).find((r) => r.plugin === 'VoidRpPerms'))
 const permsSupports = computed(() => {
   const v = (perms.value?.version || '0').split('.').map((x) => parseInt(x, 10) || 0)
@@ -98,8 +104,16 @@ async function setNotify(patch) {
     <section class="adm-card">
       <div class="adm-card__head"><div class="adm-card__title">Обновить командой</div></div>
       <div class="up-pad">
-        <p class="up-muted">Берёт секрет из конфига плагина — ссылка не нужна, можно поставить в cron. Добавьте <code>-s -- --dry-run</code>, чтобы только посмотреть, что обновится.</p>
+        <p class="up-muted">Выполните в папке сервера. Секрет скрипт берёт из конфига плагина, ссылка не нужна.</p>
         <div class="up-cmd"><code>{{ data.scripts?.update }}</code><button class="adm-btn adm-btn--sm" @click="copyText(data.scripts?.update)">Копировать</button></div>
+        <table class="up-flags">
+          <tbody>
+            <tr v-for="f in UPDATE_FLAGS" :key="f[0]">
+              <td><code>{{ f[0] }}</code></td><td class="up-muted">{{ f[1] }}</td>
+              <td><button class="adm-btn adm-btn--sm adm-btn--ghost" @click="copyText(`${data.scripts?.update} -s -- ${f[0]}`)">Копировать</button></td>
+            </tr>
+          </tbody>
+        </table>
       </div>
     </section>
 
@@ -168,4 +182,8 @@ async function setNotify(patch) {
 .up-switch input:checked + .up-switch__track { background: var(--adm-acc-soft); border-color: var(--adm-acc-line); }
 .up-switch input:checked + .up-switch__track .up-switch__thumb { transform: translateX(1.15rem); background: var(--adm-acc); }
 .up-switch input:disabled + .up-switch__track { opacity: 0.6; }
+.up-flags { width: 100%; border-collapse: collapse; font-size: 0.8rem; }
+.up-flags td { padding: 0.35rem 0.4rem; border-top: 1px solid var(--adm-line); vertical-align: middle; }
+.up-flags td:first-child { white-space: nowrap; }
+.up-flags td:last-child { text-align: right; }
 </style>
