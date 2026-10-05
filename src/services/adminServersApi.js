@@ -44,8 +44,10 @@ export function deleteServer(token, serverId) {
   })
 }
 
-export function regenerateSecret(token, serverId) {
-  return apiRequest(`/admin/servers/${serverId}/regenerate-secret`, {
+// mode: 'smooth' — старый секрет действует ещё сутки (VoidRpPerms 0.6.2+ перепишет конфиги сам),
+// 'now' — старый перестаёт работать сразу (секрет утёк).
+export function regenerateSecret(token, serverId, mode = 'now') {
+  return apiRequest(`/admin/servers/${serverId}/regenerate-secret?mode=${mode}`, {
     ...ah(token),
     method: 'POST',
   })

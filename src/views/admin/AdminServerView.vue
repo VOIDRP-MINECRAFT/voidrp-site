@@ -245,16 +245,22 @@ async function remove(server) {
   }
 }
 
-async function regen(server) {
-  const ok = await confirmDialog({
-    title: 'Перегенерировать секрет',
-    message: 'Плагины и моды этого сервера перестанут работать, пока не обновишь секрет в их конфигах. Продолжить?',
-    confirmLabel: 'Сгенерировать',
-    danger: true,
-  })
+async function regen(server, mode) {
+  const ok = await confirmDialog(mode === 'smooth'
+    ? {
+        title: 'Сменить секрет плавно',
+        message: 'Старый секрет будет действовать ещё сутки. VoidRpPerms 0.6.2+ сам впишет новый в конфиги плагинов VoidRP; остальные подхватят его при перезапуске сервера. Админы сервера получат сообщение в Telegram.',
+        confirmLabel: 'Сменить плавно',
+      }
+    : {
+        title: 'Сменить секрет сразу',
+        message: 'Старый секрет перестанет работать немедленно — плагины и моды сервера отключатся от VoidRP, пока в их конфиги не впишут новый. Так делают, если секрет утёк.',
+        confirmLabel: 'Сменить сразу',
+        danger: true,
+      })
   if (!ok) return
   try {
-    const updated = await regenerateSecret(token(), server.id)
+    const updated = await regenerateSecret(token(), server.id, mode)
     if (editing.value && editing.value.id === server.id) editing.value = updated
     await load()
     toastSuccess('Новый секрет сгенерирован')
@@ -529,7 +535,8 @@ onMounted(load)
           <div class="secret-row">
             <code class="secret">{{ editing.game_auth_secret }}</code>
             <button class="adm-btn adm-btn--sm" @click="copySecret(editing.game_auth_secret)">Копировать</button>
-            <button class="adm-btn adm-btn--danger adm-btn--sm" @click="regen(editing)">Перегенерировать</button>
+            <button class="adm-btn adm-btn--sm" @click="regen(editing, 'smooth')">Сменить плавно</button>
+            <button class="adm-btn adm-btn--danger adm-btn--sm" @click="regen(editing, 'now')">Сменить сразу (утёк)</button>
           </div>
           <p class="hint">Этот секрет плагины/моды сервера шлют в заголовке для атрибуции данных.</p>
         </template>
