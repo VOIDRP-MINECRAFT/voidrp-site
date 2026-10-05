@@ -116,6 +116,7 @@ async function handleFiles(list) {
         on_server: !clientOnly.value,
         optional: false,
         required: false,
+        default_enabled: true,
         display_name: '',
         description: '',
       })),
@@ -137,6 +138,7 @@ async function applyStaging() {
     on_server: f.on_server,
     optional: f.optional,
     required: f.optional && f.required,
+    default_enabled: !f.optional || f.required || f.default_enabled,
     display_name: f.display_name || null,
     description: f.description || null,
   }))
@@ -191,6 +193,7 @@ function openEdit(mod) {
     filename: mod.filename,
     optional: mod.optional,
     required: mod.required,
+    default_enabled: mod.default_enabled !== false,
     display_name: mod.display_name || '',
     description: mod.description || '',
   }
@@ -203,6 +206,7 @@ async function saveEdit() {
     await updateModMeta(token(), editItem.value.filename, {
       optional: editItem.value.optional,
       required: editItem.value.optional && editItem.value.required,
+      default_enabled: !editItem.value.optional || editItem.value.required || editItem.value.default_enabled,
       display_name: editItem.value.display_name || null,
       description: editItem.value.description || null,
     })
@@ -398,6 +402,9 @@ onBeforeUnmount(stopBuildPolling)
               <label class="adm-check" :class="{ 'is-disabled': !f.optional }">
                 <input v-model="f.required" type="checkbox" :disabled="!f.optional" /> нельзя откл.
               </label>
+              <label class="adm-check" :class="{ 'is-disabled': !f.optional || f.required }">
+                <input v-model="f.default_enabled" type="checkbox" :disabled="!f.optional || f.required" /> вкл. по умолчанию
+              </label>
               <input v-model="f.display_name" class="adm-input adm-input--sm" placeholder="Название (для лаунчера)" />
             </div>
           </div>
@@ -462,6 +469,7 @@ onBeforeUnmount(stopBuildPolling)
             <td>
               <span v-if="m.optional && m.required" class="adm-badge adm-badge--warn">обязательный</span>
               <span v-else-if="m.optional" class="adm-badge adm-badge--ok">опциональный</span>
+              <span v-if="m.optional && !m.required && m.default_enabled === false" class="adm-badge" title="Игрок включает его сам в лаунчере">выкл. по умолч.</span>
               <span v-else class="adm-badge">скрытый</span>
               <span v-if="m.source === 'override'" class="mods-ovr" title="Задано вручную">●</span>
             </td>
@@ -482,6 +490,10 @@ onBeforeUnmount(stopBuildPolling)
         <label class="adm-check"><input v-model="editItem.optional" type="checkbox" /> Опциональный (виден в списке модов лаунчера)</label>
         <label class="adm-check" :class="{ 'is-disabled': !editItem.optional }">
           <input v-model="editItem.required" type="checkbox" :disabled="!editItem.optional" /> Нельзя отключить (обязательный)
+        </label>
+        <label class="adm-check" :class="{ 'is-disabled': !editItem.optional || editItem.required }">
+          <input v-model="editItem.default_enabled" type="checkbox" :disabled="!editItem.optional || editItem.required" />
+          Включён по умолчанию (иначе игрок включает его сам в лаунчере)
         </label>
         <label class="mods-field">
           <span>Название</span>
