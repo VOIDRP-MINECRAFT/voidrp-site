@@ -39,6 +39,10 @@ const needsRegen = ref(false)  // a client-affecting change happened since last 
 const mods = computed(() => data.value?.mods || [])
 const counts = computed(() => data.value?.counts || {})
 const serverDirAvailable = computed(() => data.value?.server_dir_available !== false)
+// Plugin core (Paper/Folia): the server loads no mods, only the players' NeoForge client does.
+const pluginCore = computed(() => data.value?.server_mods_blocked === 'plugin_core')
+// Only the client pack takes mods here: a partner's machine or a plugin core.
+const clientOnly = computed(() => isExternal.value || pluginCore.value)
 
 const filtered = computed(() => {
   const f = filter.value.trim().toLowerCase()
@@ -109,7 +113,7 @@ async function handleFiles(list) {
         filename: f.filename,
         size: f.size,
         on_client: true,
-        on_server: true,
+        on_server: !clientOnly.value,
         optional: false,
         required: false,
         display_name: '',
@@ -157,7 +161,7 @@ async function applyStaging() {
 
 // ── Toggle client/server on an existing mod ──────────────────────────────────
 async function toggleTarget(mod, which) {
-  if (which === 'on_server' && isExternal.value) return   // external: no server-side mods
+  if (which === 'on_server' && clientOnly.value) return   // partner machine / plugin core: no server-side mods
   const next = { on_client: mod.on_client, on_server: mod.on_server }
   next[which] = !next[which]
   if (!next.on_client && !next.on_server) {
@@ -330,12 +334,12 @@ onBeforeUnmount(stopBuildPolling)
         <h1 class="adm-title">Моды · {{ serverName }}</h1>
         <p class="adm-sub">Управление модами клиента и сервера выбранного сервера</p>
       </div>
-      <div v-else class="mods-embedded__sub">{{ isExternal ? 'Моды клиента (пак игроков)' : 'Моды клиента (пак игроков) и сервера' }}</div>
+      <div v-else class="mods-embedded__sub">{{ clientOnly ? 'Моды клиента (пак игроков)' : 'Моды клиента (пак игроков) и сервера' }}</div>
       <div class="adm-head-actions">
         <button v-if="canManage" class="adm-btn adm-btn--acc" :disabled="regenRunning" @click="regen">
           {{ regenRunning ? 'Сборка…' : 'Пересобрать манифест' }}
         </button>
-        <button v-if="canManage && canRestart && !isExternal" class="adm-btn adm-btn--danger" :disabled="restartBusy" @click="restartServer">
+        <button v-if="canManage && canRestart && !clientOnly" class="adm-btn adm-btn--danger" :disabled="restartBusy" @click="restartServer">
           Перезапустить сервер
         </button>
       </div>
@@ -344,7 +348,13 @@ onBeforeUnmount(stopBuildPolling)
     <!-- предупреждение о пересборке -->
     <div v-if="needsRegen" class="mods-warn">
       Клиентские моды изменены — <b>пересоберите манифест</b>, чтобы игроки получили обновление.
-      <template v-if="!isExternal">Серверные моды применятся только после <b>перезапуска сервера</b>.</template>
+      <template v-if="!clientOnly">Серверные моды применятся только после <b>перезапуска сервера</b>.</template>
+    </div>
+
+    <div v-if="pluginCore" class="mods-note">
+      Сервер работает на плагинах (Paper) — моды получают только игроки через лаунчер, на сервер они не ставятся.
+      Кладите только клиентские моды: интерфейс, графика, карта или моды под плагины сервера (голосовой чат и т.п.).
+      Моды с новыми блоками и предметами здесь работать не будут.
     </div>
 
     <div v-if="err" class="adm-empty"><div class="adm-empty__title">{{ err }}</div></div>
@@ -401,14 +411,14 @@ onBeforeUnmount(stopBuildPolling)
         <div class="mods-counts">
           <span class="adm-badge">всего {{ counts.total ?? '—' }}</span>
           <span class="adm-badge adm-badge--info">клиент {{ counts.client ?? '—' }}</span>
-          <span v-if="!isExternal" class="adm-badge adm-badge--acc">сервер {{ counts.server ?? '—' }}</span>
+          <span v-if="!clientOnly" class="adm-badge adm-badge--acc">сервер {{ counts.server ?? '—' }}</span>
           <span class="adm-badge adm-badge--ok">опциональных {{ counts.optional ?? '—' }}</span>
         </div>
         <div class="mods-tools">
           <div class="adm-tabs">
             <button class="adm-tab" :class="{ 'adm-tab--active': showFilter === 'all' }" @click="showFilter = 'all'">Все</button>
             <button class="adm-tab" :class="{ 'adm-tab--active': showFilter === 'client' }" @click="showFilter = 'client'">Клиент</button>
-            <button v-if="!isExternal" class="adm-tab" :class="{ 'adm-tab--active': showFilter === 'server' }" @click="showFilter = 'server'">Сервер</button>
+            <button v-if="!clientOnly" class="adm-tab" :class="{ 'adm-tab--active': showFilter === 'server' }" @click="showFilter = 'server'">Сервер</button>
             <button class="adm-tab" :class="{ 'adm-tab--active': showFilter === 'optional' }" @click="showFilter = 'optional'">Опц.</button>
           </div>
           <input v-model="filter" class="adm-input adm-input--sm" placeholder="поиск…" />
@@ -423,7 +433,7 @@ onBeforeUnmount(stopBuildPolling)
           <tr>
             <th>Файл</th>
             <th class="mods-c">Клиент</th>
-            <th v-if="!isExternal" class="mods-c">Сервер</th>
+            <th v-if="!clientOnly" class="mods-c">Сервер</th>
             <th>Тип</th>
             <th class="mods-c">Размер</th>
             <th v-if="canManage"></th>
@@ -441,7 +451,7 @@ onBeforeUnmount(stopBuildPolling)
                 {{ m.on_client ? '✓' : '—' }}
               </button>
             </td>
-            <td v-if="!isExternal" class="mods-c">
+            <td v-if="!clientOnly" class="mods-c">
               <button class="mods-dot" :class="m.on_server ? 'is-on' : 'is-off'"
                       :disabled="!canManage || isExternal"
                       @click="toggleTarget(m, 'on_server')"
@@ -534,6 +544,10 @@ onBeforeUnmount(stopBuildPolling)
 .mods-warn {
   padding: 0.7rem 1rem; border-radius: var(--adm-r-sm); font-size: 0.82rem;
   background: var(--adm-warn-soft, rgba(234, 179, 8, 0.1)); border: 1px solid var(--adm-warn); color: var(--adm-warn);
+}
+.mods-note {
+  padding: 0.7rem 1rem; border-radius: var(--adm-r-sm); font-size: 0.82rem; line-height: 1.5;
+  background: var(--adm-card-2); border: 1px solid var(--adm-line); color: var(--adm-mut);
 }
 .mods-dim { color: var(--adm-dim); font-size: 0.72rem; }
 
