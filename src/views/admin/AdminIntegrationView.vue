@@ -14,6 +14,7 @@ import IntPlugins from './integration/IntPlugins.vue'
 import IntServer from './integration/IntServer.vue'
 import IntUpdates from './integration/IntUpdates.vue'
 import IntReleases from './integration/IntReleases.vue'
+import IntStatus from './integration/IntStatus.vue'
 
 const route = useRoute()
 const router = useRouter()
@@ -71,6 +72,7 @@ const TABS = computed(() => [
   { key: 'plugins', label: 'Плагины', badge: outdated.value.length || null },
   { key: 'server', label: 'Сервер', badge: serverIssues.value || null },
   { key: 'updates', label: 'Обновления' },
+  { key: 'status', label: 'Статус' },
   ...(isPlatformAdmin.value ? [{ key: 'releases', label: 'Релизы' }] : []),
 ])
 const tab = ref(String(route.query.tab || ''))
@@ -226,6 +228,7 @@ onBeforeUnmount(() => clearInterval(timer))
       <IntPlugins v-else-if="tab === 'plugins'" :data="data" :now="now" :can-config="canConfig" />
       <IntServer v-else-if="tab === 'server'" :data="data" :now="now" />
       <IntUpdates v-else-if="tab === 'updates'" :data="data" :notify="notify" :can-config="canConfig" @reload="load(true)" @notify="notify = $event" />
+      <IntStatus v-else-if="tab === 'status'" :data="data" :can-config="canConfig" @reload="load(true)" />
       <IntReleases v-else-if="tab === 'releases' && isPlatformAdmin" @reload="load(true)" />
     </template>
   </div>
