@@ -80,3 +80,10 @@ export async function issueInstallToken() {
 
 // Всё одним архивом: плагины, зависимости, конфиги — для хостингов только с веб-панелью.
 export const downloadBundle = (slug) => download('/admin/integration/bundle.zip', `voidrp-${slug}.zip`)
+
+// «Проверить связь»: VoidRpPerms отвечает /voidrp status через очередь консоли.
+export const runSelftest = () => apiRequest('/admin/integration/selftest', { method: 'POST', headers: headers() })
+// Автообновление наших плагинов на этом сервере (VoidRpPerms 0.6.0+).
+export const saveIntegrationSettings = (settings) => apiRequest('/admin/integration/settings', {
+  method: 'PUT', headers: { ...headers(), 'Content-Type': 'application/json' }, body: JSON.stringify(settings),
+})

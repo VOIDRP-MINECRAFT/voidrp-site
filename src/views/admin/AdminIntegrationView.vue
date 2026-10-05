@@ -7,7 +7,7 @@ import { authState, hasPermission } from '../../stores/authStore'
 import { toastError, toastSuccess } from '../../services/toast'
 import {
   downloadBundle, downloadConfig, downloadRelease, getIntegration, getNotifyPrefs, issueInstallToken, listReleases,
-  patchRelease, saveNotifyPrefs, syncReleases,
+  patchRelease, runSelftest, saveIntegrationSettings, saveNotifyPrefs, syncReleases,
 } from '../../services/integrationApi'
 import { confirmDialog } from '../../composables/useConfirm'
 
@@ -183,6 +183,24 @@ async function zip() {
   try { await downloadBundle(server.value.slug); toastSuccess('Архив скачан — распакуйте его в папку сервера') } catch (e) { toastError(e?.message || 'Не удалось собрать архив') } finally { busy.value = '' }
 }
 
+// ── Проверка связи, опись сервера, автообновление ──
+const selftest = ref(null)
+async function check() {
+  busy.value = 'selftest'
+  selftest.value = null
+  try { selftest.value = (await runSelftest()).output || '(пустой ответ)' } catch (e) { toastError(e?.message || 'Сервер не ответил') } finally { busy.value = '' }
+}
+const inv = computed(() => data.value?.inventory || null)
+const showPlugins = ref(false)
+async function setAuto(patch) {
+  busy.value = 'settings'
+  try {
+    await saveIntegrationSettings({ ...(data.value?.settings || {}), ...patch })
+    await load(true)
+    toastSuccess(patch.auto_update === false ? 'Автообновление выключено' : 'Сохранено')
+  } catch (e) { toastError(e?.message || 'Не удалось сохранить') } finally { busy.value = '' }
+}
+
 // ── Уведомления в Telegram ──
 const notify = ref(null)
 const notifyBusy = ref(false)
@@ -281,7 +299,12 @@ onBeforeUnmount(() => clearInterval(timer))
       <div class="it-grid">
         <!-- Чек-лист -->
         <section class="adm-card it-steps">
-          <div class="adm-card__head"><div class="adm-card__title">Подключение</div><span class="it-muted">обновляется само</span></div>
+          <div class="adm-card__head">
+            <div class="adm-card__title">Подключение</div>
+            <span class="it-muted">обновляется само</span>
+            <button class="adm-btn adm-btn--sm it-check" :disabled="busy === 'selftest'" @click="check">{{ busy === 'selftest' ? 'Спрашиваю сервер…' : 'Проверить связь' }}</button>
+          </div>
+          <pre v-if="selftest" class="it-selftest">{{ selftest }}</pre>
           <ol class="it-steplist">
             <li v-for="(s, i) in steps" :key="i" class="it-step" :class="{ 'it-step--ok': s.ok && !s.warn, 'it-step--warn': s.warn, 'it-step--opt': s.optional && !s.ok && !s.warn }">
               <span class="it-step__num">{{ s.warn ? '!' : s.ok ? '✓' : i + 1 }}</span>
@@ -351,9 +374,30 @@ onBeforeUnmount(() => clearInterval(timer))
             </details>
           </div>
           <div v-if="canConfig" class="it-quick__block">
+            <div class="it-quick__label">Автообновление</div>
+            <p class="it-muted">VoidRpPerms 0.6.0+ сам скачивает новые сборки наших плагинов (и проверенные версии LuckPerms, GrimAC…) в <code>plugins/update/</code>, проверяет контрольные суммы — новая версия встаёт при следующем перезапуске. Ничего не перезагружается на ходу.</p>
+            <label class="adm-check"><input type="checkbox" :checked="data.settings?.auto_update" :disabled="busy === 'settings'" @change="setAuto({ auto_update: $event.target.checked })" /> Обновлять наши плагины сами</label>
+            <label v-if="data.settings?.auto_update" class="adm-check"><input type="checkbox" :checked="data.settings?.beta" :disabled="busy === 'settings'" @change="setAuto({ beta: $event.target.checked })" /> Брать и бета-сборки</label>
+          </div>
+          <div v-if="canConfig" class="it-quick__block">
             <div class="it-quick__label">Нет консоли, только веб-панель хостинга?</div>
             <p class="it-muted">Скачайте всё одним архивом (плагины, зависимости, конфиги) и распакуйте его в папку сервера через файловый менеджер панели.</p>
             <button class="adm-btn adm-btn--sm" :disabled="busy === 'zip'" @click="zip">{{ busy === 'zip' ? 'Собираю…' : 'Скачать архив' }}</button>
+          </div>
+        </div>
+      </section>
+
+      <!-- Что стоит на сервере -->
+      <section v-if="inv" class="adm-card it-inv">
+        <div class="adm-card__head"><div class="adm-card__title">Что стоит на сервере</div><span class="it-muted">по отчёту VoidRpPerms · {{ ago(inv.at) }} · Java {{ inv.java }}</span></div>
+        <div class="it-inv__body">
+          <div v-if="!inv.issues.length" class="it-inv__ok"><span class="adm-dot adm-dot--ok" /> Конфликтов и недостающих плагинов не видно.</div>
+          <div v-for="(x, i) in inv.issues" :key="i" class="it-inv__issue" :class="`it-inv__issue--${x.level}`">
+            <span class="adm-dot" :class="x.level === 'err' ? 'adm-dot--err' : x.level === 'warn' ? 'adm-dot--warn' : ''" /><span>{{ x.text }}</span>
+          </div>
+          <button class="it-versions-btn" @click="showPlugins = !showPlugins">{{ showPlugins ? 'Скрыть плагины' : `Все плагины (${inv.plugins.length})` }}</button>
+          <div v-if="showPlugins" class="it-inv__list">
+            <span v-for="p in inv.plugins" :key="p.name" class="it-inv__plugin" :class="{ 'it-inv__plugin--off': !p.enabled }" :title="p.file">{{ p.name }} <b>{{ p.version }}</b></span>
           </div>
         </div>
       </section>
@@ -559,6 +603,14 @@ onBeforeUnmount(() => clearInterval(timer))
 .it-ver__log { font-size: 0.82rem; color: var(--adm-text); margin-top: 0.2rem; }
 .it-ver__sha { font-size: 0.7rem; color: var(--adm-faint); word-break: break-all; margin-top: 0.15rem; }
 
+.it-check { margin-left: auto; }
+.it-selftest { margin: 0 1rem 0.5rem; padding: 0.6rem; font-family: var(--adm-mono); font-size: 0.74rem; background: var(--adm-card-2); border: 1px solid var(--adm-line); border-radius: var(--adm-r-sm); color: var(--adm-text); white-space: pre-wrap; }
+.it-inv { margin-bottom: 1rem; }
+.it-inv__body { padding: 0 1rem 1rem; display: flex; flex-direction: column; gap: 0.45rem; font-size: 0.85rem; color: var(--adm-text); }
+.it-inv__ok, .it-inv__issue { display: flex; gap: 0.5rem; align-items: baseline; line-height: 1.45; }
+.it-inv__list { display: flex; flex-wrap: wrap; gap: 0.35rem; }
+.it-inv__plugin { font-size: 0.76rem; padding: 0.15rem 0.5rem; border-radius: 999px; border: 1px solid var(--adm-line); background: var(--adm-card-2); color: var(--adm-text); }
+.it-inv__plugin--off { opacity: 0.5; text-decoration: line-through; }
 .it-quick { margin-bottom: 1rem; }
 .it-quick__body { padding: 0 1rem 1rem; display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 420px), 1fr)); gap: 1rem 1.4rem; }
 .it-quick__block { display: flex; flex-direction: column; gap: 0.45rem; align-items: flex-start; }
