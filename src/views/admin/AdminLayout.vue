@@ -217,6 +217,7 @@ const navGroups = computed(() => {
         { to: '/admin/players', label: 'Игроки', icon: icons.players, perm: 'players.view' },
         { to: '/admin/cosmetics', label: 'Косметика', icon: icons.players, perm: 'figura.cosmetics.manage' },
         { to: '/admin/server', label: 'Серверы', icon: icons.servers, perm: 'servers.manage' },
+        { to: '/admin/partners', label: 'Партнёры', icon: icons.servers, adminOnly: true },
         { to: '/admin/launcher', label: 'Лаунчер', icon: icons.launcher, perm: 'launcher.view' },
         { to: '/admin/moderators', label: 'Сотрудники', icon: icons.players, staffTab: true },
         { to: '/admin/roles', label: 'Роли', icon: icons.roles, staffManager: true },

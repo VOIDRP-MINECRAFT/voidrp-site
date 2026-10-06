@@ -1,6 +1,7 @@
 import { createRouter, createWebHistory } from 'vue-router'
 import { authState, bootstrapAuth, canManageStaff, canSeeStaffTab, getIsAuthenticated, hasPermission } from '../stores/authStore'
 import NProgress from 'nprogress'
+import { setActiveServer } from '../stores/serverStore'
 import 'nprogress/nprogress.css'
 
 NProgress.configure({ showSpinner: false, speed: 350, minimum: 0.08 })
@@ -12,6 +13,7 @@ NProgress.configure({ showSpinner: false, speed: 350, minimum: 0.08 })
 const routes = [
   { path: '/', name: 'home', component: () => import('../views/HomeView.vue'), meta: { title: 'Главная' } },
   { path: '/status/:slug', name: 'server-status', component: () => import('../views/StatusView.vue'), meta: { title: 'Статус сервера', hidePublicShell: true } },
+  { path: '/partners', name: 'partners', component: () => import('../views/PartnersView.vue'), meta: { title: 'Партнёрам' } },
   { path: '/servers', name: 'servers', component: () => import('../views/ServersView.vue'), meta: { title: 'Серверы' } },
   { path: '/shop', name: 'shop', component: () => import('../views/ShopView.vue'), meta: { title: 'Магазин', requiresAuth: true, feature: 'shop' } },
   { path: '/guide', redirect: '/server-guide' },
@@ -105,6 +107,7 @@ const routes = [
       { path: 'launcher', name: 'admin-launcher', component: () => import('../views/admin/AdminLauncherView.vue'), meta: { title: 'Лаунчер', requiresAuth: true, requiresAdmin: true, hidePublicShell: true, permission: 'launcher.view' } },
       { path: 'moderators', name: 'admin-moderators', component: () => import('../views/admin/AdminModeratorsView.vue'), meta: { title: 'Сотрудники', requiresAuth: true, requiresAdmin: true, hidePublicShell: true, staffTab: true } },
       { path: 'game-perms', name: 'admin-game-perms', component: () => import('../views/admin/AdminGamePermsView.vue'), meta: { title: 'Права в игре', requiresAuth: true, requiresAdmin: true, hidePublicShell: true, permission: 'game.view', serverScoped: true } },
+      { path: 'partners', name: 'admin-partners', component: () => import('../views/admin/AdminPartnersView.vue'), meta: { title: 'Партнёры', requiresAuth: true, requiresAdmin: true, hidePublicShell: true, adminOnly: true } },
       { path: 'integration', name: 'admin-integration', component: () => import('../views/admin/AdminIntegrationView.vue'), meta: { title: 'Интеграция', requiresAuth: true, requiresAdmin: true, hidePublicShell: true, permission: 'integration.view', serverScoped: true } },
       { path: 'item-bans', name: 'admin-item-bans', component: () => import('../views/admin/AdminItemBansView.vue'), meta: { title: 'Бан предметов', requiresAuth: true, requiresAdmin: true, hidePublicShell: true, permission: 'items.bans.view', serverScoped: true } },
       { path: 'roles', name: 'admin-roles', component: () => import('../views/admin/AdminRolesView.vue'), meta: { title: 'Роли', requiresAuth: true, requiresAdmin: true, hidePublicShell: true, staffManager: true } },
@@ -124,6 +127,10 @@ const router = createRouter({
 router.beforeEach(async (to) => {
   NProgress.start()
   await bootstrapAuth()
+  // Links from the bot, notices and «Партнёры» name the server: /admin/integration?server=vexvol.
+  if (to.path.startsWith('/admin') && typeof to.query.server === 'string' && /^[a-z0-9_-]{1,64}$/.test(to.query.server)) {
+    setActiveServer(to.query.server)
+  }
   const isAuthenticated = getIsAuthenticated()
   if (to.meta?.requiresAuth && !isAuthenticated) {
     NProgress.done()

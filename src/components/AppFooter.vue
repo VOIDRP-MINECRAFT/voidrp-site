@@ -34,6 +34,7 @@ function switchLang(lang) {
             <a :href="siteConfig.discordUrl" target="_blank" rel="noreferrer" class="footer-chip">Discord</a>
             <a :href="siteConfig.telegramUrl" target="_blank" rel="noreferrer" class="footer-chip">Telegram</a>
             <RouterLink to="/download-launcher" class="footer-chip">{{ t('footer.launcher') }}</RouterLink>
+            <RouterLink to="/partners" class="footer-chip">{{ t('footer.partners') }}</RouterLink>
           </div>
         </div>
       </div>

@@ -101,3 +101,6 @@ export const runFix = (action) => apiRequest('/admin/integration/fix', {
 export const testDiscord = (url) => apiRequest('/admin/integration/discord-test', {
   method: 'POST', headers: { ...headers(), 'Content-Type': 'application/json' }, body: JSON.stringify({ discord_webhook: url }),
 })
+
+// «Партнёры»: все подключённые серверы одной таблицей (админы платформы).
+export const getFleet = () => apiRequest('/admin/integration/fleet', { headers: buildAuthHeaders(authState.accessToken), serverScope: false })
