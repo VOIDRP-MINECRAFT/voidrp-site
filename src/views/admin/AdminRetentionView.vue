@@ -94,7 +94,7 @@ const preview = (t) => (t || '').replaceAll('{player}', 'Steve').replaceAll('{se
 
       <section class="adm-card rt-sec">
         <div class="rt-head">
-          <SrvToggle v-model="form.enabled" :disabled="!canManage" label="Включено на этом сервере" hint="Пока выключено, ничего не выдаётся и не отправляется" />
+          <SrvToggle v-model="form.enabled" :disabled="!canManage" label="Включено на этом сервере" :hint="form.enabled ? `Работает: приветствие, награда и напоминание — по настройкам ниже` : `Пока выключено, ничего не выдаётся и не отправляется`" />
         </div>
       </section>
 
