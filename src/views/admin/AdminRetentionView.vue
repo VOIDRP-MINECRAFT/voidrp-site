@@ -51,10 +51,22 @@ const blocked = computed(() => {
   if (!form.value) return ''
   const bad = form.value.commands.map(cmdError).find(Boolean)
   if (bad) return `в команде награды ${bad}`
+  const tgBad = (form.value.tg_bonus_commands || []).map(cmdError).find(Boolean)
+  if (tgBad) return `в бонусе за Telegram ${tgBad}`
+  for (const st of form.value.streak || []) {
+    const e = (st.commands || []).map(cmdError).find(Boolean)
+    if (e) return `в серии (${st.day}-й день) ${e}`
+  }
+  const days = (form.value.streak || []).map((x) => x.day)
+  if (new Set(days).size !== days.length) return "в серии дни повторяются"
   if (form.value.enabled && !form.value.commands.some((c) => c.trim())) return 'нужна хотя бы одна команда награды'
   return ''
 })
 
+function addStreak() {
+  const last = Math.max(1, ...(form.value.streak || []).map((x) => x.day || 0))
+  form.value.streak.push({ day: last + 2, message: 'Ещё один день подряд, {player}!', commands: ['minecraft:give {player} minecraft:diamond 1'] })
+}
 const testNick = ref('')
 const testing = ref(false)
 async function runTest() {
@@ -66,7 +78,8 @@ async function runTest() {
 
 const st = computed(() => data.value?.stats || {})
 const d = (k) => st.value.deliveries?.[k] || 0
-const KIND = { welcome: 'Приветствие', day2: 'Награда 2-го дня', test: 'Проверка' }
+const KIND = { welcome: 'Приветствие', day2: 'Награда 2-го дня', test: 'Проверка', tg_link: 'Бонус за Telegram' }
+const kindLabel = (k) => KIND[k] || (k.startsWith('streak') ? `Серия: ${k.slice(6)}-й день` : k)
 const STATUS = { pending: ['ждёт игрока', ''], delivered: ['выдано', 'adm-badge--ok'], failed: ['не вышло', 'adm-badge--err'] }
 const fmt = (iso) => (iso ? new Date(iso).toLocaleString('ru-RU', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' }) : '—')
 const preview = (t) => (t || '').replaceAll('{player}', 'Steve').replaceAll('{server}', activeServer.value?.name || 'сервер').replaceAll('{reward}', form.value?.reward_label || 'награда')
@@ -89,7 +102,7 @@ const preview = (t) => (t || '').replaceAll('{player}', 'Steve').replaceAll('{se
         <div class="rt-stat"><b>{{ st.newcomers ?? '—' }}</b><span>новичков за {{ st.days }} дн</span></div>
         <div class="rt-stat"><b>{{ st.returned_pct != null ? `${st.returned_pct}%` : '—' }}</b><span>вернулись на другой день ({{ st.returned ?? 0 }})</span></div>
         <div class="rt-stat"><b>{{ d('day2_delivered') }}</b><span>наград выдано<template v-if="d('day2_pending')"> · ждут {{ d('day2_pending') }}</template></span></div>
-        <div class="rt-stat"><b>{{ st.reminders_sent ?? 0 }}</b><span>напоминаний в Telegram</span></div>
+        <div class="rt-stat"><b>{{ st.tg_pct != null ? `${st.tg_pct}%` : '—' }}</b><span>новичков с Telegram ({{ st.tg_linked ?? 0 }}) · напоминаний {{ st.reminders_sent ?? 0 }}</span></div>
       </div>
 
       <section class="adm-card rt-sec">
@@ -148,6 +161,49 @@ const preview = (t) => (t || '').replaceAll('{player}', 'Steve').replaceAll('{se
         <label v-if="form.reminder_enabled" class="adm-field"><span>Текст ({server}, {player}, {reward})</span><textarea v-model="form.reminder_text" class="adm-textarea" rows="2" maxlength="400" :disabled="!canManage" /><small class="rt-prev">{{ preview(form.reminder_text) }}</small></label>
       </section>
 
+      <!-- Бонус за Telegram -->
+      <section class="adm-card rt-sec">
+        <h2>Бонус за привязку Telegram</h2>
+        <SrvToggle v-model="form.tg_bonus_enabled" :disabled="!canManage" label="Давать бонус тем, кто привязал Telegram"
+                   hint="Один раз на аккаунт, при ближайшем входе на этот сервер. Получат и те, кто привязал раньше. Без привязки напоминания до игрока не дойдут." />
+        <template v-if="form.tg_bonus_enabled">
+          <label class="adm-field"><span>Сообщение в чат</span><input v-model="form.tg_bonus_message" class="adm-input" maxlength="240" :disabled="!canManage" /><small class="rt-prev">{{ preview(form.tg_bonus_message) }}</small></label>
+          <div class="adm-field">
+            <span>Команды бонуса</span>
+            <div v-for="(c, i) in form.tg_bonus_commands" :key="i" class="rt-cmd">
+              <input v-model="form.tg_bonus_commands[i]" class="adm-input rt-mono" :class="{ 'rt-bad': cmdError(c) }" :disabled="!canManage" />
+              <button v-if="canManage" type="button" class="adm-btn adm-btn--sm adm-btn--danger" aria-label="Убрать" @click="form.tg_bonus_commands.splice(i, 1)">✕</button>
+              <small v-if="cmdError(c)" class="rt-err">{{ cmdError(c) }}</small>
+            </div>
+            <button v-if="canManage && form.tg_bonus_commands.length < 10" type="button" class="rt-add" @click="form.tg_bonus_commands.push('')">+ команда</button>
+          </div>
+          <p class="rt-note">Кнопка «Привязать» есть в профиле на сайте и в лаунчере; ссылка: <code>t.me/voidrp_bot?start=link</code>.</p>
+        </template>
+      </section>
+
+      <!-- Серия входов -->
+      <section class="adm-card rt-sec">
+        <h2>Серия входов</h2>
+        <SrvToggle v-model="form.streak_enabled" :disabled="!canManage" label="Награды за дни подряд"
+                   hint="Считаются дни (по Москве), когда игрок заходил на этот сервер, без пропусков. Каждая награда — один раз на игрока." />
+        <div v-if="form.streak_enabled" class="rt-streak">
+          <div v-for="(st, i) in form.streak" :key="i" class="rt-step">
+            <div class="rt-step__head">
+              <label class="adm-field rt-day"><span>День подряд</span><input v-model.number="st.day" type="number" min="2" max="60" class="adm-input" :disabled="!canManage" /></label>
+              <label class="adm-field rt-grow"><span>Сообщение</span><input v-model="st.message" class="adm-input" maxlength="240" :disabled="!canManage" /></label>
+              <button v-if="canManage" type="button" class="adm-btn adm-btn--sm adm-btn--danger rt-del" aria-label="Убрать день" @click="form.streak.splice(i, 1)">✕</button>
+            </div>
+            <div v-for="(c, j) in st.commands" :key="j" class="rt-cmd">
+              <input v-model="st.commands[j]" class="adm-input rt-mono" :class="{ 'rt-bad': cmdError(c) }" :disabled="!canManage" />
+              <button v-if="canManage" type="button" class="adm-btn adm-btn--sm adm-btn--danger" aria-label="Убрать" @click="st.commands.splice(j, 1)">✕</button>
+              <small v-if="cmdError(c)" class="rt-err">{{ cmdError(c) }}</small>
+            </div>
+            <button v-if="canManage && st.commands.length < 10" type="button" class="rt-add" @click="st.commands.push('')">+ команда</button>
+          </div>
+          <button v-if="canManage && form.streak.length < 10" type="button" class="rt-add" @click="addStreak">+ день серии</button>
+        </div>
+      </section>
+
       <!-- Последние -->
       <section class="adm-card rt-sec">
         <h2>Последние выдачи</h2>
@@ -158,7 +214,7 @@ const preview = (t) => (t || '').replaceAll('{player}', 'Steve').replaceAll('{se
             <tbody>
               <tr v-for="r in st.recent" :key="r.id">
                 <td class="rt-mono">{{ r.nickname }}</td>
-                <td>{{ KIND[r.kind] || r.kind }}<span v-if="r.created_by" class="rt-note"> · {{ r.created_by }}</span></td>
+                <td>{{ kindLabel(r.kind) }}<span v-if="r.created_by" class="rt-note"> · {{ r.created_by }}</span></td>
                 <td><span class="adm-badge" :class="STATUS[r.status]?.[1]">{{ STATUS[r.status]?.[0] || r.status }}</span><span v-if="r.attempts > 1" class="rt-note"> · попыток {{ r.attempts }}</span></td>
                 <td class="adm-num rt-note">{{ fmt(r.delivered_at || r.created_at) }}</td>
                 <td class="rt-note">{{ r.last_error || '' }}</td>
@@ -197,4 +253,10 @@ const preview = (t) => (t || '').replaceAll('{player}', 'Steve').replaceAll('{se
 .rt-chat { margin-top: 0.3rem; padding: 0.6rem 0.75rem; border-radius: 8px; background: rgba(0, 0, 0, 0.45); font-family: var(--adm-mono); font-size: 0.78rem; display: flex; flex-direction: column; gap: 0.15rem; }
 .rt-chat__g { color: #fbbf24; }
 .rt-chat__y { color: #fde68a; }
+.rt-streak { display: flex; flex-direction: column; gap: 0.7rem; }
+.rt-step { padding: 0.75rem; border-radius: var(--adm-r-sm); background: var(--adm-card-2); border: 1px solid var(--adm-line); display: flex; flex-direction: column; gap: 0.45rem; }
+.rt-step__head { display: flex; gap: 0.6rem; align-items: flex-end; flex-wrap: wrap; }
+.rt-day { width: 7rem; }
+.rt-grow { flex: 1; min-width: 12rem; }
+.rt-del { margin-bottom: 0.15rem; }
 </style>

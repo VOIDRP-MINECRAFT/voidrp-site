@@ -72,6 +72,7 @@ onMounted(() => {
             <b v-if="linkedUsername">@{{ linkedUsername }}</b>
           </p>
           <p class="tg-hint">{{ t('linkTelegram.doneHint') }}</p>
+          <p class="tg-hint">🎁 {{ t('linkTelegram.bonusHint') }}</p>
           <RouterLink to="/profile" class="tg-btn tg-btn--primary">{{ t('linkTelegram.toProfile') }}</RouterLink>
         </template>
 

@@ -1,4 +1,5 @@
 <script setup>
+import { trackLauncherDownload } from '../services/downloadTrack'
 import { ref, computed, nextTick, watch, onMounted, onUnmounted } from 'vue'
 import { RouterLink } from 'vue-router'
 import { useI18n } from 'vue-i18n'
@@ -827,7 +828,8 @@ function nationAccent(nation) {
 
       <div class="hero__actions anim-hero anim-d3">
         <RouterLink to="/register" class="btn-hero-primary">{{ t('hero.createAccount') }}</RouterLink>
-        <a :href="siteConfig.launcherPortableUrl" class="btn-hero-secondary" target="_blank" rel="noreferrer">
+        <a :href="siteConfig.launcherPortableUrl"
+              @click="trackLauncherDownload" class="btn-hero-secondary" target="_blank" rel="noreferrer">
           <svg viewBox="0 0 20 20" fill="currentColor" width="15" height="15"><path fill-rule="evenodd" d="M3 17a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm3.293-7.707a1 1 0 011.414 0L9 10.586V3a1 1 0 112 0v7.586l1.293-1.293a1 1 0 111.414 1.414l-3 3a1 1 0 01-1.414 0l-3-3a1 1 0 010-1.414z" clip-rule="evenodd"/></svg>
           {{ t('hero.downloadLauncher') }}
         </a>
@@ -1039,7 +1041,8 @@ function nationAccent(nation) {
           <div class="step-card__num">02</div>
           <h3 class="step-card__title">{{ t('steps.s2title') }}</h3>
           <p class="step-card__desc">{{ t('steps.s2desc') }}</p>
-          <a :href="siteConfig.launcherPortableUrl" target="_blank" rel="noreferrer" class="step-card__link">{{ t('steps.s2link') }}</a>
+          <a :href="siteConfig.launcherPortableUrl"
+              @click="trackLauncherDownload" target="_blank" rel="noreferrer" class="step-card__link">{{ t('steps.s2link') }}</a>
         </div>
         <div class="step-card" data-num="03" data-reveal data-delay="160">
           <div class="step-card__num">03</div>
@@ -1105,7 +1108,8 @@ function nationAccent(nation) {
         <div class="launcher-card__right">
           <div class="launcher-download-box">
             <p class="ldb-label">{{ t('launcher.ready') }}</p>
-            <a :href="siteConfig.launcherPortableUrl" target="_blank" rel="noreferrer" class="ldb-btn">
+            <a :href="siteConfig.launcherPortableUrl"
+              @click="trackLauncherDownload" target="_blank" rel="noreferrer" class="ldb-btn">
               <svg viewBox="0 0 20 20" fill="currentColor" width="17" height="17"><path fill-rule="evenodd" d="M3 17a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm3.293-7.707a1 1 0 011.414 0L9 10.586V3a1 1 0 112 0v7.586l1.293-1.293a1 1 0 111.414 1.414l-3 3a1 1 0 01-1.414 0l-3-3a1 1 0 010-1.414z" clip-rule="evenodd"/></svg>
               {{ t('launcher.download') }}
             </a>
@@ -1528,7 +1532,8 @@ function nationAccent(nation) {
         <p class="cta-card__desc">{{ t('cta.desc') }}</p>
         <div class="cta-actions">
           <RouterLink to="/register" class="btn-hero-primary">{{ t('cta.createAccount') }}</RouterLink>
-          <a :href="siteConfig.launcherPortableUrl" target="_blank" rel="noreferrer" class="btn-hero-secondary">{{ t('cta.downloadLauncher') }}</a>
+          <a :href="siteConfig.launcherPortableUrl"
+              @click="trackLauncherDownload" target="_blank" rel="noreferrer" class="btn-hero-secondary">{{ t('cta.downloadLauncher') }}</a>
           <a :href="siteConfig.discordUrl" target="_blank" rel="noreferrer" class="btn-hero-ghost">Discord</a>
         </div>
         <div class="cta-links">

@@ -181,6 +181,7 @@ export default {
     sub: 'Screenshots from our servers: cities, bases, battles and player builds.',
   },
   linkTelegram: {
+    bonusHint: 'Your linking bonus arrives in game the next time you join a server (where it is on).',
     title: 'Link Telegram',
     confirmText: 'Link your Telegram to the account',
     confirmHint: 'Once linked, the bot picks up your permissions and you can publish news and manage the bot right from Telegram.',
@@ -792,6 +793,8 @@ export default {
     noNickname: 'Not set',
     tgLinked: 'Linked',
     tgNotLinked: 'Not linked',
+    tgLinkBtn: 'Link',
+    tgLinkHint: 'An in-game bonus and a reminder about the second-day reward',
     tgUnlink: 'Unlink',
     tgUnlinked: 'Telegram unlinked',
     tgUnlinkError: 'Failed to unlink Telegram',

@@ -10,6 +10,8 @@ export const siteConfig = {
   bluemapUrl: 'https://void-rp.ru/map',
   discordUrl: 'https://discord.gg/Af855xa5wT',
   telegramUrl: 'https://t.me/voidRPminecraft',
+  // Бот: /start с параметром сразу выдаёт ссылку привязки аккаунта.
+  telegramBotLinkUrl: 'https://t.me/voidrp_bot?start=link',
   monitoringChartUrl: 'https://minecraftrating.ru/server_chart/396033/',
   hero: {
     badge: 'VoidRP • официальный сайт и лаунчер',

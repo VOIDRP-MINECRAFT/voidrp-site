@@ -1,4 +1,5 @@
 <script setup>
+import { trackLauncherDownload } from '../services/downloadTrack'
 import { computed, onMounted } from 'vue'
 import { useRoute } from 'vue-router'
 import { useI18n } from 'vue-i18n'
@@ -28,6 +29,7 @@ const registeredEmail = computed(() =>
 )
 
 function triggerDownload() {
+  trackLauncherDownload()
   const link = document.createElement('a')
   link.href = siteConfig.launcherPortableUrl
   link.rel = 'noreferrer'
@@ -94,6 +96,7 @@ onMounted(() => {
           <div class="mt-6 flex flex-col gap-3 sm:flex-row sm:flex-wrap">
             <a
               :href="siteConfig.launcherPortableUrl"
+              @click="trackLauncherDownload"
               target="_blank"
               rel="noreferrer"
               class="btn btn-primary"
