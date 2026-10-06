@@ -16,7 +16,15 @@ const API = (import.meta.env.VITE_API_BASE_URL || 'https://api.void-rp.ru/api/v1
 const rssUrl = `${API.startsWith('http') ? API : 'https://api.void-rp.ru/api/v1'}/integration/releases.rss`
 
 const partners = computed(() => serverState.list.filter((s) => s.is_external))
-const ICONS = ['👥', '🔑', '🖥', '📈', '🛡', '🔁']
+// Lucide-style strokes: players, key, panel, chart, shield, refresh.
+const ICONS = [
+  'M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2M9 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8M22 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75',
+  'M15.5 7.5 19 4m2-2-9.6 9.6M7.5 21a5.5 5.5 0 1 1 0-11 5.5 5.5 0 0 1 0 11',
+  'M3 4h18v12H3zM8 20h8M12 16v4',
+  'M3 3v18h18M7 14l4-4 3 3 5-6',
+  'M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10',
+  'M21 12a9 9 0 0 1-15.5 6.2L3 16M3 12a9 9 0 0 1 15.5-6.2L21 8M21 3v5h-5M3 21v-5h5',
+]
 
 const plugins = computed(() => {
   const seen = new Map()
@@ -59,7 +67,7 @@ const barKind = (u) => (u == null ? 'empty' : u >= 99.5 ? 'good' : u >= 95 ? 'pa
       <h2 class="pt-h2">{{ t('partners.whyTitle') }}</h2>
       <div class="pt-why">
         <article v-for="(w, i) in tm('partners.why')" :key="i" class="pt-card">
-          <div class="pt-card__icon" aria-hidden="true">{{ ICONS[i] }}</div>
+          <div class="pt-card__icon" aria-hidden="true"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path :d="ICONS[i]" /></svg></div>
           <h3>{{ rt(w[0]) }}</h3>
           <p>{{ rt(w[1]) }}</p>
         </article>
@@ -149,7 +157,7 @@ const barKind = (u) => (u == null ? 'empty' : u >= 99.5 ? 'good' : u >= 95 ? 'pa
 
 .pt-why { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 260px), 1fr)); gap: 0.9rem; }
 .pt-card { padding: 1.1rem 1.15rem; border-radius: 18px; border: 1px solid rgba(148, 163, 184, 0.13); background: linear-gradient(180deg, rgba(19, 25, 43, 0.9), rgba(10, 14, 26, 0.92)); }
-.pt-card__icon { width: 2.4rem; height: 2.4rem; border-radius: 12px; display: grid; place-items: center; font-size: 1.2rem; background: rgba(139, 92, 246, 0.14); border: 1px solid rgba(139, 92, 246, 0.3); }
+.pt-card__icon { width: 2.4rem; height: 2.4rem; border-radius: 12px; display: grid; place-items: center; font-size: 1.2rem; background: rgba(139, 92, 246, 0.14); border: 1px solid rgba(139, 92, 246, 0.3); color: #c4b5fd; }
 .pt-card h3 { margin: 0.7rem 0 0.3rem; font-size: 1rem; font-weight: 800; color: #f5f7ff; }
 .pt-card p { margin: 0; color: #a3aecb; font-size: 0.88rem; line-height: 1.5; }
 
