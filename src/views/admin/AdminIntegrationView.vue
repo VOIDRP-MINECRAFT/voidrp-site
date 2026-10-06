@@ -62,7 +62,7 @@ const state = computed(() => {
       : 'Вход, мониторинг и остальное работают через VoidRP.',
   }
 })
-const MODULE_KEYS = ['auth', 'monitoring', 'perms', 'chat', 'console', 'log', 'punishments', 'item_bans', 'anticheat']
+const MODULE_KEYS = ['auth', 'monitoring', 'perms', 'chat', 'console', 'log', 'punishments', 'item_bans', 'playtime', 'anticheat']
 const modulesOn = computed(() => MODULE_KEYS.filter((k) => freshReports.value.some((r) => r.modules?.[k]?.ok)).length)
 
 // ── Вкладки (в адресе, чтобы ссылка открывала нужную) ──

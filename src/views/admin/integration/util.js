@@ -16,6 +16,7 @@ export const fmtDateTime = (v) => (v ? new Date(v).toLocaleString('ru-RU', { day
 export const MODULE_NAMES = {
   auth: 'вход', monitoring: 'мониторинг', perms: 'права', chat: 'чат', anticheat: 'античит', grim: 'GrimAC',
   console: 'консоль', log: 'лог и чат', item_bans: 'бан предметов', punishments: 'наказания', updates: 'автообновление',
+  playtime: 'время в игре',
 }
 
 export async function copyText(text) {
@@ -60,6 +61,8 @@ export function moduleTiles(data) {
       text: on('console') && on('log') ? `Работает · ${by(on('console'))}. RCON можно выключить.` : (off('console') || off('log')) ? `Выключено: ${(off('console') || off('log')).detail || 'без пояснения'}` : 'VoidRpPerms 0.5.0+: команды, лог и чат сервера в «Мониторинге».' }),
     tile('punishments', 'Баны и муты', { state: on('punishments') ? 'ok' : off('punishments') ? 'warn' : 'idle',
       text: on('punishments') ? `Работает · ${by(on('punishments'))}. EssentialsX не нужен.` : off('punishments') ? `Выключено: ${off('punishments').detail || 'без пояснения'}` : 'VoidRpPerms 0.5.0+ держит наказания из админки сам.' }),
+    tile('playtime', 'Время в игре', { state: on('playtime') ? 'ok' : off('playtime') ? 'warn' : 'idle',
+      text: on('playtime') ? `Работает · ${by(on('playtime'))}. Нужно для «Воронки новичка» и активности игроков.` : off('playtime') ? `Выключено: ${off('playtime').detail || 'без пояснения'}` : 'VoidRpPerms 0.7.1+ считает активные минуты игроков.' }),
     tile('item_bans', 'Бан предметов', { state: on('item_bans') ? 'ok' : off('item_bans') ? 'warn' : 'idle',
       text: on('item_bans') ? `Работает · ${by(on('item_bans'))}${server.item_bans_enabled ? '' : '. Раздел включает владелец в «Серверах».'}` : off('item_bans') ? `Выключено: ${off('item_bans').detail || 'без пояснения'}` : 'VoidRpPerms 0.5.0+ убирает у игроков запрещённые предметы.' }),
     tile('anticheat', 'Античит', { state: on('anticheat') ? (on('grim') ? 'ok' : 'warn') : 'idle',
