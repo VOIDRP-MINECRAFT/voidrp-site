@@ -190,7 +190,8 @@ function sourceIcon(key) {
 
 const SOURCE_COLORS = {
   organic: '#22c55e',
-  direct: '#7c3aed',
+  // «Прямые заходы» — цветом сервера, как и основной график
+  get direct() { return accColor() },
   referral: '#06b6d4',
   social: '#f97316',
   ad: '#ec4899',
@@ -314,7 +315,7 @@ onUnmounted(destroyCharts)
             </div>
             <div class="devices-list">
               <div v-for="(dev, i) in data.devices" :key="dev.key" class="devices-list__row">
-                <span class="devices-list__dot" :style="{ background: ['#7c3aed','#06b6d4','#22c55e','#f97316'][i] }" />
+                <span class="devices-list__dot" :style="{ background: [accColor(),'#06b6d4','#22c55e','#f97316'][i] }" />
                 <span class="devices-list__name">{{ dev.name }}</span>
                 <span class="devices-list__val">{{ dev.visits.toLocaleString('ru') }}</span>
               </div>

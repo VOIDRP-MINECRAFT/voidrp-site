@@ -1,4 +1,6 @@
 <script setup>
+import AdminSaveBar from '../../components/admin/AdminSaveBar.vue'
+import { useUnsavedGuard } from '../../composables/useUnsavedGuard'
 import { computed, onMounted, onUnmounted, ref, watch } from 'vue'
 import { authState, hasPermission } from '../../stores/authStore'
 import { activeServer } from '../../stores/serverStore'
@@ -93,17 +95,28 @@ const previewTotals = computed(() => {
 const cfg = ref(null)
 const phaseForm = ref({ mid_unlocked: false, end_unlocked: false })
 const savingCfg = ref(false)
+const cfgBase = ref('')
+const cfgSnapshot = () => JSON.stringify({ cfg: cfg.value, phase: phaseForm.value })
 watch(status, (s) => {
   if (!s || cfg.value) return
   cfg.value = JSON.parse(JSON.stringify(s.config))
   phaseForm.value = { mid_unlocked: Boolean(s.phases.mid_unlocked_at), end_unlocked: Boolean(s.phases.end_unlocked_at) }
+  cfgBase.value = cfgSnapshot()
 })
+const cfgDirty = computed(() => !!cfg.value && !!cfgBase.value && cfgSnapshot() !== cfgBase.value)
+function resetSettings() {
+  const b = JSON.parse(cfgBase.value)
+  cfg.value = b.cfg
+  phaseForm.value = b.phase
+}
+useUnsavedGuard(() => cfgDirty.value)
 async function saveSettings() {
   savingCfg.value = true
   try {
     await traderSaveSettings(token(), cfg.value, phaseForm.value)
     toastSuccess('Настройки сохранены')
     cfg.value = null
+    cfgBase.value = ''
     await loadStatus()
   } catch (e) { toastError(e.message || 'Не удалось сохранить') } finally { savingCfg.value = false }
 }
@@ -628,9 +641,7 @@ onUnmounted(() => { clearInterval(poll); document.removeEventListener('visibilit
           <p class="adm-sub">Стадия открывается сама при достижении порога и больше не закрывается. Здесь можно открыть или закрыть её вручную, например после вайпа.</p>
         </section>
       </fieldset>
-      <div v-if="canManage" class="tr-save">
-        <button class="adm-btn adm-btn--acc" :disabled="savingCfg" @click="saveSettings">{{ savingCfg ? 'Сохранение…' : 'Сохранить настройки' }}</button>
-      </div>
+      <AdminSaveBar v-if="canManage" :dirty="cfgDirty" :saving="savingCfg" text="настройки скупщика" save-label="Сохранить настройки" @save="saveSettings" @reset="resetSettings" />
     </template>
 
     <!-- catalog item modal -->

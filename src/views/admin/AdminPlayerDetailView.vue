@@ -51,7 +51,7 @@ const sevClass = (s) => ({ HIGH: 'is-high', MEDIUM: 'is-med', LOW: '' }[s] || ''
       </div>
     </div>
 
-    <div v-if="loading && !data" class="adm-card adm-card--pad p360-loading">Загрузка…</div>
+    <div v-if="loading && !data" class="adm-loading">Собираю карточку игрока: аккаунт, серверы, государства, наказания…</div>
 
     <div v-else-if="data" class="p360-grid">
       <!-- Account -->

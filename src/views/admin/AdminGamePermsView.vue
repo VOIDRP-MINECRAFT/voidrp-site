@@ -1,4 +1,6 @@
 <script setup>
+import AdminSaveBar from '../../components/admin/AdminSaveBar.vue'
+import { useUnsavedGuard } from '../../composables/useUnsavedGuard'
 // «Права в игре»: группы LuckPerms выбранного сервера. Изменения уходят на сервер через
 // плагин VoidRpPerms (очередь, ~10 с); в игре /lp для игроков закрыт — только здесь.
 import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue'
@@ -100,6 +102,23 @@ function addTyped() {
 const removeNode = (n) => queued(() => changeGroupNode(token(), selected.value.name, { key: n.key, value: n.value, contexts: n.contexts || null, expiry: n.expiry || null, remove: true }), `«${n.key}» снято`)
 
 // ── Оформление и наследование ──
+// Changes go through the server's queue: after sending, the group shows the old values until
+// the plugin applies them — the bar should not keep saying «изменено» meanwhile.
+const metaSent = ref('')
+const metaSaving = ref(false)
+watch(() => selected.value?.name, () => { metaSent.value = '' })
+const metaDirty = computed(() => {
+  const g = selected.value
+  if (!g || !g.may_edit || !meta.value) return false
+  if (metaSent.value && metaSent.value === JSON.stringify(meta.value)) return false
+  const w = meta.value.weight === '' || meta.value.weight == null ? null : Number(meta.value.weight)
+  return w !== (g.weight ?? null) || ['prefix', 'suffix', 'display'].some((k) => (meta.value[k] || '') !== (g[k] || ''))
+})
+function resetMeta() {
+  const g = selected.value
+  meta.value = { weight: g.weight ?? '', prefix: g.prefix || '', suffix: g.suffix || '', display: g.display || '' }
+}
+useUnsavedGuard(() => metaDirty.value)
 async function saveMeta() {
   const g = selected.value
   const body = {}
@@ -107,7 +126,11 @@ async function saveMeta() {
   if (w !== (g.weight ?? null)) body.weight = w
   for (const k of ['prefix', 'suffix', 'display']) if ((meta.value[k] || '') !== (g[k] || '')) body[k] = meta.value[k] || ''
   if (!Object.keys(body).length) return
-  await queued(() => changeGroupMeta(token(), g.name, body), 'Оформление отправлено на сервер')
+  metaSaving.value = true
+  try {
+    await queued(() => changeGroupMeta(token(), g.name, body), 'Оформление отправлено на сервер')
+    metaSent.value = JSON.stringify(meta.value)
+  } finally { metaSaving.value = false }
 }
 const parentOptions = computed(() => groups.value.filter((g) => g.name !== selected.value?.name && !selected.value?.parents.includes(g.name)))
 const addParent = (p) => p && queued(() => changeGroupParent(token(), selected.value.name, p))
@@ -274,7 +297,7 @@ function opText(o) {
             </div>
             <label class="adm-field"><span>Суффикс</span><input v-model="meta.suffix" class="adm-input" maxlength="64" :disabled="!selected.may_edit" /></label>
             <label class="adm-field"><span>Отображаемое имя группы</span><input v-model="meta.display" class="adm-input" maxlength="64" :disabled="!selected.may_edit" /></label>
-            <button v-if="selected.may_edit" class="adm-btn adm-btn--acc gp-save" @click="saveMeta">Сохранить оформление</button>
+            <AdminSaveBar :dirty="metaDirty" :saving="metaSaving" :text="`оформление группы «${selected.name}»`" save-label="Сохранить оформление" @save="saveMeta" @reset="resetMeta" />
 
             <div class="adm-field">
               <span>Наследует права групп</span>

@@ -199,6 +199,7 @@ const navGroups = computed(() => {
       items: [
         { to: '/admin', label: 'Дашборд', exact: true, icon: icons.dashboard },
         { to: '/admin/metrika', label: 'Метрика', icon: icons.metrika, perm: 'metrika.view' },
+        { to: '/admin/funnel', label: 'Воронка новичка', icon: icons.players, perm: 'players.view' },
       ],
     },
     {
@@ -742,7 +743,8 @@ button.adm-nav__label:hover { color: var(--adm-mut); }
 @media (max-width: 640px) { .adm-crumbs__item:not(.adm-crumbs__item--last), .adm-crumbs__sep, .adm-crumbs__link { display: none; } }
 .adm-feed-btn { display: flex; align-items: center; justify-content: center; width: 38px; height: 38px; border-radius: 11px; border: 1px solid var(--adm-line); background: rgba(148,163,184,0.04); color: var(--adm-mut); cursor: pointer; }
 .adm-feed-btn:hover { color: var(--adm-text); background: rgba(148,163,184,0.1); }
-@media (max-width: 640px) { .adm-feed-btn { display: none; } .adm-topbar__right { gap: 0.4rem; } .adm-srv__btn { max-width: 150px; } }
+@media (max-width: 640px) { .adm-feed-btn { display: none; } .adm-topbar__right { gap: 0.35rem; } .adm-srv__btn { max-width: 150px; } }
+@media (max-width: 430px) { .adm-srv__btn { max-width: 112px; padding: 0.42rem 0.5rem; } .adm-topbar { gap: 0.45rem; } .adm-topbar__find { width: 34px; } .adm-bell__btn { width: 34px; } }
 .adm-topbar__find { display: flex; align-items: center; justify-content: center; width: 38px; height: 38px; border-radius: 11px; border: 1px solid var(--adm-line); background: rgba(148,163,184,0.04); color: var(--adm-mut); cursor: pointer; }
 .adm-topbar__find:hover { color: var(--adm-text); background: rgba(148,163,184,0.1); }
 @media (min-width: 900px) { .adm-topbar__find { display: none; } }

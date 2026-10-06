@@ -271,3 +271,11 @@ export function getNavCounts(token, seen = {}, server = '') {
 export function getAdminFeed(token, limit = 40) {
   return apiRequest(`/admin/notifications/feed?limit=${limit}`, { ...ah(token), serverScope: false, toast: false })
 }
+
+// «Воронка новичка»: шаги, когорты по неделям, застрявшие игроки.
+export function getFunnel(token, { server = '', source = '', weeks = 12 } = {}) {
+  const qs = new URLSearchParams({ weeks: String(weeks) })
+  if (server) qs.set('server_slug', server)
+  if (source) qs.set('source', source)
+  return apiRequest(`/admin/funnel?${qs.toString()}`, { ...ah(token), serverScope: false })
+}

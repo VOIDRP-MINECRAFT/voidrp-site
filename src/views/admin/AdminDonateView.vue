@@ -454,8 +454,8 @@ onUnmounted(destroyCharts)
       </div>
     </div>
 
-    <!-- Payments table -->
-    <div>
+    <!-- Payments table (hidden while there have been no payments at all — the note above says so) -->
+    <div v-if="paymentsLoading || payments.length || allPayments.length || paymentsMeta.total">
       <div class="flex items-center justify-between mb-3">
         <h2 class="adm-label !mb-0">
           Платежи

@@ -522,8 +522,8 @@ function fmtDate(iso) {
   display: inline-block;
 }
 
-.acp-status--on { background: rgba(34,197,94,0.1); color: #4ade80; }
-.acp-status--off { background: rgba(239,68,68,0.1); color: #f87171; }
+.acp-status--on { background: rgba(34,197,94,0.1); color: var(--adm-ok); }
+.acp-status--off { background: rgba(239,68,68,0.1); color: var(--adm-err); }
 /* No site account for this nickname: neither good nor bad news. */
 .acp-status--none { background: rgba(148,163,184,0.1); color: var(--adm-dim); }
 
@@ -535,7 +535,7 @@ function fmtDate(iso) {
 
 .acp-stat { text-align: center; }
 .acp-stat__val { font-size: 1.5rem; font-weight: 900; color: var(--adm-text); }
-.acp-stat__val--danger { color: #f87171; }
+.acp-stat__val--danger { color: var(--adm-err); }
 .acp-stat__lbl { font-size: 0.7rem; color: var(--adm-faint); font-weight: 700; text-transform: uppercase; }
 
 /* Rollback */
@@ -549,7 +549,7 @@ function fmtDate(iso) {
 .acp-rb-what { font-size: 0.82rem; color: var(--adm-text); }
 .acp-rb-meta { font-size: 0.72rem; color: var(--adm-faint); margin-left: auto; }
 .acp-rb-result { flex-basis: 100%; font-size: 0.78rem; color: var(--adm-dim); padding-left: 0.25rem; }
-.acp-rb-result--err { color: #f87171; }
+.acp-rb-result--err { color: var(--adm-err); }
 
 /* Actions card */
 .acp-actions-card {
@@ -579,8 +579,8 @@ function fmtDate(iso) {
 /* input inherits adm-input; just size it inside the actions row */
 .acp-reason-input { flex: 1; min-width: 180px; }
 
-.acp-action-ok { margin-top: 0.5rem; font-size: 0.8rem; color: #4ade80; }
-.acp-action-err { margin-top: 0.5rem; font-size: 0.8rem; color: #f87171; }
+.acp-action-ok { margin-top: 0.5rem; font-size: 0.8rem; color: var(--adm-ok); }
+.acp-action-err { margin-top: 0.5rem; font-size: 0.8rem; color: var(--adm-err); }
 
 /* Grid layout */
 .acp-grid {
@@ -662,8 +662,8 @@ function fmtDate(iso) {
   text-transform: uppercase;
 }
 
-.acp-sev-badge.sev--high { background: rgba(239,68,68,0.15); color: #f87171; }
-.acp-sev-badge.sev--med { background: rgba(234,179,8,0.12); color: #facc15; }
+.acp-sev-badge.sev--high { background: rgba(239,68,68,0.15); color: var(--adm-err); }
+.acp-sev-badge.sev--med { background: rgba(234,179,8,0.12); color: var(--adm-warn); }
 .acp-sev-badge.sev--low { background: rgba(100,116,139,0.12); color: var(--adm-mut); }
 
 .acp-reviewed-tag { font-size: 0.68rem; color: var(--adm-ok); margin-left: auto; }
@@ -714,7 +714,7 @@ function fmtDate(iso) {
 }
 
 .acp-snap-lbl { color: var(--adm-dim); font-weight: 600; min-width: 8rem; }
-.acp-ok { color: #4ade80; }
+.acp-ok { color: var(--adm-ok); }
 .acp-warn { color: #f97316; }
 .acp-neutral { color: var(--adm-mut); }
 
@@ -726,7 +726,7 @@ function fmtDate(iso) {
   border: 1px solid rgba(239,68,68,0.15);
 }
 
-.acp-susp-title { font-size: 0.72rem; font-weight: 800; text-transform: uppercase; color: #f87171; margin-bottom: 0.5rem; letter-spacing: 0.05em; }
+.acp-susp-title { font-size: 0.72rem; font-weight: 800; text-transform: uppercase; color: var(--adm-err); margin-bottom: 0.5rem; letter-spacing: 0.05em; }
 
 .acp-all-mods-title { font-size: 0.72rem; font-weight: 700; text-transform: uppercase; color: var(--adm-faint); margin: 0.75rem 0 0.4rem; letter-spacing: 0.05em; }
 
@@ -749,7 +749,7 @@ function fmtDate(iso) {
   font-family: monospace;
 }
 
-.acp-mod--bad { background: rgba(239,68,68,0.1); color: #f87171; border-color: rgba(239,68,68,0.2); }
+.acp-mod--bad { background: rgba(239,68,68,0.1); color: var(--adm-err); border-color: rgba(239,68,68,0.2); }
 
 /* Suspicious mod row with verdict buttons */
 .acp-susp-list { display: flex; flex-direction: column; gap: 0.4rem; }
@@ -765,9 +765,9 @@ function fmtDate(iso) {
   transition: background 0.12s;
 }
 .acp-vbtn:disabled { opacity: 0.45; cursor: not-allowed; }
-.acp-vbtn--cheat { background: rgba(239,68,68,0.12); border-color: rgba(239,68,68,0.25); color: #f87171; }
+.acp-vbtn--cheat { background: rgba(239,68,68,0.12); border-color: rgba(239,68,68,0.25); color: var(--adm-err); }
 .acp-vbtn--cheat:hover:not(:disabled) { background: rgba(239,68,68,0.22); }
-.acp-vbtn--safe { background: rgba(34,197,94,0.1); border-color: rgba(34,197,94,0.2); color: #4ade80; }
+.acp-vbtn--safe { background: rgba(34,197,94,0.1); border-color: rgba(34,197,94,0.2); color: var(--adm-ok); }
 .acp-vbtn--safe:hover:not(:disabled) { background: rgba(34,197,94,0.2); }
 .acp-verdict-msg { font-size: 0.78rem; color: var(--adm-acc-text); margin-bottom: 0.4rem; }
 
