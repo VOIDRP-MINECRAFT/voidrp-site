@@ -245,17 +245,12 @@ onMounted(load)
     <div v-if="loading" class="adm-skel" style="height: 260px" />
     <div v-else-if="items.length" class="adm-table-wrap">
       <div class="adm-table-scroll">
-        <table class="adm-table" style="white-space: nowrap">
+        <table class="adm-table pl-table">
           <thead>
             <tr>
-              <th>Логин</th>
-              <th>Ник</th>
-              <th>Почта</th>
-              <th>Почта ✓</th>
+              <th>Игрок</th>
               <th>Серверы</th>
-              <th>Вход</th>
-              <th>Регистрация</th>
-              <th>Legacy</th>
+              <th>Откуда</th>
               <th>Статус</th>
               <th>Создан</th>
               <th></th>
@@ -263,28 +258,21 @@ onMounted(load)
           </thead>
           <tbody>
             <tr v-for="item in items" :key="item.player_account.id" :class="{ 'row--blocked': !item.user.is_active }">
-              <td class="cell-login">{{ item.user.site_login }}</td>
-              <td class="cell-nick adm-mono">{{ item.player_account.minecraft_nickname }}</td>
-              <td class="cell-dim">{{ item.user.email }}</td>
               <td>
-                <span class="adm-badge" :class="item.user.email_verified ? 'adm-badge--ok' : 'adm-badge--warn'">
-                  {{ item.user.email_verified ? 'Да' : 'Нет' }}
-                </span>
-              </td>
-              <td class="cell-servers">
-                <span v-if="!item.servers.length" class="cell-dim">—</span>
-                <span
-                  v-for="srv in item.servers"
-                  :key="srv.server_slug"
-                  class="adm-badge"
-                  :title="`${srv.server_name} · последний вход ${formatDate(srv.last_seen_at)}`"
-                >{{ srv.server_slug }}</span>
+                <div class="pl-who">
+                  <RouterLink class="pl-nick adm-mono" :to="`/admin/players/${item.player_account.minecraft_nickname}`">{{ item.player_account.minecraft_nickname }}</RouterLink>
+                  <span v-if="item.user.site_login !== item.player_account.minecraft_nickname" class="pl-login">{{ item.user.site_login }}</span>
+                </div>
+                <div class="pl-mail" :title="item.user.email_verified ? 'Почта подтверждена' : 'Почта не подтверждена'">
+                  <span class="pl-mail__dot" :class="item.user.email_verified ? 'is-ok' : 'is-warn'" />{{ item.user.email }}
+                </div>
               </td>
               <td>
-                <span v-if="!item.servers.length" class="cell-dim">—</span>
-                <span v-else class="adm-badge" :class="clientBadge(item)" :title="clientTitle(item)">
-                  {{ clientLabel(item) }}
-                </span>
+                <div class="pl-tags">
+                  <span v-if="!item.servers.length" class="cell-dim">не заходил</span>
+                  <span v-for="srv in item.servers" :key="srv.server_slug" class="adm-badge" :title="`${srv.server_name} · последний вход ${formatDate(srv.last_seen_at)}`">{{ srv.server_slug }}</span>
+                  <span v-if="item.servers.length" class="adm-badge" :class="clientBadge(item)" :title="clientTitle(item)">{{ clientLabel(item) }}</span>
+                </div>
               </td>
               <td>
                 <span class="adm-badge" :class="item.registration_source === 'game' ? 'adm-badge--acc' : ''">
@@ -292,18 +280,13 @@ onMounted(load)
                 </span>
               </td>
               <td>
-                <span class="adm-badge" :class="item.player_account.legacy_auth_enabled ? 'adm-badge--acc' : ''">
-                  {{ item.player_account.legacy_auth_enabled ? 'Вкл' : 'Выкл' }}
-                </span>
+                <div class="pl-tags">
+                  <span class="adm-badge" :class="item.user.is_active ? 'adm-badge--ok' : 'adm-badge--err'">{{ item.user.is_active ? 'Активен' : 'Заблокирован' }}</span>
+                  <span v-if="item.player_account.legacy_auth_enabled" class="adm-badge adm-badge--acc" title="Старый вход по паролю в игре включён">legacy</span>
+                </div>
               </td>
-              <td>
-                <span class="adm-badge" :class="item.user.is_active ? 'adm-badge--ok' : 'adm-badge--err'">
-                  {{ item.user.is_active ? 'Активен' : 'Заблок.' }}
-                </span>
-              </td>
-              <td class="cell-dim adm-num">{{ formatDate(item.user.created_at) }}</td>
-              <td>
-                <RouterLink class="adm-btn adm-btn--sm" :to="`/admin/players/${item.player_account.minecraft_nickname}`">Карточка</RouterLink>
+              <td class="cell-dim adm-num pl-date">{{ formatDate(item.user.created_at) }}</td>
+              <td class="pl-acts">
                 <button class="adm-btn adm-btn--sm" @click="openModal(item)">Управление</button>
               </td>
             </tr>
@@ -544,4 +527,16 @@ onMounted(load)
 .bp-grant-row { display: flex; flex-wrap: wrap; gap: 0.5rem; align-items: center; }
 .bp-uuid-row { margin-bottom: 0.6rem; display: flex; flex-direction: column; gap: 0.35rem; }
 .bp-uuid-hint { font-size: 0.72rem; color: var(--adm-warn); font-weight: 600; }
+.pl-table td { vertical-align: middle; }
+.pl-who { display: flex; align-items: baseline; gap: 0.45rem; flex-wrap: wrap; }
+.pl-nick { font-weight: 800; color: var(--adm-text); text-decoration: none; }
+.pl-nick:hover { color: var(--adm-acc-text); }
+.pl-login { font-size: 0.75rem; color: var(--adm-dim); }
+.pl-mail { display: flex; align-items: center; gap: 0.35rem; font-size: 0.74rem; color: var(--adm-dim); margin-top: 0.1rem; max-width: 18rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.pl-mail__dot { width: 6px; height: 6px; border-radius: 50%; flex: none; }
+.pl-mail__dot.is-ok { background: var(--adm-ok); }
+.pl-mail__dot.is-warn { background: var(--adm-warn); }
+.pl-tags { display: flex; gap: 0.3rem; flex-wrap: wrap; }
+.pl-date { white-space: nowrap; }
+.pl-acts { text-align: right; white-space: nowrap; }
 </style>

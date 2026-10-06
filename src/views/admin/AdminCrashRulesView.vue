@@ -241,7 +241,7 @@ onMounted(() => {
 </script>
 
 <template>
-  <div class="adm-page" style="max-width: 1040px">
+  <div class="adm-page adm-page--read">
     <div class="adm-page__head">
       <div>
         <h1 class="adm-title">Правила крашей</h1>

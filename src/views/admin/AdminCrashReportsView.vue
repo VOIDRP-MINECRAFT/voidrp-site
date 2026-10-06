@@ -5,6 +5,8 @@ import { adminListCrashes, adminDeleteCrash, adminDeleteCrashes } from '../../se
 import { authState, hasPermission } from '../../stores/authStore'
 import { confirmDialog } from '../../composables/useConfirm'
 import { toastError, toastSuccess } from '../../services/toast'
+import AdminRowMenu from '../../components/admin/AdminRowMenu.vue'
+import { useAutoRefresh } from '../../composables/useAutoRefresh'
 
 const token = () => authState.accessToken
 const route = useRoute()
@@ -179,20 +181,17 @@ function fmtRam(mb) {
   return mb >= 1024 ? `${(mb / 1024).toFixed(mb % 1024 ? 1 : 0)} ГБ ОЗУ` : `${mb} МБ ОЗУ`
 }
 
-onMounted(load)
+const { refresh, ago } = useAutoRefresh(load)
 </script>
 
 <template>
-  <div class="adm-page" style="max-width: 960px">
+  <div class="adm-page adm-page--read">
     <div class="adm-page__head">
       <div>
         <h1 class="adm-title">Краши лаунчера</h1>
         <p class="adm-sub">{{ filtered.length }} из {{ items.length }}</p>
       </div>
-      <button class="adm-btn" :disabled="loading" @click="load">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg>
-        Обновить
-      </button>
+      <div class="adm-head-actions"><span class="adm-updated">{{ ago }}</span><button class="adm-btn adm-btn--sm adm-btn--ghost" :disabled="loading" title="Обновить сейчас" @click="refresh"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg></button></div>
     </div>
 
     <div style="display:flex;flex-wrap:wrap;align-items:center;gap:0.6rem">
@@ -230,7 +229,7 @@ onMounted(load)
       </button>
     </div>
 
-    <div v-if="loading" class="adm-skel" style="height: 260px" />
+    <div v-if="loading && !items.length" class="adm-skel" style="height: 260px" />
 
     <div v-else-if="filtered.length" class="cards">
       <div v-for="item in filtered" :key="item.id" class="adm-card adm-card--hover" :class="{ 'is-selected': isSelected(item.id) }" style="padding: 0.85rem 1.1rem">
@@ -251,22 +250,16 @@ onMounted(load)
           </div>
           <div class="card__actions">
             <button
-              v-if="canManageRules && crashLog(item) && !item.advice_rule_key"
-              class="adm-btn adm-btn--sm"
-              title="Открыть редактор правил с шаблоном из этого лога"
-              @click="createRuleFrom(item)"
-            >Создать правило</button>
-            <button
               v-if="crashLog(item)"
               class="adm-btn adm-btn--sm"
               @click="expandedId = expandedId === item.id ? null : item.id"
             >
-              {{ expandedId === item.id ? 'Свернуть' : 'Лог' }}
+              {{ expandedId === item.id ? 'Свернуть лог' : 'Открыть лог' }}
             </button>
-            <button v-if="canManage" class="adm-btn adm-btn--danger adm-btn--sm" :disabled="deletingId === item.id" @click="remove(item.id)">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg>
-              Удалить
-            </button>
+            <AdminRowMenu :items="[
+              { label: 'Создать правило из лога', onClick: () => createRuleFrom(item), hidden: !(canManageRules && crashLog(item) && !item.advice_rule_key) },
+              { label: 'Удалить краш', onClick: () => remove(item.id), danger: true, disabled: deletingId === item.id, hidden: !canManage },
+            ]" />
           </div>
         </div>
 

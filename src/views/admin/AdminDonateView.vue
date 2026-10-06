@@ -1,4 +1,5 @@
 <script setup>
+import { activeServer } from '../../stores/serverStore'
 import { computed, nextTick, onMounted, onUnmounted, ref, watch } from 'vue'
 import { Chart, registerables } from 'chart.js'
 import { useAuthStore } from '../../stores/authStore'
@@ -398,8 +399,14 @@ onUnmounted(destroyCharts)
       </template>
     </div>
 
+    <!-- Ещё не было платежей: одна понятная строка вместо двух пустых графиков -->
+    <div v-if="!overviewLoading && !allPayments.length && !error" class="dn-empty">
+      <b>Платежей ещё не было.</b>
+      <span>Графики выручки и методов оплаты появятся после первой покупки. Если покупки были, проверьте ID сервера и ключ магазина EasyDonate в <RouterLink :to="`/admin/server?edit=${activeServer?.slug || ''}&tab=channels`">настройках сервера</RouterLink>.</span>
+    </div>
+
     <!-- Charts row -->
-    <div class="grid grid-cols-1 gap-4 lg:grid-cols-3">
+    <div v-show="overviewLoading || allPayments.length" class="grid grid-cols-1 gap-4 lg:grid-cols-3">
 
       <!-- Revenue bar chart (2/3) -->
       <div class="adm-card p-4 lg:col-span-2">
@@ -589,4 +596,7 @@ onUnmounted(destroyCharts)
   transition: background-color 0.13s, color 0.13s;
 }
 .adm-page-btn:hover { background: rgba(148, 163, 184, 0.1); }
+.dn-empty { display: flex; flex-direction: column; gap: 0.25rem; padding: 1rem 1.1rem; border-radius: var(--adm-r); border: 1px dashed var(--adm-line-strong); background: var(--adm-card); font-size: 0.84rem; color: var(--adm-mut); }
+.dn-empty b { color: var(--adm-text); }
+.dn-empty a { color: var(--adm-acc-text); }
 </style>

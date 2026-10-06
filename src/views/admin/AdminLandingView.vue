@@ -73,7 +73,7 @@ async function confirmDelete(id) {
 </script>
 
 <template>
-  <div class="adm-page" style="max-width: 1060px">
+  <div class="adm-page adm-page--read">
 
     <!-- Header -->
     <div class="adm-page__head">

@@ -258,3 +258,16 @@ export function adminRevokeCosmetic(token, nickname, slug) {
 export function adminListCosmeticOwners(token, slug) {
   return apiRequest(`/admin/cosmetics/${encodeURIComponent(slug)}/owners`, { method: 'GET', headers: buildAuthHeaders(token) })
 }
+
+// Числа у пунктов меню: новое с последнего визита в раздел (времена — из браузера).
+export function getNavCounts(token, seen = {}, server = '') {
+  const qs = new URLSearchParams()
+  for (const k of ['feedback', 'suggestions', 'crashes']) if (seen[k]) qs.set(k, seen[k])
+  if (server) qs.set('server', server)
+  return apiRequest(`/admin/notifications/nav-counts?${qs.toString()}`, { ...ah(token), serverScope: false, toast: false })
+}
+
+// «Лента событий»: действия персонала, сбои серверов, новые сборки — одной лентой.
+export function getAdminFeed(token, limit = 40) {
+  return apiRequest(`/admin/notifications/feed?limit=${limit}`, { ...ah(token), serverScope: false, toast: false })
+}

@@ -53,7 +53,7 @@ function onApplied() { plugins.value?.load() }
 
     <ServerChangesBar v-if="!isExternal" ref="bar" @applied="onApplied" />
 
-    <div v-if="!ready" class="adm-skel" style="height: 260px" />
+    <div v-if="!ready" class="adm-loading" style="height: 260px">Читаю папку сервера: моды, плагины, очередь изменений…</div>
     <div v-else-if="!hasMods && !hasPlugins" class="adm-empty">
       <div class="adm-empty__title">У этого сервера нет ни модов, ни плагинов</div>
       <div class="adm-empty__sub">Или нет прав на эти разделы, или у сервера не задана папка на этой машине.</div>

@@ -7,6 +7,7 @@ import { authState } from '../../stores/authStore'
 import { serverState, fetchServers } from '../../stores/serverStore'
 import { confirmDialog } from '../../composables/useConfirm'
 import { toastSuccess, toastError } from '../../services/toast'
+import AdminRowMenu from '../../components/admin/AdminRowMenu.vue'
 import {
   getPermissionCatalog,
   listModerators,
@@ -596,13 +597,13 @@ onMounted(load)
               </td>
               <td>
                 <div v-if="m.editable" class="md-row__actions">
-                  <button v-if="canSessions || canMfaReset" class="adm-btn adm-btn--sm" @click="openDevices(m)">Входы · {{ m.devices }}</button>
-                  <template v-if="m.role !== 'admin'">
-                    <button v-if="canPersonal" class="adm-btn adm-btn--sm" @click="startEdit(m)">Права</button>
-                    <button v-if="isPlatform" class="adm-btn adm-btn--sm" @click="openAdmin(m)">{{ m.role === 'server_admin' ? 'Админство' : 'Сделать админом' }}</button>
-                    <button v-if="canPersonal" class="adm-btn adm-btn--sm adm-btn--danger" @click="revoke(m)">Снять</button>
-                  </template>
-                  <button v-else-if="isOwner" class="adm-btn adm-btn--sm adm-btn--danger" @click="demote(m)">Снять админа</button>
+                  <button v-if="m.role !== 'admin' && canPersonal" class="adm-btn adm-btn--sm" @click="startEdit(m)">Права</button>
+                  <AdminRowMenu :items="[
+                    { label: `Входы и устройства · ${m.devices}`, onClick: () => openDevices(m), hidden: !(canSessions || canMfaReset) },
+                    { label: m.role === 'server_admin' ? 'Админство серверов' : 'Сделать админом сервера', onClick: () => openAdmin(m), hidden: m.role === 'admin' || !isPlatform },
+                    { label: 'Снять с должности', onClick: () => revoke(m), danger: true, hidden: m.role === 'admin' || !canPersonal },
+                    { label: 'Снять админа платформы', onClick: () => demote(m), danger: true, hidden: m.role !== 'admin' || !isOwner },
+                  ]" />
                 </div>
               </td>
             </tr>

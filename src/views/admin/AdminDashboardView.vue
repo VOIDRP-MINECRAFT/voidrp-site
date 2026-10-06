@@ -4,6 +4,7 @@ import { RouterLink } from 'vue-router'
 import { getDashboardStats, getServerStatus, getRecentUsers, getMetrikaStats } from '../../services/adminApi'
 import { authState, hasPermission } from '../../stores/authStore'
 import { activeServer } from '../../stores/serverStore'
+import { useAdminNotifications } from '../../composables/useAdminNotifications'
 
 const token = () => authState.accessToken
 
@@ -96,6 +97,9 @@ const _quickLinks = [
   { to: '/admin/mod-suggestions', perm: 'mod_suggestions.view', label: 'Предложения', sub: 'Моды от игроков', iconClass: 'bg-pink-500/10 text-pink-400', icon: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M7.5 8.25h9m-9 3H12m-9.75 1.51c0 1.6 1.123 2.994 2.707 3.227 1.129.166 2.27.293 3.423.379.35.026.67.21.865.501L12 21l2.755-4.133a1.14 1.14 0 01.865-.501 48.172 48.172 0 003.423-.379c1.584-.233 2.707-1.626 2.707-3.228V6.741c0-1.602-1.123-2.995-2.707-3.228A48.394 48.394 0 0012 3c-2.392 0-4.744.175-7.043.513C3.373 3.746 2.25 5.14 2.25 6.741v6.018z"/></svg>' },
   { to: '/admin/metrika', perm: 'metrika.view', label: 'Метрика', sub: 'Яндекс.Метрика', iconClass: 'bg-red-500/10 text-red-400', icon: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>' },
 ]
+const { notifications } = useAdminNotifications()
+const LEVEL_ORDER = { error: 0, warning: 1, info: 2, success: 3 }
+const attention = computed(() => [...notifications.value].sort((a, b) => (LEVEL_ORDER[a.level] ?? 9) - (LEVEL_ORDER[b.level] ?? 9)).slice(0, 7))
 const quickLinks = computed(() => _quickLinks.filter((l) => hasPermission(l.perm) && (!l.serverFeature || on(l.serverFeature)) && (!l.when || l.when(activeServer.value))))
 </script>
 
@@ -265,21 +269,19 @@ const quickLinks = computed(() => _quickLinks.filter((l) => hasPermission(l.perm
     <!-- Two-column: Quick links + Metrika -->
     <div class="grid gap-5 lg:grid-cols-2">
 
-      <!-- Quick links -->
+      <!-- Требует внимания: те же уведомления, что в колокольчике, — крупно и со ссылками -->
       <div>
-        <div class="adm-label">Быстрый доступ</div>
-        <div class="grid grid-cols-2 gap-2">
-          <RouterLink v-for="link in quickLinks" :key="link.to" :to="link.to" class="quick-card group">
-            <div class="quick-card__icon" :class="link.iconClass">
-              <!-- eslint-disable-next-line vue/no-v-html -->
-              <span v-html="link.icon" />
-            </div>
-            <div class="flex-1 min-w-0">
-              <div class="quick-card__label">{{ link.label }}</div>
-              <div class="quick-card__sub">{{ link.sub }}</div>
-            </div>
-            <svg class="quick-card__arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M8.25 4.5l7.5 7.5-7.5 7.5"/></svg>
-          </RouterLink>
+        <div class="adm-label">Требует внимания</div>
+        <div v-if="!attention.length" class="att-calm">
+          <span class="att-calm__icon">✓</span>
+          <div><b>Всё спокойно</b><span>Нет сбоев, новых обращений, крашей и устаревших плагинов.</span></div>
+        </div>
+        <div v-else class="att-list">
+          <component :is="n.link ? 'RouterLink' : 'div'" v-for="n in attention" :key="n.id" :to="n.link" class="att" :class="`att--${n.level}`">
+            <span class="att__count">{{ n.count > 99 ? '99+' : n.count || '!' }}</span>
+            <span class="att__body"><b>{{ n.title }}</b><span>{{ n.message }}</span></span>
+            <svg v-if="n.link" class="att__arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M8.25 4.5l7.5 7.5-7.5 7.5"/></svg>
+          </component>
         </div>
       </div>
 
@@ -442,4 +444,20 @@ const quickLinks = computed(() => _quickLinks.filter((l) => hasPermission(l.perm
 .quick-card__sub { font-size: 0.7rem; color: var(--adm-dim); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; margin-top: 0.1rem; }
 .quick-card__arrow { width: 1rem; height: 1rem; flex-shrink: 0; color: var(--adm-faint); transition: color 0.14s, transform 0.14s; }
 .quick-card:hover .quick-card__arrow { color: var(--adm-acc-text); transform: translateX(2px); }
+.att-calm { display: flex; gap: 0.8rem; align-items: center; padding: 0.9rem 1rem; border-radius: var(--adm-r); background: var(--adm-card); border: 1px solid var(--adm-line); }
+.att-calm__icon { width: 2.2rem; height: 2.2rem; border-radius: 50%; display: grid; place-items: center; font-weight: 900; color: var(--adm-ok); background: color-mix(in srgb, var(--adm-ok) 15%, transparent); flex: none; }
+.att-calm b { display: block; color: var(--adm-text); font-size: 0.88rem; }
+.att-calm span { font-size: 0.76rem; color: var(--adm-dim); }
+.att-list { display: flex; flex-direction: column; gap: 0.45rem; }
+.att { display: flex; gap: 0.75rem; align-items: center; padding: 0.65rem 0.8rem; border-radius: var(--adm-r-sm); background: var(--adm-card); border: 1px solid var(--adm-line); border-left: 3px solid var(--adm-acc); text-decoration: none; transition: border-color 0.14s; }
+a.att:hover { border-color: var(--adm-acc-line); }
+.att--error { border-left-color: var(--adm-err); }
+.att--warning { border-left-color: var(--adm-warn); }
+.att__count { min-width: 2rem; height: 2rem; border-radius: 9px; display: grid; place-items: center; font-weight: 900; font-size: 0.82rem; background: var(--adm-card-2); color: var(--adm-text); font-variant-numeric: tabular-nums; flex: none; }
+.att--error .att__count { color: var(--adm-err); }
+.att--warning .att__count { color: var(--adm-warn); }
+.att__body { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 0.1rem; }
+.att__body b { font-size: 0.84rem; color: var(--adm-text); }
+.att__body span { font-size: 0.75rem; color: var(--adm-dim); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.att__arrow { width: 1rem; height: 1rem; color: var(--adm-faint); flex: none; }
 </style>

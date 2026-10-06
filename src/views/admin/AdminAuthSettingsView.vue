@@ -4,6 +4,8 @@ import { authState } from '../../stores/authStore'
 import { activeServer } from '../../stores/serverStore'
 import { getAuthSettings, updateAuthSettings } from '../../services/adminServersApi'
 import { toastError, toastSuccess } from '../../services/toast'
+import AdminSaveBar from '../../components/admin/AdminSaveBar.vue'
+import { useUnsavedGuard } from '../../composables/useUnsavedGuard'
 
 // Every field here used to live somewhere that required a deploy to change:
 // the ticket TTL in the backend .env, the rest as -Dvoidrp.auth.* JVM flags in
@@ -137,6 +139,8 @@ async function save() {
   }
 }
 
+useUnsavedGuard(() => dirty.value)
+
 function reset() {
   form.value = { ...saved.value }
 }
@@ -202,16 +206,7 @@ watch(serverId, load)
         </div>
       </div>
 
-      <div class="auth-bar" :class="{ 'auth-bar--dirty': dirty }">
-        <span v-if="dirty" class="auth-bar__note">Есть несохранённые изменения</span>
-        <span v-else class="auth-bar__note auth-bar__note--calm">Всё сохранено</span>
-        <div class="auth-bar__actions">
-          <button class="adm-btn adm-btn--ghost" :disabled="!dirty || saving" @click="reset">Отменить</button>
-          <button class="adm-btn adm-btn--acc" :disabled="!dirty || saving || hasErrors" @click="save">
-            {{ saving ? 'Сохраняю…' : 'Сохранить' }}
-          </button>
-        </div>
-      </div>
+      <AdminSaveBar :dirty="dirty" :saving="saving" :blocked="hasErrors ? 'в полях есть ошибки — проверьте подсвеченные' : ''" @save="save" @reset="reset" />
     </template>
   </div>
 </template>

@@ -1,12 +1,13 @@
 <script setup>
 // Настройки одного сервера: вкладки слева, панель «Сохранить» снизу появляется, когда есть
 // изменения. Вкладка — в адресе (?edit=<slug>&tab=…), так что ссылку можно переслать.
-import { computed, onBeforeUnmount, onMounted, reactive, ref, watch } from 'vue'
+import { computed, reactive, ref, watch } from 'vue'
 import { authState } from '../../../stores/authStore'
 import { confirmDialog } from '../../../composables/useConfirm'
 import { toastError, toastSuccess } from '../../../services/toast'
 import { deleteServer, pingAddress, regenerateSecret, updateServer, uploadServerImage } from '../../../services/adminServersApi'
 import SrvToggle from './SrvToggle.vue'
+import AdminSaveBar from '../../../components/admin/AdminSaveBar.vue'
 import SrvSeg from './SrvSeg.vue'
 import {
   ACCENTS, CORE_LABELS, FEATURE_GROUPS, PLATFORM_FIELDS, TAB_FIELDS, VISIBILITY,
@@ -156,11 +157,6 @@ async function save() {
   }
 }
 function reset() { Object.assign(form, clone(base.value)) }
-function onKey(e) {
-  if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 's') { e.preventDefault(); save() }
-}
-onMounted(() => window.addEventListener('keydown', onKey))
-onBeforeUnmount(() => window.removeEventListener('keydown', onKey))
 
 const stateChip = computed(() => {
   if (form.maintenance) return { cls: 'maint', text: 'техработы' }
@@ -487,16 +483,7 @@ const changedLabel = computed(() => {
       </div>
     </div>
 
-    <!-- Панель сохранения -->
-    <Transition name="ed-bar">
-      <div v-if="dirty" class="ed-bar" role="region" aria-label="Несохранённые изменения">
-        <span class="ed-bar__text"><b>Изменено:</b> {{ changedLabel }}</span>
-        <span class="ed-bar__acts">
-          <button type="button" class="adm-btn adm-btn--sm adm-btn--ghost" :disabled="saving" @click="reset">Отменить</button>
-          <button type="button" class="adm-btn adm-btn--acc" :disabled="saving" @click="save">{{ saving ? 'Сохраняю…' : 'Сохранить' }}<kbd>Ctrl+S</kbd></button>
-        </span>
-      </div>
-    </Transition>
+    <AdminSaveBar :dirty="dirty" :saving="saving" :text="changedLabel" @save="save" @reset="reset" />
   </div>
 </template>
 
@@ -608,13 +595,4 @@ const changedLabel = computed(() => {
 .ed-danger { border-color: rgba(248, 113, 113, 0.3); background: linear-gradient(180deg, rgba(248, 113, 113, 0.05), var(--adm-card)); }
 .ed-danger .adm-btn { align-self: flex-start; }
 
-.ed-bar { position: fixed; left: 50%; bottom: calc(1rem + env(safe-area-inset-bottom, 0px)); transform: translateX(-50%); z-index: 40; width: min(760px, calc(100vw - 2rem)); display: flex; gap: 0.8rem; align-items: center; justify-content: space-between; flex-wrap: wrap; padding: 0.65rem 0.75rem 0.65rem 1rem; border-radius: 14px; background: var(--adm-card-2); border: 1px solid var(--adm-acc-line); box-shadow: 0 16px 40px rgba(0, 0, 0, 0.5); }
-.ed-bar__text { font-size: 0.82rem; color: var(--adm-mut); min-width: 0; flex: 1; }
-.ed-bar__text b { color: var(--adm-text); }
-.ed-bar__acts { display: flex; gap: 0.4rem; }
-.ed-bar kbd { font-family: var(--adm-mono); font-size: 0.62rem; padding: 0.05rem 0.3rem; border-radius: 4px; background: rgba(255, 255, 255, 0.18); margin-left: 0.2rem; }
-@media (max-width: 560px) { .ed-bar kbd { display: none; } }
-.ed-bar-enter-active, .ed-bar-leave-active { transition: transform 0.2s, opacity 0.2s; }
-.ed-bar-enter-from, .ed-bar-leave-to { opacity: 0; transform: translate(-50%, 1rem); }
-@media (prefers-reduced-motion: reduce) { .ed-bar-enter-active, .ed-bar-leave-active { transition: none; } }
 </style>

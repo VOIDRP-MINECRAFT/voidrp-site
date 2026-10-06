@@ -4,6 +4,8 @@ import { authState, hasPermission } from '../../stores/authStore'
 import { activeServer } from '../../stores/serverStore'
 import { confirmDialog } from '../../composables/useConfirm'
 import { toastError, toastSuccess } from '../../services/toast'
+import AdminSaveBar from '../../components/admin/AdminSaveBar.vue'
+import { useUnsavedGuard } from '../../composables/useUnsavedGuard'
 import {
   backupsCreate, backupsDelete, backupsList, backupsRestore, backupsSaveSettings,
 } from '../../services/backupsAdminApi'
@@ -163,6 +165,9 @@ function takeSettings() {
   saved.value = { enabled: !!s.enabled, every_hours: s.every_hours || 24, keep: s.keep || 7 }
   form.value = { ...saved.value }
 }
+useUnsavedGuard(() => settingsDirty.value)
+const resetSettings = () => { form.value = { ...saved.value } }
+
 async function saveSettings() {
   savingSettings.value = true
   try {
@@ -261,7 +266,6 @@ const RESTORE_STATUS = {
             <template v-if="nextScheduled"><br>Следующий: {{ nextScheduled }}.</template>
           </p>
           <div v-if="canSettings" class="bk-row">
-            <button class="adm-btn adm-btn--acc adm-btn--sm" :disabled="!settingsDirty || savingSettings" @click="saveSettings">Сохранить расписание</button>
             <span v-if="data.settings_updated_by" class="bk-meta">изменил {{ data.settings_updated_by }}</span>
           </div>
         </div>
@@ -339,6 +343,7 @@ const RESTORE_STATUS = {
         </div>
       </div>
     </template>
+    <AdminSaveBar v-if="canSettings" :dirty="settingsDirty" :saving="savingSettings" text="расписание бэкапов" save-label="Сохранить расписание" @save="saveSettings" @reset="resetSettings" />
   </div>
 </template>
 

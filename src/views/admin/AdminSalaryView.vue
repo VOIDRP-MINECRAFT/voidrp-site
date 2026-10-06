@@ -4,6 +4,8 @@ import { authState, hasPermission } from '../../stores/authStore'
 import { activeServer } from '../../stores/serverStore'
 import { toastError, toastSuccess } from '../../services/toast'
 import { salaryOverview, salarySaveSettings } from '../../services/salaryAdminApi'
+import AdminSaveBar from '../../components/admin/AdminSaveBar.vue'
+import { useUnsavedGuard } from '../../composables/useUnsavedGuard'
 
 const token = () => authState.accessToken
 const canManage = computed(() => hasPermission('salary.manage'))
@@ -74,6 +76,9 @@ onMounted(() => {
 })
 onUnmounted(() => clearInterval(timer))
 
+useUnsavedGuard(() => dirty.value)
+function reset() { form.value = { ...saved.value } }
+
 async function save() {
   saving.value = true
   try {
@@ -137,7 +142,7 @@ async function save() {
             АФК-бассейн не помогает. Лимит обнуляется в полночь по Москве.
           </p>
           <div v-if="canManage" class="sl-row">
-            <button class="adm-btn adm-btn--acc" :disabled="!dirty || saving" @click="save">Сохранить</button>
+            
             <span v-if="data.settings_updated_by" class="sl-meta">изменил {{ data.settings_updated_by }}</span>
           </div>
         </div>
@@ -185,6 +190,7 @@ async function save() {
         </div>
       </div>
     </template>
+    <AdminSaveBar v-if="canManage" :dirty="dirty" :saving="saving" @save="save" @reset="reset" />
   </div>
 </template>
 

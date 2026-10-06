@@ -5,7 +5,7 @@
 //
 // «Серверы» можно дать на один сервер: тогда правится только он, а создание, удаление и поля
 // про машину — только с правом на всю платформу. Бэкенд проверяет то же самое.
-import { computed, onBeforeUnmount, onMounted, ref } from 'vue'
+import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { onBeforeRouteLeave, onBeforeRouteUpdate, useRoute, useRouter } from 'vue-router'
 import { authState } from '../../stores/authStore'
 import { confirmDialog } from '../../composables/useConfirm'
@@ -15,6 +15,7 @@ import ServerCard from './servers/ServerCard.vue'
 import ServerEditor from './servers/ServerEditor.vue'
 import ServerWizard from './servers/ServerWizard.vue'
 import { visibilityPatch } from './servers/shared'
+import { setCrumbs } from '../../stores/adminCrumbs'
 
 const route = useRoute()
 const router = useRouter()
@@ -56,6 +57,7 @@ const tab = computed(() => (typeof route.query.tab === 'string' ? route.query.ta
 const open = (slug) => router.push({ query: { edit: slug } })
 const setTab = (t) => router.replace({ query: { ...route.query, tab: t } })
 const close = () => router.push({ query: {} })
+watch([editing, creating], ([s, isNew]) => setCrumbs(isNew ? [{ label: 'Новый сервер' }] : s ? [{ label: s.name }] : []), { immediate: true })
 
 const isDirty = () => !!editor.value?.dirty
 function beforeUnload(e) { if (isDirty()) { e.preventDefault(); e.returnValue = '' } }

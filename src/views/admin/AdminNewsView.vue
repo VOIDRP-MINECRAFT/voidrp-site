@@ -5,6 +5,7 @@ import { authState, hasPermission } from '../../stores/authStore'
 import { confirmDialog } from '../../composables/useConfirm'
 import { toastSuccess, toastError, toastInfo } from '../../services/toast'
 import { pushAdminAlert } from '../../composables/useAdminNotifications'
+import { serverState, setActiveServer } from '../../stores/serverStore'
 import {
   adminListNewsServers,
   adminListNews,
@@ -165,7 +166,8 @@ async function loadServers() {
   try {
     const res = await adminListNewsServers(token())
     servers.value = Array.isArray(res) ? res : (res.items || [])
-    const def = servers.value.find((s) => s.is_default) || servers.value[0]
+    // The server comes from the switcher in the admin top bar — one place to choose it.
+    const def = servers.value.find((s) => s.slug === serverState.activeSlug) || servers.value.find((s) => s.is_default) || servers.value[0]
     if (def) selectedServerId.value = def.id
   } catch (e) {
     toastError(e?.message || 'Не удалось загрузить серверы')
@@ -200,13 +202,19 @@ async function loadPosts() {
 watch(selectedServerId, async (next, prev) => {
   if (next === prev) return
   if (!(await confirmLeave())) {
-    // Staying in the editor — put the dropdown back where it was.
+    // Staying in the editor — put the server (and the top-bar switcher) back where it was.
     selectedServerId.value = prev
+    const back = servers.value.find((s) => s.id === prev)
+    if (back && back.slug !== serverState.activeSlug) setActiveServer(back.slug)
     return
   }
   page.value = 0
   closeEditor()
   loadPosts()
+})
+watch(() => serverState.activeSlug, (slug) => {
+  const next = servers.value.find((s) => s.slug === slug)
+  if (next && next.id !== selectedServerId.value) selectedServerId.value = next.id
 })
 watch(statusFilter, () => { page.value = 0; loadPosts() })
 
@@ -637,9 +645,7 @@ onBeforeUnmount(() => {
         <p class="adm-sub">Публикация на сайте и рассылка в Telegram и Discord — для выбранного сервера</p>
       </div>
       <div class="adm-head-actions">
-        <select v-model="selectedServerId" class="adm-select nw-server">
-          <option v-for="s in servers" :key="s.id" :value="s.id">{{ s.name }}</option>
-        </select>
+        <span v-if="selectedServer" class="nw-server" title="Сервер выбирается переключателем в шапке">для «{{ selectedServer.name }}»</span>
         <button v-if="canManage" class="adm-btn adm-btn--acc" :disabled="!selectedServerId || editing === 'new'" @click="startNew">
           Новая новость
         </button>
@@ -984,7 +990,7 @@ onBeforeUnmount(() => {
    поэтому страница перекрашивается вместе с остальной панелью. Свои цвета
    только там, где они несут смысл: фирменные Telegram/Discord в превью. */
 
-.nw-server { min-width: 190px; width: auto; }
+.nw-server { font-size: 0.78rem; font-weight: 700; color: var(--adm-mut); padding: 0.35rem 0.6rem; border-radius: 8px; border: 1px dashed var(--adm-line-strong); white-space: nowrap; }
 .nw-self-start { align-self: flex-start; }
 
 /* ── Заметка о каналах ── */

@@ -293,7 +293,7 @@ onBeforeUnmount(stopPolling)
       </div>
     </div>
 
-    <div v-if="loading" class="adm-card adm-skel" style="height: 130px" />
+    <div v-if="loading" class="adm-loading" style="height: 130px">Проверяю сборку лаунчера и манифест…</div>
 
     <template v-else>
       <!-- ── KPI row ──────────────────────────────────────── -->

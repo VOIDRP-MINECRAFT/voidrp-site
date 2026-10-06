@@ -3,6 +3,7 @@ import { onMounted, ref, computed } from 'vue'
 import { adminListModSuggestions, adminDeleteModSuggestion } from '../../services/adminApi'
 import { authState, hasPermission } from '../../stores/authStore'
 import { confirmDialog } from '../../composables/useConfirm'
+import { useAutoRefresh } from '../../composables/useAutoRefresh'
 
 const token = () => authState.accessToken
 
@@ -63,24 +64,21 @@ function formatDate(iso) {
   })
 }
 
-onMounted(load)
+const { refresh, ago } = useAutoRefresh(load)
 </script>
 
 <template>
-  <div class="adm-page" style="max-width: 860px">
+  <div class="adm-page adm-page--read">
     <div class="adm-page__head">
       <div>
         <h1 class="adm-title">Предложения модов</h1>
         <p class="adm-sub">{{ filtered.length }} из {{ items.length }} · со всех серверов, источник помечен</p>
       </div>
-      <button class="adm-btn" :disabled="loading" @click="load">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg>
-        Обновить
-      </button>
+      <div class="adm-head-actions"><span class="adm-updated">{{ ago }}</span><button class="adm-btn adm-btn--sm adm-btn--ghost" :disabled="loading" title="Обновить сейчас" @click="refresh"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg></button></div>
     </div>
 
     <!-- Stats -->
-    <div v-if="!loading && items.length" class="grid grid-cols-2 gap-3 sm:grid-cols-4">
+    <div v-if="items.length" class="grid grid-cols-2 gap-3 sm:grid-cols-4">
       <div class="adm-kpi"><div><div class="adm-kpi__val">{{ items.length }}</div><div class="adm-kpi__label">Всего</div></div></div>
       <div class="adm-kpi"><div><div class="adm-kpi__val" style="color: #6ee7b7">{{ items.filter(i => i.url.includes('modrinth.com')).length }}</div><div class="adm-kpi__label">Modrinth</div></div></div>
       <div class="adm-kpi"><div><div class="adm-kpi__val" style="color: #fdba74">{{ items.filter(i => i.url.includes('curseforge.com')).length }}</div><div class="adm-kpi__label">CurseForge</div></div></div>
@@ -91,7 +89,7 @@ onMounted(load)
     <input v-model="search" class="adm-input" style="max-width: 400px" placeholder="Логин, ник, ссылка, комментарий..." />
 
     <!-- Content -->
-    <div v-if="loading" class="adm-skel" style="height: 260px" />
+    <div v-if="loading && !items.length" class="adm-skel" style="height: 260px" />
 
     <div v-else-if="filtered.length" class="cards">
       <div v-for="item in filtered" :key="item.id" class="adm-card adm-card--pad adm-card--hover">

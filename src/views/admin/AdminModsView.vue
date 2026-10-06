@@ -432,7 +432,7 @@ onBeforeUnmount(stopBuildPolling)
         </div>
       </div>
 
-      <div v-if="loading" class="adm-empty"><div class="adm-empty__title">Загрузка…</div></div>
+      <div v-if="loading" class="adm-loading">Читаю список модов сервера…</div>
       <div v-else-if="!filtered.length" class="adm-empty"><div class="adm-empty__title">Ничего не найдено</div></div>
 
       <table v-else class="adm-table mods-table">

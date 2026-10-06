@@ -3,6 +3,7 @@ import { computed, onMounted, onBeforeUnmount, ref } from 'vue'
 import { authState } from '../../stores/authStore'
 import { getAuditLog } from '../../services/adminSecurityApi'
 import { toastError } from '../../services/toast'
+import { actionLabel, categoryClass, categoryLabel } from './auditLabels'
 
 const token = () => authState.accessToken
 
@@ -14,6 +15,8 @@ const loading = ref(false)
 
 const q = ref('')
 const category = ref('')
+const actor = ref('')
+const actors = ref([])
 const days = ref(30)
 const page = ref(1)
 
@@ -31,12 +34,13 @@ async function load() {
   loading.value = true
   try {
     const res = await getAuditLog(token(), {
-      q: q.value.trim(), category: category.value, days: days.value,
+      q: q.value.trim(), category: category.value, actor: actor.value, days: days.value,
       limit: PAGE_SIZE, offset: (page.value - 1) * PAGE_SIZE,
     })
     items.value = res.items || []
     total.value = res.total || 0
     if (res.categories) categories.value = res.categories
+    if (res.actors) actors.value = res.actors
   } catch (e) {
     toastError('Не удалось загрузить журнал')
   } finally {
@@ -51,16 +55,7 @@ function goToPage(p) {
   load()
 }
 
-const CAT = {
-  monitoring: { label: 'Мониторинг', cls: 'adm-badge--info' },
-  punishment: { label: 'Наказание', cls: 'adm-badge--err' },
-  anticheat: { label: 'Античит', cls: 'adm-badge--warn' },
-  news: { label: 'Новости', cls: '' },
-  market: { label: 'Рынок', cls: '' },
-  moderators: { label: 'Модерация', cls: '' },
-  server: { label: 'Сервер', cls: '' },
-}
-function cat(c) { return CAT[c] || { label: c, cls: '' } }
+function cat(c) { return { label: categoryLabel(c), cls: categoryClass(c) } }
 function fmtTime(iso) {
   if (!iso) return '—'
   return new Date(iso).toLocaleString('ru', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit', second: '2-digit' })
@@ -93,7 +88,7 @@ onBeforeUnmount(() => { clearInterval(poll); document.removeEventListener('visib
         <p class="adm-sub">Кто из персонала что делал — баны, RCON, перезапуски, вердикты · всего {{ total.toLocaleString('ru') }}</p>
       </div>
       <div class="adm-head-actions">
-        <button class="adm-btn" :disabled="loading" @click="load">Обновить</button>
+        <span class="adm-updated">обновляется само</span>
       </div>
     </div>
 
@@ -102,6 +97,10 @@ onBeforeUnmount(() => { clearInterval(poll); document.removeEventListener('visib
       <select v-model="category" class="adm-select" @change="page = 1; load()">
         <option value="">Все категории</option>
         <option v-for="c in categories" :key="c" :value="c">{{ cat(c).label }}</option>
+      </select>
+      <select v-model="actor" class="adm-select" aria-label="Кто" @change="page = 1; load()">
+        <option value="">Все сотрудники</option>
+        <option v-for="a in actors" :key="a" :value="a">{{ a }}</option>
       </select>
       <select v-model.number="days" class="adm-select" @change="page = 1; load()">
         <option :value="1">Сутки</option>
@@ -129,8 +128,8 @@ onBeforeUnmount(() => { clearInterval(poll); document.removeEventListener('visib
             <tr v-for="it in items" :key="it.id">
               <td class="adm-num aud-time">{{ fmtTime(it.created_at) }}</td>
               <td><span class="adm-badge" :class="cat(it.category).cls">{{ cat(it.category).label }}</span></td>
-              <td class="aud-actor">{{ it.actor_name }}</td>
-              <td class="adm-mono aud-action">{{ it.action }}</td>
+              <td class="aud-actor"><button type="button" class="aud-who" title="Показать только его действия" @click="actor = it.actor_name; page = 1; load()">{{ it.actor_name }}</button></td>
+              <td class="aud-action" :title="it.action">{{ actionLabel(it.action) }}</td>
               <td class="aud-target">{{ it.target_label || it.target_id || '—' }}</td>
               <td class="aud-dim">{{ it.server_name || '—' }}</td>
               <td class="aud-meta">{{ metaSummary(it.meta) || '—' }}</td>
@@ -161,4 +160,6 @@ onBeforeUnmount(() => { clearInterval(poll); document.removeEventListener('visib
 .aud-target { color: var(--adm-text); max-width: 200px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .aud-dim { color: var(--adm-dim); font-size: 0.76rem; }
 .aud-meta { color: var(--adm-dim); font-size: 0.74rem; max-width: 320px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.aud-who { border: 0; background: none; padding: 0; font: inherit; font-weight: 700; color: var(--adm-text); cursor: pointer; }
+.aud-who:hover { color: var(--adm-acc-text); text-decoration: underline; }
 </style>

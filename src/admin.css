@@ -60,6 +60,9 @@
   flex-direction: column;
   gap: 1.4rem;
 }
+.adm-updated { font-size: 0.72rem; color: var(--adm-dim); white-space: nowrap; }
+/* Две стандартные ширины: по умолчанию — для таблиц и панелей; --read — для лент и форм. */
+.adm-page--read { max-width: 1100px; }
 @media (max-width: 640px) { .adm-page { padding: 0.9rem 0.85rem 2.5rem; } }
 
 .adm-page__head {
@@ -404,3 +407,10 @@ a.adm-kpi:hover, .adm-kpi--hover:hover { border-color: var(--adm-acc-line); tran
     transition-duration: 0.01ms !important;
   }
 }
+
+/* Загрузка с подписью: что именно грузится, а не пустая карточка */
+.adm-loading { display: flex; align-items: center; justify-content: center; gap: 0.6rem; min-height: 120px; border-radius: var(--adm-r); background: var(--adm-card); border: 1px solid var(--adm-line); color: var(--adm-dim); font-size: 0.84rem; font-weight: 600; }
+.adm-loading::before { content: ''; width: 16px; height: 16px; border-radius: 50%; border: 2px solid var(--adm-line-strong); border-top-color: var(--adm-acc); animation: adm-spin 0.8s linear infinite; }
+@keyframes adm-spin { to { transform: rotate(360deg); } }
+@media (prefers-reduced-motion: reduce) { .adm-loading::before { animation: none; } }
+.adm-root:has(.asb) .mqa__fab { display: none; }

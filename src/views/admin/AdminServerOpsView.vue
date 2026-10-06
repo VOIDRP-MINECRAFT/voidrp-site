@@ -889,7 +889,10 @@ onBeforeUnmount(() => {
         <button class="adm-btn adm-btn--sm" @click="loadWatchdog">Повторить</button>
       </div>
 
-      <div v-else-if="!watchdog.available" class="wd-row wd-row--warn">{{ watchdog.reason }}</div>
+      <div v-else-if="!watchdog.available" class="wd-row wd-row--off">
+        <b>Сторож для этого сервера не подключён.</b>
+        <span>{{ watchdog.reason }}</span>
+      </div>
 
       <template v-else>
         <div v-if="watchdog.maintenance" class="wd-row wd-row--warn">
@@ -1281,4 +1284,6 @@ onBeforeUnmount(() => {
 }
 .wd-item__title { display: flex; align-items: center; gap: 8px; font-size: 14px; font-weight: 600; }
 .wd-item__text { min-width: 0; }
+.wd-row--off { display: flex; flex-direction: column; gap: 0.2rem; padding: 0.6rem 0.8rem; border-radius: var(--adm-r-sm); background: var(--adm-card-2); border: 1px solid var(--adm-line); color: var(--adm-dim); font-size: 0.8rem; }
+.wd-row--off b { color: var(--adm-mut); }
 </style>

@@ -8,6 +8,12 @@ import { authState, canManageStaff, canSeeStaffTab, hasPermission, logoutCurrent
 import { serverState, activeServer, fetchServers, setActiveServer } from '../../stores/serverStore'
 import { useAdminNotifications } from '../../composables/useAdminNotifications'
 import ConfirmDialog from '../../components/admin/ConfirmDialog.vue'
+import AdminCommandPalette from '../../components/admin/AdminCommandPalette.vue'
+import AdminFeedPanel from '../../components/admin/AdminFeedPanel.vue'
+import AdminMobileActions from '../../components/admin/AdminMobileActions.vue'
+import { crumbState, clearCrumbs } from '../../stores/adminCrumbs'
+import { markSeen, navPrefs, toggleGroup, togglePin } from '../../composables/useAdminNav'
+import { getNavCounts } from '../../services/adminApi'
 
 const auth = useAuthStore()
 const route = useRoute()
@@ -76,7 +82,14 @@ function onDocClick(e) {
     notifOpen.value = false
   }
 }
+const paletteOpen = ref(false)
+const feedOpen = ref(false)
 function onDocKey(e) {
+  if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'k' && !securityState.gate) {
+    e.preventDefault()
+    paletteOpen.value = !paletteOpen.value
+    return
+  }
   if (e.key === 'Escape') {
     serverMenuOpen.value = false
     notifOpen.value = false
@@ -181,6 +194,7 @@ function canSee(item) {
 const navGroups = computed(() => {
   const groups = [
     {
+      key: 'overview',
       label: 'Обзор',
       items: [
         { to: '/admin', label: 'Дашборд', exact: true, icon: icons.dashboard },
@@ -189,6 +203,7 @@ const navGroups = computed(() => {
     },
     {
       // Разделы этой группы показывают данные ВЫБРАННОГО сервера
+      key: 'server',
       label: activeServer.value?.name || 'Сервер',
       scoped: true,
       items: [
@@ -207,11 +222,12 @@ const navGroups = computed(() => {
         { to: '/admin/game-perms', label: 'Права в игре', icon: icons.roles, perm: 'game.view' },
         { to: '/admin/item-bans', label: 'Бан предметов', icon: icons.anticheat, perm: 'items.bans.view', feature: 'item_bans' },
         { to: '/admin/integration', label: 'Интеграция', icon: icons.mods, perm: 'integration.view', when: (s) => !!s?.is_external },
-        { to: '/admin/anticheat', label: 'Античит', icon: icons.anticheat, perm: 'anticheat.view', when: (s) => onOurMachine(s) || (s?.modules || []).includes('anticheat') },
+        { to: '/admin/anticheat', label: 'Античит', icon: icons.anticheat, perm: 'anticheat.view', count: 'anticheat', when: (s) => onOurMachine(s) || (s?.modules || []).includes('anticheat') },
         { to: '/admin/punishments', label: 'Наказания', icon: icons.anticheat, perm: 'punishments.view' },
       ],
     },
     {
+      key: 'platform',
       label: 'Платформа',
       items: [
         { to: '/admin/players', label: 'Игроки', icon: icons.players, perm: 'players.view' },
@@ -225,15 +241,17 @@ const navGroups = computed(() => {
       ],
     },
     {
+      key: 'feedback',
       label: 'Обратная связь',
       items: [
-        { to: '/admin/mod-suggestions', label: 'Предложения модов', icon: icons.suggestions, perm: 'mod_suggestions.view' },
-        { to: '/admin/feedback', label: 'Обращения', icon: icons.feedback, perm: 'feedback.view' },
-        { to: '/admin/launcher-crashes', label: 'Краши лаунчера', icon: icons.crashes, perm: 'crashes.view' },
+        { to: '/admin/mod-suggestions', label: 'Предложения модов', icon: icons.suggestions, perm: 'mod_suggestions.view', count: 'suggestions' },
+        { to: '/admin/feedback', label: 'Обращения', icon: icons.feedback, perm: 'feedback.view', count: 'feedback' },
+        { to: '/admin/launcher-crashes', label: 'Краши лаунчера', icon: icons.crashes, perm: 'crashes.view', count: 'crashes' },
         { to: '/admin/launcher-crash-rules', label: 'Правила крашей', icon: icons.crashes, perm: 'crashes.view' },
       ],
     },
     {
+      key: 'site',
       label: 'Сайт',
       items: [
         { to: '/admin/landing', label: 'Главная страница', icon: icons.landing, perm: 'landing.manage' },
@@ -245,6 +263,42 @@ const navGroups = computed(() => {
     .map((g) => ({ ...g, items: g.items.filter(canSee) }))
     .filter((g) => g.items.length > 0)
 })
+
+// ── Избранное, свёрнутые группы, счётчики, поиск, крошки ──
+const allItems = computed(() => navGroups.value.flatMap((g) => g.items.map((i) => ({ ...i, group: g.label, groupKey: g.key }))))
+const pinnedItems = computed(() => navPrefs.pins.map((to) => allItems.value.find((i) => i.to === to)).filter(Boolean))
+const collapsed = (g) => navPrefs.collapsed.includes(g.key) && !g.items.some(isActive)
+
+const counts = ref({})
+async function loadCounts() {
+  try { counts.value = await getNavCounts(authState.accessToken, navPrefs.seen, serverState.activeSlug || '') } catch { /* no numbers this time */ }
+}
+const groupCount = (g) => g.items.reduce((a, i) => a + (i.count ? counts.value[i.count] || 0 : 0), 0)
+let countsTimer = null
+onMounted(() => { loadCounts(); countsTimer = setInterval(loadCounts, 60000) })
+onBeforeUnmount(() => clearInterval(countsTimer))
+watch(() => serverState.activeSlug, loadCounts)
+// Opening a section counts as having seen what is new there.
+const SEEN_BY_PATH = { '/admin/feedback': 'feedback', '/admin/mod-suggestions': 'suggestions', '/admin/launcher-crashes': 'crashes' }
+watch(() => route.path, (path) => {
+  clearCrumbs()
+  const key = SEEN_BY_PATH[path]
+  if (key) { markSeen(key); counts.value = { ...counts.value, [key]: 0 } }
+}, { immediate: true })
+
+const currentItem = computed(() => allItems.value.find(isActive))
+const crumbs = computed(() => {
+  const out = []
+  const item = currentItem.value
+  if (item && item.to !== '/admin') {
+    out.push({ label: item.group })
+    out.push({ label: item.label, to: crumbState.extra.length ? item.to : null })
+  } else {
+    out.push({ label: pageTitle.value })
+  }
+  return [...out, ...crumbState.extra]
+})
+const isPlatform = computed(() => !!(authState.user?.is_admin || authState.user?.permissions?.includes('servers.manage')))
 
 function isActive(item) {
   if (item.exact) return route.path === item.to
@@ -286,24 +340,45 @@ async function handleLogout() {
         </div>
       </RouterLink>
 
+      <button type="button" class="adm-find" title="Быстрый поиск (Ctrl+K)" @click="paletteOpen = true; sidebarOpen = false">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><circle cx="11" cy="11" r="7" /><path d="m20 20-3.5-3.5" /></svg>
+        <span>Поиск</span><kbd>Ctrl K</kbd>
+      </button>
+
       <nav class="adm-nav">
-        <div v-for="group in navGroups" :key="group.label" class="adm-nav__group" :class="{ 'adm-nav__group--scoped': group.scoped }">
-          <div class="adm-nav__label">
-            <span v-if="group.scoped" class="adm-nav__label-dot" :class="srvOnline ? 'is-on' : ''" />
-            <span class="adm-nav__label-text">{{ group.label }}</span>
-          </div>
-          <RouterLink
-            v-for="item in group.items"
-            :key="item.to"
-            :to="item.to"
-            class="adm-nav__item"
-            :class="{ 'adm-nav__item--active': isActive(item) }"
-            @click="sidebarOpen = false"
-          >
+        <div v-if="pinnedItems.length" class="adm-nav__group adm-nav__group--pins">
+          <div class="adm-nav__label"><span class="adm-nav__label-text">Избранное</span></div>
+          <RouterLink v-for="item in pinnedItems" :key="`pin-${item.to}`" :to="item.to" class="adm-nav__item" :class="{ 'adm-nav__item--active': isActive(item) }" @click="sidebarOpen = false">
             <!-- eslint-disable-next-line vue/no-v-html -->
             <span class="adm-nav__icon" v-html="item.icon" />
             <span class="adm-nav__text">{{ item.label }}</span>
+            <span v-if="item.count && counts[item.count]" class="adm-nav__count">{{ counts[item.count] > 99 ? '99+' : counts[item.count] }}</span>
+            <button type="button" class="adm-nav__pin is-on" title="Убрать из избранного" @click.prevent.stop="togglePin(item.to)">★</button>
           </RouterLink>
+        </div>
+        <div v-for="group in navGroups" :key="group.key" class="adm-nav__group" :class="{ 'adm-nav__group--scoped': group.scoped }">
+          <button type="button" class="adm-nav__label" :aria-expanded="!collapsed(group)" @click="toggleGroup(group.key)">
+            <span v-if="group.scoped" class="adm-nav__label-dot" :class="srvOnline ? 'is-on' : ''" />
+            <span class="adm-nav__label-text">{{ group.label }}</span>
+            <span v-if="collapsed(group) && groupCount(group)" class="adm-nav__count adm-nav__count--sm">{{ groupCount(group) }}</span>
+            <svg class="adm-nav__chev" :class="{ 'is-closed': collapsed(group) }" width="9" height="9" viewBox="0 0 10 6" fill="none"><path d="M1 1l4 4 4-4" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" /></svg>
+          </button>
+          <template v-if="!collapsed(group)">
+            <RouterLink
+              v-for="item in group.items"
+              :key="item.to"
+              :to="item.to"
+              class="adm-nav__item"
+              :class="{ 'adm-nav__item--active': isActive(item) }"
+              @click="sidebarOpen = false"
+            >
+              <!-- eslint-disable-next-line vue/no-v-html -->
+              <span class="adm-nav__icon" v-html="item.icon" />
+              <span class="adm-nav__text">{{ item.label }}</span>
+              <span v-if="item.count && counts[item.count]" class="adm-nav__count">{{ counts[item.count] > 99 ? '99+' : counts[item.count] }}</span>
+              <button type="button" class="adm-nav__pin" :class="{ 'is-on': navPrefs.pins.includes(item.to) }" :title="navPrefs.pins.includes(item.to) ? 'Убрать из избранного' : 'В избранное'" @click.prevent.stop="togglePin(item.to)">★</button>
+            </RouterLink>
+          </template>
         </div>
       </nav>
 
@@ -322,9 +397,18 @@ async function handleLogout() {
           <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
         </button>
 
-        <h2 class="adm-topbar__title">{{ pageTitle }}</h2>
+        <nav class="adm-crumbs" aria-label="Где вы">
+          <template v-for="(c, i) in crumbs" :key="i">
+            <span v-if="i" class="adm-crumbs__sep" aria-hidden="true">/</span>
+            <RouterLink v-if="c.to" :to="c.to" class="adm-crumbs__link">{{ c.label }}</RouterLink>
+            <span v-else class="adm-crumbs__item" :class="{ 'adm-crumbs__item--last': i === crumbs.length - 1 }">{{ c.label }}</span>
+          </template>
+        </nav>
 
         <div class="adm-topbar__right">
+          <button type="button" class="adm-topbar__find" aria-label="Быстрый поиск" title="Быстрый поиск (Ctrl+K)" @click="paletteOpen = true">
+            <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><circle cx="11" cy="11" r="7" /><path d="m20 20-3.5-3.5" /></svg>
+          </button>
           <!-- Переключатель сервера: скоупит рынок/нации/БП/античит/дашборд -->
           <div ref="serverMenuRef" class="adm-srv">
             <button
@@ -362,6 +446,10 @@ async function handleLogout() {
               </div>
             </Transition>
           </div>
+
+          <button type="button" class="adm-feed-btn" aria-label="Лента событий" title="Лента событий: действия, сбои, сборки" @click="feedOpen = true">
+            <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9" /><polyline points="12 7 12 12 15 14" /></svg>
+          </button>
 
           <!-- Колокольчик уведомлений: все отчёты из /admin/notifications + локальные алерты -->
           <div ref="notifRef" class="adm-bell">
@@ -435,6 +523,9 @@ async function handleLogout() {
 
     <!-- Единая модалка подтверждения для всей админки -->
     <ConfirmDialog />
+    <AdminFeedPanel v-if="feedOpen" @close="feedOpen = false" />
+    <AdminMobileActions v-if="!securityState.gate" @feed="feedOpen = true" />
+    <AdminCommandPalette v-if="paletteOpen" :sections="allItems" :servers="sortedServers" :platform="isPlatform" @close="paletteOpen = false" />
   </div>
 </template>
 
@@ -565,6 +656,28 @@ async function handleLogout() {
 .adm-nav__item--active .adm-nav__icon, .adm-nav__item:hover .adm-nav__icon { opacity: 1; }
 .adm-nav__text { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 
+/* Поиск, свёртывание групп, счётчики, избранное */
+.adm-find { margin: 0.7rem 0.65rem 0; display: flex; align-items: center; gap: 0.5rem; padding: 0.45rem 0.6rem; border-radius: 9px; border: 1px solid var(--adm-line); background: rgba(148,163,184,0.04); color: var(--adm-dim); font: inherit; font-size: 0.78rem; font-weight: 600; cursor: pointer; transition: border-color 0.13s, color 0.13s; }
+.adm-find:hover { color: var(--adm-mut); border-color: var(--adm-line-strong); }
+.adm-find span { flex: 1; text-align: left; }
+.adm-find kbd { font-family: var(--adm-mono); font-size: 0.58rem; padding: 0.08rem 0.3rem; border-radius: 4px; border: 1px solid var(--adm-line-strong); color: var(--adm-dim); }
+button.adm-nav__label { width: 100%; border: 0; background: none; cursor: pointer; font-family: inherit; text-align: left; border-radius: 6px; }
+button.adm-nav__label:hover { color: var(--adm-mut); }
+.adm-nav__label-text { flex: 1; min-width: 0; }
+.adm-nav__chev { flex-shrink: 0; opacity: 0; transition: transform 0.16s, opacity 0.13s; }
+.adm-nav__label:hover .adm-nav__chev, .adm-nav__chev.is-closed { opacity: 0.8; }
+.adm-nav__chev.is-closed { transform: rotate(-90deg); }
+.adm-nav__count { margin-left: auto; min-width: 1.15rem; height: 1.15rem; padding: 0 0.3rem; border-radius: 999px; display: inline-flex; align-items: center; justify-content: center; font-size: 0.62rem; font-weight: 900; background: var(--adm-acc); color: #fff; letter-spacing: 0; }
+.adm-nav__count--sm { margin-left: 0; height: 1rem; min-width: 1rem; font-size: 0.56rem; }
+.adm-nav__item { position: relative; }
+.adm-nav__pin { margin-left: auto; border: 0; background: none; padding: 0 0.1rem; font-size: 0.8rem; line-height: 1; color: var(--adm-faint); cursor: pointer; opacity: 0; transition: opacity 0.12s, color 0.12s; }
+.adm-nav__count + .adm-nav__pin { margin-left: 0.3rem; }
+.adm-nav__item:hover .adm-nav__pin, .adm-nav__pin:focus-visible { opacity: 1; }
+.adm-nav__pin:hover { color: var(--adm-warn); }
+.adm-nav__group--pins .adm-nav__pin.is-on { color: var(--adm-warn); }
+.adm-nav__item .adm-nav__pin.is-on { color: var(--adm-warn); }
+@media (hover: none) { .adm-nav__pin { opacity: 0.6; } }
+
 /* Низ сайдбара */
 .adm-sidebar__bottom { padding: 0.7rem 0.65rem; border-top: 1px solid var(--adm-line); }
 .adm-back-link {
@@ -621,6 +734,18 @@ async function handleLogout() {
 .adm-topbar__burger:hover { color: var(--adm-text); }
 @media (max-width: 899px) { .adm-topbar__burger { display: flex; } }
 
+.adm-crumbs { display: flex; align-items: center; gap: 0.45rem; min-width: 0; overflow: hidden; white-space: nowrap; font-size: 0.82rem; }
+.adm-crumbs__item, .adm-crumbs__link { color: var(--adm-dim); font-weight: 700; overflow: hidden; text-overflow: ellipsis; text-decoration: none; }
+.adm-crumbs__link:hover { color: var(--adm-text); }
+.adm-crumbs__item--last { color: var(--adm-text); font-weight: 800; }
+.adm-crumbs__sep { color: var(--adm-faint); }
+@media (max-width: 640px) { .adm-crumbs__item:not(.adm-crumbs__item--last), .adm-crumbs__sep, .adm-crumbs__link { display: none; } }
+.adm-feed-btn { display: flex; align-items: center; justify-content: center; width: 38px; height: 38px; border-radius: 11px; border: 1px solid var(--adm-line); background: rgba(148,163,184,0.04); color: var(--adm-mut); cursor: pointer; }
+.adm-feed-btn:hover { color: var(--adm-text); background: rgba(148,163,184,0.1); }
+@media (max-width: 640px) { .adm-feed-btn { display: none; } .adm-topbar__right { gap: 0.4rem; } .adm-srv__btn { max-width: 150px; } }
+.adm-topbar__find { display: flex; align-items: center; justify-content: center; width: 38px; height: 38px; border-radius: 11px; border: 1px solid var(--adm-line); background: rgba(148,163,184,0.04); color: var(--adm-mut); cursor: pointer; }
+.adm-topbar__find:hover { color: var(--adm-text); background: rgba(148,163,184,0.1); }
+@media (min-width: 900px) { .adm-topbar__find { display: none; } }
 .adm-topbar__title {
   font-size: 0.95rem;
   font-weight: 800;

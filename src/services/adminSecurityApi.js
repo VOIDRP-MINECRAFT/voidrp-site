@@ -9,10 +9,11 @@ function ah(token, extra = {}) {
 }
 
 // ── Audit log (global) ──────────────────────────────────────────────────────
-export function getAuditLog(token, { q = '', category = '', days = 30, limit = 50, offset = 0 } = {}) {
+export function getAuditLog(token, { q = '', category = '', actor = '', days = 30, limit = 50, offset = 0 } = {}) {
   const qs = new URLSearchParams({ days: String(days), limit: String(limit), offset: String(offset) })
   if (q) qs.set('q', q)
   if (category) qs.set('category', category)
+  if (actor) qs.set('actor', actor)
   return apiRequest(`/admin/audit?${qs.toString()}`, ah(token))
 }
 
