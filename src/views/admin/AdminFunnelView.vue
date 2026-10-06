@@ -57,7 +57,19 @@ async function copyEmails() {
   const emails = stuckList.value.map((p) => p.email).filter(Boolean).join(', ')
   try { await navigator.clipboard.writeText(emails); toastSuccess(`Скопировано адресов: ${stuckList.value.length}`) } catch { toastError('Не удалось скопировать') }
 }
-const SOURCE = { site: 'сайт', game: 'в игре', referral: 'по приглашению' }
+const SOURCE = { site: 'сайт, без метки', game: 'регистрация в игре', referral: 'по приглашению' }
+const srcLabel = (k) => SOURCE[k] || (k.startsWith('ref:') ? `переход с ${k.slice(4)}` : k)
+// Конструктор ссылок с меткой канала: всё, что пришло по ней, видно отдельной строкой «Каналов».
+const tagName = ref('')
+const tagClean = computed(() => tagName.value.trim().toLowerCase().replace(/[^a-z0-9_.-]+/g, '').slice(0, 40))
+const tagLinks = computed(() => (tagClean.value ? [
+  ['Главная', `https://void-rp.ru/?from=${tagClean.value}`],
+  ['Сразу регистрация', `https://void-rp.ru/register?from=${tagClean.value}`],
+  ['Скачать лаунчер', `https://void-rp.ru/download-launcher?from=${tagClean.value}`],
+] : []))
+async function copy(text) {
+  try { await navigator.clipboard.writeText(text); toastSuccess('Ссылка скопирована') } catch { toastError('Не удалось скопировать') }
+}
 </script>
 
 <template>
@@ -74,7 +86,10 @@ const SOURCE = { site: 'сайт', game: 'в игре', referral: 'по приг
         <option value="">Все серверы</option>
         <option v-for="s in serverState.list" :key="s.slug" :value="s.slug">{{ s.name }}</option>
       </select>
-      <SrvSeg v-model="source" :options="[['', 'Все'], ['site', 'С сайта'], ['game', 'В игре'], ['referral', 'По приглашению']]" label="Откуда пришли" />
+      <select v-model="source" class="adm-select fn-sel" aria-label="Откуда пришли">
+        <option value="">Все каналы</option>
+        <option v-for="(n, k) in data?.sources || {}" :key="k" :value="k">{{ srcLabel(k) }} · {{ n }}</option>
+      </select>
       <SrvSeg v-model="weeks" :options="[[4, '4 нед'], [12, '12 нед'], [26, 'полгода'], [52, 'год']]" label="Период" />
     </div>
 
@@ -137,6 +152,33 @@ const SOURCE = { site: 'сайт', game: 'в игре', referral: 'по приг
           </div>
         </section>
 
+        <!-- Каналы -->
+        <section class="adm-card fn-card">
+          <div class="adm-card__head"><div class="adm-card__title">Каналы</div><span class="fn-muted">откуда пришли и сколько дошло до каждого шага</span></div>
+          <div class="adm-table-scroll">
+            <table class="adm-table fn-coh fn-src">
+              <thead><tr><th>Канал</th><th>Регистраций</th><th v-for="k in cohortKeys" :key="k[0]">{{ k[1] }}</th></tr></thead>
+              <tbody>
+                <tr v-for="r in data.by_source || []" :key="r.source">
+                  <td>{{ srcLabel(r.source) }}</td>
+                  <td class="adm-num">{{ r.registered }}</td>
+                  <td v-for="k in cohortKeys" :key="k[0]" class="fn-cell adm-num" :style="cellStyle(r[k[0]], r.registered)" :title="`${r[k[0]]} из ${r.registered}`">{{ pct(r[k[0]], r.registered) }}%</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+          <div class="fn-pad">
+            <p class="fn-muted">Метки ставятся ссылкой с <code>?from=…</code> (или utm_source): сайт запоминает первую на 30 дней и сохраняет при регистрации. Без метки канал определяется по сайту, с которого перешли, если браузер его передал. Метки собираются с 6 октября.</p>
+            <div class="fn-tag">
+              <input v-model="tagName" class="adm-input" placeholder="tiktok, vk, hotmc, youtube…" aria-label="Название канала" />
+              <span class="fn-muted">— ссылки с меткой для этого канала:</span>
+            </div>
+            <div v-if="tagLinks.length" class="fn-links">
+              <div v-for="l in tagLinks" :key="l[1]" class="fn-link"><span>{{ l[0] }}</span><code>{{ l[1] }}</code><button type="button" class="adm-btn adm-btn--sm" @click="copy(l[1])">Копировать</button></div>
+            </div>
+          </div>
+        </section>
+
         <!-- Застрявшие -->
         <section class="adm-card fn-card">
           <div class="adm-card__head">
@@ -160,7 +202,7 @@ const SOURCE = { site: 'сайт', game: 'в игре', referral: 'по приг
                   <td><RouterLink v-if="p.nickname" :to="`/admin/players/${p.nickname}`" class="fn-nick">{{ p.nickname }}</RouterLink><span v-else>{{ p.login }}</span></td>
                   <td class="fn-dim">{{ p.email }}</td>
                   <td><span class="adm-badge" :class="p.telegram ? 'adm-badge--ok' : ''">{{ p.telegram ? 'привязан' : 'нет' }}</span></td>
-                  <td class="fn-dim">{{ SOURCE[p.source] || p.source }}</td>
+                  <td class="fn-dim">{{ srcLabel(p.source) }}</td>
                   <td class="adm-num fn-dim">{{ fmtDate(p.registered_at) }}</td>
                   <td class="adm-num fn-dim">{{ fmtDate(p.last_seen_at) }}</td>
                   <td class="adm-num fn-dim">{{ p.playtime_min ? `${p.playtime_min} мин` : '—' }}</td>
@@ -209,4 +251,11 @@ const SOURCE = { site: 'сайт', game: 'в игре', referral: 'по приг
 .fn-nick:hover { color: var(--adm-acc-text); }
 .fn-dim { color: var(--adm-dim); }
 .fn-calm { color: var(--adm-ok); font-size: 0.84rem; }
+.fn-src td:first-child { white-space: nowrap; }
+.fn-tag { display: flex; gap: 0.5rem; align-items: center; flex-wrap: wrap; }
+.fn-tag .adm-input { width: 14rem; }
+.fn-links { display: flex; flex-direction: column; gap: 0.35rem; }
+.fn-link { display: flex; gap: 0.6rem; align-items: center; flex-wrap: wrap; font-size: 0.8rem; }
+.fn-link code { font-family: var(--adm-mono); font-size: 0.76rem; color: var(--adm-text); background: var(--adm-card-2); border: 1px solid var(--adm-line); border-radius: 6px; padding: 0.25rem 0.45rem; overflow-x: auto; white-space: nowrap; max-width: 100%; }
+.fn-link span { min-width: 9rem; color: var(--adm-dim); }
 </style>

@@ -23,6 +23,7 @@ async function load() {
   try {
     data.value = await getRetention(authState.accessToken)
     form.value = JSON.parse(JSON.stringify(data.value.settings))
+    form.value.votes = { enabled: false, message: '', commands: [], providers: [], ...(form.value.votes || {}) }
     base.value = JSON.stringify(form.value)
   } catch (e) { toastError(e?.message || 'Не удалось загрузить') }
 }
@@ -57,6 +58,10 @@ const blocked = computed(() => {
     const e = (st.commands || []).map(cmdError).find(Boolean)
     if (e) return `в серии (${st.day}-й день) ${e}`
   }
+  for (const [list, where] of [[form.value.referral_invited_commands, 'награде приглашённому'], [form.value.referral_inviter_commands, 'награде пригласившему'], [form.value.votes?.commands, 'награде за голос']]) {
+    const e = (list || []).map(cmdError).find(Boolean)
+    if (e) return `в ${where} ${e}`
+  }
   const days = (form.value.streak || []).map((x) => x.day)
   if (new Set(days).size !== days.length) return "в серии дни повторяются"
   if (form.value.enabled && !form.value.commands.some((c) => c.trim())) return 'нужна хотя бы одна команда награды'
@@ -66,6 +71,20 @@ const blocked = computed(() => {
 function addStreak() {
   const last = Math.max(1, ...(form.value.streak || []).map((x) => x.day || 0))
   form.value.streak.push({ day: last + 2, message: 'Ещё один день подряд, {player}!', commands: ['minecraft:give {player} minecraft:diamond 1'] })
+}
+const presets = computed(() => data.value?.votes?.presets || {})
+const voteUrl = computed(() => data.value?.votes?.url || '')
+const voteStats = computed(() => data.value?.votes?.stats || [])
+const providerName = (k) => form.value?.votes?.providers?.find((p) => p.key === k)?.name || k
+function addProvider() {
+  form.value.votes.providers.push({ key: '', name: '', secret: '', nick_field: 'nick', time_field: 'time', sign_field: 'sign', algo: 'sha1', formula: '{nick}{time}{secret}', ok_text: 'ok', max_skew_minutes: 60 })
+}
+function applyPreset(p, key) {
+  const pr = presets.value[key]
+  if (pr) { p.algo = pr.algo; p.formula = pr.formula; if (!pr.formula.includes('{time}')) p.time_field = '' }
+}
+async function copy(text) {
+  try { await navigator.clipboard.writeText(text); toastSuccess('Скопировано') } catch { toastError('Не удалось скопировать') }
 }
 const testNick = ref('')
 const testing = ref(false)
@@ -78,9 +97,9 @@ async function runTest() {
 
 const st = computed(() => data.value?.stats || {})
 const d = (k) => st.value.deliveries?.[k] || 0
-const KIND = { welcome: 'Приветствие', day2: 'Награда 2-го дня', test: 'Проверка', tg_link: 'Бонус за Telegram' }
+const KIND = { welcome: 'Приветствие', day2: 'Награда 2-го дня', test: 'Проверка', tg_link: 'Бонус за Telegram', vote: 'Голос', ref_inv: 'Приглашён другом', ref_owner: 'Пригласил друга' }
 const kindLabel = (k) => KIND[k] || (k.startsWith('streak') ? `Серия: ${k.slice(6)}-й день` : k)
-const STATUS = { pending: ['ждёт игрока', ''], delivered: ['выдано', 'adm-badge--ok'], failed: ['не вышло', 'adm-badge--err'] }
+const STATUS = { owed: ['ждёт входа', 'adm-badge--warn'], pending: ['ждёт игрока', ''], delivered: ['выдано', 'adm-badge--ok'], failed: ['не вышло', 'adm-badge--err'] }
 const fmt = (iso) => (iso ? new Date(iso).toLocaleString('ru-RU', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' }) : '—')
 const preview = (t) => (t || '').replaceAll('{player}', 'Steve').replaceAll('{server}', activeServer.value?.name || 'сервер').replaceAll('{reward}', form.value?.reward_label || 'награда')
 </script>
@@ -181,6 +200,92 @@ const preview = (t) => (t || '').replaceAll('{player}', 'Steve').replaceAll('{se
         </template>
       </section>
 
+      <!-- Рефералы -->
+      <section class="adm-card rt-sec">
+        <h2>Приглашения друзей</h2>
+        <SrvToggle v-model="form.referral_enabled" :disabled="!canManage" label="Награда обоим, когда приглашённый вернулся"
+                   hint="Приглашение засчитывается не при регистрации, а когда друг зашёл на сервер во второй день — пустыми аккаунтами не накрутить. Если пригласивший не в игре, награда дождётся его входа." />
+        <div v-if="form.referral_enabled" class="rt-grid">
+          <div class="adm-field rt-wide">
+            <span>Приглашённому — сообщение ({player}, {inviter})</span>
+            <input v-model="form.referral_invited_message" class="adm-input" maxlength="240" :disabled="!canManage" />
+          </div>
+          <div class="adm-field rt-wide">
+            <span>Приглашённому — команды</span>
+            <div v-for="(c, i) in form.referral_invited_commands" :key="`ri${i}`" class="rt-cmd">
+              <input v-model="form.referral_invited_commands[i]" class="adm-input rt-mono" :class="{ 'rt-bad': cmdError(c) }" :disabled="!canManage" />
+              <button v-if="canManage" type="button" class="adm-btn adm-btn--sm adm-btn--danger" aria-label="Убрать" @click="form.referral_invited_commands.splice(i, 1)">✕</button>
+              <small v-if="cmdError(c)" class="rt-err">{{ cmdError(c) }}</small>
+            </div>
+            <button v-if="canManage" type="button" class="rt-add" @click="form.referral_invited_commands.push('')">+ команда</button>
+          </div>
+          <div class="adm-field rt-wide">
+            <span>Пригласившему — сообщение ({player}, {invited})</span>
+            <input v-model="form.referral_inviter_message" class="adm-input" maxlength="240" :disabled="!canManage" />
+          </div>
+          <div class="adm-field rt-wide">
+            <span>Пригласившему — команды</span>
+            <div v-for="(c, i) in form.referral_inviter_commands" :key="`ro${i}`" class="rt-cmd">
+              <input v-model="form.referral_inviter_commands[i]" class="adm-input rt-mono" :class="{ 'rt-bad': cmdError(c) }" :disabled="!canManage" />
+              <button v-if="canManage" type="button" class="adm-btn adm-btn--sm adm-btn--danger" aria-label="Убрать" @click="form.referral_inviter_commands.splice(i, 1)">✕</button>
+              <small v-if="cmdError(c)" class="rt-err">{{ cmdError(c) }}</small>
+            </div>
+            <button v-if="canManage" type="button" class="rt-add" @click="form.referral_inviter_commands.push('')">+ команда</button>
+          </div>
+        </div>
+      </section>
+
+      <!-- Голоса на мониторингах -->
+      <section class="adm-card rt-sec">
+        <h2>Голоса на мониторингах</h2>
+        <SrvToggle v-model="form.votes.enabled" :disabled="!canManage" label="Награда за голос"
+                   hint="Мониторинг (топ серверов) сообщает о голосе по ссылке ниже; один голос на игрока, мониторинг и день. Если игрок не в игре, награда дождётся его входа." />
+        <div v-if="voteStats.length" class="rt-votes-stats">
+          <span v-for="v in voteStats" :key="v.provider"><b>{{ v.votes }}</b> {{ providerName(v.provider) }} · {{ v.players }} игроков</span>
+          <span class="rt-note">за 30 дней</span>
+        </div>
+        <template v-if="form.votes.enabled">
+          <label class="adm-field"><span>Сообщение в чат</span><input v-model="form.votes.message" class="adm-input" maxlength="240" :disabled="!canManage" /></label>
+          <div class="adm-field">
+            <span>Команды награды</span>
+            <div v-for="(c, i) in form.votes.commands" :key="`v${i}`" class="rt-cmd">
+              <input v-model="form.votes.commands[i]" class="adm-input rt-mono" :class="{ 'rt-bad': cmdError(c) }" :disabled="!canManage" />
+              <button v-if="canManage" type="button" class="adm-btn adm-btn--sm adm-btn--danger" aria-label="Убрать" @click="form.votes.commands.splice(i, 1)">✕</button>
+              <small v-if="cmdError(c)" class="rt-err">{{ cmdError(c) }}</small>
+            </div>
+            <button v-if="canManage" type="button" class="rt-add" @click="form.votes.commands.push('')">+ команда</button>
+          </div>
+        </template>
+        <div class="adm-field">
+          <span>Мониторинги</span>
+          <p class="rt-note">Зарегистрируйте сервер на мониторинге, в его кабинете возьмите секрет и формат проверки голоса (какие поля приходят и как считается подпись) и впишите сюда. Ссылку для уведомлений вставьте в кабинет мониторинга.</p>
+          <div v-for="(p, i) in form.votes.providers" :key="`p${i}`" class="rt-step">
+            <div class="rt-step__head">
+              <label class="adm-field rt-day"><span>Ключ</span><input v-model.trim="p.key" class="adm-input rt-mono" placeholder="hotmc" :disabled="!canManage" /></label>
+              <label class="adm-field rt-grow"><span>Название</span><input v-model="p.name" class="adm-input" placeholder="HotMC" :disabled="!canManage" /></label>
+              <button v-if="canManage" type="button" class="adm-btn adm-btn--sm adm-btn--danger rt-del" aria-label="Убрать мониторинг" @click="form.votes.providers.splice(i, 1)">✕</button>
+            </div>
+            <div v-if="p.key" class="fn-link"><span class="rt-note">Ссылка для мониторинга</span><code class="rt-url">{{ voteUrl }}{{ p.key }}</code><button type="button" class="adm-btn adm-btn--sm" @click="copy(voteUrl + p.key)">Копировать</button></div>
+            <div class="rt-grid">
+              <label class="adm-field"><span>Секрет</span><input v-model="p.secret" type="password" autocomplete="new-password" class="adm-input rt-mono" :disabled="!canManage" /></label>
+              <label class="adm-field"><span>Шаблон подписи</span>
+                <select class="adm-select" :disabled="!canManage" @change="applyPreset(p, $event.target.value); $event.target.value = ''">
+                  <option value="">выбрать…</option>
+                  <option v-for="(pr, k) in presets" :key="k" :value="k">{{ pr.label }}</option>
+                </select>
+              </label>
+              <label class="adm-field"><span>Хэш</span><select v-model="p.algo" class="adm-select" :disabled="!canManage"><option value="md5">MD5</option><option value="sha1">SHA1</option><option value="sha256">SHA256</option></select></label>
+              <label class="adm-field"><span>Что хэшируется</span><input v-model="p.formula" class="adm-input rt-mono" :disabled="!canManage" placeholder="{nick}{time}{secret}" /></label>
+              <label class="adm-field"><span>Поле ника</span><input v-model="p.nick_field" class="adm-input rt-mono" :disabled="!canManage" /></label>
+              <label class="adm-field"><span>Поле времени</span><input v-model="p.time_field" class="adm-input rt-mono" :disabled="!canManage" placeholder="пусто — без времени" /></label>
+              <label class="adm-field"><span>Поле подписи</span><input v-model="p.sign_field" class="adm-input rt-mono" :disabled="!canManage" /></label>
+              <label class="adm-field"><span>Ответ мониторингу</span><input v-model="p.ok_text" class="adm-input rt-mono" :disabled="!canManage" /></label>
+            </div>
+          </div>
+          <button v-if="canManage && form.votes.providers.length < 12" type="button" class="rt-add" @click="addProvider">+ мониторинг</button>
+        </div>
+      </section>
+
       <!-- Серия входов -->
       <section class="adm-card rt-sec">
         <h2>Серия входов</h2>
@@ -259,4 +364,8 @@ const preview = (t) => (t || '').replaceAll('{player}', 'Steve').replaceAll('{se
 .rt-day { width: 7rem; }
 .rt-grow { flex: 1; min-width: 12rem; }
 .rt-del { margin-bottom: 0.15rem; }
+.rt-votes-stats { display: flex; gap: 1rem; flex-wrap: wrap; align-items: baseline; font-size: 0.82rem; color: var(--adm-mut); }
+.rt-votes-stats b { color: var(--adm-text); }
+.rt-url { font-family: var(--adm-mono); font-size: 0.74rem; color: var(--adm-text); background: #080c16; border: 1px solid var(--adm-line); border-radius: 6px; padding: 0.25rem 0.45rem; overflow-x: auto; white-space: nowrap; max-width: 100%; }
+.fn-link { display: flex; gap: 0.5rem; align-items: center; flex-wrap: wrap; }
 </style>

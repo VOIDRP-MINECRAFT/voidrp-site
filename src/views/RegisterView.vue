@@ -1,4 +1,5 @@
 <script setup>
+import { attribution } from '../services/attribution'
 import {computed, onMounted, reactive, ref, watch} from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useI18n } from 'vue-i18n'
@@ -117,6 +118,7 @@ async function submit() {
       distribution_profile: distribution.profile,
       distribution_map: distribution.map,
       distribution_purchases: distribution.purchases,
+      ...attribution(),
     })
 
     await router.push({

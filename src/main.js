@@ -1,4 +1,5 @@
 import './storageShim'
+import { captureAttribution } from './services/attribution'
 import { createApp } from 'vue'
 import App from './App.vue'
 import router from './router'
@@ -9,6 +10,7 @@ import './styles.toast-nations.css'
 import './admin.css'
 
 ;(async () => {
+  captureAttribution()
   installAuthApiHooks()
   await bootstrapAuth()
 
