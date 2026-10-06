@@ -225,6 +225,7 @@ const navGroups = computed(() => {
         { to: '/admin/integration', label: 'Интеграция', icon: icons.mods, perm: 'integration.view', when: (s) => !!s?.is_external },
         { to: '/admin/anticheat', label: 'Античит', icon: icons.anticheat, perm: 'anticheat.view', count: 'anticheat', when: (s) => onOurMachine(s) || (s?.modules || []).includes('anticheat') },
         { to: '/admin/punishments', label: 'Наказания', icon: icons.anticheat, perm: 'punishments.view' },
+        { to: '/admin/retention', label: 'Возврат игроков', icon: icons.players, perm: 'retention.view' },
       ],
     },
     {

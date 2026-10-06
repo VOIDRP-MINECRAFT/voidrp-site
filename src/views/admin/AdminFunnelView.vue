@@ -121,7 +121,7 @@ const SOURCE = { site: 'сайт', game: 'в игре', referral: 'по приг
               <thead><tr><th>Неделя</th><th>Регистраций</th><th v-for="k in cohortKeys" :key="k[0]">{{ k[1] }}</th></tr></thead>
               <tbody>
                 <tr v-for="c in data.cohorts" :key="c.start">
-                  <td class="fn-week">с {{ fmtWeek(c.start) }}<span v-if="!c.mature" class="fn-young" title="Неделе меньше двух недель — шаг «через неделю» ещё не мог случиться">идёт</span></td>
+                  <td class="fn-week">с {{ fmtWeek(c.start) }}<span v-if="!c.mature" class="fn-young" title="Неделе меньше двух недель — шаг «через неделю» ещё не мог случиться">идёт</span><span v-if="data.marks?.[c.start]" class="fn-mark" :title="data.marks[c.start]">★ {{ data.marks[c.start] }}</span></td>
                   <td class="adm-num">{{ c.registered }}</td>
                   <td v-for="k in cohortKeys" :key="k[0]" class="fn-cell adm-num" :style="cellStyle(c[k[0]], c.registered)" :title="`${c[k[0]]} из ${c.registered}`">{{ pct(c[k[0]], c.registered) }}%</td>
                 </tr>
@@ -195,6 +195,7 @@ const SOURCE = { site: 'сайт', game: 'в игре', referral: 'по приг
 .fn-coh td:first-child, .fn-coh th:first-child { text-align: left; }
 .fn-week { white-space: nowrap; }
 .fn-young { margin-left: 0.4rem; font-size: 0.66rem; font-weight: 700; padding: 0.05rem 0.35rem; border-radius: 5px; background: var(--adm-card-2); color: var(--adm-dim); }
+.fn-mark { display: block; margin-top: 0.15rem; font-size: 0.66rem; font-weight: 700; color: var(--adm-warn); }
 .fn-cell { color: var(--adm-text); font-weight: 700; }
 .fn-n { opacity: 0.6; font-size: 0.75em; margin-left: 0.15rem; }
 .fn-nick { font-weight: 700; color: var(--adm-text); text-decoration: none; font-family: var(--adm-mono); }

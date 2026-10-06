@@ -279,3 +279,12 @@ export function getFunnel(token, { server = '', source = '', weeks = 12 } = {}) 
   if (source) qs.set('source', source)
   return apiRequest(`/admin/funnel?${qs.toString()}`, { ...ah(token), serverScope: false })
 }
+
+// «Возврат игроков»: награда второго дня, приветствие, напоминание — по выбранному серверу.
+export const getRetention = (token) => apiRequest('/admin/retention', ah(token))
+export function saveRetention(token, settings) {
+  return apiRequest('/admin/retention/settings', { ...ah(token), method: 'PUT', headers: { ...ah(token).headers, 'Content-Type': 'application/json' }, body: JSON.stringify(settings) })
+}
+export function testRetention(token, nickname) {
+  return apiRequest('/admin/retention/test', { ...ah(token), method: 'POST', headers: { ...ah(token).headers, 'Content-Type': 'application/json' }, body: JSON.stringify({ nickname }) })
+}
