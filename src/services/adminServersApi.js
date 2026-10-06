@@ -78,3 +78,18 @@ export function updateAuthSettings(token, serverId, payload) {
     body: JSON.stringify(payload),
   })
 }
+
+// Live ping of every server the admin manages (hidden ones too), keyed by server id.
+export function getServersStatus(token) {
+  return apiRequest('/admin/servers/status', ah(token))
+}
+
+// «Проверить пинг» in the editor: a host/port typed in, not saved yet.
+export function pingAddress(token, host, port) {
+  return apiRequest('/admin/servers/ping', {
+    ...ah(token, { 'Content-Type': 'application/json' }),
+    method: 'POST',
+    body: JSON.stringify({ host, port }),
+    toast: false,
+  })
+}

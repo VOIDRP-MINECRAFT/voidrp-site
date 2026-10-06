@@ -1,643 +1,182 @@
 <script setup>
-import { computed, onMounted, reactive, ref } from 'vue'
+// «Серверы»: карточки серверов с живым онлайном и быстрыми переключателями; настройки
+// одного сервера — во вкладках (servers/ServerEditor.vue), новый — мастером в три шага.
+// Что открыто — в адресе: ?edit=<slug>&tab=<вкладка> или ?new=1.
+//
+// «Серверы» можно дать на один сервер: тогда правится только он, а создание, удаление и поля
+// про машину — только с правом на всю платформу. Бэкенд проверяет то же самое.
+import { computed, onBeforeUnmount, onMounted, ref } from 'vue'
+import { onBeforeRouteLeave, onBeforeRouteUpdate, useRoute, useRouter } from 'vue-router'
 import { authState } from '../../stores/authStore'
 import { confirmDialog } from '../../composables/useConfirm'
-import { toastSuccess, toastError } from '../../services/toast'
-import {
-  listServers,
-  createServer,
-  updateServer,
-  deleteServer,
-  regenerateSecret,
-  uploadServerImage,
-  suggestServerPaths,
-} from '../../services/adminServersApi'
+import { toastError, toastSuccess } from '../../services/toast'
+import { deleteServer, getServersStatus, listServers, updateServer } from '../../services/adminServersApi'
+import ServerCard from './servers/ServerCard.vue'
+import ServerEditor from './servers/ServerEditor.vue'
+import ServerWizard from './servers/ServerWizard.vue'
+import { visibilityPatch } from './servers/shared'
 
+const route = useRoute()
+const router = useRouter()
 const token = () => authState.accessToken
-
-// «Серверы» можно дать на один сервер: тогда правится только он, а создание, удаление
-// и поля про машину (папки, systemd, RCON, пути пака, скрипт сборки) — только с правом
-// на всю платформу. Бэкенд проверяет то же самое.
 const platform = computed(() => !!(authState.user?.is_admin || authState.user?.permissions?.includes('servers.manage')))
-const PLATFORM_FIELDS = ['is_default', 'systemd_unit', 'data_dir', 'log_path', 'rcon_host', 'rcon_port',
-  'rcon_password', 'pack_root', 'manifest_build_script']
 
 const servers = ref([])
+const status = ref({})
 const loading = ref(true)
-const saving = ref(false)
-
-// null = list mode; 'new' = create; object = editing existing
-const editing = ref(null)
-const form = reactive({})
-const iconInput = ref(null)
-const bannerInput = ref(null)
-
-const BLANK = {
-  slug: '', name: '', description: '', icon_url: '', banner_url: '',
-  sort_order: 0, is_visible: true, is_default: false, staff_only: false, is_external: false, server_core: '', ticket_hostname: false,
-  host: '', port: 25565, mc_version: '1.21.1', loader: 'neoforge',
-  java_version: 21, neoforge_version: '',
-  pack_root: '', pack_base_url: '', manifest_url: '',
-  runtime_seed_url: '', runtime_manifest_url: '', manifest_build_script: '',
-  pack_version: '1.0.0', min_launcher_version: '0.1.0',
-  status_host: '', status_port: null, max_players: 100,
-  whitelist_mode: 'public', maintenance: false,
-  map_url: '',
-  accent_color: '',
-  easydonate_server_id: null,
-  // Write-only: typed in to set or replace; empty = leave as it is.
-  easydonate_shop_key: '',
-  easydonate_shop_key_clear: false,
-  news_channels: { update: { telegram: [], discord: [] }, media: { telegram: [], discord: [] } },
-  systemd_unit: '', data_dir: '', log_path: '',
-  rcon_host: '', rcon_port: null, rcon_password: '',
-  features: { nations: true, economy: true, shop: true, alliances: true, battlepass: true, quests: true, leaderboards: true, upgrader: true, trader: true, salary: false, mods: true, progression: true, map: true, news: true, item_bans: false },
-}
-
-const FEATURE_LABELS = {
-  nations: 'Государства',
-  economy: 'Экономика / рынок',
-  shop: 'Магазин (донат)',
-  alliances: 'Альянсы',
-  battlepass: 'Battle Pass',
-  quests: 'Квесты',
-  leaderboards: 'Топ игроков',
-  upgrader: 'Апгрейдер',
-  trader: 'Скупщик',
-  // Pay for playing: only servers running the VoidRP Origins plugin pay it.
-  salary: 'Зарплата за игру',
-  mods: 'Моды (сборка лаунчера)',
-  progression: 'Прогрессия эпох',
-  map: 'Карта',
-  news: 'Новости',
-  // Opt-in: the admin tab «Бан предметов» shows only where this is on.
-  item_bans: 'Бан предметов (нужен плагин VoidRpGameSync 1.5.0+)',
-}
+const busy = ref(null)
+const query = ref('')
+const editor = ref(null)
 
 async function load() {
-  loading.value = true
   try {
     servers.value = await listServers(token())
   } catch (e) {
-    toastError(e.message || 'Ошибка загрузки')
+    toastError(e?.message || 'Не удалось загрузить серверы')
   } finally {
     loading.value = false
   }
 }
-
-function startCreate() {
-  Object.assign(form, structuredClone(BLANK))
-  runtimeNote.value = ''
-  editing.value = 'new'
+async function loadStatus() {
+  try { status.value = await getServersStatus(token()) } catch { /* the cards just say «проверяем…» */ }
 }
+let timer = null
+onMounted(() => {
+  load()
+  loadStatus()
+  timer = setInterval(loadStatus, 30000)
+  window.addEventListener('beforeunload', beforeUnload)
+})
+onBeforeUnmount(() => { clearInterval(timer); window.removeEventListener('beforeunload', beforeUnload) })
 
-function startEdit(server) {
-  Object.assign(form, structuredClone(BLANK), server)
-  form.easydonate_shop_key = ''
-  form.easydonate_shop_key_clear = false
-  // Merge features so keys the server row doesn't have yet default to enabled.
-  form.features = { ...structuredClone(BLANK).features, ...(server.features || {}) }
-  // Normalize per-category news channels so both categories always have arrays.
-  form.news_channels = { ...structuredClone(BLANK).news_channels, ...(server.news_channels || {}) }
-  ensureCat('update'); ensureCat('media')
-  editing.value = server
+// ── Что открыто ──
+const editing = computed(() => (typeof route.query.edit === 'string' ? servers.value.find((s) => s.slug === route.query.edit) : null))
+const creating = computed(() => route.query.new === '1' && platform.value)
+const tab = computed(() => (typeof route.query.tab === 'string' ? route.query.tab : 'general'))
+const open = (slug) => router.push({ query: { edit: slug } })
+const setTab = (t) => router.replace({ query: { ...route.query, tab: t } })
+const close = () => router.push({ query: {} })
+
+const isDirty = () => !!editor.value?.dirty
+function beforeUnload(e) { if (isDirty()) { e.preventDefault(); e.returnValue = '' } }
+async function confirmLeave() {
+  if (!isDirty()) return true
+  return confirmDialog({ title: 'Несохранённые изменения', message: 'Изменения в настройках сервера не сохранены. Уйти без сохранения?', confirmLabel: 'Уйти без сохранения', danger: true })
 }
+onBeforeRouteLeave(async () => (await confirmLeave()) || false)
+onBeforeRouteUpdate(async (to, from) => {
+  // Same page, another server or back to the list: ask before dropping edits.
+  if (from.query.edit && to.query.edit !== from.query.edit) return (await confirmLeave()) || false
+  return true
+})
 
-function cancel() {
-  editing.value = null
-}
-
-function ensureCat(cat) {
-  if (!form.news_channels) form.news_channels = {}
-  const c = form.news_channels[cat] || {}
-  if (!Array.isArray(c.telegram)) c.telegram = []
-  if (!Array.isArray(c.discord)) c.discord = []
-  form.news_channels[cat] = c
-  return c
-}
-function addTg(cat) { ensureCat(cat).telegram.push({ chat_id: '', thread_id: null }) }
-function removeTg(cat, i) { ensureCat(cat).telegram.splice(i, 1) }
-function addDc(cat) { ensureCat(cat).discord.push('') }
-function removeDc(cat, i) { ensureCat(cat).discord.splice(i, 1) }
-
-function buildPayload() {
-  const p = { ...form }
-  // Normalize empty strings to null for nullable fields
-  for (const k of ['description', 'icon_url', 'banner_url', 'neoforge_version',
-    'pack_root', 'pack_base_url', 'manifest_url', 'runtime_seed_url', 'runtime_manifest_url',
-    'manifest_build_script', 'status_host', 'map_url', 'accent_color',
-    'systemd_unit', 'data_dir', 'log_path', 'rcon_host', 'rcon_password', 'server_core']) {
-    if (p[k] === '') p[k] = null
+// ── Список ──
+const shown = computed(() => {
+  const q = query.value.trim().toLowerCase()
+  const list = [...servers.value].sort((a, b) => (a.sort_order ?? 0) - (b.sort_order ?? 0) || a.name.localeCompare(b.name))
+  if (!q) return list
+  return list.filter((s) => [s.name, s.slug, s.host].some((v) => (v || '').toLowerCase().includes(q)))
+})
+const totals = computed(() => {
+  const vals = Object.values(status.value)
+  return {
+    online: vals.filter((v) => v.online).length,
+    players: vals.reduce((a, v) => a + (v.online ? v.players_online || 0 : 0), 0),
+    maint: servers.value.filter((s) => s.maintenance).length,
   }
-  if (p.status_port === '' || p.status_port === undefined) p.status_port = null
-  if (p.rcon_port === '' || p.rcon_port === undefined || Number.isNaN(p.rcon_port)) p.rcon_port = null
-  if (p.easydonate_server_id === '' || p.easydonate_server_id === undefined || Number.isNaN(p.easydonate_server_id)) p.easydonate_server_id = null
-  // The shop key is never read back: send it only when typed in, or '' to clear it.
-  if (p.easydonate_shop_key_clear) p.easydonate_shop_key = ''
-  else if (!p.easydonate_shop_key) delete p.easydonate_shop_key
-  delete p.easydonate_shop_key_clear
-  delete p.easydonate_shop_key_set
-  // News channels: per-category — drop empty rows and normalize thread_id.
-  const nc = {}
-  for (const cat of ['update', 'media']) {
-    const c = (p.news_channels && p.news_channels[cat]) || {}
-    nc[cat] = {
-      telegram: (c.telegram || [])
-        .filter((t) => t && String(t.chat_id || '').trim() !== '')
-        .map((t) => ({ chat_id: String(t.chat_id).trim(), thread_id: (t.thread_id === '' || t.thread_id === null || t.thread_id === undefined || Number.isNaN(t.thread_id)) ? null : Number(t.thread_id) })),
-      discord: (c.discord || []).map((w) => String(w || '').trim()).filter((w) => w !== ''),
-    }
-  }
-  p.news_channels = nc
-  return p
-}
+})
 
-// Prefill blank modpack/monitoring fields from the slug+version convention.
-// Only fills empty fields so it never clobbers something already typed.
-const autofilling = ref(false)
-const runtimeNote = ref('')
-async function autofillPaths() {
-  if (!form.slug) { toastError('Сначала укажите slug'); return }
-  autofilling.value = true
+function replace(updated) {
+  const i = servers.value.findIndex((s) => s.id === updated.id)
+  if (i >= 0) servers.value.splice(i, 1, updated)
+}
+async function patch(server, body, done) {
+  busy.value = server.id
   try {
-    const s = await suggestServerPaths(token(), {
-      slug: form.slug, neoforge_version: form.neoforge_version,
-      mc_version: form.mc_version, loader: form.loader, java_version: form.java_version,
-    })
-    // These two are meta flags about runtime, not form fields.
-    const { runtime_source, runtime_needs_build, ...fields } = s
-    let filled = 0
-    for (const [k, v] of Object.entries(fields)) {
-      if (v !== '' && v != null && (form[k] === '' || form[k] == null)) { form[k] = v; filled++ }
-    }
-    if (runtime_needs_build) {
-      runtimeNote.value = `⚠️ Новое ядро: своего рантайма ещё нет. При сохранении создастся скрипт «${fields.manifest_build_script}». Наполни папку runtime-seed реальными Java+клиент и собери манифест.`
-    } else if (runtime_source) {
-      runtimeNote.value = `✓ Рантайм унаследован от сервера «${runtime_source}» (то же ядро) — отдельно собирать не нужно.`
-    } else {
-      runtimeNote.value = ''
-    }
-    toastSuccess(filled ? `Заполнено полей: ${filled}. Папки создадутся при сохранении.` : 'Все поля уже заполнены')
+    replace(await updateServer(token(), server.id, body))
+    toastSuccess(done)
   } catch (e) {
-    toastError(e?.message || 'Не удалось получить пути')
+    toastError(e?.message || 'Не удалось сохранить')
   } finally {
-    autofilling.value = false
+    busy.value = null
   }
 }
-
-async function save() {
-  saving.value = true
-  try {
-    if (editing.value === 'new') {
-      const created = await createServer(token(), buildPayload())
-      toastSuccess(`Сервер «${created.name}» создан`)
-    } else {
-      const p = buildPayload()
-      delete p.slug
-      delete p.game_auth_secret
-      if (!platform.value) for (const k of PLATFORM_FIELDS) delete p[k]
-      const updated = await updateServer(token(), editing.value.id, p)
-      toastSuccess(`Сервер «${updated.name}» сохранён`)
-    }
-    editing.value = null
-    await load()
-  } catch (e) {
-    toastError(e.message || 'Ошибка сохранения')
-  } finally {
-    saving.value = false
-  }
+function setVisibility(server, mode) {
+  const text = { all: `«${server.name}» виден всем игрокам`, staff: `«${server.name}» виден только админам`, hidden: `«${server.name}» скрыт ото всех` }[mode]
+  patch(server, visibilityPatch(mode), text)
 }
-
-// Быстрый переключатель прямо в списке: сервер видно всем ↔ только админам
-// и модераторам с правом `servers.hidden.view`.
-const togglingId = ref(null)
-async function toggleStaffOnly(server) {
-  const next = !server.staff_only
-  togglingId.value = server.id
-  try {
-    const updated = await updateServer(token(), server.id, { staff_only: next })
-    server.staff_only = updated.staff_only
-    if (editing.value && editing.value.id === server.id) form.staff_only = updated.staff_only
-    toastSuccess(next
-      ? `«${server.name}» теперь виден только админам и тем, у кого есть право`
-      : `«${server.name}» снова виден всем игрокам`)
-  } catch (e) {
-    toastError(e.message || 'Не удалось изменить видимость')
-  } finally {
-    togglingId.value = null
-  }
+function setMaintenance(server, on) {
+  patch(server, { maintenance: on }, on ? `«${server.name}»: техработы включены` : `«${server.name}»: техработы выключены`)
 }
-
 async function remove(server) {
-  const ok = await confirmDialog({
-    title: 'Удалить сервер',
-    message: `Удалить сервер «${server.name}»? Все игровые данные этого сервера удалятся каскадно и безвозвратно.`,
-    confirmLabel: 'Удалить',
-    danger: true,
-  })
+  const ok = await confirmDialog({ title: 'Удалить сервер', message: `Удалить «${server.name}»? Все игровые данные этого сервера удалятся каскадно и безвозвратно.`, confirmLabel: 'Удалить навсегда', danger: true })
   if (!ok) return
   try {
     await deleteServer(token(), server.id)
+    servers.value = servers.value.filter((s) => s.id !== server.id)
     toastSuccess('Сервер удалён')
-    await load()
-  } catch (e) {
-    toastError(e.message || 'Ошибка удаления')
-  }
+  } catch (e) { toastError(e?.message || 'Не удалось удалить') }
 }
-
-async function regen(server, mode) {
-  const ok = await confirmDialog(mode === 'smooth'
-    ? {
-        title: 'Сменить секрет плавно',
-        message: 'Старый секрет будет действовать ещё сутки. VoidRpPerms 0.6.2+ сам впишет новый в конфиги плагинов VoidRP; остальные подхватят его при перезапуске сервера. Админы сервера получат сообщение в Telegram.',
-        confirmLabel: 'Сменить плавно',
-      }
-    : {
-        title: 'Сменить секрет сразу',
-        message: 'Старый секрет перестанет работать немедленно — плагины и моды сервера отключатся от VoidRP, пока в их конфиги не впишут новый. Так делают, если секрет утёк.',
-        confirmLabel: 'Сменить сразу',
-        danger: true,
-      })
-  if (!ok) return
-  try {
-    const updated = await regenerateSecret(token(), server.id, mode)
-    if (editing.value && editing.value.id === server.id) editing.value = updated
-    await load()
-    toastSuccess('Новый секрет сгенерирован')
-  } catch (e) {
-    toastError(e.message || 'Ошибка')
-  }
+async function copy(text) {
+  try { await navigator.clipboard.writeText(text); toastSuccess('Адрес скопирован') } catch { toastError('Не удалось скопировать') }
 }
-
-async function onImage(kind, event) {
-  const file = event.target.files?.[0]
-  if (!file || !editing.value || editing.value === 'new') return
-  try {
-    const updated = await uploadServerImage(token(), editing.value.id, kind, file)
-    form[kind === 'icon' ? 'icon_url' : 'banner_url'] = kind === 'icon' ? updated.icon_url : updated.banner_url
-    toastSuccess('Изображение загружено')
-    await load()
-  } catch (e) {
-    toastError(e.message || 'Ошибка загрузки')
-  } finally {
-    event.target.value = ''
-  }
+function onSaved(updated) { replace(updated) }
+async function onDeleted() { await load(); close() }
+async function onCreated(server) {
+  servers.value.push(server)
+  loadStatus()
+  router.replace({ query: { edit: server.slug, tab: 'look' } })
 }
-
-function copySecret(secret) {
-  navigator.clipboard?.writeText(secret).then(() => toastSuccess('Секрет скопирован'))
-}
-
-onMounted(load)
 </script>
 
 <template>
-  <div class="adm-page" style="max-width: 960px">
-    <div class="adm-page__head">
-      <div>
-        <h1 class="adm-title">Серверы</h1>
-        <p class="adm-sub">Витрина, подключение, модпак, статус, секрет — для каждого сервера платформы</p>
-      </div>
-      <button v-if="!editing && platform" class="adm-btn adm-btn--acc" @click="startCreate">+ Добавить сервер</button>
-    </div>
+  <div class="adm-page sv-page">
+    <ServerWizard v-if="creating" :servers="servers" @close="close" @created="onCreated" />
 
-    <!-- LIST -->
-    <template v-if="!editing">
-      <div v-if="loading" class="adm-skel" style="height: 120px" />
-      <div v-else-if="!servers.length" class="adm-empty"><div class="adm-empty__title">Пока нет серверов</div><div class="adm-empty__sub">Добавь первый сервер — он появится на сайте и в лаунчере</div></div>
-      <div v-else class="srv-list">
-        <div v-for="s in servers" :key="s.id" class="srv-card">
-          <img v-if="s.icon_url" :src="s.icon_url" class="srv-card__icon" alt="" />
-          <div v-else class="srv-card__icon srv-card__icon--ph">{{ s.name.charAt(0) }}</div>
-          <div class="srv-card__main">
-            <div class="srv-card__title">
-              {{ s.name }}
-              <span v-if="s.is_default" class="adm-badge adm-badge--acc">по умолчанию</span>
-              <span v-if="!s.is_visible" class="adm-badge">скрыт</span>
-              <span v-if="s.staff_only" class="adm-badge adm-badge--warn">только админы</span>
-              <span v-if="s.maintenance" class="adm-badge adm-badge--warn">тех.работы</span>
-            </div>
-            <div class="srv-card__meta">{{ s.slug }} · {{ s.host }}:{{ s.port }} · MC {{ s.mc_version }}/{{ s.loader }}</div>
-          </div>
-          <div class="srv-card__actions">
-            <button
-              class="adm-btn adm-btn--sm"
-              :class="{ 'adm-btn--acc': s.staff_only }"
-              :disabled="togglingId === s.id"
-              :title="s.staff_only
-                ? 'Сейчас сервер видят только админы и модераторы с правом «Скрытые серверы»'
-                : 'Скрыть сервер от игроков на сайте и в лаунчере'"
-              @click="toggleStaffOnly(s)"
-            >
-              {{ togglingId === s.id ? '…' : (s.staff_only ? '🔒 Только админы' : '🔓 Виден всем') }}
-            </button>
-            <button class="adm-btn adm-btn--sm" @click="startEdit(s)">Изменить</button>
-            <button v-if="platform" class="adm-btn adm-btn--danger adm-btn--sm" @click="remove(s)">Удалить</button>
-          </div>
-        </div>
+    <template v-else-if="route.query.edit">
+      <div v-if="loading" class="adm-skel" style="height: 300px" />
+      <ServerEditor v-else-if="editing" ref="editor" :key="editing.id" :server="editing" :status="status[editing.id]" :platform="platform" :tab="tab"
+                    @close="close" @tab="setTab" @saved="onSaved" @deleted="onDeleted" />
+      <div v-else class="adm-empty">
+        <div class="adm-empty__title">Сервер «{{ route.query.edit }}» не найден</div>
+        <div class="adm-empty__sub">Возможно, его удалили или у вас нет прав на него.</div>
+        <button type="button" class="adm-btn adm-btn--sm" @click="close">← Все серверы</button>
       </div>
     </template>
 
-    <!-- FORM -->
     <template v-else>
-      <div class="form">
-        <div class="form__bar">
-          <button class="adm-btn adm-btn--sm" @click="cancel">← Назад</button>
-          <div class="form__bar-title">{{ editing === 'new' ? 'Новый сервер' : `Редактирование: ${form.name}` }}</div>
-          <button class="adm-btn adm-btn--acc adm-btn--sm" :disabled="saving" @click="save">
-            {{ saving ? 'Сохраняю…' : 'Сохранить' }}
-          </button>
+      <div class="adm-page__head">
+        <div>
+          <h1 class="adm-title">Серверы</h1>
+          <p class="adm-sub">
+            <template v-if="servers.length">{{ servers.length }} {{ servers.length === 1 ? 'сервер' : servers.length < 5 ? 'сервера' : 'серверов' }} · в сети {{ totals.online }} · игроков {{ totals.players }}<template v-if="totals.maint"> · на техработах {{ totals.maint }}</template></template>
+            <template v-else>Витрина, подключение, сборка и секрет каждого сервера</template>
+          </p>
         </div>
+        <div class="adm-head-actions">
+          <input v-if="servers.length > 4" v-model="query" type="search" class="adm-input sv-search" placeholder="Найти сервер" aria-label="Найти сервер" />
+          <button v-if="platform" type="button" class="adm-btn adm-btn--acc" @click="router.push({ query: { new: '1' } })">+ Новый сервер</button>
+        </div>
+      </div>
 
-        <!-- Витрина -->
-        <div class="sec">Витрина</div>
-        <div class="grid">
-          <label class="fld"><span>Slug (URL-идентификатор)</span>
-            <input v-model="form.slug" :disabled="editing !== 'new'" placeholder="voidrp" /></label>
-          <label class="fld"><span>Название</span><input v-model="form.name" placeholder="VoidRP" /></label>
-          <label class="fld fld--wide"><span>Описание</span>
-            <textarea v-model="form.description" rows="2" placeholder="Хардкорный RP-сервер…" /></label>
-          <label class="fld"><span>Порядок сортировки</span><input v-model.number="form.sort_order" type="number" /></label>
-          <div class="fld fld--row">
-            <label class="chk"><input v-model="form.is_visible" type="checkbox" /> Виден на сайте/лаунчере</label>
-            <label class="chk"><input v-model="form.is_default" type="checkbox" :disabled="form.is_external || !platform" /> Сервер по умолчанию</label>
-            <label class="chk"><input v-model="form.staff_only" type="checkbox" /> Только для админов</label>
-            <label class="chk"><input v-model="form.is_external" type="checkbox" :disabled="!platform" /> Внешний сервер (чужой хост)</label>
-            <label class="chk" title="Лаунчер подключает игру к адресу «<пропуск>.<хост>», и плагин входа узнаёт игрока по адресу. Нужна wildcard-запись DNS для домена сервера (*.домен); без неё сервер станет недоступен. Вход по нику и IP работает и без этого."><input v-model="form.ticket_hostname" type="checkbox" /> Пропуск в адресе подключения (нужна wildcard-запись DNS)</label>
-            <label class="fld fld--inline"><span>Ядро сервера</span>
-              <select v-model="form.server_core" class="adm-select" :disabled="!platform">
-                <option value="">не указано</option>
-                <option value="paper">Paper</option>
-                <option value="folia">Folia</option>
-                <option value="neoforge">NeoForge</option>
-                <option value="hybrid">Гибрид NeoForge + Paper (Youer, Mohist)</option>
-              </select>
-            </label>
-            <p v-if="form.is_external" class="adm-hint">Внешний сервер: игровой хост на чужой машине, но клиентский пак и лаунчер — наши (host/port укажи на их IP). RCON используется как обычно. Game-sync-плагины (нации/экономика/WebGUI) на их стороне НЕ стоят, поэтому данные с их сервера к нам не идут. systemd/data/log не заполняются — это не наша машина.</p>
-          </div>
-        </div>
-        <p class="hint">
-          «Только для админов» — сервер пропадает из списка на сайте и в лаунчере у всех,
-          кроме админов и модераторов с правом «Скрытые серверы: видеть на сайте и в лаунчере»
-          (выдаётся в разделе «Модерация»). Это не то же самое, что снять «Виден на сайте/лаунчере» —
-          та галочка прячет сервер вообще ото всех.
-        </p>
-
-        <div v-if="editing !== 'new'" class="grid">
-          <div class="fld"><span>Иконка</span>
-            <div class="img-row">
-              <img v-if="form.icon_url" :src="form.icon_url" class="img-prev" alt="" />
-              <button class="adm-btn adm-btn--sm" @click="iconInput.click()">Загрузить</button>
-              <input ref="iconInput" type="file" accept="image/*" hidden @change="(e) => onImage('icon', e)" />
-            </div>
-          </div>
-          <div class="fld"><span>Баннер</span>
-            <div class="img-row">
-              <img v-if="form.banner_url" :src="form.banner_url" class="img-prev img-prev--wide" alt="" />
-              <button class="adm-btn adm-btn--sm" @click="bannerInput.click()">Загрузить</button>
-              <input ref="bannerInput" type="file" accept="image/*" hidden @change="(e) => onImage('banner', e)" />
-            </div>
-          </div>
-        </div>
-        <p v-else class="hint">Иконку и баннер можно загрузить после создания сервера.</p>
-
-        <!-- Подключение -->
-        <div class="sec">Подключение</div>
-        <div class="grid">
-          <label class="fld"><span>Host</span><input v-model="form.host" placeholder="void-rp.ru" /></label>
-          <label class="fld"><span>Port</span><input v-model.number="form.port" type="number" /></label>
-          <label class="fld"><span>Версия MC</span><input v-model="form.mc_version" placeholder="1.21.1" /></label>
-          <label class="fld"><span>Загрузчик</span><input v-model="form.loader" placeholder="neoforge" /></label>
-          <label class="fld"><span>Java</span><input v-model.number="form.java_version" type="number" /></label>
-          <label class="fld"><span>NeoForge версия</span><input v-model="form.neoforge_version" placeholder="21.1.x" /></label>
-        </div>
-
-        <!-- Модпак -->
-        <div class="sec">Модпак</div>
-        <div v-if="editing === 'new'" class="autofill-row">
-          <button type="button" class="adm-btn adm-btn--sm adm-btn--acc" :disabled="!form.slug || autofilling" @click="autofillPaths">
-            {{ autofilling ? 'Заполняю…' : '✨ Автозаполнить пути и мониторинг из slug' }}
-          </button>
-          <span class="autofill-hint">Заполнит пустые поля (пак/манифест, папки, юнит, RCON-порт) по конвенции <code>v&lt;ядро&gt;-&lt;slug&gt;</code>. Папки создадутся на диске при сохранении.</span>
-        </div>
-        <div v-if="editing === 'new' && runtimeNote" class="runtime-note">{{ runtimeNote }}</div>
-        <div class="grid">
-          <label class="fld"><span>Pack root (на сервере)</span><input v-model="form.pack_root" :disabled="!platform" placeholder="/home/…/pack/voidrp" /></label>
-          <label class="fld"><span>Pack base URL</span><input v-model="form.pack_base_url" placeholder="https://void-rp.ru/launcher/pack/voidrp" /></label>
-          <label class="fld"><span>Manifest URL</span><input v-model="form.manifest_url" placeholder="https://…/manifests/voidrp.json" /></label>
-          <label class="fld"><span>Runtime seed URL</span><input v-model="form.runtime_seed_url" placeholder="https://…/launcher/runtime/runtime-seed.json" /></label>
-          <label class="fld"><span>Runtime manifest URL</span><input v-model="form.runtime_manifest_url" placeholder="https://…/launcher/runtime/runtime-windows.json (или base URL)" /></label>
-          <label class="fld"><span>Скрипт пересборки манифеста</span><input v-model="form.manifest_build_script" :disabled="!platform" placeholder="пусто = стандартный генератор; напр. scripts/generate_vexvol_manifests.sh" /></label>
-          <label class="fld"><span>Версия пака</span><input v-model="form.pack_version" placeholder="1.0.0" /></label>
-          <label class="fld"><span>Мин. версия лаунчера</span><input v-model="form.min_launcher_version" placeholder="0.1.0" /></label>
-        </div>
-
-        <!-- Статус -->
-        <div class="sec">Статус и доступ</div>
-        <div class="grid">
-          <label class="fld"><span>Status host (для пинга)</span><input v-model="form.status_host" placeholder="= host" /></label>
-          <label class="fld"><span>Status port</span><input v-model.number="form.status_port" type="number" placeholder="= port (оставь пустым)" /></label>
-          <p class="adm-hint">Статус (онлайн/игроки) берётся ПИНГОМ. У Java-сервера пинг идёт на игровой порт — оставь Status host/port пустыми (= host/port). Отдельный порт указывай только если у сервера реально есть отдельный query/статус-порт.</p>
-          <label class="fld"><span>Макс. игроков</span><input v-model.number="form.max_players" type="number" /></label>
-          <label class="fld"><span>Режим доступа</span>
-            <select v-model="form.whitelist_mode">
-              <option value="public">Открытый</option>
-              <option value="whitelist">Вайтлист</option>
-              <option value="invite">По приглашению</option>
-            </select>
-          </label>
-          <div class="fld fld--row">
-            <label class="chk"><input v-model="form.maintenance" type="checkbox" /> Тех. работы</label>
-          </div>
-        </div>
-
-        <!-- Фичи / вкладки -->
-        <div class="sec">Функции сервера (вкладки на сайте и в лаунчере)</div>
-        <div class="grid">
-          <label class="fld fld--wide"><span>Ссылка на веб-карту (Bluemap/Dynmap)</span>
-            <input v-model="form.map_url" placeholder="https://map.void-rp.ru" /></label>
-          <label class="fld"><span>EasyDonate: ID сервера в магазине</span>
-            <input v-model.number="form.easydonate_server_id" type="number" placeholder="напр. 12345" /></label>
-          <label class="fld"><span>EasyDonate: ключ магазина (Shop-Key)</span>
-            <input v-model="form.easydonate_shop_key" type="password" autocomplete="new-password"
-                   :placeholder="editing && editing.easydonate_shop_key_set ? 'задан — впишите новый, чтобы заменить' : 'не задан — используется общий магазин'" />
-            <span v-if="editing && editing.easydonate_shop_key_set" class="fld-note">
-              <label><input v-model="form.easydonate_shop_key_clear" type="checkbox" /> убрать свой ключ (вернуться к общему магазину)</label>
-            </span>
-          </label>
-          <div
-            v-for="c in [{ key: 'update', label: 'Обновления' }, { key: 'media', label: 'Новости' }]"
-            :key="c.key"
-            class="fld fld--wide chan-cat"
-          >
-            <div class="chan-cat__head">Каналы новостей · {{ c.label }}</div>
-            <span>Telegram — chat_id (+ topic id, если топики по серверам)</span>
-            <div v-for="(t, i) in ensureCat(c.key).telegram" :key="'tg' + c.key + i" class="chan-row">
-              <input v-model="t.chat_id" class="chan-row__main" placeholder="@voidrp_news или -1003264066790" />
-              <input v-model.number="t.thread_id" type="number" class="chan-row__thread" placeholder="topic id (пусто = общий)" />
-              <button type="button" class="chan-row__del" title="Удалить" @click="removeTg(c.key, i)">✕</button>
-            </div>
-            <button type="button" class="chan-add" @click="addTg(c.key)">+ Добавить Telegram</button>
-
-            <span style="margin-top:.7rem">Discord webhook URL</span>
-            <div v-for="(w, i) in ensureCat(c.key).discord" :key="'dc' + c.key + i" class="chan-row">
-              <input v-model="form.news_channels[c.key].discord[i]" class="chan-row__main" placeholder="https://discord.com/api/webhooks/…" />
-              <button type="button" class="chan-row__del" title="Удалить" @click="removeDc(c.key, i)">✕</button>
-            </div>
-            <button type="button" class="chan-add" @click="addDc(c.key)">+ Добавить Discord</button>
-          </div>
-          <label class="fld"><span>Акцентный цвет темы (тонирует сайт/лаунчер)</span>
-            <span class="accent-row">
-              <input
-                type="color"
-                class="accent-pick"
-                :value="form.accent_color || '#7c3aed'"
-                @input="form.accent_color = $event.target.value"
-              />
-              <input v-model="form.accent_color" placeholder="#7c3aed (пусто = фиолетовый)" />
-              <button v-if="form.accent_color" type="button" class="adm-btn adm-btn--sm" @click="form.accent_color = ''">Сброс</button>
-            </span></label>
-        </div>
-        <div class="features">
-          <label v-for="(label, key) in FEATURE_LABELS" :key="key" class="feature-chk">
-            <input type="checkbox" v-model="form.features[key]" />
-            <span>{{ label }}</span>
-          </label>
-        </div>
-        <p class="hint">Выключенные функции скрывают соответствующие вкладки/разделы на сайте и в лаунчере для этого сервера.</p>
-
-        <!-- Мониторинг и RCON -->
-        <div class="sec">Мониторинг и RCON (админ-панель сервера)</div>
-        <p v-if="!platform" class="adm-hint">Эти поля и пути пака меняет только тот, у кого право «Серверы» на всю платформу.</p>
-        <div class="grid">
-          <label class="fld"><span>systemd-юнит</span>
-            <input v-model="form.systemd_unit" :disabled="!platform" placeholder="youer.service" /></label>
-          <label class="fld"><span>RCON host</span>
-            <input v-model="form.rcon_host" :disabled="!platform" placeholder="127.0.0.1" /></label>
-          <label class="fld"><span>RCON port</span>
-            <input v-model.number="form.rcon_port" :disabled="!platform" type="number" placeholder="25575" /></label>
-          <label class="fld"><span>RCON пароль</span>
-            <input v-model="form.rcon_password" :disabled="!platform" type="password" placeholder="из server.properties" autocomplete="new-password" /></label>
-          <label class="fld"><span>Директория данных (необязательно)</span>
-            <input v-model="form.data_dir" :disabled="!platform" placeholder="= WorkingDirectory юнита" /></label>
-          <label class="fld"><span>Путь к логу (необязательно)</span>
-            <input v-model="form.log_path" :disabled="!platform" placeholder="= <data_dir>/logs/latest.log или http(s):// URL" /></label>
-          <p class="adm-hint">Локальный путь к файлу ИЛИ http(s)-ссылка. Для внешнего сервера укажи URL, по которому партнёр отдаёт latest.log — вьюер лога подтянет его по ссылке.</p>
-        </div>
-        <p class="hint">
-          Юнит нужен для метрик CPU/RAM/диска и статуса службы (MainPID и WorkingDirectory берутся из systemd).
-          RCON — для консоли, TPS, списка онлайна и модерации. Оба необязательны: раздел «Мониторинг» покажет то, что настроено.
-        </p>
-
-        <!-- Секрет -->
-        <template v-if="editing !== 'new'">
-          <div class="sec">Секрет авторизации (X-Game-Auth-Secret)</div>
-          <div class="secret-row">
-            <code class="secret">{{ editing.game_auth_secret }}</code>
-            <button class="adm-btn adm-btn--sm" @click="copySecret(editing.game_auth_secret)">Копировать</button>
-            <button class="adm-btn adm-btn--sm" @click="regen(editing, 'smooth')">Сменить плавно</button>
-            <button class="adm-btn adm-btn--danger adm-btn--sm" @click="regen(editing, 'now')">Сменить сразу (утёк)</button>
-          </div>
-          <p class="hint">Этот секрет плагины/моды сервера шлют в заголовке для атрибуции данных.</p>
-        </template>
+      <div v-if="loading" class="sv-grid">
+        <div v-for="n in 3" :key="n" class="adm-skel" style="height: 330px" />
+      </div>
+      <div v-else-if="!servers.length" class="adm-empty">
+        <div class="adm-empty__title">Пока нет серверов</div>
+        <div class="adm-empty__sub">Добавьте первый — он появится на сайте и в лаунчере</div>
+      </div>
+      <div v-else-if="!shown.length" class="adm-empty"><div class="adm-empty__title">Ничего не нашлось</div></div>
+      <div v-else class="sv-grid">
+        <ServerCard v-for="s in shown" :key="s.id" :server="s" :status="status[s.id]" :platform="platform" :busy="busy === s.id"
+                    @edit="open(s.slug)" @visibility="setVisibility(s, $event)" @maintenance="setMaintenance(s, $event)" @delete="remove(s)" @copy="copy" />
       </div>
     </template>
   </div>
 </template>
 
 <style scoped>
-.fld-note { font-size: 0.72rem; color: var(--adm-faint); margin-top: 0.25rem; }
-/* Список серверов */
-.srv-list { display: flex; flex-direction: column; gap: 0.65rem; }
-.srv-card {
-  display: flex; align-items: center; gap: 0.9rem;
-  padding: 0.85rem 1rem; border-radius: var(--adm-r);
-  background: var(--adm-card); border: 1px solid var(--adm-line);
-  transition: border-color 0.16s;
-}
-.srv-card:hover { border-color: var(--adm-acc-line); }
-.srv-card__icon { width: 2.75rem; height: 2.75rem; border-radius: 10px; object-fit: cover; flex-shrink: 0; }
-.srv-card__icon--ph { display: flex; align-items: center; justify-content: center; background: var(--adm-acc-soft); color: var(--adm-acc-text); font-weight: 900; font-size: 1.2rem; }
-.srv-card__main { flex: 1; min-width: 0; }
-.srv-card__title { font-size: 0.95rem; font-weight: 800; color: var(--adm-text); display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap; }
-.srv-card__meta { font-size: 0.74rem; color: var(--adm-dim); margin-top: 0.15rem; }
-.srv-card__actions { display: flex; gap: 0.4rem; flex-shrink: 0; }
-
-/* Форма */
-.form__bar { display: flex; align-items: center; justify-content: space-between; gap: 1rem; margin-bottom: 1.25rem; padding-bottom: 0.85rem; border-bottom: 1px solid var(--adm-line); }
-.form__bar-title { font-size: 0.95rem; font-weight: 800; color: var(--adm-mut); flex: 1; text-align: center; }
-.sec {
-  font-size: 0.66rem; font-weight: 900; text-transform: uppercase; letter-spacing: 0.11em;
-  color: var(--adm-dim); margin: 1.5rem 0 0.75rem; padding-left: 0.6rem;
-  border-left: 3px solid var(--adm-acc);
-  transition: border-color 0.4s;
-}
-.autofill-row { display: flex; align-items: center; gap: 0.7rem; flex-wrap: wrap; margin-bottom: 0.85rem; }
-.autofill-hint { font-size: 0.72rem; color: var(--adm-dim); max-width: 560px; }
-.autofill-hint code { font-size: 0.7rem; padding: 0.05rem 0.3rem; border-radius: 4px; background: rgba(148,163,184,0.14); }
-.runtime-note { margin: -0.2rem 0 0.85rem; padding: 0.55rem 0.8rem; border-radius: var(--adm-r-sm); font-size: 0.76rem; line-height: 1.4; background: rgba(148,163,184,0.1); border: 1px solid var(--adm-line); }
-.grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 0.85rem; }
-.fld { display: flex; flex-direction: column; gap: 0.3rem; }
-.fld--wide { grid-column: 1 / -1; }
-.fld--row { flex-direction: row; align-items: center; gap: 1.25rem; flex-wrap: wrap; }
-.fld > span { font-size: 0.66rem; font-weight: 800; text-transform: uppercase; letter-spacing: 0.08em; color: var(--adm-dim); }
-.fld input, .fld textarea, .fld select {
-  background: #080c16; border: 1px solid var(--adm-line-strong); border-radius: var(--adm-r-sm);
-  padding: 0.5rem 0.65rem; color: var(--adm-text); font-size: 0.85rem; font-family: inherit;
-  transition: border-color 0.14s, box-shadow 0.14s;
-}
-.fld input:focus, .fld textarea:focus, .fld select:focus {
-  outline: none; border-color: var(--adm-acc-line);
-  box-shadow: 0 0 0 3px rgba(var(--adm-acc-rgb), 0.12);
-}
-.fld input:disabled { opacity: 0.55; }
-/* Repeatable news channel rows */
-.chan-cat {
-  border: 1px solid rgba(var(--adm-acc-rgb), 0.14);
-  border-radius: 12px;
-  padding: 0.85rem 0.9rem;
-  background: rgba(var(--adm-acc-rgb), 0.04);
-}
-.chan-cat__head { font-weight: 700; margin-bottom: 0.55rem; color: var(--adm-text); }
-.chan-row { display: flex; gap: 0.4rem; align-items: center; margin-bottom: 0.4rem; }
-.chan-row__main { flex: 1; min-width: 0; }
-.chan-row__thread { width: 160px; flex-shrink: 0; }
-.chan-row__del {
-  flex-shrink: 0; width: 32px; height: 32px; border-radius: var(--adm-r-sm);
-  border: 1px solid var(--adm-line-strong); background: rgba(239, 68, 68, 0.08);
-  color: #f87171; cursor: pointer; font-size: 0.8rem;
-}
-.chan-row__del:hover { background: rgba(239, 68, 68, 0.18); }
-.chan-add {
-  align-self: flex-start; margin-top: 0.15rem; padding: 0.35rem 0.7rem;
-  border-radius: var(--adm-r-sm); border: 1px dashed var(--adm-acc-line);
-  background: rgba(var(--adm-acc-rgb), 0.08); color: var(--adm-acc-text);
-  font-size: 0.78rem; font-weight: 700; cursor: pointer;
-}
-.chan-add:hover { background: rgba(var(--adm-acc-rgb), 0.16); }
-.accent-row { display: flex; align-items: center; gap: 0.5rem; }
-.accent-row input:not(.accent-pick) { flex: 1; min-width: 0; }
-.accent-pick { width: 2.4rem; height: 2.4rem; flex-shrink: 0; padding: 0.2rem !important; cursor: pointer; border-radius: 8px; }
-.chk { display: inline-flex; align-items: center; gap: 0.4rem; font-size: 0.82rem; color: var(--adm-mut); cursor: pointer; }
-.chk input { accent-color: var(--adm-acc); }
-.img-row { display: flex; align-items: center; gap: 0.6rem; }
-.img-prev { width: 2.75rem; height: 2.75rem; border-radius: 8px; object-fit: cover; }
-.img-prev--wide { width: 5rem; }
-.hint { font-size: 0.74rem; color: var(--adm-dim); margin: 0.5rem 0 0; }
-.features { display: flex; flex-wrap: wrap; gap: 0.5rem; margin-top: 0.85rem; }
-.feature-chk {
-  display: inline-flex; align-items: center; gap: 0.45rem;
-  padding: 0.5rem 0.75rem; border-radius: 10px; cursor: pointer;
-  background: var(--adm-card); border: 1px solid var(--adm-line-strong);
-  font-size: 0.82rem; color: var(--adm-mut);
-  transition: border-color 0.14s, background-color 0.14s, color 0.14s;
-}
-.feature-chk input { accent-color: var(--adm-acc); }
-.feature-chk:has(input:checked) { border-color: var(--adm-acc-line); background: var(--adm-acc-soft); color: var(--adm-text); }
-.secret-row { display: flex; align-items: center; gap: 0.6rem; flex-wrap: wrap; }
-.secret {
-  flex: 1; min-width: 220px; font-family: var(--adm-mono); font-size: 0.78rem;
-  color: #6ee7b7; background: #080c16; border: 1px solid var(--adm-line-strong);
-  border-radius: var(--adm-r-sm); padding: 0.5rem 0.65rem; overflow-x: auto; white-space: nowrap;
-}
+.sv-page { max-width: 1240px; }
+.sv-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 330px), 1fr)); gap: 1rem; margin-top: 1rem; align-items: start; }
+.sv-search { width: 14rem; }
 </style>
