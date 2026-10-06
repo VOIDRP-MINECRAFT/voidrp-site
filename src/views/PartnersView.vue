@@ -155,7 +155,7 @@ const barKind = (u) => (u == null ? 'empty' : u >= 99.5 ? 'good' : u >= 95 ? 'pa
 .pt-link:hover { text-decoration: underline; }
 .pt-empty { color: #8b97b6; padding: 1rem 0; }
 
-.pt-why { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 260px), 1fr)); gap: 0.9rem; }
+.pt-why { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 300px), 1fr)); gap: 0.9rem; }
 .pt-card { padding: 1.1rem 1.15rem; border-radius: 18px; border: 1px solid rgba(148, 163, 184, 0.13); background: linear-gradient(180deg, rgba(19, 25, 43, 0.9), rgba(10, 14, 26, 0.92)); }
 .pt-card__icon { width: 2.4rem; height: 2.4rem; border-radius: 12px; display: grid; place-items: center; font-size: 1.2rem; background: rgba(139, 92, 246, 0.14); border: 1px solid rgba(139, 92, 246, 0.3); color: #c4b5fd; }
 .pt-card h3 { margin: 0.7rem 0 0.3rem; font-size: 1rem; font-weight: 800; color: #f5f7ff; }
