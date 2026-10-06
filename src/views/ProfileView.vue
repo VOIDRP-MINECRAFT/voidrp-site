@@ -623,7 +623,7 @@ a.cab-chip:hover { border-color: rgba(167, 139, 250, 0.45); background: rgba(139
   .cab-todo__item { flex-direction: column; align-items: stretch; }
   .cab-since { margin-left: 0; flex-basis: 100%; }
 }
-.cab-tg-link { display: flex; flex-direction: column; gap: 0.3rem; align-items: flex-start; }
+.cab-tg-link { display: flex; flex-direction: column; gap: 0.3rem; align-items: flex-end; text-align: right; }
 .cab-tg-btn { display: inline-flex; align-items: center; padding: 0.35rem 0.8rem; border-radius: 9px; background: #229ed9; color: #fff; font-weight: 800; font-size: 0.82rem; text-decoration: none; }
 .cab-tg-btn:hover { filter: brightness(1.1); }
 </style>
