@@ -105,8 +105,11 @@ const SOURCE = { site: 'сайт', game: 'в игре', referral: 'по приг
             <b>Больше всего теряем на шаге «{{ worst.label }}»: {{ worst.lost }} чел.</b>
             <span>{{ ADVICE[worst.key] }}</span>
           </div>
-          <p v-if="data.played15?.joined" class="fn-side">
-            Из зашедших на сервер (с {{ fmtDate(data.playtime_since) }}, раньше время в игре не записывалось) <b>{{ pct(data.played15.played15, data.played15.joined) }}%</b> наиграли больше 15 минут — {{ data.played15.played15 }} из {{ data.played15.joined }}.
+          <p v-if="server && !data.playtime_since" class="fn-side">
+            Время в игре на этом сервере ещё не собиралось — оно приходит от VoidRpPerms 0.7.1+ (или VoidRpGameSync). Как только игроки поиграют, здесь появится доля тех, кто наиграл 15+ минут.
+          </p>
+          <p v-else-if="data.played15?.joined" class="fn-side">
+            Из зашедших на сервер (время в игре собирается с {{ fmtDate(data.playtime_since) }}) <b>{{ pct(data.played15.played15, data.played15.joined) }}%</b> наиграли больше 15 минут — {{ data.played15.played15 }} из {{ data.played15.joined }}.
           </p>
         </section>
 
