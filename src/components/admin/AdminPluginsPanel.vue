@@ -3,12 +3,12 @@
 // plugins/update/; upload through a staging preview that tells a new plugin from a new
 // version of one installed; switch off / on / remove. Jar changes on a running server
 // go to the queue (ServerChangesBar) — never under the JVM.
-import { computed, onMounted, ref } from 'vue'
+import { computed, nextTick, onMounted, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { authState, hasPermission } from '../../stores/authStore'
 import { confirmDialog } from '../../composables/useConfirm'
 import { toastError, toastSuccess } from '../../services/toast'
-import { applyPlugins, changePlugin, getPlugins, uploadPlugins } from '../../services/pluginsAdminApi'
+import { applyPlugins, changePlugin, getPluginHistory, getPlugins, rollbackPlugin, uploadPlugins } from '../../services/pluginsAdminApi'
 
 const emit = defineEmits(['changed', 'loaded'])
 const router = useRouter()
@@ -25,6 +25,7 @@ async function load() {
   try {
     data.value = await getPlugins(token())
     emit('loaded', data.value)
+    loadHistory()
   } catch (e) {
     toastError(e.message || 'Не удалось загрузить плагины')
   } finally {
@@ -106,6 +107,51 @@ async function change(p, op) {
   }
 }
 
+// ── Earlier versions (the trash) → put one back ───────────────────────────
+const history = ref([])
+const historyOf = ref(null) // filename of the plugin whose versions are open, or '' for removed ones
+
+async function loadHistory() {
+  try {
+    history.value = (await getPluginHistory(token())).versions || []
+  } catch {
+    history.value = []
+  }
+}
+const versionsOf = (filename) => history.value.filter((v) => v.current === filename)
+const orphans = computed(() => history.value.filter((v) => !v.current))
+const shownVersions = computed(() => (historyOf.value === '' ? orphans.value : versionsOf(historyOf.value)))
+const versionsCard = ref(null)
+async function openVersions(filename) {
+  historyOf.value = filename
+  await nextTick()
+  versionsCard.value?.scrollIntoView({ behavior: 'smooth', block: 'nearest' })
+}
+const fmtDate = (iso) => (iso ? new Date(iso).toLocaleString('ru-RU', { day: '2-digit', month: '2-digit', year: '2-digit', hour: '2-digit', minute: '2-digit' }) : '')
+
+async function rollback(v) {
+  const hot = data.value?.remote && data.value?.plugman?.installed
+  const ok = await confirmDialog({
+    title: `Вернуть ${v.name} ${v.version || v.filename}?`,
+    message: (v.current ? `Текущая версия ${v.current_version || ''} уйдёт в корзину — её тоже можно будет вернуть. ` : '')
+      + (data.value?.remote
+        ? (hot ? 'Применится сразу через PlugMan.' : 'Заработает после перезапуска сервера.')
+        : data.value?.running ? 'Встанет в очередь — примените её кнопкой вверху (PlugMan или перезапуск).' : 'Сервер остановлен — заменится сразу.'),
+    confirmLabel: 'Вернуть',
+  })
+  if (!ok) return
+  try {
+    const res = await rollbackPlugin(token(), v.id)
+    if (res.status === 'failed') toastError(res.result || 'Не получилось')
+    else toastSuccess(res.status === 'pending' ? `Откат ${res.label} в очереди — примените кнопкой вверху` : `Откат ${res.label}: ${res.result || 'готово'}`)
+    historyOf.value = null
+    await load()
+    emit('changed')
+  } catch (e) {
+    toastError(e.message || 'Не получилось')
+  }
+}
+
 function openConfig(p) {
   router.push({ name: 'admin-files', query: { path: p.config_folder } })
 }
@@ -173,7 +219,7 @@ function openConfig(p) {
           Сервер на машине партнёра: jar меняются сразу через VoidRpPerms, а начинают работать после перезапуска сервера.
           Поставьте <b>PlugManX</b> — тогда изменения будут применяться без перезапуска.
         </template>
-        Удалённые плагины лежат в <b>plugins/.voidrp-trash/</b> — их можно вернуть в «Файлах».
+        Старые и удалённые версии лежат в <b>plugins/.voidrp-trash/</b> — вернуть их можно кнопкой «Версии».
       </div>
       <div v-else class="pl-plugman" :class="data.plugman?.installed ? 'pl-plugman--ok' : ''">
         <template v-if="data.plugman?.installed">
@@ -185,9 +231,25 @@ function openConfig(p) {
         </template>
       </div>
 
+      <!-- Earlier versions of one plugin -->
+      <div v-if="historyOf !== null && shownVersions.length" ref="versionsCard" class="adm-card adm-card--pad pl-stage">
+        <div class="pl-stage__title">
+          {{ historyOf === '' ? 'Удалённые плагины в корзине' : `Прошлые версии: ${shownVersions[0].name}` }}
+        </div>
+        <div v-for="v in shownVersions" :key="v.id" class="pl-ver">
+          <div class="pl-stage__info">
+            <div><b>{{ v.name }} {{ v.version || '' }}</b> <span class="pl-meta">{{ v.filename }} · {{ size(v.size) }}</span></div>
+            <div class="pl-note">В корзине с {{ fmtDate(v.at) }}<template v-if="v.current"> · сейчас стоит {{ v.current_version || v.current }}</template></div>
+          </div>
+          <button v-if="canManage" class="adm-btn adm-btn--sm adm-btn--acc" @click="rollback(v)">Вернуть</button>
+        </div>
+        <div class="pl-stage__acts"><button class="adm-btn" @click="historyOf = null">Закрыть</button></div>
+      </div>
+
       <div class="pl-tools">
         <input v-model="filter" class="adm-input pl-filter" placeholder="Поиск плагина" />
         <span class="pl-meta">{{ data.enabled.length }} включено · {{ data.disabled.length }} выключено</span>
+        <button v-if="orphans.length" class="adm-btn adm-btn--sm" @click="openVersions('')">Удалённые ({{ orphans.length }})</button>
       </div>
 
       <div class="adm-table-wrap">
@@ -208,6 +270,7 @@ function openConfig(p) {
                 <td class="pl-meta">{{ p.filename }} · {{ size(p.size) }}</td>
                 <td class="pl-acts">
                   <button v-if="p.config_folder && canFiles" class="adm-btn adm-btn--sm" @click="openConfig(p)">Настройки</button>
+                  <button v-if="versionsOf(p.filename).length" class="adm-btn adm-btn--sm" title="Прошлые версии из корзины" @click="openVersions(p.filename)">Версии ({{ versionsOf(p.filename).length }})</button>
                   <button v-if="canManage" class="adm-btn adm-btn--sm" @click="change(p, 'disable')">Выключить</button>
                   <button v-if="canManage" class="adm-btn adm-btn--sm adm-btn--danger" @click="change(p, 'remove')">Удалить</button>
                 </td>
@@ -218,6 +281,7 @@ function openConfig(p) {
                 <td />
                 <td class="pl-meta">disabled/{{ p.filename }}</td>
                 <td class="pl-acts">
+                  <button v-if="versionsOf(p.filename).length" class="adm-btn adm-btn--sm" @click="openVersions(p.filename)">Версии ({{ versionsOf(p.filename).length }})</button>
                   <button v-if="canManage" class="adm-btn adm-btn--sm adm-btn--ok" @click="change(p, 'enable')">Включить</button>
                   <button v-if="canManage" class="adm-btn adm-btn--sm adm-btn--danger" @click="change(p, 'remove')">Удалить</button>
                 </td>
@@ -263,4 +327,6 @@ function openConfig(p) {
 .pl-acts { display: flex; gap: 0.35rem; justify-content: flex-end; flex-wrap: nowrap; white-space: nowrap; }
 .pl-off td { opacity: 0.7; }
 .pl-updates { padding: 0 0.2rem; }
+.pl-ver { display: flex; justify-content: space-between; align-items: center; gap: 0.8rem; padding: 0.4rem; border-radius: 8px; }
+.pl-ver:hover { background: rgba(148, 163, 184, 0.05); }
 </style>

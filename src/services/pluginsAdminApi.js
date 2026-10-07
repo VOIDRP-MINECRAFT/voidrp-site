@@ -13,6 +13,10 @@ export const applyPlugins = (token, tokenId, filenames) =>
 export const changePlugin = (token, filename, op) =>
   apiRequest(`/admin/plugins/${encodeURIComponent(filename)}/change`, ah(token, { method: 'POST', body: JSON.stringify({ op }) }))
 
+export const getPluginHistory = (token) => apiRequest('/admin/plugins/history', ah(token))
+export const rollbackPlugin = (token, id) =>
+  apiRequest('/admin/plugins/rollback', ah(token, { method: 'POST', body: JSON.stringify({ id }) }))
+
 export const getServerChanges = (token) => apiRequest('/admin/server-changes', ah(token))
 export const cancelServerChange = (token, id) => apiRequest(`/admin/server-changes/${id}`, ah(token, { method: 'DELETE' }))
 export const applyServerChangesNow = (token, warnSeconds = 30) =>

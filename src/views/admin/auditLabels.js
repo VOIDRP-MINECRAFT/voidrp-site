@@ -40,7 +40,7 @@ const ACTIONS = {
   download: 'скачал файл', edit: 'изменил файл', delete_dir: 'удалил папку', config_download: 'скачал конфиг с секретом',
   install_token: 'ссылка установки', settings: 'изменил настройки', release_update: 'изменил релиз', member_add: 'добавил в группу',
   member_remove: 'убрал из группы', node_add: 'добавил право', node_remove: 'убрал право', group_create: 'создал группу', group_delete: 'удалил группу',
-  force_visit: 'вызвал скупщика', end_visit: 'закончил визит', upload: 'загрузил', apply_plugman: 'перезагрузил плагин', restart_apply: 'применил при перезапуске',
+  force_visit: 'вызвал скупщика', end_visit: 'закончил визит', upload: 'загрузил', apply_plugman: 'перезагрузил плагин', rollback: 'вернул прошлую версию', restart_apply: 'применил при перезапуске',
   grant: 'выдал', issue_warn: 'выдал предупреждение', revoke_warn: 'снял предупреждение', issue_mute: 'выдал мут', revoke_mute: 'снял мут',
   issue_ban: 'выдал бан', revoke_ban: 'снял бан', clear_violations: 'очистил нарушения',
 }
