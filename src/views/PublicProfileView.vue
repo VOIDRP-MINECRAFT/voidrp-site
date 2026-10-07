@@ -298,7 +298,7 @@ onBeforeUnmount(() => document.documentElement.style.removeProperty('--route-bg'
             </section>
 
             <section class="pp-card">
-              <h2 class="pp-h">{{ t('publicProfile.statsTitle') }}</h2>
+              <h2 class="pp-h">{{ gameStats?.server?.name ? t('publicProfile.statsOn', { server: gameStats.server.name }) : t('publicProfile.statsTitle') }}</h2>
               <template v-if="hasGameData">
                 <dl class="pp-stats">
                   <div v-for="s in statTiles" :key="s.key" class="pp-stat" :class="`pp-stat--${s.key}`">

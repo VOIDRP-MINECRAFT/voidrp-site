@@ -24,7 +24,7 @@ export async function getPublicProfileBySlug(slug, accessToken = null) {
   })
 }
 
-// Public game stats + achievements for a profile (default server).
+// Public game stats + achievements for a profile on the server selected on the site.
 export async function getPublicProfileGameStats(slug, accessToken = null) {
   return await apiRequest(`/profiles/${encodeURIComponent(slug)}/game`, {
     method: 'GET',

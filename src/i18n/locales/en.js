@@ -849,6 +849,7 @@ export default {
     copyLink: 'Copy link',
     about: 'About',
     statsTitle: 'Server stats',
+    statsOn: 'Stats: {server}',
     statsEmpty: 'Stats appear after the first session on the server.',
     hm: '{h} h {m} min',
     m: '{m} min',

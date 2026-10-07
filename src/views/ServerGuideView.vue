@@ -11,10 +11,10 @@ const { t, locale } = useI18n()
 const guide = computed(() => getServerGuide(activeServer.value?.slug, locale.value))
 const serverName = computed(() => activeServer.value?.name || '')
 
-// The main (default) server has no bespoke sections guide — it uses the rich
+// The main server (is_primary) has no bespoke sections guide — it uses the rich
 // modpack/expert guide instead. Rendering it here (rather than at a fixed /guide
 // route) makes the guide react to the active-server switcher.
-const showExpert = computed(() => !guide.value && !!activeServer.value?.is_default)
+const showExpert = computed(() => !guide.value && !!activeServer.value?.is_primary)
 
 function num(i) {
   return String(i + 1).padStart(2, '0')
