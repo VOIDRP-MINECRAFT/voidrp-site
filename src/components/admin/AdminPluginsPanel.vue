@@ -73,7 +73,7 @@ async function applyStaging() {
     const queued = res.queued.filter((q) => q.status === 'pending').length
     const remote = res.queued.some((q) => q.status === 'applied')
     toastSuccess(queued ? `В очереди: ${queued} — примените кнопкой в очереди вверху`
-      : remote ? 'Установлено на сервер — заработает после перезапуска' : 'Установлено')
+      : remote ? (data.value?.plugman?.installed ? 'Установлено и загружено через PlugMan' : 'Установлено на сервер — заработает после перезапуска') : 'Установлено')
     staging.value = null
     await load()
     emit('changed')
@@ -159,13 +159,20 @@ function openConfig(p) {
         <div class="pl-stage__acts">
           <button class="adm-btn" @click="staging = null">Отмена</button>
           <button class="adm-btn adm-btn--acc" :disabled="!staging.files.some((f) => f.pick)" @click="applyStaging">
-            {{ data.remote ? 'Установить (заработает после перезапуска)' : data.running ? 'В очередь (применится при перезапуске)' : 'Установить' }}
+            {{ data.remote ? (data.plugman?.installed ? 'Установить и загрузить' : 'Установить (заработает после перезапуска)') : data.running ? 'В очередь (применится при перезапуске)' : 'Установить' }}
           </button>
         </div>
       </div>
 
-      <div v-if="data.remote" class="pl-plugman">
-        Сервер на машине партнёра: jar меняются сразу через VoidRpPerms, а начинают работать после перезапуска сервера.
+      <div v-if="data.remote" class="pl-plugman" :class="data.plugman?.installed ? 'pl-plugman--ok' : ''">
+        <template v-if="data.plugman?.installed">
+          ✓ Сервер на машине партнёра, стоит {{ data.plugman.name }}: загрузка, обновление, выключение и удаление
+          применяются сразу — без перезапуска (сам {{ data.plugman.name }} обновляется перезапуском).
+        </template>
+        <template v-else>
+          Сервер на машине партнёра: jar меняются сразу через VoidRpPerms, а начинают работать после перезапуска сервера.
+          Поставьте <b>PlugManX</b> — тогда изменения будут применяться без перезапуска.
+        </template>
         Удалённые плагины лежат в <b>plugins/.voidrp-trash/</b> — их можно вернуть в «Файлах».
       </div>
       <div v-else class="pl-plugman" :class="data.plugman?.installed ? 'pl-plugman--ok' : ''">
