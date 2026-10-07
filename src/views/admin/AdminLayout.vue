@@ -210,7 +210,8 @@ const navGroups = computed(() => {
       items: [
         { to: '/admin/monitoring', label: 'Мониторинг', icon: icons.monitoring, perm: 'monitoring.view' },
         { to: '/admin/backups', label: 'Бэкапы', icon: icons.backups, perm: 'backups.view', when: onOurMachine },
-        { to: '/admin/files', label: 'Файлы', icon: icons.files, perm: 'files.view', when: onOurMachine },
+        // on a partner's server the files go through VoidRpPerms (modules.files); the page explains how to turn it on
+        { to: '/admin/files', label: 'Файлы', icon: icons.files, perm: 'files.view' },
         { to: '/admin/mods', label: 'Моды и плагины', icon: icons.mods, anyPerm: ['mods.view', 'plugins.view'] },
         { to: '/admin/auth', label: 'Авторизация', icon: icons.servers, perm: 'servers.manage' },
         { to: '/admin/market', label: 'Рынок', icon: icons.market, perm: 'market.view', serverFeature: 'economy' },

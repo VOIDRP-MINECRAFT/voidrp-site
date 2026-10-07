@@ -26,6 +26,8 @@ const serverName = computed(() => activeServer.value?.name || 'сервер')
 // ── Folder ───────────────────────────────────────────────────────────────
 const folder = ref(null)
 const loadingFolder = ref(true)
+// a partner's server without the files module (or not answering): the reason, shown in place of the list
+const folderError = ref('')
 const filter = ref('')
 
 async function openFolder(path = '') {
@@ -34,8 +36,10 @@ async function openFolder(path = '') {
   try {
     folder.value = await listFolder(token(), path)
     filter.value = ''
+    folderError.value = ''
   } catch (e) {
-    toastError(e.message || 'Не удалось открыть папку')
+    if (!folder.value && (e.status === 409 || e.status === 504)) folderError.value = e.message
+    else toastError(e.message || 'Не удалось открыть папку')
   } finally {
     loadingFolder.value = false
   }
@@ -293,7 +297,8 @@ onBeforeRouteLeave(() => leaveFile())
               <button class="fm-crumb" @click="openFolder(c.path)">{{ c.name }}</button>
             </template>
           </nav>
-          <span v-if="folder?.running" class="adm-badge adm-badge--ok" title="Сервер запущен">запущен</span>
+          <span v-if="folder?.remote" class="adm-badge" title="Сервер на машине партнёра: файлы идут через плагин VoidRpPerms, каждое действие — пара секунд">через плагин</span>
+          <span v-else-if="folder?.running" class="adm-badge adm-badge--ok" title="Сервер запущен">запущен</span>
         </div>
         <div class="fm-tools">
           <input v-model="filter" class="adm-input fm-filter" placeholder="Фильтр по имени" />
@@ -314,6 +319,10 @@ onBeforeRouteLeave(() => leaveFile())
         </form>
 
         <div v-if="loadingFolder" class="adm-skel" style="height: 240px" />
+        <div v-else-if="folderError" class="adm-empty">
+          <div class="adm-empty__title">Файлы сервера недоступны</div>
+          <div class="adm-empty__sub">{{ folderError }}</div>
+        </div>
         <div v-else class="fm-rows">
           <button v-if="folder && folder.parent !== null" class="fm-row" @click="openFolder(folder.parent)">
             <span class="fm-ico">↩</span><span class="fm-name-cell">..</span>

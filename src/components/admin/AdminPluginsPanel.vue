@@ -71,7 +71,9 @@ async function applyStaging() {
   try {
     const res = await applyPlugins(token(), staging.value.token, picked)
     const queued = res.queued.filter((q) => q.status === 'pending').length
-    toastSuccess(queued ? `В очереди: ${queued} — примените кнопкой в очереди вверху` : 'Установлено')
+    const remote = res.queued.some((q) => q.status === 'applied')
+    toastSuccess(queued ? `В очереди: ${queued} — примените кнопкой в очереди вверху`
+      : remote ? 'Установлено на сервер — заработает после перезапуска' : 'Установлено')
     staging.value = null
     await load()
     emit('changed')
@@ -157,12 +159,16 @@ function openConfig(p) {
         <div class="pl-stage__acts">
           <button class="adm-btn" @click="staging = null">Отмена</button>
           <button class="adm-btn adm-btn--acc" :disabled="!staging.files.some((f) => f.pick)" @click="applyStaging">
-            {{ data.running ? 'В очередь (применится при перезапуске)' : 'Установить' }}
+            {{ data.remote ? 'Установить (заработает после перезапуска)' : data.running ? 'В очередь (применится при перезапуске)' : 'Установить' }}
           </button>
         </div>
       </div>
 
-      <div class="pl-plugman" :class="data.plugman?.installed ? 'pl-plugman--ok' : ''">
+      <div v-if="data.remote" class="pl-plugman">
+        Сервер на машине партнёра: jar меняются сразу через VoidRpPerms, а начинают работать после перезапуска сервера.
+        Удалённые плагины лежат в <b>plugins/.voidrp-trash/</b> — их можно вернуть в «Файлах».
+      </div>
+      <div v-else class="pl-plugman" :class="data.plugman?.installed ? 'pl-plugman--ok' : ''">
         <template v-if="data.plugman?.installed">
           ✓ Стоит {{ data.plugman.name }}: изменения плагинов можно применять без перезапуска сервера — кнопкой в очереди.
         </template>
