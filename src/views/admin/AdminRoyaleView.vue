@@ -180,6 +180,7 @@ onUnmounted(() => clearInterval(timer))
             </div>
             <div class="ry-actions">
               <button class="adm-btn" @click="exportOne">Выгрузить этот матч (Excel)</button>
+              <a class="adm-btn" :href="`/print/royale/${detail.id}`" target="_blank" rel="noopener">Грамоты (печать / PDF)</a>
               <button v-if="canManage" class="adm-btn adm-btn--danger adm-btn--sm" @click="remove">Удалить</button>
             </div>
           </div>
