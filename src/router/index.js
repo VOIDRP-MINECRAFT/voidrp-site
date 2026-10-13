@@ -12,6 +12,7 @@ NProgress.configure({ showSpinner: false, speed: 350, minimum: 0.08 })
 // и т.д. больше не тянутся при заходе на главную).
 const routes = [
   { path: '/', name: 'home', component: () => import('../views/HomeView.vue'), meta: { title: 'Главная' } },
+  { path: '/royale/live', name: 'royale-live', component: () => import('../views/RoyaleLiveView.vue'), meta: { title: 'Королевская битва', hidePublicShell: true } },
   { path: '/status/:slug', name: 'server-status', component: () => import('../views/StatusView.vue'), meta: { title: 'Статус сервера', hidePublicShell: true } },
   { path: '/partners', name: 'partners', component: () => import('../views/PartnersView.vue'), meta: { title: 'Партнёрам' } },
   { path: '/servers', name: 'servers', component: () => import('../views/ServersView.vue'), meta: { title: 'Серверы' } },
