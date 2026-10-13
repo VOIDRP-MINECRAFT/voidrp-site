@@ -219,6 +219,7 @@ const navGroups = computed(() => {
         { to: '/admin/trader', label: 'Скупщик', icon: icons.market, perm: 'trader.view', serverFeature: 'trader' },
         { to: '/admin/donate', label: 'Донаты', icon: icons.donate, perm: 'donate.view', when: (s) => !s || s.donate_enabled !== false },
         { to: '/admin/salary', label: 'Зарплата', icon: icons.market, perm: 'salary.view', serverFeature: 'salary' },
+        { to: '/admin/royale', label: 'Королевская битва', icon: icons.battlepass, perm: 'royale.view', when: (s) => s?.slug === 'royale' || s?.features?.royale === true },
         { to: '/admin/nations', label: 'Государства', icon: icons.nations, perm: 'nations.view', serverFeature: 'nations' },
         { to: '/admin/battlepass', label: 'Battle Pass', icon: icons.battlepass, perm: 'battlepass.view', serverFeature: 'battlepass' },
         { to: '/admin/game-perms', label: 'Права в игре', icon: icons.roles, perm: 'game.view' },
