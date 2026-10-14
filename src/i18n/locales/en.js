@@ -75,6 +75,15 @@ export default {
     connectExternal: 'Copy IP',
   },
   royaleLive: {
+    join: {
+      title: 'How to join',
+      step1: 'Start Minecraft — any version from 1.9 to 26.2',
+      step2: '«Multiplayer» → «Add Server»',
+      step3: 'Server address:',
+      step4: 'Nickname in Latin letters, your own name is best',
+      step5: 'In the lobby, take the compass and pick a team',
+      note: 'No password or sign-up needed.',
+    },
     title: 'Battle Royale',
     academy: 'TOP Academy',
     offline: 'The game server is offline',

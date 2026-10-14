@@ -7,6 +7,7 @@ import { useRoute } from 'vue-router'
 import { useI18n } from 'vue-i18n'
 import { apiRequest } from '../services/apiBase'
 import { setLocale } from '../i18n'
+import AcademyLogo from '../components/AcademyLogo.vue'
 
 const route = useRoute()
 const { t } = useI18n()
@@ -30,6 +31,14 @@ async function load() {
 }
 
 onMounted(() => {
+  // The projector's computer may not have Inter: the logo and the address are set in it.
+  if (!document.getElementById('royale-font')) {
+    const link = document.createElement('link')
+    link.id = 'royale-font'
+    link.rel = 'stylesheet'
+    link.href = 'https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800;900&display=swap'
+    document.head.appendChild(link)
+  }
   if (route.query.lang === 'en' || route.query.lang === 'ru') setLocale(route.query.lang)
   document.title = t('royaleLive.title')
   load()
@@ -96,8 +105,11 @@ const winnerTeam = computed(() => (winner.value ? team(winner.value.color) : nul
 const big = computed(() => ['countdown', 'preparing', 'freeze'].includes(state.value))
 // The lobby and the countdown show the teams as they are being made up: names, no numbers.
 const rostering = computed(() => state.value === 'lobby' || state.value === 'countdown')
+const address = computed(() => data.value?.address || 'void-rp.ru:25568')
 const gridClass = computed(() => {
   const n = teams.value.length
+  // In the lobby the «how to join» panel takes the left: the teams get fewer columns.
+  if (state.value === 'lobby') return n <= 4 ? 'cols-2' : 'cols-3'
   return n <= 2 ? 'cols-2' : n <= 4 ? 'cols-2' : n <= 6 ? 'cols-3' : 'cols-4'
 })
 </script>
@@ -106,10 +118,10 @@ const gridClass = computed(() => {
   <div class="rl">
     <header class="rl-head">
       <div class="rl-brand">
-        <div class="rl-logo"><span>top</span><i /></div>
-        <div>
+        <AcademyLogo light class="rl-academy" />
+        <div class="rl-brand-t">
           <div class="rl-title">{{ t('royaleLive.title') }}</div>
-          <div class="rl-sub">{{ t('royaleLive.academy') }}<template v-if="data?.map"> · {{ data.map }}</template></div>
+          <div v-if="data?.map" class="rl-sub">{{ data.map }}</div>
         </div>
       </div>
 
@@ -142,7 +154,22 @@ const gridClass = computed(() => {
       <div>{{ state === 'offline' ? t('royaleLive.offline') : t('royaleLive.waiting') }}</div>
     </div>
 
-    <main v-else class="rl-main" :class="{ 'no-feed': rostering }">
+    <main v-else class="rl-main" :class="{ 'no-feed': rostering, 'with-join': state === 'lobby' }">
+      <aside v-if="state === 'lobby'" class="rl-join">
+        <AcademyLogo light class="rl-join-logo" />
+        <h2>{{ t('royaleLive.join.title') }}</h2>
+        <ol>
+          <li>{{ t('royaleLive.join.step1') }}</li>
+          <li>{{ t('royaleLive.join.step2') }}</li>
+          <li>
+            {{ t('royaleLive.join.step3') }}
+            <div class="rl-addr">{{ address }}</div>
+          </li>
+          <li>{{ t('royaleLive.join.step4') }}</li>
+          <li>{{ t('royaleLive.join.step5') }}</li>
+        </ol>
+        <div class="rl-join-note">{{ t('royaleLive.join.note') }}</div>
+      </aside>
       <section class="rl-teams" :class="gridClass">
         <div v-if="!teams.length" class="rl-noteams">{{ t('royaleLive.noTeams') }}</div>
         <article
@@ -247,31 +274,10 @@ const gridClass = computed(() => {
   padding: 1.1em 1.6em;
   border-bottom: 1px solid var(--line);
 }
-.rl-brand { display: flex; align-items: center; gap: 0.9em; }
-.rl-logo {
-  position: relative;
-  width: 3.2em;
-  height: 3.2em;
-  background: #fff;
-  color: #111;
-  font-weight: 900;
-  font-size: 1em;
-  display: flex;
-  align-items: flex-end;
-  padding: 0.35em;
-  letter-spacing: -0.04em;
-}
-.rl-logo span { font-size: 1.35em; line-height: 1; }
-.rl-logo i {
-  position: absolute;
-  top: 0.3em;
-  right: 0.3em;
-  width: 1.2em;
-  height: 1.2em;
-  border-top: 0.22em solid var(--red);
-  border-right: 0.22em solid var(--red);
-}
-.rl-title { font-weight: 900; font-size: 1.6em; letter-spacing: 0.02em; text-transform: uppercase; }
+.rl-brand { display: flex; align-items: center; gap: 1.1em; }
+.rl-academy { font-size: 3em; }
+.rl-brand-t { border-left: 1px solid var(--line); padding-left: 1.1em; }
+.rl-title { font-weight: 900; font-size: 1.6em; letter-spacing: 0.02em; text-transform: uppercase; white-space: nowrap; }
 .rl-sub { color: var(--muted); }
 
 .rl-center { text-align: center; }
@@ -288,6 +294,16 @@ const gridClass = computed(() => {
 
 .rl-main { flex: 1; display: grid; grid-template-columns: 1fr 26em; gap: 1.2em; padding: 1.2em 1.6em; min-height: 0; }
 .rl-main.no-feed { grid-template-columns: 1fr; }
+.rl-main.with-join { grid-template-columns: 30em 1fr; }
+
+.rl-join { background: var(--panel); border: 1px solid var(--line); border-top: 0.35em solid var(--red); border-radius: 0.6em; padding: 1.4em 1.5em; min-height: 0; overflow: hidden; display: flex; flex-direction: column; }
+.rl-join-logo { font-size: 4.2em; margin-bottom: 0.25em; }
+.rl-join h2 { margin: 0.4em 0 0.6em; font-size: 1.7em; font-weight: 900; text-transform: uppercase; letter-spacing: 0.03em; }
+.rl-join ol { margin: 0; padding: 0; list-style: none; counter-reset: step; display: grid; gap: 0.75em; }
+.rl-join li { counter-increment: step; position: relative; padding-left: 2.2em; font-size: 1.2em; line-height: 1.35; }
+.rl-join li::before { content: counter(step); position: absolute; left: 0; top: 0; width: 1.5em; height: 1.5em; border-radius: 50%; background: var(--red); color: #fff; font-weight: 800; font-size: 0.85em; display: flex; align-items: center; justify-content: center; }
+.rl-addr { margin-top: 0.35em; display: inline-block; font-size: 1.75em; font-weight: 900; color: #fff; background: #0a0a0d; border: 2px solid var(--red); border-radius: 0.3em; padding: 0.15em 0.45em; }
+.rl-join-note { margin-top: auto; padding-top: 1em; color: var(--muted); }
 
 .rl-teams { display: grid; gap: 1em; align-content: start; min-height: 0; overflow: hidden; }
 .rl-teams.cols-2 { grid-template-columns: repeat(2, 1fr); }
@@ -357,7 +373,9 @@ const gridClass = computed(() => {
   .rl { position: static; min-height: 100vh; overflow: auto; font-size: 14px; }
   .rl-head { grid-template-columns: 1fr; text-align: center; gap: 0.8em; padding: 1em 16px; }
   .rl-brand, .rl-stats { justify-content: center; }
-  .rl-main { grid-template-columns: 1fr; padding: 1em 16px; }
+  .rl-main, .rl-main.with-join { grid-template-columns: 1fr; padding: 1em 16px; }
+  .rl-academy { font-size: 2.4em; }
+  .rl-brand-t { border-left: 0; padding-left: 0; }
   .rl-teams.cols-2, .rl-teams.cols-3, .rl-teams.cols-4 { grid-template-columns: 1fr; }
   .rl-last { flex-direction: column; gap: 0.4em; text-align: center; }
   .rl-big-n { font-size: 8em; }
