@@ -106,6 +106,8 @@ const big = computed(() => ['countdown', 'preparing', 'freeze'].includes(state.v
 // The lobby and the countdown show the teams as they are being made up: names, no numbers.
 const rostering = computed(() => state.value === 'lobby' || state.value === 'countdown')
 const address = computed(() => data.value?.address || 'void-rp.ru:25568')
+// The day's standings (every finished game since the host's reset), shown between games.
+const day = computed(() => (state.value === 'lobby' && data.value?.day?.games ? data.value.day : null))
 const gridClass = computed(() => {
   const n = teams.value.length
   // In the lobby the «how to join» panel takes the left: the teams get fewer columns.
@@ -154,7 +156,7 @@ const gridClass = computed(() => {
       <div>{{ state === 'offline' ? t('royaleLive.offline') : t('royaleLive.waiting') }}</div>
     </div>
 
-    <main v-else class="rl-main" :class="{ 'no-feed': rostering, 'with-join': state === 'lobby' }">
+    <main v-else class="rl-main" :class="{ 'no-feed': rostering, 'with-join': state === 'lobby', 'with-day': day }">
       <aside v-if="state === 'lobby'" class="rl-join">
         <AcademyLogo light class="rl-join-logo" />
         <h2>{{ t('royaleLive.join.title') }}</h2>
@@ -197,6 +199,25 @@ const gridClass = computed(() => {
             </li>
           </ul>
         </article>
+      </section>
+
+      <section v-if="day" class="rl-day">
+        <h2>{{ t('royaleLive.day.title') }} <span>· {{ t('royaleLive.day.games', { n: day.games }) }}</span></h2>
+        <div class="rl-day-cols">
+          <ol class="rl-day-teams">
+            <li v-for="tm in day.teams" :key="tm.color" :style="{ '--c': tm.hex || '#fff' }">
+              <span class="rl-day-name">{{ tm.title }}</span>
+              <b>{{ tm.points }}</b>
+            </li>
+          </ol>
+          <ol class="rl-day-players">
+            <li v-for="p in day.players.slice(0, 5)" :key="p.name">
+              <span :style="{ color: p.hex || '#fff' }">{{ p.name }}</span>
+              <b>{{ p.points }}</b>
+              <em>{{ t('royaleLive.day.kills', { n: p.kills }) }}</em>
+            </li>
+          </ol>
+        </div>
       </section>
 
       <aside v-if="!rostering" class="rl-feed">
@@ -295,6 +316,23 @@ const gridClass = computed(() => {
 .rl-main { flex: 1; display: grid; grid-template-columns: 1fr 26em; gap: 1.2em; padding: 1.2em 1.6em; min-height: 0; }
 .rl-main.no-feed { grid-template-columns: 1fr; }
 .rl-main.with-join { grid-template-columns: 30em 1fr; }
+.rl-main.with-join.with-day { grid-template-rows: minmax(0, 1fr) auto; }
+.rl-main.with-day .rl-join { grid-row: 1 / span 2; }
+
+.rl-day { grid-column: 2; background: var(--panel); border: 1px solid var(--line); border-top: 0.35em solid var(--gold); border-radius: 0.6em; padding: 0.9em 1.1em 1em; }
+.rl-day h2 { margin: 0 0 0.6em; font-size: 1.15em; font-weight: 900; text-transform: uppercase; letter-spacing: 0.06em; color: var(--gold); }
+.rl-day h2 span { color: var(--muted); font-weight: 600; text-transform: none; letter-spacing: 0; }
+.rl-day-cols { display: grid; grid-template-columns: 1.4fr 1fr; gap: 1.6em; }
+.rl-day ol { margin: 0; padding: 0; list-style: none; counter-reset: place; display: grid; gap: 0.35em; }
+.rl-day li { counter-increment: place; display: flex; align-items: baseline; gap: 0.6em; font-size: 1.12em; }
+.rl-day li::before { content: counter(place); width: 1.3em; color: var(--muted); font-weight: 800; }
+.rl-day-teams { grid-template-columns: repeat(2, 1fr); column-gap: 1.4em; }
+.rl-day-teams li { border-left: 0.3em solid var(--c); padding-left: 0.5em; }
+.rl-day-teams li:first-child b { color: var(--gold); }
+.rl-day-name { color: var(--c); font-weight: 800; flex: 1; }
+.rl-day b { font-weight: 900; font-variant-numeric: tabular-nums; }
+.rl-day-players span { flex: 1; font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.rl-day-players em { font-style: normal; color: var(--muted); font-size: 0.9em; }
 
 .rl-join { background: var(--panel); border: 1px solid var(--line); border-top: 0.35em solid var(--red); border-radius: 0.6em; padding: 1.4em 1.5em; min-height: 0; overflow: hidden; display: flex; flex-direction: column; }
 .rl-join-logo { font-size: 4.2em; margin-bottom: 0.25em; }
@@ -374,6 +412,9 @@ const gridClass = computed(() => {
   .rl-head { grid-template-columns: 1fr; text-align: center; gap: 0.8em; padding: 1em 16px; }
   .rl-brand, .rl-stats { justify-content: center; }
   .rl-main, .rl-main.with-join { grid-template-columns: 1fr; padding: 1em 16px; }
+  .rl-main.with-day .rl-join { grid-row: auto; }
+  .rl-day { grid-column: auto; }
+  .rl-day-cols { grid-template-columns: 1fr; }
   .rl-academy { font-size: 2.4em; }
   .rl-brand-t { border-left: 0; padding-left: 0; }
   .rl-teams.cols-2, .rl-teams.cols-3, .rl-teams.cols-4 { grid-template-columns: 1fr; }

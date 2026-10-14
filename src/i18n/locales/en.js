@@ -75,6 +75,11 @@ export default {
     connectExternal: 'Copy IP',
   },
   royaleLive: {
+    day: {
+      title: 'Today',
+      games: 'games: {n}',
+      kills: '{n} kills',
+    },
     join: {
       title: 'How to join',
       step1: 'Start Minecraft — any version from 1.9 to 26.2',
@@ -89,7 +94,7 @@ export default {
     offline: 'The game server is offline',
     waiting: 'Connecting…',
     lobby: 'Teams are gathering',
-    lobbyHint: 'Pick a team with the compass in the lobby',
+    lobbyHint: 'Step on your team\'s circle in the lobby',
     noTeams: 'Nobody has picked a team yet',
     countdown: 'The game starts in',
     preparing: 'Preparing the arena…',

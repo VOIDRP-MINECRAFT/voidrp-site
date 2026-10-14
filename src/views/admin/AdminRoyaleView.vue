@@ -3,7 +3,7 @@ import { computed, onMounted, onUnmounted, ref } from 'vue'
 import { authState, hasPermission } from '../../stores/authStore'
 import { toastError, toastSuccess } from '../../services/toast'
 import { confirmDialog } from '../../composables/useConfirm'
-import { royaleDelete, royaleExport, royaleMatch, royaleMatches } from '../../services/royaleAdminApi'
+import { royaleDay, royaleDelete, royaleExport, royaleExportDay, royaleMatch, royaleMatches } from '../../services/royaleAdminApi'
 
 // Battle royale (VoidRP: Royale): every game the plugin reports, each in full, and the
 // export the Academy's teaching staff takes away as a table.
@@ -80,7 +80,40 @@ async function load() {
   }
 }
 
+// The day's standings: points for the place and the kills over every finished game of a date.
+const dayMode = ref(false)
+const dayDate = ref('')
+const day = ref(null)
+const dayLoading = ref(false)
+const moscowDate = (iso) => new Date(iso).toLocaleDateString('sv-SE', { timeZone: 'Europe/Moscow' })
+
+async function openDay() {
+  dayMode.value = true
+  selectedId.value = null
+  if (!dayDate.value) {
+    const newest = matches.value.find(m => !m.aborted && m.started_at)
+    dayDate.value = newest ? moscowDate(newest.started_at) : moscowDate(new Date().toISOString())
+  }
+  await loadDay()
+}
+
+async function loadDay() {
+  dayLoading.value = true
+  try {
+    day.value = await royaleDay(token(), dayDate.value)
+  } catch (e) {
+    toastError(e.message || 'Не удалось посчитать итоги дня')
+  } finally {
+    dayLoading.value = false
+  }
+}
+
+async function exportDay() {
+  try { await royaleExportDay(token(), dayDate.value) } catch (e) { toastError(e.message) }
+}
+
 async function open(id) {
+  dayMode.value = false
   selectedId.value = id
   detailLoading.value = true
   try {
@@ -135,6 +168,7 @@ onUnmounted(() => clearInterval(timer))
         <p class="adm-sub">Матчи VoidRP: Royale — команды, места и вся статистика каждого игрока, выгрузка таблицей для учебной части.</p>
       </div>
       <div class="adm-head-actions">
+        <button class="adm-btn" :class="{ 'adm-btn--acc': dayMode }" :disabled="!matches.length" @click="openDay">Итоги дня</button>
         <button class="adm-btn adm-btn--acc" :disabled="!visible.length" @click="exportAll">Выгрузить все матчи (Excel)</button>
       </div>
     </div>
@@ -168,7 +202,53 @@ onUnmounted(() => clearInterval(timer))
       </aside>
 
       <section class="ry-main">
-        <div v-if="detailLoading && !detail" class="adm-skel" style="height: 300px" />
+        <template v-if="dayMode">
+          <div class="adm-card adm-card--pad ry-summary">
+            <div>
+              <div class="ry-h">Итоги дня</div>
+              <div class="ry-item-sub">
+                Все законченные игры за дату, очки сложены: за место команды
+                {{ (day?.place_points || []).join(' / ') }}, за убийство {{ day?.kill_points ?? 1 }}.
+                Игроки — по нику, даже если меняли команду.
+              </div>
+            </div>
+            <div class="ry-actions">
+              <input v-model="dayDate" type="date" class="adm-input" @change="loadDay" />
+              <button class="adm-btn" :disabled="!day?.games" @click="exportDay">Выгрузить итоги дня (Excel)</button>
+            </div>
+          </div>
+          <div v-if="dayLoading && !day" class="adm-skel" style="height: 240px" />
+          <div v-else-if="!day?.games" class="adm-card adm-card--pad adm-empty">За {{ dayDate }} законченных игр нет.</div>
+          <template v-else>
+            <div class="adm-card adm-card--pad">
+              <div class="ry-h">Команды · игр {{ day.games }}</div>
+              <table class="adm-table ry-table">
+                <thead><tr><th>Место</th><th>Команда</th><th>Очки</th><th>Побед</th><th>Убийств</th><th>Игр</th></tr></thead>
+                <tbody>
+                  <tr v-for="(t, i) in day.teams" :key="t.color">
+                    <td>{{ i + 1 }}</td>
+                    <td><b :style="{ color: TEAM_COLORS[t.color] }">{{ t.title }}</b></td>
+                    <td><b>{{ t.points }}</b></td><td>{{ t.wins }}</td><td>{{ t.kills }}</td><td>{{ t.games }}</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+            <div class="adm-card adm-card--pad">
+              <div class="ry-h">Игроки</div>
+              <table class="adm-table ry-table">
+                <thead><tr><th>Место</th><th>Игрок</th><th>Команда (последняя игра)</th><th>Очки</th><th>Побед</th><th>Убийств</th><th>Помощь</th><th>Игр</th></tr></thead>
+                <tbody>
+                  <tr v-for="(p, i) in day.players" :key="p.name">
+                    <td>{{ i + 1 }}</td><td><b>{{ p.name }}</b></td>
+                    <td :style="{ color: TEAM_COLORS[p.team] }">{{ p.team_title || '—' }}</td>
+                    <td><b>{{ p.points }}</b></td><td>{{ p.wins }}</td><td>{{ p.kills }}</td><td>{{ p.assists }}</td><td>{{ p.games }}</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </template>
+        </template>
+        <div v-else-if="detailLoading && !detail" class="adm-skel" style="height: 300px" />
         <template v-else-if="detail">
           <div class="adm-card adm-card--pad ry-summary">
             <div>

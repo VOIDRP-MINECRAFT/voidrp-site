@@ -75,6 +75,11 @@ export default {
     connectExternal: 'Скопировать IP',
   },
   royaleLive: {
+    day: {
+      title: 'Итоги дня',
+      games: 'игр: {n}',
+      kills: '{n} уб.',
+    },
     join: {
       title: 'Как зайти в игру',
       step1: 'Запусти Minecraft — подойдёт версия от 1.9 до 26.2',
@@ -89,7 +94,7 @@ export default {
     offline: 'Сервер игры не на связи',
     waiting: 'Подключаемся…',
     lobby: 'Сбор команд',
-    lobbyHint: 'Выбери команду компасом в лобби',
+    lobbyHint: 'Встань на круг своей команды в лобби',
     noTeams: 'Пока никто не выбрал команду',
     countdown: 'Игра начнётся через',
     preparing: 'Готовим арену…',

@@ -11,9 +11,19 @@ export const royaleMatch = (token, id) => apiRequest(`/admin/royale/${id}`, { me
 
 export const royaleDelete = (token, id) => apiRequest(`/admin/royale/${id}`, { method: 'DELETE', ...ah(token) })
 
+/** The day's standings: every finished match of that date (YYYY-MM-DD, Moscow), points added up. */
+export const royaleDay = (token, date) =>
+  apiRequest(`/admin/royale/standings/day?date=${encodeURIComponent(date)}`, { method: 'GET', ...ah(token) })
+
 /** Downloads a CSV (opens in Excel): one match, or every finished match. */
-export async function royaleExport(token, id = null) {
-  const path = id ? `/admin/royale/${id}/export.csv` : '/admin/royale/export/all.csv'
+export const royaleExport = (token, id = null) =>
+  download(token, id ? `/admin/royale/${id}/export.csv` : '/admin/royale/export/all.csv')
+
+/** The day's standings as a CSV. */
+export const royaleExportDay = (token, date) =>
+  download(token, `/admin/royale/standings/day.csv?date=${encodeURIComponent(date)}`)
+
+async function download(token, path) {
   const slug = serverState.activeSlug
   const headers = buildAuthHeaders(token, slug ? { 'X-Server-Slug': slug } : {})
   const res = await fetch(`${API_BASE_URL}${path}`, { headers })
