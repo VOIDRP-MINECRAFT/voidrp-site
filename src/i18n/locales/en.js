@@ -81,7 +81,7 @@ export default {
       step2: '«Multiplayer» → «Add Server»',
       step3: 'Server address:',
       step4: 'Nickname in Latin letters, your own name is best',
-      step5: 'In the lobby, take the compass and pick a team',
+      step5: 'In the lobby, step on your team\'s coloured circle',
       note: 'No password or sign-up needed.',
     },
     title: 'Battle Royale',
