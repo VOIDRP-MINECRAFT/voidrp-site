@@ -99,6 +99,8 @@ export default {
     countdown: 'The game starts in',
     preparing: 'Preparing the arena…',
     freeze: 'Landing!',
+    paused: 'PAUSED',
+    pausedSub: 'the host has stopped the game',
     alive: 'alive',
     elapsed: 'playing',
     online: 'on the server',

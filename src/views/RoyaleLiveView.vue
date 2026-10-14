@@ -101,6 +101,7 @@ function feedLine(e) {
 }
 
 const winner = computed(() => (state.value === 'ending' ? data.value?.winner : null))
+const paused = computed(() => state.value === 'running' && data.value?.paused === true)
 const winnerTeam = computed(() => (winner.value ? team(winner.value.color) : null))
 const big = computed(() => ['countdown', 'preparing', 'freeze'].includes(state.value))
 // The lobby and the countdown show the teams as they are being made up: names, no numbers.
@@ -256,6 +257,15 @@ const gridClass = computed(() => {
     </Transition>
 
     <Transition name="rl-fade">
+      <div v-if="paused" class="rl-overlay">
+        <div class="rl-big">
+          <div class="rl-big-n rl-pause">{{ t('royaleLive.paused') }}</div>
+          <div class="rl-big-l">{{ t('royaleLive.pausedSub') }}</div>
+        </div>
+      </div>
+    </Transition>
+
+    <Transition name="rl-fade">
       <div v-if="winner" class="rl-overlay win" :style="{ '--c': winner.hex }">
         <div class="rl-big">
           <div class="rl-big-l">{{ t('royaleLive.winner') }}</div>
@@ -394,6 +404,7 @@ const gridClass = computed(() => {
 .rl-overlay.win { background: radial-gradient(circle at 50% 45%, color-mix(in srgb, var(--c) 30%, transparent), rgba(6, 6, 9, 0.9) 60%); }
 .rl-big { text-align: center; }
 .rl-big-l { font-size: 2.4em; font-weight: 800; text-transform: uppercase; letter-spacing: 0.08em; color: var(--muted); }
+.rl-pause { font-size: 9em !important; color: var(--gold) !important; letter-spacing: 0.06em; }
 .rl-big-n { font-size: 14em; font-weight: 900; line-height: 1; color: var(--red); font-variant-numeric: tabular-nums; }
 .win .rl-big-l { color: var(--gold); font-size: 3em; }
 .rl-big-team { font-size: 8em; font-weight: 900; color: var(--c); line-height: 1.05; text-shadow: 0 0 0.4em color-mix(in srgb, var(--c) 50%, transparent); }

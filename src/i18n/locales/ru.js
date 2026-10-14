@@ -99,6 +99,8 @@ export default {
     countdown: 'Игра начнётся через',
     preparing: 'Готовим арену…',
     freeze: 'Высадка!',
+    paused: 'ПАУЗА',
+    pausedSub: 'ведущий остановил игру',
     alive: 'живых',
     elapsed: 'идёт игра',
     online: 'на сервере',
