@@ -3,7 +3,7 @@ import { computed, onMounted, onUnmounted, ref } from 'vue'
 import { authState, hasPermission } from '../../stores/authStore'
 import { toastError, toastSuccess } from '../../services/toast'
 import { confirmDialog } from '../../composables/useConfirm'
-import { royaleDay, royaleDelete, royaleExport, royaleExportDay, royaleMatch, royaleMatches } from '../../services/royaleAdminApi'
+import { royaleDay, royaleDelete, royaleExport, royaleExportDay, royaleMatch, royaleMatches, royaleSaveSettings, royaleSettings } from '../../services/royaleAdminApi'
 
 // Battle royale (VoidRP: Royale): every game the plugin reports, each in full, and the
 // export the Academy's teaching staff takes away as a table.
@@ -152,10 +152,45 @@ async function remove() {
   }
 }
 
+// ── Game settings: the team size (the plugin takes it within ~2 s) ─────────
+const settings = ref(null)
+const teamSize = ref(5)
+const savingSize = ref(false)
+
+async function loadSettings() {
+  try {
+    const res = await royaleSettings(token())
+    const first = settings.value === null
+    settings.value = res
+    if (first) teamSize.value = res.team_size ?? res.current ?? 5
+  } catch {
+    settings.value = settings.value || { team_size: null, current: null, online: false }
+  }
+}
+
+const sizeDirty = computed(() => settings.value && teamSize.value !== (settings.value.team_size ?? settings.value.current))
+const sizeApplied = computed(() => settings.value?.team_size != null && settings.value.current === settings.value.team_size)
+
+async function saveSize() {
+  const n = Number(teamSize.value)
+  if (!Number.isInteger(n) || n < 1 || n > 20) { toastError('Размер команды — от 1 до 20'); return }
+  savingSize.value = true
+  try {
+    settings.value = await royaleSaveSettings(token(), { team_size: n })
+    toastSuccess(settings.value.online ? `Сохранено: до ${n} в команде — сервер применит за пару секунд` : `Сохранено: до ${n} в команде — применится, когда сервер запустится`)
+    setTimeout(loadSettings, 3000)
+  } catch (e) {
+    toastError(e.message || 'Не удалось сохранить')
+  } finally {
+    savingSize.value = false
+  }
+}
+
 let timer = null
 onMounted(() => {
   load()
-  timer = setInterval(load, 30000)
+  loadSettings()
+  timer = setInterval(() => { load(); loadSettings() }, 30000)
 })
 onUnmounted(() => clearInterval(timer))
 </script>
@@ -170,6 +205,26 @@ onUnmounted(() => clearInterval(timer))
       <div class="adm-head-actions">
         <button class="adm-btn" :class="{ 'adm-btn--acc': dayMode }" :disabled="!matches.length" @click="openDay">Итоги дня</button>
         <button class="adm-btn adm-btn--acc" :disabled="!visible.length" @click="exportAll">Выгрузить все матчи (Excel)</button>
+      </div>
+    </div>
+
+    <div v-if="settings" class="adm-card adm-card--pad ry-settings">
+      <div class="ry-settings-main">
+        <div class="ry-h">Игроков в команде</div>
+        <div class="ry-item-sub">Сколько человек может встать в одну команду. Если уменьшить, а в команде уже больше людей, последние вошедшие выйдут из неё и выберут другую.</div>
+      </div>
+      <div class="ry-settings-ctl">
+        <button class="adm-btn adm-btn--sm" :disabled="!canManage || teamSize <= 1" @click="teamSize = Math.max(1, teamSize - 1)">−</button>
+        <input v-model.number="teamSize" class="adm-input ry-size" type="number" min="1" max="20" :disabled="!canManage" @keydown.enter="saveSize" />
+        <button class="adm-btn adm-btn--sm" :disabled="!canManage || teamSize >= 20" @click="teamSize = Math.min(20, teamSize + 1)">+</button>
+        <button v-if="canManage" class="adm-btn adm-btn--acc" :disabled="savingSize || !sizeDirty" @click="saveSize">{{ savingSize ? 'Сохраняю…' : 'Сохранить' }}</button>
+      </div>
+      <div class="ry-settings-state">
+        <template v-if="!settings.online">⚪ Сервер не в сети — размер применится, когда он запустится.</template>
+        <template v-else-if="sizeApplied">🟢 На сервере сейчас: до {{ settings.current }} в команде.</template>
+        <template v-else-if="settings.team_size != null">🟡 Сервер ещё на {{ settings.current }} — применит за пару секунд.</template>
+        <template v-else>На сервере сейчас: до {{ settings.current }} в команде (из config.yml плагина).</template>
+        <span v-if="settings.online && settings.in_game" class="ry-muted"> Идёт игра: её команды не меняются, новый размер — к следующей.</span>
       </div>
     </div>
 
@@ -344,5 +399,10 @@ onUnmounted(() => clearInterval(timer))
 .ry-table th:nth-child(2), .ry-table td.ry-name { text-align: left; font-weight: 600; }
 .ry-th { cursor: pointer; user-select: none; }
 .ry-muted { opacity: .65; }
+.ry-settings { display: grid; grid-template-columns: 1fr auto; gap: 8px 16px; align-items: center; margin-bottom: 16px; }
+@media (max-width: 700px) { .ry-settings { grid-template-columns: 1fr; } }
+.ry-settings-ctl { display: flex; gap: 6px; align-items: center; }
+.ry-size { width: 4.5rem; text-align: center; }
+.ry-settings-state { grid-column: 1 / -1; font-size: 13px; opacity: .85; }
 .ry-feed { font-size: 13px; padding: 3px 0; display: flex; gap: 6px; flex-wrap: wrap; }
 </style>

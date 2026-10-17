@@ -9,6 +9,11 @@ export const royaleMatches = (token, includeAborted = true) =>
 
 export const royaleMatch = (token, id) => apiRequest(`/admin/royale/${id}`, { method: 'GET', ...ah(token) })
 
+/** Game settings set here (the team size) and what the server runs now; the plugin takes them within ~2 s. */
+export const royaleSettings = (token) => apiRequest('/admin/royale/settings', { method: 'GET', ...ah(token) })
+export const royaleSaveSettings = (token, body) =>
+  apiRequest('/admin/royale/settings', { method: 'PUT', body: JSON.stringify(body), ...ah(token) })
+
 export const royaleDelete = (token, id) => apiRequest(`/admin/royale/${id}`, { method: 'DELETE', ...ah(token) })
 
 /** The day's standings: every finished match of that date (YYYY-MM-DD, Moscow), points added up. */
