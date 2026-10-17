@@ -18,6 +18,7 @@ export const CATEGORIES = {
   plugins: ['Плагины', ''],
   game_perms: ['Права в игре', ''],
   backups: ['Бэкапы', ''],
+  royale: ['Королевская битва', 'adm-badge--acc'],
   integration: ['Интеграция', 'adm-badge--acc'],
   trader: ['Скупщик', ''],
   cosmetics: ['Косметика', ''],
@@ -32,7 +33,7 @@ export const categoryClass = (c) => (CATEGORIES[c] || [c, ''])[1]
 
 const ACTIONS = {
   rcon: 'команда в консоль', rcon_denied: 'команда отклонена', power_restart: 'перезапуск сервера', power_start: 'запуск сервера',
-  power_stop: 'остановка сервера', moderate_kick: 'кик игрока', moderate_op: 'выдал оператора', 'watchdog.toggle': 'сторож зависаний',
+  power_stop: 'остановка сервера', moderate_kick: 'кик игрока', moderate_op: 'выдал оператора', 'watchdog.toggle': 'сторож зависаний', 'royale.command': 'пульт королевской битвы', 'royale.settings': 'настройки королевской битвы', 'royale.match.delete': 'удалил матч', 'royale.match.delete_aborted': 'удалил остановленные матчи',
   mfa_passed: 'вход с 2FA', reauth: 'подтвердил пароль', mfa_enable: 'включил 2FA', mfa_backup_codes: 'новые коды восстановления 2FA',
   update: 'изменил', create: 'создал', delete: 'удалил', meta: 'оформление группы', role_add: 'выдал роль', role_remove: 'снял роль',
   assign: 'назначил сотрудником', revoke: 'снял с должности', appoint_admin: 'назначил админом', admin_servers: 'админство серверов',

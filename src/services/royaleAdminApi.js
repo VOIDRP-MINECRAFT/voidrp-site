@@ -14,6 +14,20 @@ export const royaleSettings = (token) => apiRequest('/admin/royale/settings', { 
 export const royaleSaveSettings = (token, body) =>
   apiRequest('/admin/royale/settings', { method: 'PUT', body: JSON.stringify(body), ...ah(token) })
 
+/** The live state plus the whitelist and who is online (the host panel). */
+export const royaleLive = (token, players = true) =>
+  apiRequest(`/admin/royale/live?players=${players}`, { method: 'GET', toast: false, ...ah(token) })
+
+/** One host action on the server (start, pause, team, mute, kick…); answers with the server's reply. */
+export const royaleCommand = (token, body) =>
+  apiRequest('/admin/royale/command', { method: 'POST', body: JSON.stringify(body), ...ah(token) })
+
+/** Every finished game of the server added up, per team and per player. */
+export const royaleAll = (token) => apiRequest('/admin/royale/standings/all', { method: 'GET', ...ah(token) })
+
+/** Removes every stopped (test) match of the server. */
+export const royaleDeleteAborted = (token) => apiRequest('/admin/royale/aborted', { method: 'DELETE', ...ah(token) })
+
 export const royaleDelete = (token, id) => apiRequest(`/admin/royale/${id}`, { method: 'DELETE', ...ah(token) })
 
 /** The day's standings: every finished match of that date (YYYY-MM-DD, Moscow), points added up. */
