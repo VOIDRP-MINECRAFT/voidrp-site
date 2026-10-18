@@ -6,7 +6,7 @@
 import { computed, onMounted, ref, watch } from 'vue'
 import { useRoute } from 'vue-router'
 import { authState } from '../../stores/authStore'
-import { royaleMatch } from '../../services/royaleAdminApi'
+import { royaleDay, royaleMatch } from '../../services/royaleAdminApi'
 
 const route = useRoute()
 const match = ref(null)
@@ -49,11 +49,23 @@ onMounted(async () => {
     document.head.appendChild(link)
   }
   try {
-    match.value = await royaleMatch(authState.accessToken, route.params.id)
+    if (route.params.date) {
+      const day = await royaleDay(authState.accessToken, route.params.date)
+      if (!day.games) { error.value = `За ${route.params.date} законченных игр нет.`; return }
+      // Day standings → one certificate per player, place = rank by day points.
+      const players = (day.players || []).map((p, i) => ({
+        name: p.name, team: p.team, team_title: p.team_title, placement: i + 1,
+        kills: p.kills, assists: p.assists, damage_dealt: p.damage, alive_seconds: p.alive_seconds, chests_opened: 0,
+        points: p.points, wins: p.wins, games: p.games,
+      }))
+      match.value = { map_title: 'Итоги дня', started_at: `${route.params.date}T12:00:00`, dayMode: true, payload: { players } }
+    } else {
+      match.value = await royaleMatch(authState.accessToken, route.params.id)
+    }
     namesToText()
     document.title = `Грамоты — ${match.value.map_title || match.value.map}`
   } catch (e) {
-    error.value = e?.message || 'Не удалось загрузить матч'
+    error.value = e?.message || 'Не удалось загрузить'
   }
 })
 
@@ -64,16 +76,24 @@ const date = computed(() => {
 })
 
 // Who was best at what: one nomination each, the first that applies.
-const NOMINATIONS = [
-  { key: 'kills', title: 'Больше всех убийств', min: 1 },
-  { key: 'damage_dealt', title: 'Больше всех урона', min: 1 },
-  { key: 'alive_seconds', title: 'Дольше всех в игре', min: 1 },
-  { key: 'chests_opened', title: 'Больше всех найденных сундуков', min: 1 },
-  { key: 'assists', title: 'Больше всех помощи команде', min: 1 },
-]
+const dayMode = computed(() => Boolean(match.value?.dayMode))
+const NOMINATIONS = computed(() => dayMode.value
+  ? [
+      { key: 'points', title: 'Больше всех очков за день', min: 1 },
+      { key: 'wins', title: 'Больше всех побед за день', min: 1 },
+      { key: 'kills', title: 'Больше всех убийств за день', min: 1 },
+      { key: 'damage_dealt', title: 'Больше всех урона за день', min: 1 },
+    ]
+  : [
+      { key: 'kills', title: 'Больше всех убийств', min: 1 },
+      { key: 'damage_dealt', title: 'Больше всех урона', min: 1 },
+      { key: 'alive_seconds', title: 'Дольше всех в игре', min: 1 },
+      { key: 'chests_opened', title: 'Больше всех найденных сундуков', min: 1 },
+      { key: 'assists', title: 'Больше всех помощи команде', min: 1 },
+    ])
 const nominations = computed(() => {
   const out = {}
-  for (const n of NOMINATIONS) {
+  for (const n of NOMINATIONS.value) {
     const top = [...players.value].sort((a, b) => (b[n.key] || 0) - (a[n.key] || 0))[0]
     if (!top || (top[n.key] || 0) < n.min || out[top.name]) continue
     out[top.name] = n.title
@@ -103,11 +123,9 @@ const certificates = computed(() => {
         team: p.team_title,
         hex: TEAM_HEX[p.team] || '#111',
         place,
-        stats: [
-          `убийств ${p.kills || 0}`,
-          `урон ${hearts(p.damage_dealt)} ❤`,
-          `в игре ${clock(p.alive_seconds)}`,
-        ],
+        stats: dayMode.value
+          ? [`очков ${p.points || 0}`, `игр ${p.games || 0}`, `побед ${p.wins || 0}`, `убийств ${p.kills || 0}`]
+          : [`убийств ${p.kills || 0}`, `урон ${hearts(p.damage_dealt)} ❤`, `в игре ${clock(p.alive_seconds)}`],
         nomination: nominations.value[p.name] || null,
       }
     })

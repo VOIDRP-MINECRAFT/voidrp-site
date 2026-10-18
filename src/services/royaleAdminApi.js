@@ -23,6 +23,9 @@ export const royaleCommand = (token, body) =>
   apiRequest('/admin/royale/command', { method: 'POST', body: JSON.stringify(body), ...ah(token) })
 
 /** Every finished game of the server added up, per team and per player. */
+/** Pre-event checklist that checks itself (whitelist, test matches, running game, stand/bots). */
+export const royaleReadiness = (token) => apiRequest('/admin/royale/readiness', { method: 'GET', toast: false, ...ah(token) })
+
 export const royaleAll = (token) => apiRequest('/admin/royale/standings/all', { method: 'GET', ...ah(token) })
 
 /** Removes every stopped (test) match of the server. */

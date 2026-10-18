@@ -100,6 +100,7 @@ const totals = computed(() => {
       </div>
       <div v-if="mode === 'day'" class="rs-actions">
         <input v-model="date" type="date" class="adm-input rs-date" @change="load" />
+        <a class="adm-btn" :class="{ 'adm-btn--disabled': !data?.games }" :href="`/print/royale/day/${date}`" target="_blank" rel="noopener">🏅 Грамоты</a>
         <button class="adm-btn" :disabled="!data?.games" @click="exportDay">⬇ Excel</button>
       </div>
     </div>

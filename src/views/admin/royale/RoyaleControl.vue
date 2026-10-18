@@ -2,11 +2,11 @@
 // The host panel: the game as it goes (the same state the projector shows) and the host's
 // commands — start, pause, phases, airdrops, whitelist, moving players between teams, mute,
 // kick. Every button runs the plugin's own command on the server (see /admin/royale/command).
-import { computed, ref } from 'vue'
+import { computed, onMounted, onUnmounted, ref } from 'vue'
 import { authState, hasPermission } from '../../../stores/authStore'
 import { toastError, toastSuccess } from '../../../services/toast'
 import { confirmDialog } from '../../../composables/useConfirm'
-import { royaleCommand } from '../../../services/royaleAdminApi'
+import { royaleCommand, royaleReadiness } from '../../../services/royaleAdminApi'
 import { TEAM_COLORS, TEAM_KEYS, TEAM_TITLES, clock, feedLine, hearts, plural } from './royaleUi'
 import RoyaleGrace from './RoyaleGrace.vue'
 
@@ -133,6 +133,42 @@ const kick = (name) => run('kick', { player: name }, {
 })
 
 const projector = computed(() => `/royale/live`)
+
+// ── Announce: big text on everyone's screen and in chat ───────────────────
+const announceText = ref('')
+async function announce() {
+  const text = announceText.value.trim()
+  if (!text) return
+  await run('announce', { text })
+  announceText.value = ''
+}
+const QUICK = ['2 минуты до старта — вставайте на круги!', 'Приготовились!', 'Обед через 5 минут', 'Молодцы! Ещё одна игра']
+
+// ── Add a latecomer to a team mid-game ────────────────────────────────────
+const joinPick = ref({})
+const joinable = (n) => (inGame.value || over.value) && !memberOf.value[n.toLowerCase()]
+const smallestTeam = computed(() => {
+  const live = teams.value.filter((t) => (t.alive ?? 1) > 0)
+  if (!live.length) return TEAM_KEYS[0]
+  return live.reduce((a, b) => ((b.members || []).length < (a.members || []).length ? b : a)).color
+})
+async function join(n) {
+  const team = joinPick.value[n] || smallestTeam.value
+  await run('join', { player: n, team })
+}
+
+// ── Readiness (pre-event self-check) ──────────────────────────────────────
+const readiness = ref(null)
+let readyTimer = null
+async function loadReadiness() {
+  if (document.hidden) return
+  try {
+    readiness.value = await royaleReadiness(token())
+  } catch { /* keep the last */ }
+}
+onMounted(() => { loadReadiness(); readyTimer = setInterval(loadReadiness, 12000) })
+onUnmounted(() => clearInterval(readyTimer))
+const readyFails = computed(() => (readiness.value?.checks || []).filter((c) => c.ok === false))
 </script>
 
 <template>
@@ -161,6 +197,22 @@ const projector = computed(() => `/royale/live`)
         <div class="rc-stat">
           <b :class="live?.whitelist ? 'rc-on' : 'rc-off'">{{ live?.whitelist == null ? '—' : live.whitelist ? 'вкл' : 'выкл' }}</b>
           <span>вайтлист</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Pre-event readiness -->
+    <div v-if="canControl && readiness && !inGame" class="adm-card adm-card--pad rc-ready" :class="readiness.ready ? 'rc-ready--ok' : 'rc-ready--warn'">
+      <div class="rc-ready-head">
+        <span class="rc-ready-badge">{{ readiness.ready ? '✓ Готово к ивенту' : '⚠ Перед стартом' }}</span>
+        <span v-if="readyFails.length" class="rc-dim">нужно поправить: {{ readyFails.length }}</span>
+      </div>
+      <div class="rc-ready-list">
+        <div v-for="c in readiness.checks" :key="c.key" class="rc-ready-item" :class="c.ok === false ? 'is-bad' : c.ok === null ? 'is-unknown' : 'is-ok'">
+          <span class="rc-ready-dot" />
+          <span class="rc-ready-label">{{ c.label }}</span>
+          <span v-if="c.detail" class="rc-dim">— {{ c.detail }}</span>
+          <span v-if="c.hint && c.ok === false" class="rc-ready-hint">{{ c.hint }}</span>
         </div>
       </div>
     </div>
@@ -196,6 +248,20 @@ const projector = computed(() => `/royale/live`)
             </button>
             <button class="adm-btn" :disabled="offline || !inLobby || !!busy" @click="clearResults">🗄 Итоги в архив</button>
           </div>
+        </div>
+        <div class="rc-group">
+          <div class="rc-group-title">Объявить</div>
+          <div class="rc-announce">
+            <input
+              v-model="announceText" class="adm-input rc-announce-input" maxlength="120"
+              placeholder="Текст на весь экран игрокам…" :disabled="offline || !!busy"
+              @keydown.enter="announce"
+            />
+            <button class="adm-btn adm-btn--acc" :disabled="offline || !announceText.trim() || !!busy" @click="announce">📣 Показать всем</button>
+          </div>
+        </div>
+        <div v-if="!offline" class="rc-quick">
+          <button v-for="q in QUICK" :key="q" class="rc-quick-btn" :disabled="!!busy" @click="announceText = q">{{ q }}</button>
         </div>
         <div v-if="lastAnswer" class="rc-answer"><span>Сервер ответил:</span> {{ lastAnswer.text }}</div>
       </template>
@@ -310,6 +376,16 @@ const projector = computed(() => `/royale/live`)
                   </td>
                   <td v-if="canControl" class="rc-right">
                     <div class="rc-acts">
+                      <template v-if="joinable(n)">
+                        <select
+                          class="adm-select rc-join-select" :value="joinPick[n] || smallestTeam"
+                          :style="{ color: TEAM_COLORS[joinPick[n] || smallestTeam] }" :disabled="!!busy"
+                          @change="joinPick[n] = $event.target.value"
+                        >
+                          <option v-for="k in TEAM_KEYS" :key="k" :value="k">{{ TEAM_TITLES[k] }}</option>
+                        </select>
+                        <button class="adm-btn adm-btn--sm adm-btn--ok" :disabled="!!busy" title="Добавить опоздавшего в игру" @click="join(n)">⚔ В бой</button>
+                      </template>
                       <button class="adm-btn adm-btn--sm" :disabled="!!busy" title="Закрыть чат на 5 минут" @click="mute(n)">Мут 5 мин</button>
                       <button class="adm-btn adm-btn--sm" :disabled="!!busy" title="Открыть чат" @click="unmute(n)">Размут</button>
                       <button class="adm-btn adm-btn--sm adm-btn--danger" :disabled="!!busy" @click="kick(n)">Кик</button>
@@ -320,7 +396,7 @@ const projector = computed(() => `/royale/live`)
             </table>
           </div>
         </div>
-        <div v-if="canControl && inGame" class="rc-note rc-note--sm">Команды меняются только в лобби: во время игры состав зафиксирован.</div>
+        <div v-if="canControl && inGame" class="rc-note rc-note--sm">Опоздавшего можно добавить в игру кнопкой «В бой». Перевод между командами — только в лобби.</div>
       </div>
     </template>
   </div>
@@ -390,6 +466,28 @@ const projector = computed(() => `/royale/live`)
 .rc-search { max-width: 220px; }
 .rc-table td, .rc-table th { white-space: nowrap; }
 .rc-team-select { width: auto; min-width: 150px; padding-top: .3rem; padding-bottom: .3rem; font-weight: 700; }
+.rc-join-select { width: auto; min-width: 118px; padding-top: .2rem; padding-bottom: .2rem; font-weight: 700; }
+.rc-announce { display: flex; gap: 8px; flex: 1; }
+.rc-announce-input { flex: 1; }
+.rc-quick { display: flex; gap: 6px; flex-wrap: wrap; padding-left: 120px; }
+@media (max-width: 640px) { .rc-quick { padding-left: 0; } }
+.rc-quick-btn { font-size: .74rem; padding: 3px 9px; border-radius: 999px; border: 1px solid var(--adm-line-strong); background: rgba(148,163,184,.05); color: var(--adm-mut); cursor: pointer; }
+.rc-quick-btn:hover:not(:disabled) { border-color: var(--adm-acc-line); color: var(--adm-text); }
+.rc-ready { display: flex; flex-direction: column; gap: 10px; }
+.rc-ready--ok { border-color: rgba(52,211,153,.3); background: linear-gradient(140deg, rgba(52,211,153,.06), var(--adm-card) 60%); }
+.rc-ready--warn { border-color: rgba(251,191,36,.35); background: linear-gradient(140deg, rgba(251,191,36,.06), var(--adm-card) 60%); }
+.rc-ready-head { display: flex; align-items: center; gap: 10px; }
+.rc-ready-badge { font-weight: 800; color: var(--adm-text); }
+.rc-ready--ok .rc-ready-badge { color: #6ee7b7; }
+.rc-ready--warn .rc-ready-badge { color: #fde68a; }
+.rc-ready-list { display: flex; flex-direction: column; gap: 6px; }
+.rc-ready-item { display: flex; align-items: center; gap: 8px; font-size: 13px; color: var(--adm-text); flex-wrap: wrap; }
+.rc-ready-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+.rc-ready-item.is-ok .rc-ready-dot { background: var(--adm-ok); }
+.rc-ready-item.is-bad .rc-ready-dot { background: var(--adm-err); }
+.rc-ready-item.is-unknown .rc-ready-dot { background: var(--adm-faint); }
+.rc-ready-item.is-ok .rc-ready-label { color: var(--adm-mut); }
+.rc-ready-hint { font-size: 12px; color: #fca5a5; background: rgba(248,113,113,.08); border-radius: 6px; padding: 1px 8px; }
 .rc-right { text-align: right; }
 .rc-acts { display: flex; gap: 6px; justify-content: flex-end; }
 </style>
