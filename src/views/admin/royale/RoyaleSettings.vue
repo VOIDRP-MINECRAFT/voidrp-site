@@ -5,6 +5,7 @@ import { computed, onMounted, ref } from 'vue'
 import { authState, hasPermission } from '../../../stores/authStore'
 import { toastError, toastSuccess } from '../../../services/toast'
 import { royaleCommand, royaleSaveSettings, royaleSettings } from '../../../services/royaleAdminApi'
+import RoyaleGrace from './RoyaleGrace.vue'
 
 const emit = defineEmits(['changed'])
 const token = () => authState.accessToken
@@ -50,6 +51,11 @@ async function saveSize() {
   } finally {
     saving.value = false
   }
+}
+
+function onGraceSaved(res) {
+  if (res) settings.value = res
+  setTimeout(load, 2500)
 }
 
 async function saveMap() {
@@ -98,6 +104,10 @@ async function saveMap() {
           <button v-if="canManage" class="adm-btn adm-btn--acc" :disabled="saving || !sizeDirty" @click="saveSize">{{ saving ? 'Сохраняю…' : 'Сохранить' }}</button>
         </div>
       </div>
+    </div>
+
+    <div class="adm-card adm-card--pad">
+      <RoyaleGrace :value="settings" @saved="onGraceSaved" />
     </div>
 
     <div class="adm-card adm-card--pad rt-card">

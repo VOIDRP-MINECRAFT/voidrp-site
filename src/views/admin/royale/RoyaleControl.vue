@@ -8,6 +8,7 @@ import { toastError, toastSuccess } from '../../../services/toast'
 import { confirmDialog } from '../../../composables/useConfirm'
 import { royaleCommand } from '../../../services/royaleAdminApi'
 import { TEAM_COLORS, TEAM_KEYS, TEAM_TITLES, clock, feedLine, hearts, plural } from './royaleUi'
+import RoyaleGrace from './RoyaleGrace.vue'
 
 const props = defineProps({ live: { type: Object, default: null } })
 const emit = defineEmits(['refresh'])
@@ -204,6 +205,10 @@ const projector = computed(() => `/royale/live`)
       </div>
     </div>
 
+    <div v-if="!offline && canControl" class="adm-card adm-card--pad rc-grace">
+      <RoyaleGrace :value="live" compact @saved="$emit('refresh')" />
+    </div>
+
     <div v-if="offline" class="adm-card adm-card--pad adm-empty">
       <div class="adm-empty__title">Сервер Royale не отвечает</div>
       <div class="adm-empty__sub">Состояние приходит с сервера раз в 2 секунды. Если сервер включён, подождите немного — или проверьте его в «Серверах».</div>
@@ -360,6 +365,7 @@ const projector = computed(() => `/royale/live`)
 .rc-links { display: flex; gap: 8px; flex-wrap: wrap; border-top: 1px solid var(--adm-line); padding-top: 12px; }
 .rc-note { font-size: .82rem; color: var(--adm-mut); }
 .rc-note--sm { font-size: .74rem; color: var(--adm-dim); margin-top: 10px; }
+.rc-grace { padding-top: 14px; padding-bottom: 14px; }
 .rc-grid { display: grid; grid-template-columns: minmax(0, 2fr) minmax(0, 1fr); gap: 14px; align-items: start; }
 @media (max-width: 1000px) { .rc-grid { grid-template-columns: 1fr; } }
 .rc-dim { color: var(--adm-dim); font-size: .76rem; }

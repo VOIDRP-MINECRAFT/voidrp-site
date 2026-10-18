@@ -24,6 +24,15 @@ export const clock = (s) => {
 }
 /** Damage is kept in half-hearts by the server: shown in hearts. */
 export const hearts = (d) => (Math.round(((d || 0) / 2) * 10) / 10).toLocaleString('ru-RU')
+/** Seconds → «9 мин» / «1 мин 30 с» / «45 с». */
+export function mmss(sec) {
+  const s = Math.max(0, Math.round(sec || 0))
+  const m = Math.floor(s / 60)
+  const r = s % 60
+  if (!m) return `${r} с`
+  return r ? `${m} мин ${r} с` : `${m} мин`
+}
+
 export const moscowDate = (iso) => new Date(iso).toLocaleDateString('sv-SE', { timeZone: 'Europe/Moscow' })
 export const plural = (n, one, few, many) => {
   const a = Math.abs(n) % 100
