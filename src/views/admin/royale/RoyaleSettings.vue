@@ -16,6 +16,9 @@ const teamSize = ref(5)
 const saving = ref(false)
 const mapChoice = ref('')
 const savingMap = ref(false)
+const mode = ref('event')
+const minPlayers = ref(2)
+const savingMode = ref(false)
 
 async function load() {
   try {
@@ -25,6 +28,8 @@ async function load() {
     if (first) {
       teamSize.value = res.team_size ?? res.current ?? 5
       mapChoice.value = res.map || ''
+      mode.value = res.mode || 'event'
+      minPlayers.value = res.min_players ?? 2
     }
   } catch (e) {
     toastError(e.message || 'Не удалось загрузить настройки')
@@ -58,6 +63,24 @@ function onGraceSaved(res) {
   setTimeout(load, 2500)
 }
 
+const modeDirty = computed(() => settings.value && (mode.value !== (settings.value.mode || 'event') || (mode.value === 'public' && Number(minPlayers.value) !== (settings.value.min_players ?? 2))))
+
+async function saveMode() {
+  savingMode.value = true
+  try {
+    const body = { mode: mode.value }
+    if (mode.value === 'public') body.min_players = Math.min(40, Math.max(2, Number(minPlayers.value) || 2))
+    settings.value = await royaleSaveSettings(token(), body)
+    toastSuccess(mode.value === 'public' ? 'Общий режим — игры запускаются сами' : 'Режим ивента — запускает ведущий')
+    emit('changed')
+    setTimeout(load, 2500)
+  } catch (e) {
+    toastError(e.message || 'Не удалось сохранить')
+  } finally {
+    savingMode.value = false
+  }
+}
+
 async function saveMap() {
   if (!mapChoice.value) return
   savingMap.value = true
@@ -76,6 +99,37 @@ async function saveMap() {
 <template>
   <div v-if="!settings" class="adm-skel" style="height: 220px" />
   <div v-else class="rt">
+    <div class="adm-card adm-card--pad rt-card">
+      <div class="rt-text">
+        <div class="rt-h">Режим сервера</div>
+        <div class="rt-sub">
+          <b>Ивент</b> — игры запускает ведущий с пульта в игре (нужен код ведущего); игроки заходят как есть. Подходит
+          для мероприятий, где всем управляет человек.<br>
+          <b>Общий</b> — игра стартует сама, когда в лобби набралось достаточно игроков на две команды. Для постоянного
+          публичного сервера.
+        </div>
+        <div class="rt-state">
+          <template v-if="!settings.online"><span class="adm-dot" /> Сервер не в сети — режим применится при запуске.</template>
+          <template v-else-if="settings.current_mode === mode && !modeDirty"><span class="adm-dot adm-dot--ok" /> Сейчас на сервере: {{ mode === 'public' ? 'общий' : 'ивент' }}.</template>
+          <template v-else><span class="adm-dot adm-dot--warn" /> Сервер применит за пару секунд.</template>
+        </div>
+      </div>
+      <div class="rt-ctl">
+        <div class="rt-presets">
+          <button class="rt-preset rt-mode" :class="{ 'rt-preset--on': mode === 'event' }" :disabled="!canManage" @click="mode = 'event'">Ивент</button>
+          <button class="rt-preset rt-mode" :class="{ 'rt-preset--on': mode === 'public' }" :disabled="!canManage" @click="mode = 'public'">Общий</button>
+        </div>
+        <div v-if="mode === 'public'" class="rt-stepper">
+          <span class="rt-sub" style="margin:0">Запуск от</span>
+          <button class="adm-btn adm-btn--sm" :disabled="!canManage || minPlayers <= 2" @click="minPlayers = Math.max(2, minPlayers - 1)">−</button>
+          <input v-model.number="minPlayers" class="adm-input rt-size adm-num" type="number" min="2" max="40" :disabled="!canManage" />
+          <button class="adm-btn adm-btn--sm" :disabled="!canManage || minPlayers >= 40" @click="minPlayers = Math.min(40, minPlayers + 1)">+</button>
+          <span class="rt-sub" style="margin:0">игроков</span>
+        </div>
+        <button v-if="canManage" class="adm-btn adm-btn--acc" :disabled="savingMode || !modeDirty" @click="saveMode">{{ savingMode ? 'Сохраняю…' : 'Сохранить' }}</button>
+      </div>
+    </div>
+
     <div class="adm-card adm-card--pad rt-card">
       <div class="rt-text">
         <div class="rt-h">Игроков в команде</div>
@@ -152,4 +206,5 @@ async function saveMap() {
 .rt-stepper { display: flex; gap: 6px; align-items: center; }
 .rt-size { width: 4.5rem; text-align: center; font-weight: 800; }
 .rt-map { min-width: 180px; }
+.rt-mode { width: auto; padding: 0 16px; }
 </style>
