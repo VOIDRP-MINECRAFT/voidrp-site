@@ -74,6 +74,17 @@ export default {
     external: 'Внешний',
     connectExternal: 'Скопировать IP',
   },
+  royaleBoard: {
+    title: 'Лидеры — Королевская битва',
+    sub: 'За всё время · сыграно игр: {n}',
+    player: 'Игрок',
+    points: 'Очки',
+    pts: 'очков',
+    games: 'игр',
+    formula: 'Очки: за место команды {place}, за убийство {kill}.',
+    empty: 'Пока не сыграно ни одной игры.',
+    failed: 'Не удалось загрузить лидеров.',
+  },
   royaleLive: {
     day: {
       title: 'Итоги дня',

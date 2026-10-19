@@ -74,6 +74,17 @@ export default {
     external: 'External',
     connectExternal: 'Copy IP',
   },
+  royaleBoard: {
+    title: 'Leaderboard — Battle Royale',
+    sub: 'All-time · games played: {n}',
+    player: 'Player',
+    points: 'Points',
+    pts: 'pts',
+    games: 'games',
+    formula: 'Points: for the team place {place}, per kill {kill}.',
+    empty: 'No games played yet.',
+    failed: 'Could not load the leaderboard.',
+  },
   royaleLive: {
     day: {
       title: 'Today',

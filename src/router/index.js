@@ -14,6 +14,7 @@ const routes = [
   { path: '/', name: 'home', component: () => import('../views/HomeView.vue'), meta: { title: 'Главная' } },
   { path: '/print/royale/day/:date', name: 'royale-day-certificates', component: () => import('../views/admin/RoyaleCertificatesView.vue'), meta: { title: 'Грамоты за день', requiresAuth: true, requiresAdmin: true, permission: 'royale.view', hidePublicShell: true } },
   { path: '/print/royale/:id', name: 'royale-certificates', component: () => import('../views/admin/RoyaleCertificatesView.vue'), meta: { title: 'Грамоты', requiresAuth: true, requiresAdmin: true, permission: 'royale.view', hidePublicShell: true } },
+  { path: '/royale/leaderboard', name: 'royale-leaderboard', component: () => import('../views/RoyaleLeaderboardView.vue'), meta: { title: 'Лидеры — Королевская битва', hidePublicShell: true } },
   { path: '/royale/host', name: 'royale-host', component: () => import('../views/RoyaleHostView.vue'), meta: { title: 'Шпаргалка ведущего', hidePublicShell: true } },
   { path: '/royale/live', name: 'royale-live', component: () => import('../views/RoyaleLiveView.vue'), meta: { title: 'Королевская битва', hidePublicShell: true } },
   { path: '/status/:slug', name: 'server-status', component: () => import('../views/StatusView.vue'), meta: { title: 'Статус сервера', hidePublicShell: true } },
