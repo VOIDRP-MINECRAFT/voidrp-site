@@ -10,6 +10,9 @@ import RoyaleControl from './royale/RoyaleControl.vue'
 import RoyaleMatches from './royale/RoyaleMatches.vue'
 import RoyaleStandings from './royale/RoyaleStandings.vue'
 import RoyaleSettings from './royale/RoyaleSettings.vue'
+import RoyaleDashboard from './royale/RoyaleDashboard.vue'
+import RoyalePlayers from './royale/RoyalePlayers.vue'
+import RoyaleAnalytics from './royale/RoyaleAnalytics.vue'
 import { clock } from './royale/royaleUi'
 
 const route = useRoute()
@@ -17,13 +20,16 @@ const router = useRouter()
 const token = () => authState.accessToken
 
 const TABS = [
+  { key: 'overview', label: 'Обзор' },
   { key: 'control', label: 'Пульт' },
+  { key: 'players', label: 'Игроки' },
+  { key: 'analytics', label: 'Аналитика' },
   { key: 'matches', label: 'Матчи' },
   { key: 'day', label: 'Итоги дня' },
   { key: 'all', label: 'Все игры' },
   { key: 'settings', label: 'Настройки' },
 ]
-const tab = ref(TABS.some((t) => t.key === route.query.tab) ? route.query.tab : 'control')
+const tab = ref(TABS.some((t) => t.key === route.query.tab) ? route.query.tab : 'overview')
 watch(tab, (t) => router.replace({ query: { ...route.query, tab: t } }))
 
 // ── Matches (every 30 s) ─────────────────────────────────────────────────
@@ -121,7 +127,10 @@ async function exportAll() {
       </div>
     </div>
 
-    <RoyaleControl v-if="tab === 'control'" :live="live" @refresh="loadLive" />
+    <RoyaleDashboard v-if="tab === 'overview'" />
+    <RoyalePlayers v-else-if="tab === 'players'" />
+    <RoyaleAnalytics v-else-if="tab === 'analytics'" />
+    <RoyaleControl v-else-if="tab === 'control'" :live="live" @refresh="loadLive" />
     <RoyaleMatches v-else-if="tab === 'matches'" :matches="matches" :loading="loading" @reload="loadMatches" />
     <RoyaleStandings v-else-if="tab === 'day'" mode="day" :matches="matches" />
     <RoyaleStandings v-else-if="tab === 'all'" mode="all" :matches="matches" />

@@ -9,6 +9,19 @@ export const royaleMatches = (token, includeAborted = true) =>
 
 export const royaleMatch = (token, id) => apiRequest(`/admin/royale/${id}`, { method: 'GET', ...ah(token) })
 
+/** Dashboard: live state, headline numbers, recent games, top players. */
+export const royaleOverview = (token) => apiRequest('/admin/royale/overview', { method: 'GET', toast: false, ...ah(token) })
+/** Analytics: games/players per day, maps, team sizes, durations. */
+export const royaleAnalytics = (token, days = 30) => apiRequest(`/admin/royale/analytics?days=${days}`, { method: 'GET', toast: false, ...ah(token) })
+/** Players list with aggregate stats (searchable, sortable). */
+export const royalePlayers = (token, { q = '', sort = 'points', limit = 100 } = {}) =>
+  apiRequest(`/admin/royale/players?q=${encodeURIComponent(q)}&sort=${sort}&limit=${limit}`, { method: 'GET', toast: false, ...ah(token) })
+/** One player: profile, match history, Void Coin balance. */
+export const royalePlayer = (token, nick) => apiRequest(`/admin/royale/player/${encodeURIComponent(nick)}`, { method: 'GET', toast: false, ...ah(token) })
+/** Moderate a player: kick / ban / unban / grant_coins. */
+export const royalePlayerAction = (token, nick, body) =>
+  apiRequest(`/admin/royale/player/${encodeURIComponent(nick)}/action`, { method: 'POST', body: JSON.stringify(body), ...ah(token) })
+
 /** Game settings set here (the team size) and what the server runs now; the plugin takes them within ~2 s. */
 export const royaleSettings = (token) => apiRequest('/admin/royale/settings', { method: 'GET', ...ah(token) })
 export const royaleSaveSettings = (token, body) =>
