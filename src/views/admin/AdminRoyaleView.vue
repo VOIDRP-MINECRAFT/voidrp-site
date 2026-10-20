@@ -112,7 +112,7 @@ async function exportAll() {
           Королевская битва
           <span v-if="pill" class="ry-pill" :class="pill.tone && `ry-pill--${pill.tone}`"><span class="adm-dot" :class="pill.tone && `adm-dot--${pill.tone}`" />{{ pill.text }}</span>
         </h1>
-        <p class="adm-sub">Ведите игру прямо отсюда, смотрите результаты каждого матча и итоги дня, выгружайте таблицы для учебной части.</p>
+        <p class="adm-sub">Центр управления мини-игрой: живое состояние, игроки и их статистика, аналитика, награды и настройки — всё в одном месте.</p>
       </div>
       <div class="adm-head-actions">
         <button class="adm-btn" :disabled="!finished" @click="exportAll">⬇ Все матчи в Excel</button>

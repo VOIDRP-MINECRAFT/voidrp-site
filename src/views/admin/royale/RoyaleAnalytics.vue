@@ -47,8 +47,8 @@ function render() {
     charts.push(new Chart(dayCanvas.value, {
       type: 'bar',
       data: { labels, datasets: [
-        { label: 'Игры', data: d.map((x) => x.games), backgroundColor: a + 'cc', borderRadius: 4, order: 2 },
-        { label: 'Игроки', data: d.map((x) => x.players), type: 'line', borderColor: '#ffb84d', backgroundColor: '#ffb84d22', borderWidth: 2, pointRadius: 0, tension: 0.4, yAxisID: 'y2', order: 1 },
+        { label: 'Игры', data: d.map((x) => x.games), backgroundColor: '#ff6b3dcc', borderColor: '#ff6b3d', borderWidth: 1, borderRadius: 5, order: 2 },
+        { label: 'Игроки', data: d.map((x) => x.players), type: 'line', borderColor: '#a78bfa', backgroundColor: '#a78bfa22', borderWidth: 2, pointRadius: 0, tension: 0.4, yAxisID: 'y2', order: 1, fill: true },
       ] },
       options: { ...base, plugins: { legend: { display: true, labels: { color: tick } } },
         scales: { ...base.scales, y2: { position: 'right', grid: { display: false }, ticks: { color: '#ffb84d' }, beginAtZero: true } } },
@@ -60,7 +60,7 @@ function render() {
     charts.push(new Chart(mapCanvas.value, {
       type: 'doughnut',
       data: { labels: m.map((x) => x.name), datasets: [{ data: m.map((x) => x.count),
-        backgroundColor: [a, '#ff6b3d', '#ffb84d', '#4ade80', '#38bdf8', '#a78bfa', '#f472b6'] }] },
+        backgroundColor: ['#ff6b3d', '#a78bfa', '#4ade80', '#38bdf8', '#ffb84d', '#f472b6', '#2dd4bf'], borderWidth: 0 }] },
       options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'right', labels: { color: tick, boxWidth: 12 } } } },
     }))
   }

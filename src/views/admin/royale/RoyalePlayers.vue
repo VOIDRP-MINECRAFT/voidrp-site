@@ -47,7 +47,9 @@ async function act(action, amount) {
 }
 const SORTS = [['points', 'очки'], ['wins', 'победы'], ['kills', 'киллы'], ['games', 'игры'], ['name', 'ник']]
 const pct = (p) => Math.round((p.win_rate || (p.games ? p.wins / p.games : 0)) * 100)
-const place = (n) => (n === 1 ? '🥇' : n === 2 ? '🥈' : n === 3 ? '🥉' : n ? `#${n}` : '—')
+const place = (n) => (n ? `#${n}` : '—')
+const head = (nick) => `/api/v1/public/player-head/${encodeURIComponent(nick)}`
+const headFallback = (e, nick) => { if (!e.target.dataset.fb) { e.target.dataset.fb = 1; e.target.src = `https://mc-heads.net/avatar/${encodeURIComponent(nick)}/40` } }
 </script>
 
 <template>
@@ -67,7 +69,7 @@ const place = (n) => (n === 1 ? '🥇' : n === 2 ? '🥈' : n === 3 ? '🥉' : n
         <tbody>
           <tr v-for="p in list" :key="p.name" class="rp-row" @click="open(p.name)">
             <td class="rp-dim">{{ p.rank }}</td>
-            <td class="rp-name">{{ p.name }}</td>
+            <td class="rp-name"><img class="rp-head" :src="head(p.name)" alt="" @error="headFallback($event, p.name)"> {{ p.name }}</td>
             <td><span class="rp-lvl">{{ p.level }}</span></td>
             <td>{{ p.games }}</td>
             <td>{{ p.wins }} <span class="rp-dim">({{ pct(p) }}%)</span></td>
@@ -84,7 +86,10 @@ const place = (n) => (n === 1 ? '🥇' : n === 2 ? '🥈' : n === 3 ? '🥉' : n
     <div v-if="sel" class="rp-overlay" @click.self="close">
       <div class="rp-drawer adm-card">
         <div class="rp-dh">
-          <div><span class="rp-dname">{{ sel.name }}</span> <span v-if="sel.level" class="rp-lvl">ур.{{ sel.level }}</span></div>
+          <div class="rp-dh-id">
+            <img class="rp-dhead" :src="head(sel.name)" alt="" @error="headFallback($event, sel.name)">
+            <div><span class="rp-dname">{{ sel.name }}</span> <span v-if="sel.level" class="rp-lvl">ур.{{ sel.level }}</span></div>
+          </div>
           <button class="adm-btn adm-btn--sm" @click="close">✕</button>
         </div>
         <div v-if="selLoading" class="adm-skel" style="height: 200px" />
@@ -124,10 +129,10 @@ const place = (n) => (n === 1 ? '🥇' : n === 2 ? '🥈' : n === 3 ? '🥉' : n
             <table class="rp-table rp-table--sm">
               <tbody>
                 <tr v-for="(m, i) in sel.history" :key="i">
-                  <td>{{ place(m.placement) }}</td>
-                  <td class="rp-name">{{ m.map_title || m.map }}</td>
+                  <td><span class="rp-place" :class="{ 'rp-place--win': m.placement === 1 }">{{ place(m.placement) }}</span></td>
+                  <td class="rp-hmap">{{ m.map_title || m.map }}</td>
                   <td class="rp-dim">{{ m.team_title }}</td>
-                  <td>{{ m.kills }}⚔</td>
+                  <td class="rp-k">{{ m.kills }} уб.</td>
                   <td class="rp-dim">{{ m.duration_seconds ? clock(m.duration_seconds) : '' }}</td>
                 </tr>
               </tbody>
@@ -149,7 +154,11 @@ const place = (n) => (n === 1 ? '🥇' : n === 2 ? '🥈' : n === 3 ? '🥉' : n
 .rp-table td { padding: 7px 10px; border-bottom: 1px solid var(--adm-border, #22222a); }
 .rp-row { cursor: pointer; }
 .rp-row:hover { background: rgba(124,58,237,.08); }
-.rp-name { font-weight: 600; }
+.rp-name { font-weight: 600; white-space: nowrap; }
+td.rp-name { display: flex; align-items: center; gap: 8px; }
+.rp-head { width: 24px; height: 24px; border-radius: 5px; image-rendering: pixelated; background: rgba(255,255,255,.05); flex: none; }
+.rp-dh-id { display: flex; align-items: center; gap: 10px; }
+.rp-dhead { width: 42px; height: 42px; border-radius: 8px; image-rendering: pixelated; background: rgba(255,255,255,.05); }
 .rp-lvl { display: inline-block; min-width: 1.4rem; text-align: center; padding: 1px 6px; border-radius: 6px; background: rgba(167,139,250,.18); color: #a78bfa; font-weight: 800; font-size: .78rem; }
 .rp-dim { color: var(--adm-muted, #9aa); }
 .rp-empty { text-align: center; color: var(--adm-muted, #9aa); padding: 18px; }
@@ -166,4 +175,8 @@ const place = (n) => (n === 1 ? '🥇' : n === 2 ? '🥈' : n === 3 ? '🥉' : n
 .adm-btn--danger { background: #b4232a; color: #fff; }
 .rp-hist { margin-top: 12px; }
 .rp-table--sm td { padding: 5px 6px; font-size: .82rem; }
+.rp-place { font-weight: 700; color: var(--adm-muted, #9aa); }
+.rp-place--win { color: #ffd36b; }
+.rp-hmap { font-weight: 600; }
+.rp-k { color: #ff9e3d; font-weight: 600; white-space: nowrap; }
 </style>
