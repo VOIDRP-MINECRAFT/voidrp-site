@@ -19,6 +19,12 @@ const savingMap = ref(false)
 const mode = ref('event')
 const minPlayers = ref(2)
 const savingMode = ref(false)
+const rewardsEnabled = ref(false)
+const coinsWin = ref(0)
+const coinsKill = ref(0)
+const coins2 = ref(0)
+const coins3 = ref(0)
+const savingRewards = ref(false)
 
 async function load() {
   try {
@@ -30,6 +36,12 @@ async function load() {
       mapChoice.value = res.map || ''
       mode.value = res.mode || 'event'
       minPlayers.value = res.min_players ?? 2
+      const rw = res.rewards || {}
+      rewardsEnabled.value = !!rw.enabled
+      coinsWin.value = rw.coins_win ?? 0
+      coinsKill.value = rw.coins_kill ?? 0
+      coins2.value = (rw.coins_placement || {})['2'] ?? 0
+      coins3.value = (rw.coins_placement || {})['3'] ?? 0
     }
   } catch (e) {
     toastError(e.message || 'Не удалось загрузить настройки')
@@ -78,6 +90,27 @@ async function saveMode() {
     toastError(e.message || 'Не удалось сохранить')
   } finally {
     savingMode.value = false
+  }
+}
+
+async function saveRewards() {
+  savingRewards.value = true
+  try {
+    const n = (v) => Math.min(100000, Math.max(0, Number(v) || 0))
+    const rewards = {
+      enabled: !!rewardsEnabled.value,
+      coins_win: n(coinsWin.value),
+      coins_kill: n(coinsKill.value),
+      coins_placement: { 2: n(coins2.value), 3: n(coins3.value) },
+    }
+    settings.value = await royaleSaveSettings(token(), { rewards })
+    toastSuccess('Награды сохранены — сервер применит за пару секунд')
+    emit('changed')
+    setTimeout(load, 2500)
+  } catch (e) {
+    toastError(e.message || 'Не удалось сохранить')
+  } finally {
+    savingRewards.value = false
   }
 }
 
@@ -166,6 +199,30 @@ async function saveMap() {
 
     <div class="adm-card adm-card--pad rt-card">
       <div class="rt-text">
+        <div class="rt-h">Награды Void Coins</div>
+        <div class="rt-sub">
+          Начисляются в конце игры <b>только в общем режиме</b>. Void Coins — валюта аккаунта, переживает выход игрока.
+          Нужен аккаунт (игрок зашёл через портал Origins). 0 — награда выключена.
+        </div>
+        <div class="rt-state">
+          <span class="adm-dot" :class="{ 'adm-dot--ok': rewardsEnabled }" />
+          {{ rewardsEnabled ? 'Награды включены' : 'Награды выключены' }}
+        </div>
+      </div>
+      <div class="rt-ctl">
+        <label class="rt-check"><input v-model="rewardsEnabled" type="checkbox" :disabled="!canManage"> Включить награды</label>
+        <div class="rt-rewards">
+          <label>Победа<input v-model.number="coinsWin" type="number" min="0" class="adm-input adm-num" :disabled="!canManage"></label>
+          <label>За килл<input v-model.number="coinsKill" type="number" min="0" class="adm-input adm-num" :disabled="!canManage"></label>
+          <label>2 место<input v-model.number="coins2" type="number" min="0" class="adm-input adm-num" :disabled="!canManage"></label>
+          <label>3 место<input v-model.number="coins3" type="number" min="0" class="adm-input adm-num" :disabled="!canManage"></label>
+        </div>
+        <button v-if="canManage" class="adm-btn adm-btn--acc" :disabled="savingRewards" @click="saveRewards">{{ savingRewards ? 'Сохраняю…' : 'Сохранить' }}</button>
+      </div>
+    </div>
+
+    <div class="adm-card adm-card--pad rt-card">
+      <div class="rt-text">
         <div class="rt-h">Карта следующей игры</div>
         <div class="rt-sub">Арена копируется заново к каждой игре. Смена карты действует со следующего старта.</div>
         <div class="rt-state">
@@ -207,4 +264,8 @@ async function saveMap() {
 .rt-size { width: 4.5rem; text-align: center; font-weight: 800; }
 .rt-map { min-width: 180px; }
 .rt-mode { width: auto; padding: 0 16px; }
+.rt-check { display: flex; gap: 8px; align-items: center; font-weight: 600; cursor: pointer; }
+.rt-rewards { display: flex; flex-wrap: wrap; gap: 10px; }
+.rt-rewards label { display: flex; flex-direction: column; gap: 3px; font-size: 0.8rem; color: var(--adm-muted, #9aa); }
+.rt-rewards .adm-num { width: 5rem; text-align: center; font-weight: 800; }
 </style>
