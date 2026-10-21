@@ -278,7 +278,11 @@ async function removeAborted() {
 </template>
 
 <style scoped>
-.rm-grid { display: grid; grid-template-columns: 290px minmax(0, 1fr); gap: 14px; align-items: start; }
+/* Premium pass: deep-black rounded cards, gradient primary buttons. */
+.rm-grid .adm-card, :deep(.adm-card) { background: #0e0e13; border: 1px solid rgba(255,255,255,.07); border-radius: 20px; }
+:deep(.adm-btn) { border-radius: 11px; }
+:deep(.adm-btn--acc) { border-radius: 999px; border-color: transparent; background: linear-gradient(135deg, #ff8a3d, #ff5a9e); color: #1a0f08; font-weight: 700; }
+.rm-grid { display: grid; grid-template-columns: 300px minmax(0, 1fr); gap: 16px; align-items: start; }
 @media (max-width: 900px) { .rm-grid { grid-template-columns: 1fr; } }
 .rm-list { display: flex; flex-direction: column; padding: 8px; gap: 4px; max-height: 78vh; overflow: auto; position: sticky; top: 12px; }
 @media (max-width: 900px) { .rm-list { position: static; max-height: 40vh; } }

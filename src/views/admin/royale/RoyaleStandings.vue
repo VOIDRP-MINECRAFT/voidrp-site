@@ -188,7 +188,11 @@ const totals = computed(() => {
 </template>
 
 <style scoped>
-.rs { display: flex; flex-direction: column; gap: 14px; }
+/* Premium pass: deep-black rounded cards, gradient primary buttons. */
+.rs .adm-card { background: #0e0e13; border: 1px solid rgba(255,255,255,.07); border-radius: 20px; }
+.rs :deep(.adm-btn) { border-radius: 11px; }
+.rs :deep(.adm-btn--acc) { border-radius: 999px; border-color: transparent; background: linear-gradient(135deg, #ff8a3d, #ff5a9e); color: #1a0f08; font-weight: 700; }
+.rs { display: flex; flex-direction: column; gap: 16px; }
 .rs-head { display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap; }
 .rs-h { font-weight: 800; font-size: 1.05rem; color: var(--adm-text); }
 .rs-sub { font-size: 12px; color: var(--adm-mut); margin-top: 3px; max-width: 70ch; }

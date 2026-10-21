@@ -403,8 +403,13 @@ const readyFails = computed(() => (readiness.value?.checks || []).filter((c) => 
 </template>
 
 <style scoped>
-.rc { display: flex; flex-direction: column; gap: 14px; }
-.rc-hero { display: flex; justify-content: space-between; gap: 18px; padding: 18px 20px; flex-wrap: wrap; position: relative; overflow: hidden; }
+.rc { display: flex; flex-direction: column; gap: 16px; }
+/* Premium pass: deep-black rounded cards, gradient primary buttons (matches Обзор/Игроки). */
+.rc .adm-card { background: #0e0e13; border: 1px solid rgba(255,255,255,.07); border-radius: 20px; }
+.rc :deep(.adm-btn) { border-radius: 11px; }
+.rc :deep(.adm-btn--acc) { border-radius: 999px; border-color: transparent; background: linear-gradient(135deg, #ff8a3d, #ff5a9e); color: #1a0f08; font-weight: 700; }
+.rc :deep(.adm-btn--acc:hover:not(:disabled)) { filter: brightness(1.07); }
+.rc-hero { display: flex; justify-content: space-between; gap: 18px; padding: 22px 24px; flex-wrap: wrap; position: relative; overflow: hidden; border-radius: 22px; }
 .rc-hero::before { content: ''; position: absolute; inset: 0; background: radial-gradient(120% 140% at 0% 0%, var(--rc-glow, transparent), transparent 55%); pointer-events: none; }
 .rc-hero--ok { --rc-glow: rgba(52, 211, 153, .10); --rc-dot: var(--adm-ok); }
 .rc-hero--live { --rc-glow: rgba(248, 113, 113, .14); --rc-dot: var(--adm-err); border-color: rgba(248, 113, 113, .35); }
@@ -425,7 +430,7 @@ const readyFails = computed(() => (readiness.value?.checks || []).filter((c) => 
 .rc-chip--dim { color: var(--adm-dim); }
 .rc-hero-stats { position: relative; display: grid; grid-template-columns: repeat(4, minmax(84px, 1fr)); gap: 8px; align-self: center; }
 @media (max-width: 640px) { .rc-hero-stats { grid-template-columns: repeat(2, 1fr); width: 100%; } }
-.rc-stat { display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 10px 12px; border-radius: 12px; background: rgba(8, 12, 22, .55); border: 1px solid var(--adm-line); }
+.rc-stat { display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 12px 14px; border-radius: 14px; background: linear-gradient(180deg, rgba(255,255,255,.04), rgba(255,255,255,.01)); border: 1px solid rgba(255,255,255,.07); }
 .rc-stat b { font-size: 1.35rem; font-weight: 800; color: var(--adm-text); }
 .rc-stat span { font-size: .68rem; color: var(--adm-dim); font-weight: 700; text-align: center; }
 .rc-on { color: var(--adm-ok) !important; }
