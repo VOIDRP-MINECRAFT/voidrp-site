@@ -81,26 +81,26 @@ function render() {
   <div v-else class="ra">
     <div class="ra-bar">
       <div class="ra-period">
-        <button v-for="d in [7, 30, 90]" :key="d" class="adm-btn adm-btn--sm" :class="{ 'adm-btn--acc': days === d }" @click="setDays(d)">{{ d }} дней</button>
+        <button v-for="d in [7, 30, 90]" :key="d" class="ra-pill" :class="{ 'ra-pill--on': days === d }" @click="setDays(d)">{{ d }} дней</button>
       </div>
       <div class="ra-kpis">
-        <span>Игр: <b>{{ data.games }}</b></span>
-        <span>Средняя игра: <b>{{ data.duration_avg ? clock(data.duration_avg) : '—' }}</b></span>
-        <span>Самая долгая: <b>{{ data.duration_max ? clock(data.duration_max) : '—' }}</b></span>
+        <span class="ra-kpi"><b>{{ data.games }}</b> игр</span>
+        <span class="ra-kpi"><b>{{ data.duration_avg ? clock(data.duration_avg) : '—' }}</b> ср. игра</span>
+        <span class="ra-kpi"><b>{{ data.duration_max ? clock(data.duration_max) : '—' }}</b> макс.</span>
       </div>
     </div>
 
-    <div class="adm-card adm-card--pad">
+    <div class="ra-card">
       <div class="ra-h">Игры и игроки по дням</div>
       <div class="ra-chart"><canvas ref="dayCanvas" /></div>
     </div>
 
     <div class="ra-cols">
-      <div class="adm-card adm-card--pad">
+      <div class="ra-card">
         <div class="ra-h">Популярность карт</div>
         <div class="ra-chart ra-chart--sm"><canvas ref="mapCanvas" /></div>
       </div>
-      <div class="adm-card adm-card--pad">
+      <div class="ra-card">
         <div class="ra-h">Размер команд</div>
         <div class="ra-chart ra-chart--sm"><canvas ref="teamCanvas" /></div>
       </div>
@@ -109,13 +109,20 @@ function render() {
 </template>
 
 <style scoped>
-.ra { display: flex; flex-direction: column; gap: 14px; }
-.ra-bar { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px; }
-.ra-period { display: flex; gap: 4px; }
-.ra-kpis { display: flex; gap: 16px; flex-wrap: wrap; color: var(--adm-muted, #9aa); font-size: .9rem; }
-.ra-h { font-weight: 800; margin-bottom: 10px; }
+.ra { display: flex; flex-direction: column; gap: 16px; }
+.ra-bar { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px; }
+.ra-period { display: flex; gap: 6px; }
+.ra-pill { padding: 7px 15px; border-radius: 999px; font-size: .85rem; font-weight: 600; cursor: pointer;
+  border: 1px solid rgba(255,255,255,.08); background: rgba(255,255,255,.03); color: #b8b8c2; transition: all .12s; }
+.ra-pill:hover { background: rgba(255,255,255,.08); }
+.ra-pill--on { border-color: transparent; color: #1a0f08; background: linear-gradient(135deg, #ff8a3d, #ff5a9e); }
+.ra-kpis { display: flex; gap: 10px; flex-wrap: wrap; }
+.ra-kpi { font-size: .85rem; color: #8a8a96; padding: 6px 14px; border-radius: 999px; background: rgba(255,255,255,.04); border: 1px solid rgba(255,255,255,.06); }
+.ra-kpi b { color: #fff; font-weight: 800; }
+.ra-card { border-radius: 20px; border: 1px solid rgba(255,255,255,.07); background: #0e0e13; padding: 20px 22px; }
+.ra-h { font-weight: 800; font-size: 1.05rem; margin-bottom: 14px; }
 .ra-chart { height: 300px; }
 .ra-chart--sm { height: 240px; }
-.ra-cols { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+.ra-cols { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
 @media (max-width: 760px) { .ra-cols { grid-template-columns: 1fr; } }
 </style>
