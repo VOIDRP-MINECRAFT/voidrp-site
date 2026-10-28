@@ -45,3 +45,8 @@ export async function launcherGetHistory(token) {
 export async function launcherGetCrashStats(token) {
   return apiRequest('/admin/launcher/crash-stats', { method: 'GET', ...ah(token) })
 }
+
+// Launchers that could not start: sent by the player's launcher itself, no account needed.
+export async function launcherGetBootReports(token, limit = 50) {
+  return apiRequest(`/admin/launcher/boot-reports?limit=${limit}`, { method: 'GET', ...ah(token) })
+}

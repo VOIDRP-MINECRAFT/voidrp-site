@@ -14,6 +14,7 @@ import {
   launcherRollback,
   launcherGetHistory,
   launcherGetCrashStats,
+  launcherGetBootReports,
 } from '../../services/adminLauncherApi'
 
 const token = () => authState.accessToken
@@ -36,6 +37,9 @@ const savingNotes = ref(false)
 const rolling = ref(false)
 const history = ref([])
 const crashStats = ref(null)
+// Launchers that never got past the splash (core did not start): the player's launcher sends these.
+const bootReports = ref([])
+const openBootReport = ref(null)
 
 // Live job view (refreshed by the light /log poll while a build runs).
 const job = ref({ state: null, running: false, stage: '', percent: 0, error: null })
@@ -112,6 +116,12 @@ async function loadStatus() {
 
 async function loadHistory() {
   try { history.value = (await launcherGetHistory(token())).items || [] } catch { /* noop */ }
+}
+async function loadBootReports() {
+  try { bootReports.value = (await launcherGetBootReports(token())).items || [] } catch { /* noop */ }
+}
+function toggleBootReport(id) {
+  openBootReport.value = openBootReport.value === id ? null : id
 }
 async function loadCrashStats() {
   try { crashStats.value = await launcherGetCrashStats(token()) } catch { /* noop */ }
@@ -265,6 +275,7 @@ onMounted(async () => {
   await loadStatus()
   loadHistory()
   loadCrashStats()
+  loadBootReports()
   if (job.value.running) startPolling()
 })
 onBeforeUnmount(stopPolling)
@@ -486,6 +497,43 @@ onBeforeUnmount(stopPolling)
                     <span v-if="canViewCrashes" class="lnc-open">Открыть →</span>
                   </td>
                 </tr>
+              </tbody>
+            </table>
+          </div></div>
+        </div>
+      </div>
+
+      <!-- ── Неудачные запуски лаунчера ──────────────────── -->
+      <div class="adm-card lnc-card">
+        <div class="adm-card__head">
+          <h3 class="adm-card__title">Неудачные запуски</h3>
+          <span class="adm-badge adm-badge--info">последние {{ bootReports.length }}</span>
+        </div>
+        <div class="lnc-card__body">
+          <p class="lnc-hint" style="margin-top:0">
+            Лаунчер, у которого не поднялось ядро, сам присылает сюда ошибку, подсказку игроку и хвосты логов
+            (с 4.0.56). Имя пользователя Windows в путях скрыто.
+          </p>
+          <p v-if="!bootReports.length" class="adm-mut" style="margin:0.6rem 0 0">Пока ни одного.</p>
+          <div v-else class="adm-table-wrap" style="margin-top:0.6rem"><div class="adm-table-scroll">
+            <table class="adm-table">
+              <thead><tr><th>Когда</th><th>Версия</th><th>Система</th><th>Ошибка</th></tr></thead>
+              <tbody>
+                <template v-for="r in bootReports" :key="r.id">
+                  <tr class="is-clickable" @click="toggleBootReport(r.id)">
+                    <td class="lnc-nowrap adm-mut">{{ fmtDate(r.createdAt) }}</td>
+                    <td class="adm-mono">{{ r.launcherVersion || '—' }}</td>
+                    <td class="adm-mut">{{ r.osName || '—' }}</td>
+                    <td>{{ r.error }}</td>
+                  </tr>
+                  <tr v-if="openBootReport === r.id">
+                    <td colspan="4">
+                      <p v-if="r.hint" class="lnc-hint" style="margin-top:0">Подсказка игроку: {{ r.hint }}</p>
+                      <pre v-if="r.report" class="lnc-log">{{ r.report }}</pre>
+                      <pre v-if="r.mainLogTail" class="lnc-log">{{ r.mainLogTail }}</pre>
+                    </td>
+                  </tr>
+                </template>
               </tbody>
             </table>
           </div></div>
