@@ -1,6 +1,6 @@
 <script setup>
 import { computed, onMounted, onUnmounted } from 'vue'
-import { useRoute } from 'vue-router'
+import { useRoute, useRouter } from 'vue-router'
 import { useI18n } from 'vue-i18n'
 import AppFooter from './components/AppFooter.vue'
 import FeatureUnavailableNotice from './components/FeatureUnavailableNotice.vue'
@@ -15,16 +15,26 @@ import { serverState, activeServer } from './stores/serverStore'
 const { t } = useI18n()
 const auth = useAuthStore()
 const route = useRoute()
+const router = useRouter()
 
 // Remount the active view when the selected server changes so per-server
 // pages (nations, market, stats, leaderboards) refetch scoped to it.
 // The home page opts out: it watches the active server itself and animates
 // the switch (banner crossfade / accent theme) instead of a hard remount.
-const serverKey = computed(() =>
-  route.name === 'home' ? 'home' : (serverState.activeSlug || 'default'),
-)
+// So do the in-game pages: they pick their server from ?server= (or the main
+// server), not from the site's selection, and a remount there redraws the HUD.
+const serverKey = computed(() => {
+  if (route.name === 'home') return 'home'
+  if (route.path.startsWith('/game-ui/')) return String(route.name)
+  return serverState.activeSlug || 'default'
+})
 
-const hidePublicShell = computed(() => Boolean(route.meta?.hidePublicShell))
+// Until the first navigation resolves (the page's chunk is still loading) `route` is the empty
+// start location, and the site header, footer and cookie banner flashed over the in-game pages —
+// on the transparent HUD right over the game, on every open. Take the meta from the URL until then.
+const initialMeta = router.resolve(window.location.pathname + window.location.search).meta
+const hidePublicShell = computed(() =>
+  Boolean((route.matched.length ? route.meta : initialMeta)?.hidePublicShell))
 
 // Route-level feature gate: a page whose feature the ACTIVE server disables
 // (direct link, stale tab, server switch mid-page) shows a notice instead of
